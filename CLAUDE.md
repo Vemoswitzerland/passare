@@ -196,9 +196,20 @@ git push origin main
 3. **NIEMALS "kuratierte Redaktion" oder Broker-Sprache** — passare ist **Self-Service-Plattform**
 4. **Pricing muss IMMER stimmen:**
    - Verkäufer: CHF 290 / 890 / 1'890 einmalig
-   - Käufer: CHF 0 / 199/Monat (1'990/Jahr)
-5. **0% Erfolgsprovision** ist das zentrale USP — nie vergessen in der Kopie
+   - Käufer: CHF 0 (Basic) / CHF 49/M (Pro) / CHF 199/M (MAX)
+5. **0% Erfolgsprovision** ist das zentrale USP
 6. **Vierprachigkeit** (DE/FR/IT/EN) Pflicht ab Etappe 7
+7. **ADMIN-DASHBOARD ist Pflicht-Feature** — wird parallel zu jeder neuen Etappe mit-befüllt. Admin muss:
+   - Alle Inserate moderieren/approven/rejecten können
+   - Alle User verwalten (Rollen, Sperren, KYC-Status)
+   - Alle Stripe-Zahlungen + MAX-Abos einsehen
+   - Feature-Flags togglen
+   - Alle Content-Seiten editieren (Blog, NDA-Templates, AGB)
+   - Newsletter-Kampagnen versenden
+   - Support-Tickets beantworten
+   - Preise & Pakete konfigurieren
+   - Reference-Daten pflegen (Branchen, Kantone, Gründe)
+   - **Gesamte Plattform-Aktivität live sehen** (Activity-Feed: Anmeldungen, Inserate-Publikationen, NDAs, Zahlungen, Messaging, Logins, Datenraum-Zugriffe, Fehler) — gefiltert nach User/Zeitraum/Typ, exportierbar
 
 ---
 

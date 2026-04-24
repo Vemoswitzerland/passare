@@ -88,7 +88,8 @@ function Hero() {
           <div className="relative">
             <Reveal>
               <h1 className="font-serif-display text-[clamp(2.75rem,5vw,5rem)] text-navy font-light mb-6 tracking-[-0.025em] leading-[1.02]">
-                Ihre Firma. Ihr Verkauf<span className="text-bronze">.</span>
+                Ihre Firma<span className="text-bronze">.</span>{' '}
+                <span className="text-muted">Wir haben die Käufer<span className="text-bronze">.</span></span>
               </h1>
             </Reveal>
             <Reveal delay={0.1}>
