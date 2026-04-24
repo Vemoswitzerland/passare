@@ -84,7 +84,7 @@ function Hero() {
   return (
     <section className="relative overflow-hidden pt-16 md:pt-24 pb-20 md:pb-28">
       <Container size="wide">
-        <div className="grid lg:grid-cols-[1fr_1.15fr] gap-12 lg:gap-16 items-center">
+        <div className="grid lg:grid-cols-[1.35fr_1fr] gap-10 lg:gap-14 items-center">
           <div className="relative">
             <Reveal>
               <h1 className="font-serif-display text-[clamp(2.75rem,5vw,5rem)] text-navy font-light mb-6 tracking-[-0.025em] leading-[1.02]">
