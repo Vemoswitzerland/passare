@@ -1,7 +1,19 @@
 # passare.ch — Infrastruktur-Architektur
 
-> **Technische Referenz.** Wie ist passare.ch aufgebaut, warum so, und welche Services
-> sprechen miteinander.
+> **Technische Referenz.** Wie ist passare.ch aufgebaut, warum so, und welche Services sprechen miteinander.
+
+---
+
+## 🎯 Geschäftsmodell als Infrastruktur-Treiber
+
+passare ist eine **Self-Service-Plattform** mit zwei bezahlten Benutzergruppen:
+
+| Gruppe | Modell | Stripe |
+|---|---|---|
+| Verkäufer | Einmalige Paketgebühr (Light 290 / Pro 890 / Premium 1'890) | **Payment Intent** (Checkout Session) |
+| Käufer | MAX-Abo (CHF 199/M oder CHF 1'990/Jahr) | **Subscription** (monatlich/jährlich) |
+
+**0% Erfolgsprovision.** Broker-Angebot erst Phase 2.
 
 ---
 
@@ -9,8 +21,8 @@
 
 ```
                     ┌─────────────────────────────────────┐
-                    │           PASSARE.CH                │
-                    │         (Vercel Edge)               │
+                    │         PASSARE.CH                  │
+                    │      (Vercel · Edge + Node)         │
                     └────────────┬────────────────────────┘
                                  │
           ┌──────────────────────┼──────────────────────┐
@@ -20,21 +32,15 @@
     │ (React 19) │        │  (Node.js)  │        │  (Runtime) │
     │            │        │             │        │            │
     │  Dashboard │        │ API Routes  │        │ Middleware │
-    │  Public    │        │ Server      │        │ Beta-Gate  │
-    │  Admin     │        │ Actions     │        │ i18n-RR    │
+    │  Public    │        │ Server Act. │        │ Beta-Gate  │
+    │  Admin     │        │ Webhooks    │        │ i18n-RR    │
     └─────┬──────┘        └──────┬──────┘        └─────┬──────┘
           │                      │                      │
           └──────────┬───────────┘                      │
                      │                                  │
           ┌──────────▼──────────────────────────────────▼──────┐
           │              SUPABASE (EU-FRA)                     │
-          │  ┌─────────┐ ┌────────┐ ┌────────┐ ┌──────────┐  │
-          │  │  Auth   │ │   DB   │ │Storage │ │ Realtime │  │
-          │  │(JWT+RLS)│ │(PG 16) │ │(S3-cmp)│ │(WebSock) │  │
-          │  └─────────┘ └────────┘ └────────┘ └──────────┘  │
-          │         ┌────────────────┐                        │
-          │         │  Edge Funct.   │ (Deno)                 │
-          │         └────────────────┘                        │
+          │  Auth · Postgres · Storage · Realtime · Edge-Funct │
           └────────────────────────────────────────────────────┘
                      │
           ┌──────────┴──────────┬──────────┬──────────┬─────────┐
@@ -47,299 +53,335 @@
 
 ---
 
-## 📦 Deployment-Pipeline
-
-```
-GitHub Push → GitHub Action (Lint+TypeCheck) → Vercel Build → Preview/Prod
-                                                    │
-                                                    ├─ Prod: main-Branch
-                                                    └─ Preview: Feature-Branches
-```
-
-**Vercel-Projekt:** `passare`
-**Production-Domain:** `passare.ch` (kommt nach Domain-Setup; vorerst `passare.vercel.app`)
-**Preview-Deployments:** Automatisch pro PR
-**Environment Variables:** Alle `NEXT_PUBLIC_*` + Server-Secrets in Vercel Dashboard
-
----
-
-## 🗄️ Datenbank-Architektur
+## 🗄️ Datenbank-Architektur (v1 — Self-Service-Modell)
 
 ### Schemas
-- `public` — App-Daten (inserate, profiles, anfragen, etc.)
-- `auth` — Supabase Auth (verwaltet von Supabase)
+- `public` — App-Daten
+- `auth` — Supabase Auth (managed)
 - `storage` — Supabase Storage Metadaten
-- `analytics` (geplant) — Event-Tracking, separierte Writes
+- `analytics` (geplant) — Event-Tracking
 
-### Kern-Tabellen (nach voll implementiertem Plan)
-```
+### Kern-Tabellen
+
+```sql
+-- ─── USER & ROLES ──────────────────────────────────
 profiles (1:1 auth.users)
-  ├─ rolle (enum: verkaufer, kaeufer, broker, admin)
-  ├─ full_name, phone, kanton, sprache
-  ├─ verified_phone, verified_kyc, verified_broker
+  ├─ id (= auth.users.id)
+  ├─ rolle (enum: verkaufer | kaeufer | admin)
+  ├─ full_name, phone, kanton, sprache (de/fr/it/en)
+  ├─ verified_phone bool, verified_kyc bool
+  ├─ stripe_customer_id (für Zahlungen + Abos)
   └─ created_at
 
+-- ─── VERKÄUFER-SEITE ───────────────────────────────
 inserate
   ├─ id (uuid), slug (unique), owner_id (→ profiles)
-  ├─ status (draft, in_review, published, paused, sold, expired)
-  ├─ titel, teaser, beschreibung, branche_id, kanton_code
-  ├─ umsatz_range, ebitda_range, ebitda_marge, mitarbeitende
-  ├─ kaufpreis, kaufpreis_vhb, plan, featured_until, views
+  ├─ status (draft | in_review | published | paused | sold | expired)
+  ├─ titel, teaser, beschreibung
+  ├─ branche_id (→ branchen), kanton_code (→ kantone), region_code (→ regionen)
+  ├─ rechtsform (AG | GmbH | EG | KG | Genossenschaft | ...)
+  ├─ gruendungsjahr, mitarbeitende_exakt, mitarbeitende_bucket
+  ├─ umsatz_bucket, ebitda_marge numeric, ebitda_bucket
+  ├─ kaufpreis_exakt, kaufpreis_bucket, kaufpreis_vhb bool
+  ├─ uebergabe_zeitpunkt (sofort | 3m | 6m | 12m_plus)
+  ├─ uebergabe_grund (→ uebergabe_gruende)
+  ├─ plan (light | pro | premium)
+  ├─ views int, featured_until timestamp
   ├─ published_at, expires_at, sold_at
   └─ created_at, updated_at
 
 inserate_media
   ├─ id, inserat_id (→ inserate)
-  ├─ storage_path, type (image, document), order
-  └─ visibility (public, nda_required)
+  ├─ storage_path, type (image | document | video)
+  ├─ order int, visibility (public | nda_required)
+  └─ created_at
 
+-- ─── KÄUFER-SEITE ──────────────────────────────────
 anfragen
   ├─ id, inserat_id, kaeufer_id (→ profiles)
-  ├─ status (neu, antwort, nda_angefragt, nda_unterzeichnet, closed)
+  ├─ status (neu | antwort | nda_angefragt | nda_unterzeichnet | closed)
   └─ created_at
+  -- UNIQUE (inserat_id, kaeufer_id)
 
 nachrichten
-  ├─ id, anfrage_id (→ anfragen), sender_id
-  ├─ body, attachments, read_at
+  ├─ id, anfrage_id (→ anfragen), sender_id (→ profiles)
+  ├─ body text, attachments jsonb, read_at
   └─ created_at
 
-favoriten (kaeufer-Watchlist)
+favoriten
   ├─ user_id, inserat_id, notiz
   └─ created_at
+  -- UNIQUE (user_id, inserat_id)
 
 gespeicherte_suchen
-  ├─ user_id, name, kriterien (jsonb), alert_frequency
+  ├─ user_id, name, kriterien jsonb, alert_frequency (never | weekly | daily | realtime)
   └─ last_notified_at
 
+kaeufer_profile (Reverse-Listings, öffentlich optional)
+  ├─ user_id (→ profiles)
+  ├─ aktiv bool, public bool, featured bool (MAX-only)
+  ├─ kriterien jsonb (branchen, kantone, preis_range, ebitda_min, etc.)
+  └─ last_activity_at
+
+-- ─── NDA & DATENRAUM ───────────────────────────────
 nda_requests
-  ├─ id, inserat_id, kaeufer_id, template_version
-  ├─ status (pending, accepted, signed, rejected, expired)
-  └─ signed_at, ip, user_agent, pdf_storage_path
+  ├─ id, inserat_id (→ inserate), kaeufer_id (→ profiles)
+  ├─ template_version, status (pending | accepted | signed | rejected | expired)
+  ├─ signed_at, ip, user_agent, pdf_storage_path
+  └─ created_at
 
 datenraum_files
-  ├─ id, inserat_id, kategorie, storage_path
-  ├─ watermark_on, access_list (jsonb — user-ids)
+  ├─ id, inserat_id (→ inserate), kategorie
+  ├─ storage_path, watermark_on bool
+  ├─ access_list jsonb (user-ids mit Zugriff)
   └─ created_at
 
 datenraum_access_log
-  ├─ file_id, user_id, action (view, download)
+  ├─ id, file_id (→ datenraum_files), user_id (→ profiles)
+  ├─ action (view | download)
   └─ created_at, ip
 
-broker_profile
-  ├─ user_id, slug, bio, spezialgebiete (jsonb)
-  ├─ badges (jsonb), website, linkedin
-  └─ verified_at
-
-kaeufer_profile (öffentliche "Ich suche"-Profile)
-  ├─ user_id, aktiv, kriterien (jsonb)
-  └─ last_activity_at
-
+-- ─── ZAHLUNGEN ─────────────────────────────────────
 zahlungen
-  ├─ id, user_id, stripe_payment_intent, amount, currency
-  ├─ status, plan_code, inserat_id (optional)
+  ├─ id, user_id (→ profiles)
+  ├─ typ (inserat_paket | max_abo | verlaengerung)
+  ├─ stripe_payment_intent, stripe_checkout_session_id
+  ├─ amount numeric, currency (CHF), status (pending | paid | refunded)
+  ├─ plan_code (light | pro | premium | max_monthly | max_yearly)
+  ├─ inserat_id (→ inserate, optional)
   └─ created_at
 
-subscriptions
-  ├─ id, user_id, stripe_subscription_id, plan
-  ├─ status, current_period_start/end
+subscriptions (nur für Käufer MAX!)
+  ├─ id, user_id (→ profiles)
+  ├─ stripe_subscription_id
+  ├─ plan (max_monthly | max_yearly)
+  ├─ status (active | past_due | canceled | incomplete)
+  ├─ current_period_start, current_period_end
   └─ cancelled_at
 
+-- ─── REFERENCE TABLES ──────────────────────────────
+branchen (18 Standard-CH — siehe COMPETITOR_RESEARCH.md)
+  ├─ id, slug, icon_name
+  ├─ label_de, label_fr, label_it, label_en
+  └─ sort int
+
+kantone (26 CH)
+  ├─ code (ZH, BE, ...), region_code (→ regionen)
+  ├─ name_de, name_fr, name_it, name_en
+  └─ population int
+
+regionen (5 CH-Grossregionen)
+  ├─ code (genfersee | mittelland | nordwest | ost | zentral)
+  ├─ name_de, name_fr, name_it, name_en
+  └─ kantone jsonb (array)
+
+rechtsformen (12)
+  ├─ code (AG | GmbH | EG | KG | Genossenschaft | ...)
+  ├─ label_de, label_fr, label_it, label_en
+  └─ min_kapital
+
+uebergabe_gruende
+  ├─ code, label_de, label_fr, label_it, label_en
+
+kategorien (4 Top-Level + Subs, hierarchisch)
+  ├─ id, parent_id, slug, order
+  └─ label_de, label_fr, label_it, label_en
+
+-- ─── CONTENT & NEWSLETTER ──────────────────────────
+blog_posts
+  ├─ id, slug, published, published_at, lesezeit
+  ├─ kategorie, tags jsonb, featured_image
+  ├─ titel_de/fr/it/en, excerpt_de/fr/it/en, body_de/fr/it/en
+  └─ author_id (→ profiles)
+
 newsletter_abonnenten
-  ├─ email, rolle_interesse, branche_interesse, kanton_interesse
+  ├─ email, rolle_interesse (verkaufer | kaeufer | beide)
+  ├─ branche_interesse jsonb, kanton_interesse jsonb
   ├─ confirmed_at, unsubscribed_at
   └─ source
 
-events_log (Audit-Trail)
-  ├─ id, user_id, event_type, metadata (jsonb)
+-- ─── SYSTEM ────────────────────────────────────────
+events_log (Audit-Trail, DSGVO)
+  ├─ id, user_id (→ profiles)
+  ├─ event_type, metadata jsonb
   ├─ ip, user_agent
   └─ created_at
 
 feature_flags
-  ├─ key, enabled, rollout_pct, target_users (jsonb)
+  ├─ key, enabled bool
+  ├─ rollout_pct int (0–100)
+  ├─ target_users jsonb (user-ids für explicit targeting)
   └─ updated_at
 
-branchen (Ref)
-  ├─ id, slug, label_de/fr/it/en, parent_id
-  └─ icon
-
-kantone (Ref)
-  ├─ code (ZH, BE, …), name_de/fr/it/en, region
-  └─ population
-
-rechtsformen (Ref)
-  ├─ code (AG, GmbH, EG, …), label_de/fr/it/en
-  └─ min_kapital
-
 atlas_firmen (Cache für Zefix-Daten)
-  ├─ uid, name, rechtsform, kanton, gemeinde
+  ├─ uid (unique), name, rechtsform, kanton, gemeinde
   ├─ fiktiver_wert, wert_datum, status
-  └─ inserat_id (optional)
-
-blog_posts
-  ├─ id, slug, published, published_at
-  ├─ titel/excerpt/body pro Sprache
-  ├─ kategorie, tags, lesezeit, author_id
-  └─ featured_image
+  └─ inserat_id (optional, FK → inserate)
 
 support_tickets
-  ├─ id, user_id (optional), email, subject, body
-  ├─ status, assigned_to, priority
+  ├─ id, user_id (optional, → profiles), email
+  ├─ subject, body, status
+  ├─ assigned_to (→ profiles mit rolle=admin)
+  ├─ priority (low | normal | high | urgent)
   └─ created_at
 ```
 
 ### RLS-Strategie
-- **owner-only:** `favoriten`, `gespeicherte_suchen`, `datenraum_access_log` (nur eigene Zeilen)
-- **dual-owner:** `nachrichten`, `anfragen` (Käufer + Verkäufer sehen Thread)
-- **public-read (limited):** `inserate` (nur `status=published`), `blog_posts` (`published=true`)
-- **admin-only writes:** `feature_flags`, `branchen`, `kantone`, `rechtsformen`
-- **broker+owner:** `broker_profile` (broker eigene; public read des `slug`-Profils)
+- **owner-only:** `favoriten`, `gespeicherte_suchen`, `datenraum_access_log`, `zahlungen`, `subscriptions`
+- **dual-access:** `nachrichten`, `anfragen` (sender + receiver)
+- **public-read limited:** `inserate` (nur `status=published`), `blog_posts` (nur `published=true`), `kaeufer_profile` (nur `public=true`)
+- **admin-only writes:** `feature_flags`, `branchen`, `kantone`, `regionen`, `rechtsformen`, `uebergabe_gruende`, `kategorien`
+- **verkaufer-only:** eigene `inserate`, `inserate_media`, `datenraum_files`, Anfragen-Inbox zu eigenen Inseraten
 
-### Indizes (kritisch)
-- `inserate` auf `(status, published_at)`, `(branche_id, kanton_code)`, `slug`
-- `anfragen` auf `(inserat_id, kaeufer_id)` unique
-- `nachrichten` auf `(anfrage_id, created_at)`
-- `favoriten` auf `(user_id)`, `(inserat_id, user_id)` unique
-- `atlas_firmen` auf `uid` unique, `(kanton, status)`
+### Kritische Indizes
+- `inserate(status, published_at)` — Marktplatz-Query
+- `inserate(branche_id, kanton_code)` — Filter
+- `inserate(kaufpreis_bucket, umsatz_bucket)` — Filter
+- `inserate(slug)` unique
+- `anfragen(inserat_id, kaeufer_id)` unique
+- `nachrichten(anfrage_id, created_at)`
+- `favoriten(user_id)`, `favoriten(inserat_id, user_id)` unique
+- `zahlungen(stripe_payment_intent)` unique
+- `subscriptions(stripe_subscription_id)` unique
+- `atlas_firmen(uid)` unique, `atlas_firmen(kanton, status)`
 
 ---
 
 ## 🔐 Auth-Flow
 
 ```
-1. User klickt "Registrieren"
-2. Supabase `signUp` → confirmation-email via Resend-Integration
-3. User klickt Confirm-Link → `/auth/callback` → exchange code → cookies gesetzt
-4. Redirect nach `/onboarding/rolle` (wenn profile.rolle NULL)
-5. Rolle + Profile Setup → redirect `/dashboard`
+Registrierung:
+1. User klickt "Registrieren" auf / oder /kaufen
+2. Supabase signUp (email + password) → Resend-Verifikations-E-Mail
+3. User klickt Confirm-Link → /auth/callback → Session-Cookie gesetzt
+4. /onboarding/rolle wählen (verkaufer oder kaeufer)
+5. /onboarding/profil (Name, Kanton, Telefon optional)
+6. Redirect nach /dashboard/{rolle}
+
+Login:
+1. /auth/login mit Magic-Link ODER Password
+2. Supabase signIn → Session-Cookie
+3. Redirect nach /dashboard/{rolle} je nach profile.rolle
 ```
 
-**Session:** JWT in Cookie, Refresh via Supabase SSR.
-**MFA:** TOTP optional ab Etappe 130.
-**Social-Login:** Google + Apple (optional, später).
+**MFA:** TOTP optional (Etappe später).
+**Password-Reset:** Standard Supabase-Flow via E-Mail-Link.
 
 ---
 
-## 💳 Payment-Flow
+## 💳 Payment-Flows
 
+### Verkäufer-Paket (einmalig)
 ```
-1. User wählt Paket im Inserat-Wizard Step 4
-2. Server Action → Stripe Checkout Session erstellen
-3. Redirect zu Stripe-Checkout
-4. Bei Success: Stripe Webhook → `payment_intent.succeeded` → Vercel Endpoint
-5. Webhook setzt `zahlungen.status=paid` + `inserate.status=published`
-6. Resend schickt Bestätigungs-E-Mail + Rechnung als PDF
+1. Verkäufer wählt Paket im Inserat-Wizard Step 4
+2. Server-Action erstellt Stripe Checkout Session (mode='payment')
+3. Redirect zu Stripe
+4. Webhook: checkout.session.completed → zahlungen.status='paid'
+5. inserate.status='in_review' (Admin-Moderation) oder direkt 'published'
+6. Resend: Bestätigung + Rechnung-PDF
+```
+
+### Käufer-MAX (Abo)
+```
+1. Käufer klickt "MAX buchen" auf /preise oder /kaufen
+2. Server-Action erstellt Stripe Checkout Session (mode='subscription')
+3. Redirect zu Stripe
+4. Webhook: customer.subscription.created → subscriptions.status='active'
+5. profile.max_active=true (für Feature-Gates)
+6. Resend: Willkommens-Mail + Rechnung
+```
+
+### Verlängerungen (Verkäufer-Pakete)
+```
+Kein Auto-Renewal!
+Verkäufer bekommt 7/3/1 Tag vor expires_at Erinnerungs-E-Mail.
+Manuelle Verlängerung: neue Checkout-Session (+CHF 190 / 490 / 990).
 ```
 
 ---
 
 ## 📧 E-Mail-System (Resend)
 
-**Sender-Domain:** `passare.ch` (SPF + DKIM + DMARC konfiguriert)
+**Sender:** `noreply@passare.ch` (SPF + DKIM + DMARC)
 **Templates (React Email):**
-- `welcome.tsx` — nach Registrierung
-- `confirm-email.tsx` — E-Mail-Verifikation
-- `password-reset.tsx`
-- `inserat-published.tsx`
-- `new-anfrage.tsx` — Verkäufer wird informiert
-- `nda-request.tsx`
-- `nda-signed.tsx`
-- `payment-success.tsx`
-- `newsletter-*` — Kampagnen
-
-**Transactional:** sofort. **Campaigns:** via Resend Broadcasts + Segmente.
+- Welcome nach Registrierung
+- E-Mail-Verifikation
+- Password-Reset
+- Inserat-Published (Verkäufer)
+- Neue Anfrage (Verkäufer informiert)
+- NDA-angefragt (Verkäufer)
+- NDA-unterzeichnet (Verkäufer)
+- Neue Nachricht im Thread
+- Zahlung erfolgreich
+- Rechnung (mit PDF-Attachment)
+- Inserat läuft ab (Verkäufer)
+- MAX-Abo-Renewal (Käufer)
+- MAX-Abo-Canceled (Käufer)
+- Newsletter-Kampagnen
 
 ---
 
 ## 🌍 i18n-Setup
 
-- `next-intl` mit Dynamic-Routing `/[locale]/...`
-- Default: `de` (ohne Prefix)
-- Andere: `fr`, `it`, `en` (mit Prefix)
-- Middleware erkennt `Accept-Language` beim ersten Besuch
+- `next-intl` mit `[locale]`-Routing
+- Default: `de` (kein Prefix auf `/`)
+- Andere: `/fr/*`, `/it/*`, `/en/*`
+- Middleware erkennt `Accept-Language` beim Erstbesuch
 - Cookie `NEXT_LOCALE` persistiert Wahl
-- hreflang-Tags in `<head>` für alle Alternativen
-
----
-
-## 🗺️ Maps-Architektur
-
-- **Tiles:** MapLibre + OSM / optional Mapbox-Tiles
-- **Canton-Boundaries:** `public/ch-cantons.json` (GeoJSON)
-- **Rendering:** Dynamic-imported, `ssr: false`
-- **Klick:** Drawer mit Firmendetails (Zefix-Cache)
+- hreflang-Tags im `<head>`
 
 ---
 
 ## 🤖 AI-Integration (Claude)
 
 - `@anthropic-ai/sdk` → `claude-sonnet-4-*`
-- **Use-Cases:**
-  - KI-Beschreibungsgenerator (Etappe 51)
-  - Käufer-Matching-Embeddings (Etappe 141)
-  - Content-Generation für Landingpages (Etappe 103)
+- Use-Cases:
+  - **KI-Teaser-Generator** (Inserat-Wizard Step 3) — anonymisiert
+  - **Matching-Engine** (Käufer × Inserate via pgvector)
+  - **Content-Generation** für Branche × Kanton Landingpages
 - Server-only via `ANTHROPIC_API_KEY`
-
----
-
-## 🧪 Quality Gates
-
-- **TypeScript strict:** `npm run typecheck`
-- **ESLint:** `npm run lint`
-- **Build:** `npm run build` (muss ohne Errors durchlaufen)
-- **Lighthouse:** Ziel > 95 für Performance/SEO/A11y auf Public-Pages
-- **Manuelle Verifikation:** Chrome auf passare.ch nach jedem Deploy
-- **E2E (geplant):** Playwright-Tests für kritische Flows
-
----
-
-## 🔒 Security-Prinzipien
-
-1. RLS auf allen User-Tabellen
-2. CSP-Header (via `next.config.js`)
-3. Rate-Limiting auf Auth + NDA + Payments (Upstash Redis später)
-4. Secrets nur server-seitig via `process.env`
-5. Stripe-Webhook-Signatures verifiziert
-6. Dokumenten-Access im Datenraum über signed-URLs (Supabase Storage)
-7. Wasserzeichen auf allen NDA-PDFs mit Käufer-Identität
 
 ---
 
 ## 📊 Monitoring
 
 - **Errors:** Sentry (Client + Server)
-- **Uptime:** Vercel-Built-in + externes Monitor (Uptime Robot)
+- **Uptime:** Vercel-Built-in + Uptime Robot
 - **DB:** Supabase-Metriken + Slow-Query-Log
-- **Traffic:** Plausible (privacy-first)
-- **Business-KPIs:** Eigener Admin-Dashboard (Etappe 95)
+- **Analytics:** Plausible (privacy-first)
+- **Business-KPIs:** Admin-Dashboard mit MRR (aus Stripe), GMV (aus zahlungen), Conversion-Rates
 
 ---
 
 ## 🌐 Domain & DNS
 
-- **Primary:** `passare.ch` → Vercel
-- **Fallback:** `passare.vercel.app` (immer live)
-- **E-Mail:** `info@passare.ch`, `noreply@passare.ch`, `beta@passare.ch` (via Resend/Cloudflare)
+- **Primary:** `passare.ch` → Vercel (nach DNS-Setup)
+- **Beta-URL:** `passare-ch.vercel.app` (auto-alias auf Prod-Deploy)
+- **E-Mail:** `info@passare.ch`, `noreply@passare.ch`, `beta@passare.ch` (Resend)
 - **DNSSEC:** empfohlen (später)
 
 ---
 
 ## 🔄 Backup & Recovery
 
-- **Supabase:** Daily Automated Backups (PITR optional im Pro-Plan)
-- **GitHub:** Repo = Source of Truth, Vercel zieht von dort
+- **Supabase:** Daily Automated Backups (Free Tier) / PITR (Pro-Tier)
+- **GitHub:** Source-of-Truth
 - **Storage:** Supabase replikiert S3-compatible (EU-Region)
 
 ---
 
-## 📅 Stack-Versionen (Stand Etappe 1)
+## 📅 Stack-Versionen (Stand 24.04.2026)
 
-- Node 22
-- Next.js 15.1.3
-- React 19.0.0
+- Node 22.22
+- Next.js 16.2
+- React 19.0
 - TypeScript 5.7
-- Tailwind 3.4.17
-- Supabase-JS 2.47
+- Tailwind 3.4
+- Supabase-JS 2.47 + @supabase/ssr 0.5
 - Stripe 17.5
+- Resend 4.0
 - Claude SDK 0.32
-
-Updates werden mit jedem grösseren Block geprüft.
+- Fraunces (Variable, Google Fonts)
+- Geist Sans + Mono (Vercel Package)
+- Framer Motion 12
+- Lucide React 0.468
