@@ -19,30 +19,76 @@
 **Alle passare.ch Assets:**
 - **Repo:** `Vemoswitzerland/passare` (https://github.com/Vemoswitzerland/passare)
 - **Lokales Verzeichnis:** `/Users/cyrill/Desktop/passare-new/`
-- **Live-Domain:** https://passare.ch (später) / https://passare.vercel.app (sofort)
+- **Live-URL stabil:** https://passare-ch.vercel.app (auto-alias auf neuesten Prod-Deploy)
+- **Beta-Code:** `passare2026`
 - **Vercel-Projekt:** `passare` (NICHT vemo-academy!)
-- **Supabase-Projekt:** Noch zu erstellen, separater DB-Host
+- **Supabase-Projekt:** Noch zu erstellen (Etappe 2), separater DB-Host
 
 ---
 
-## 📖 Projekt-Kontext
+## 🎯 GESCHÄFTSMODELL — DAS ZENTRALE KONZEPT
 
-**Was ist passare.ch?**
-Die neue Schweizer Plattform für Firmen-Verkauf (KMU) — konkurriert mit
-firmenzukaufen.ch, companymarket.ch, axial.net.
+> **passare ist eine Self-Service-Plattform, KEIN Broker.**
+>
+> Wir verbinden Verkäufer und Käufer direkt. Wir verdienen an der
+> **Plattform-Gebühr**, nicht am Deal. Keine Erfolgsprovision.
 
-**Zielgruppen:**
-- Verkäufer (KMU-Inhaber mit Nachfolge-Bedarf)
-- Käufer (MBO / MBI / strategische Investoren)
-- Broker (M&A-Berater, Treuhänder)
-- Admin (intern passare)
+### Zwei Benutzergruppen, zwei Einnahmequellen:
 
-**USP:**
-1. Vierprachig (DE/FR/IT/EN) von Tag 1
-2. Moderne Mobile-First UX
-3. Öffentliches Bewertungstool als Lead-Magnet
-4. Keine Erfolgsprovision (transparentes Pricing)
-5. Schweizer Firmen-Atlas als Discovery-Tool
+#### 🟤 VERKÄUFER — einmalige Paketgebühr pro Inserat
+| Paket | Preis | Laufzeit | Kernmerkmal |
+|---|---|---|---|
+| **Inserat Light** | CHF 290 | 3 Monate | 5 Bilder, 2 PDFs, NDA-Gate, KI-Teaser |
+| **Inserat Pro** | CHF 890 | 6 Monate | 20 Bilder, unbegrenzter Datenraum, Matching |
+| **Inserat Premium** | CHF 1'890 | 12 Monate | Homepage-Feature, 4-sprachig, Beratung |
+
+**Regeln:**
+- Verkäufer bezahlt einmal → Inserat läuft X Monate
+- Keine automatische Verlängerung
+- Verlängerung möglich (Light +CHF 190/3M · Pro +CHF 490/6M · Premium +CHF 990/12M)
+- Keine Provision auf Verkaufspreis — passare verdient nur am Paket
+
+#### 🟢 KÄUFER — Gratis oder MAX-Abo
+| Tier | Preis | Kernmerkmal |
+|---|---|---|
+| **Käufer Basic** | CHF 0 / unbefristet | Öffentliche Inserate, 5 Basis-Filter, wöchentliche Alerts, 5 Anfragen/M |
+| **Käufer MAX** | CHF 199/Monat oder CHF 1'990/Jahr | 7 Tage Frühzugang, alle Filter, unbegrenzte Anfragen, Echtzeit-Alerts + WhatsApp, Featured-Käuferprofil, NDA-Fast-Track, KMU-Multiples-DB, persönlicher Ansprechpartner |
+
+**Regeln:**
+- Basic = unbegrenzt gratis — Funnel-Einstieg
+- MAX = monatlich oder jährlich kündbar
+- Jahres-Abo mit 2 Monaten Rabatt
+
+### 🛑 BROKER-Angebot — aktuell NICHT im Scope
+Broker können sich als Käufer registrieren (MAX-Abo).
+Dediziertes Broker-Produkt: spätere Etappe, nicht V1.
+
+### 💰 Upsells (beide Gruppen)
+- **Verkäufer:** Top-Platzierung 1W CHF 190 · Homepage-Feature 3T CHF 290 · Foto-Session CHF 490
+- **Käufer:** Branchen-Deal-Alert CHF 29/M · KMU-Experten-Gutachten CHF 890
+
+---
+
+## 📄 Seitenstruktur
+
+```
+/                    Homepage (Hero mit Dashboard-Mockup rechts, Pricing)
+/verkaufen           Landingpage für Verkäufer + 3 Pakete
+/kaufen              Landingpage für Käufer + Basic/MAX
+/entdecken           Marktplatz-Grid mit Filter-Sidebar
+/preise              Alle Pakete übersichtlich (Verkäufer+Käufer Tab)
+/ratgeber            Blog / Redaktion (Content-Marketing)
+/bewerten            Gratis Firmenbewertungstool (Lead-Magnet)
+/atlas               CH-Firmen-Atlas mit Karte
+/design              Living Style Guide (internal)
+/beta                Beta-Gate Code-Eingabe
+/auth/login          Login
+/auth/register       Register
+/dashboard/verkaufer Verkäufer-Dashboard (Meine Inserate, Anfragen, Statistiken)
+/dashboard/kaeufer   Käufer-Dashboard (Favoriten, Alerts, Anfragen, NDAs)
+/admin               Admin-Panel
+/api/*               Backend
+```
 
 ---
 
@@ -50,26 +96,48 @@ firmenzukaufen.ch, companymarket.ch, axial.net.
 
 | Layer | Technologie |
 |---|---|
-| Framework | Next.js 15 App Router, React 19, TypeScript strict |
-| Styling | Tailwind CSS + custom Passare-Palette |
-| UI | Custom Components (shadcn-kompatibel, eigenes Design System) |
-| DB + Auth | Supabase (Postgres, Auth, Storage, Realtime, Edge Functions) |
-| Payments | Stripe Checkout + Webhooks |
+| Framework | Next.js 16 App Router, React 19, TypeScript strict |
+| Styling | Tailwind + custom Passare-Palette |
+| Fonts | Fraunces (Variable Serif) + Geist Sans + Geist Mono |
+| UI | Custom-Komponenten (shadcn-kompatibel) |
+| DB + Auth | Supabase (kommt Etappe 2) |
+| Payments | Stripe — Checkout für Verkäufer-Pakete + MAX-Abo (Subscription) |
 | Email | Resend + React Email |
-| AI | Anthropic Claude (`@anthropic-ai/sdk`) |
+| AI | Anthropic Claude (`@anthropic-ai/sdk`) für Teaser-Generator |
 | Maps | MapLibre GL JS |
 | Zefix | Schweizer Handelsregister API |
 | i18n | next-intl (DE/FR/IT/EN) |
 | Forms | react-hook-form + Zod |
+| Motion | Framer Motion |
 | Hosting | Vercel (Edge + Serverless) |
 | Analytics | Plausible (+ Sentry für Errors) |
 
 ---
 
+## 🎨 Design-System (v1.0)
+
+Siehe [docs/DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md). Kurzfassung:
+
+- **Farben:** `ink` #0A0F12 · `navy` #0B1F3A · `bronze` #B8935A · `cream` #FAF8F3 · `stone` #E8E6E0
+- **Serif:** Fraunces (Variable, opsz+SOFT) für Headlines
+- **Sans:** Geist Sans für UI + Body
+- **Mono:** Geist Mono für Deal-Zahlen, Timestamps, UIDs
+- **Icons:** Lucide 1.5px stroke, 16–24px
+- **Motion:** Framer Motion mit `cubic-bezier(0.16, 1, 0.3, 1)`, 200–700ms
+- **Swiss-Details:** Guillemets «…», CHF mit Hochkomma (CHF 1'250'000), Kanton-Kürzel
+
+**Design-Regeln (harte Linien):**
+1. Kein Blau als Primary (Navy OK, Royal nicht)
+2. Kein reines Weiss im Body (`cream` Hintergrund)
+3. Kein Pill-Button (rounded-soft = 6px)
+4. Hairlines (0.5–1px `stone`) statt Material-Shadows
+5. Keine Stock-Fotos (dokumentarisch oder gar keine)
+
+---
+
 ## 🗺️ DER MASTER PLAN
 
-**Die vollständige Roadmap** liegt in [docs/MASTER_PLAN.md](docs/MASTER_PLAN.md).
-Sie enthält **160 Etappen** in 16 Blöcken (A–P).
+Die vollständige Roadmap liegt in [docs/MASTER_PLAN.md](docs/MASTER_PLAN.md).
 
 **Grundregel: 1 Chat = 1 Etappe.** Keine zwei Etappen pro Chat.
 Jede Etappe wird **enorm tief** implementiert, niemals oberflächlich.
@@ -84,7 +152,6 @@ cd /Users/cyrill/Desktop/passare-new
 git config user.email "info@vemo.ch"
 git config user.name "Vemoswitzerland"
 ```
-(Gleicher GitHub-Account wie Vemo, aber eigenes Repo — das ist OK.)
 
 ### 2. Im MASTER_PLAN.md schauen welche Etappe dran ist
 ```bash
@@ -94,7 +161,6 @@ grep -E "^###.*⏳" docs/MASTER_PLAN.md
 ### 3. Etappe implementieren (tief + vollständig)
 - Code schreiben
 - DB-Migrations wenn nötig (`supabase/migrations/NNN_xxx.sql`)
-- Tests/Verifikation
 - MASTER_PLAN.md aktualisieren (✓ hinter die Etappe)
 
 ### 4. Commit + Push
@@ -105,83 +171,49 @@ git push origin main
 ```
 
 ### 5. Vercel-Deploy verifizieren
-- Chrome → vercel.com/vemoswitzerlands-projects
-- Prüfen: Deploy-Status grün?
-- Falls rot: Logs lesen, fixen, neu pushen.
+- `vercel --prod --yes` auf CLI
+- Dann: `vercel alias set <neue-url> passare-ch.vercel.app`
+- Stabile URL: https://passare-ch.vercel.app
 
-### 6. Live-Verifikation auf passare.ch
-- Chrome → https://passare.ch (oder passare.vercel.app)
-- Beta-Code eingeben (siehe Vercel Env Vars)
+### 6. Live-Verifikation auf Chrome
+- Via Chrome-Extension auf https://passare-ch.vercel.app
+- Beta-Code `passare2026`
 - Funktionalität der neuen Etappe manuell durchklicken
 - Screenshot zur Bestätigung
 
 ### 7. Im Chat berichten
 - Welche Etappe abgeschlossen
-- Was genau implementiert
+- Was implementiert
 - Deploy-Link
 - Nächste Etappe benennen
 
 ---
 
-## 🎨 Design-Prinzipien
+## 🛑 KRITISCHE REGELN
 
-- **Farben:** Strikt aus der Passare-Palette (siehe `tailwind.config.ts`)
-  - `deep` (#0E2A2B) = Primary dark
-  - `terra` (#B54A2B) = Akzent warm
-  - `cream` (#F7F2EA) = Hintergrund
-  - `sand`, `lightmid`, `gold`, `forest`, `ink`, `paper` für weitere Tonsflächen
-- **Fonts:** `Cormorant Garamond` (Serif für Headlines) + `Outfit` (Sans für Body)
-- **Stil:** Edel, zurückhaltend, schweizerisch, vertrauensvoll — KEIN Bootstrap-Look
-- **Abstände:** Grosszügig (py-16 bis py-24 für Sections)
-- **Corners:** Meist `rounded-lg` oder `rounded-2xl`, keine scharfen Ecken
-- **Schatten:** Sehr dezent (`shadow-sm` max), lieber Borders
-- **Animationen:** Dezent, Fade+Slide (`animate-fade-in`, `animate-slide-up`)
-
----
-
-## 🔐 Security-Regeln
-
-1. **RLS zwingend** auf jeder neuen Tabelle
-2. **Service-Role-Key** nur in Server-Code (`SUPABASE_SERVICE_ROLE_KEY`)
-3. **Inputs validieren** mit Zod (Server + Client)
-4. **Niemals secrets im Repo** — `.env.local` ist in `.gitignore`
-5. **Beta-Gate bleibt aktiv** bis Public Launch (Flag `BETA_GATE_ENABLED`)
-6. **Alle sensiblen Aktionen** ins `events_log` schreiben
-
----
-
-## 🌐 i18n-Regeln (ab Etappe 7 verbindlich)
-
-- Kein hardcoded Text in Komponenten
-- Alle Strings via `t('key')` aus `messages/[locale].json`
-- Preise in CHF mit `formatCHF()` aus `@/lib/utils`
-- Datum mit `formatDate()` (nimmt Locale)
-
----
-
-## 🧪 Verifikation — PFLICHT vor «fertig»-Meldung
-
-1. **TypeScript check:** `npm run typecheck` muss grün sein
-2. **Build local:** `npm run build` ohne Errors
-3. **Git push:** auf `main`
-4. **Vercel-Deploy:** Status grün (Chrome)
-5. **Live-Test:** im Chrome auf passare.ch/vercel.app die neue Funktion durchklicken
-6. **Screenshot:** als Beweis
-
-Niemals «sollte funktionieren» — immer BEWEISEN dass es funktioniert.
+1. **NIEMALS Preview-Tools** verwenden (`preview_start`, `preview_screenshot` etc.) — immer Chrome auf Live-URL
+2. **NIEMALS Vemo-Repo anfassen** (siehe oben)
+3. **NIEMALS "kuratierte Redaktion" oder Broker-Sprache** — passare ist **Self-Service-Plattform**
+4. **Pricing muss IMMER stimmen:**
+   - Verkäufer: CHF 290 / 890 / 1'890 einmalig
+   - Käufer: CHF 0 / 199/Monat (1'990/Jahr)
+5. **0% Erfolgsprovision** ist das zentrale USP — nie vergessen in der Kopie
+6. **Vierprachigkeit** (DE/FR/IT/EN) Pflicht ab Etappe 7
 
 ---
 
 ## 🗣️ Sprache
 
-Kommunikation mit Cyrill: **immer auf Deutsch** (er spricht Schweizerdeutsch,
-versteht aber Hochdeutsch). Code & Kommentare auch DE.
+Kommunikation mit Cyrill: **immer auf Deutsch** (Schweizerdeutsch verstehen, Hochdeutsch antworten).
+Code & Kommentare auch DE.
 
 ---
 
 ## 🚀 Aktueller Stand
 
 - ✅ **Etappe 1 LIVE** — Repo, Scaffold, Beta-Gate, Deploy
-- ⏳ **Etappe 2 NEXT** — Supabase-Setup + Core Migrations (`profiles` Tabelle, RLS)
+- ✅ **Etappe 1.5 LIVE** — Design-System v1.0 (Fraunces + Geist, Navy/Bronze/Cream, Lucide, Framer Motion)
+- ✅ **Etappe 1.7 LIVE** — Self-Service-Modell + Pricing 3+2 + Einzelseiten (/verkaufen, /kaufen, /entdecken, /preise)
+- ⏳ **Etappe 2 NEXT** — Supabase-Setup + Core Migrations
 
-Siehe [docs/MASTER_PLAN.md](docs/MASTER_PLAN.md) für alle 160 Etappen.
+Siehe [docs/MASTER_PLAN.md](docs/MASTER_PLAN.md) für alle Etappen.
