@@ -4,7 +4,6 @@ import { Container, Section } from '@/components/ui/container';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Divider } from '@/components/ui/divider';
-import { DotPattern, GridLines } from '@/components/ui/dot-pattern';
 import { Reveal, RevealStagger, RevealItem } from '@/components/ui/reveal';
 import { LiveTicker } from '@/components/sections/live-ticker';
 
@@ -81,10 +80,6 @@ function TopBar() {
 function Hero() {
   return (
     <section className="relative overflow-hidden pt-24 md:pt-36 pb-24 md:pb-40">
-      {/* Dezentes Dot-Grid im Hintergrund */}
-      <DotPattern spacing={28} size={1} color="rgba(11,31,58,0.10)" />
-      <GridLines />
-
       <Container>
         <div className="relative max-w-hero">
           <Reveal>
@@ -415,9 +410,6 @@ function KPIs() {
 function Promise() {
   return (
     <Section className="relative bg-navy text-cream overflow-hidden">
-      {/* Subtile Pattern im Dunkeln */}
-      <DotPattern spacing={32} size={1} color="rgba(250,248,243,0.05)" fade={false} />
-
       <Container>
         <div className="relative max-w-hero">
           <Reveal>
