@@ -1,13 +1,13 @@
 # passare.ch
 
-> **Die Schweizer Plattform für den Kauf und Verkauf von KMU.** Diskret. Professionell. Vierprachig.
+> **Die Schweizer Plattform für den Kauf und Verkauf von KMU.** Diskret. Professionell. Viersprachig.
 > Aktuell im geschlossenen Beta.
 
 ---
 
 ## Status
 
-🚧 **In aktiver Entwicklung** — siehe [docs/MASTER_PLAN.md](docs/MASTER_PLAN.md) für alle 160 Etappen.
+🚧 **In aktiver Entwicklung** — siehe [docs/MASTER_PLAN.md](docs/MASTER_PLAN.md) für alle 175 Etappen.
 
 - ✅ **Etappe 1** — Repo, Scaffold, Beta-Gate, Deploy (LIVE)
 - ⏳ **Etappe 2** — Supabase Setup (NEXT)

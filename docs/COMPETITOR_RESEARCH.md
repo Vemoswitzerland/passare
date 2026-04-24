@@ -36,11 +36,12 @@
 | Skyscraper-Banner (30 Tage) | 400 |
 | Nachfolge-Magazin | 25 |
 
-**Vergleich zu passare.ch:**
+**Vergleich zu passare.ch (alle Preise + 8.1% CH-MwSt):**
 - Unsere Pakete: Light CHF 290 / Pro CHF 890 / Premium CHF 1'890
 - **Light CHF 290** ist ca. 50% günstiger als companymarket Standard (CHF 550)
-- **Pro CHF 890** entspricht Unlimitiert-Niveau (CHF 900) — inhaltlich deutlich mehr
+- **Pro CHF 890** entspricht Unlimitiert-Niveau (CHF 900) — inhaltlich deutlich mehr (echter Datenraum, EBITDA-Pflicht, Messaging)
 - **Premium CHF 1'890** kein direktes Äquivalent — USP durch Mehrsprachigkeit + Homepage-Feature
+- **Käufer MAX CHF 199/M** oder CHF 1'990/Jahr — companymarket hat kein direktes Käufer-Abo (nur MwSt-freies Kontaktformular)
 
 ---
 
@@ -211,11 +212,13 @@ Jedes Detail-Inserat sollte einen EK/FK-Split-Rechner haben. Interaktion + Lead-
 
 | Angebot | companymarket | passare |
 |---|---|---|
-| Basis-Inserat | CHF 550 / 6M | **CHF 290 / 3M** |
+| Basis-Inserat | CHF 550 / 6M | **CHF 290 / 3M** (je + 8.1% MwSt) |
 | Premium-Inserat | CHF 900 / unlim | **CHF 890 / 6M** (deutlich mehr Features) |
-| Käufer-Abo | — | **CHF 199/M** (USP!) |
-| Broker-Pauschale | CHF 3'000–5'000/Jahr | **Phase 2** |
+| Käufer-Abo | — | **CHF 199/M oder CHF 1'990/Jahr** (USP!) |
+| Broker-Pauschale | CHF 3'000–5'000/Jahr | **Phase 2** (`is_broker`-Flag ab V1 reserviert) |
 
 **Interpretation:** Wir unterbieten den Einstiegspreis (-50%) und etablieren ein
 Käufer-Abo als zweite Revenue-Säule (companymarket hat das nicht).
 Broker-Bereich kommt Phase 2, wenn Volumen da ist.
+
+**Keine Pro-Zwischenstufe bei Käufern!** V1 bleibt bei 2 Käufer-Tiers (Basic / MAX), damit die Wertkommunikation klar ist.

@@ -266,26 +266,27 @@ Stripe Smart Retries + `past_due`→Feature-Gate-Deaktivierung nach 3 fehlgeschl
 ### ⬜ Etappe 92 — Blog-SEO (Schema.org, Related)
 ### ⬜ Etappe 93 — Branche × Kanton Landingpages (468 auto-generiert)
 ### ⬜ Etappe 94 — Sitemap.xml + Robots.txt pro Sprache
-### ⬜ Etappe 95 — Structured Data (Product, Organization)
+### ⬜ Etappe 95 — Structured Data (`BusinessForSale`, `Product`, `Organization`) — JSON-LD auf allen Inserat-Detail-Seiten
 ### ⬜ Etappe 96 — OG + Twitter Cards (dynamisch, @vercel/og)
 ### ⬜ Etappe 97 — Canonical URLs + hreflang-Matrix
+### ⬜ Etappe 97.1 [NEU] — Pagination-rel-prev/next für Marketplace + Image-Alt-Text mehrsprachig auto
 ### ⬜ Etappe 98 — Lighthouse 100 auf Public-Pages
 ### ⬜ Etappe 99 — SEO-Content Hauptseiten (manuell)
-### ⬜ Etappe 100 — Google Business + Bing Webmaster
+### ⬜ Etappe 100 — Google Business + Bing Webmaster + Search Console Alerts
 
 ---
 
 ## 📣 BLOCK K — MARKETING & GROWTH (Etappen 101–110)
 
-### ⬜ Etappe 101 — Newsletter-Builder (WYSIWYG)
-### ⬜ Etappe 102 — E-Mail-Kampagnen + A/B-Tests
+### ⬜ Etappe 101 — Newsletter-Builder (WYSIWYG-Editor, nutzt Versand-Engine aus Etappe 88)
+### ⬜ Etappe 102 — E-Mail-Drip-Campaigns (7-Tage-Onboarding, Re-Engagement) + A/B-Tests
 ### ⬜ Etappe 103 — Social-Share Optimizations
-### ⬜ Etappe 104 — Event-Tracking (PostHog custom events)
-### ⬜ Etappe 105 — In-App Notification-Center
-### ⬜ Etappe 106 — Onboarding-Tours (rollenspezifisch)
-### ⬜ Etappe 107 — Referral-Programm (Verkäufer → Verkäufer)
+### ⬜ Etappe 104 — Event-Tracking + Meta/LinkedIn Conversions-API (Server-Side) für Ads-ROI
+### ⬜ Etappe 105 — *(Moved to Etappe 15.1 — Notification-Center bereits früh gebaut)* — hier: Notification-Preferences (User stellt Kanal pro Event ein)
+### ⬜ Etappe 106 — Onboarding-Tours (rollenspezifisch) + NPS-Survey nach 30 Tagen
+### ⬜ Etappe 107 — Referral-Programm (Verkäufer → Verkäufer, Käufer → Käufer)
 ### ⬜ Etappe 108 — PR-Kit + Pressebereich
-### ⬜ Etappe 109 — Podcast/Videos embedded
+### ⬜ Etappe 109 — Podcast/Videos embedded + Content-Produktion-Pipeline (wer macht Videos?)
 ### ⬜ Etappe 110 — Landing-Page-Varianten A/B
 
 ---
@@ -372,24 +373,24 @@ Stripe Smart Retries + `past_due`→Feature-Gate-Deaktivierung nach 3 fehlgeschl
 
 | Block | Status |
 |---|---|
-| A Fundament (1–10) | 3 ✓ / 7 ⏳ |
-| B Datenmodelle (11–25) | 0/15 |
+| A Fundament (1–10 + 2.1, 3.1, 3.2, 10.1) | 3 ✓ / 11 ⏳ |
+| B Datenmodelle (11–25 + 15.1, 21.1, 25.1) | 0/18 |
 | C Public (26–45) | 0/20 |
-| D Verkäufer-Dashboard (46–55) | 0/10 |
-| E Käufer-Dashboard (56–65) | 0/10 |
+| D Verkäufer-Dashboard (46–55 + 49.1, 52.1) | 0/12 |
+| E Käufer-Dashboard (56–65 + 59.1) | 0/11 |
 | F Messaging + NDA (66–70) | 0/5 |
-| G Datenraum (71–75) | 0/5 |
-| H Zahlungen (76–80) | 0/5 |
+| G Datenraum (71–75 + 71.1) | 0/6 |
+| H Zahlungen (76–80 + 79.1, 79.2) | 0/7 |
 | I Admin (81–90) | 0/10 |
-| J Content + SEO (91–100) | 0/10 |
+| J Content + SEO (91–100 + 97.1) | 0/11 |
 | K Marketing (101–110) | 0/10 |
 | L Trust (111–120) | 0/10 |
-| M i18n (121–130) | 0/10 |
+| M i18n (121–130 + 124.1) | 0/11 |
 | N Advanced (131–140) | 0/10 |
 | O Optimierung (141–150) | 0/10 |
 | P Phase 2 Broker (151–160) | 0/10 |
 
-**Gesamt: 3 / 160 Etappen ✓**
+**Gesamt: 3 / 175 Etappen ✓** (15 neue Etappen aus Gap-Analyse eingefügt)
 
 ---
 
@@ -401,11 +402,15 @@ Stripe Smart Retries + `past_due`→Feature-Gate-Deaktivierung nach 3 fehlgeschl
 4. **Immer verifizieren** im Chrome auf `passare-ch.vercel.app` nach dem Deploy.
 5. **MASTER_PLAN.md aktualisieren** (✓ hinter die Etappe).
 6. **Design-System respektieren** (siehe `docs/DESIGN_SYSTEM.md`).
-7. **Geschäftsmodell befolgen** (Self-Service-Plattform, 0% Provision).
-8. **Keine Broker-Features bis Phase 2.**
+7. **Geschäftsmodell befolgen** (Self-Service-Plattform, 0% Provision, 2 Käufer-Tiers).
+8. **Keine Broker-Features bis Phase 2** (aber `is_broker`-Flag ab Etappe 2 in DB!).
 9. **RLS-first** auf jeder neuen Tabelle.
 10. **Taxonomie einhalten** (18 Branchen, 26 Kantone, 5 Regionen, Bucket-Enums — siehe `docs/COMPETITOR_RESEARCH.md`).
+11. **Rollen-Naming strikt:** `verkaeufer` + `kaeufer` (transliteriert) — nie mischen.
+12. **Sicherheit nicht verschieben:** Rate-Limit + Bot-Schutz + Virus-Scan + MFA für Admin ab Tag 1.
+13. **Rechtssicherheit nicht verschieben:** MwSt + Rechnungsnummern + AGB-Versionierung + Consent-Records Pflicht vor Launch.
+14. **Testing als Gate:** Keine Etappe ist „fertig" ohne E2E-Test für Happy-Path + mindestens 1 Edge-Case.
 
 ---
 
-*Letzte Aktualisierung: 24.04.2026 · Etappe 1.7 live (Self-Service-Modell)*
+*Letzte Aktualisierung: 24.04.2026 · Etappe 1.7 live · Gap-Analyse integriert (175 Etappen), siehe `docs/GAP_ANALYSIS.md`*

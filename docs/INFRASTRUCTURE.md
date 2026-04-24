@@ -224,7 +224,7 @@ blog_posts
   └─ author_id (→ profiles)
 
 newsletter_abonnenten
-  ├─ email, rolle_interesse (verkaufer | kaeufer | beide)
+  ├─ email, rolle_interesse (verkaeufer | kaeufer | beide)
   ├─ branche_interesse jsonb, kanton_interesse jsonb
   ├─ confirmed_at, unsubscribed_at
   └─ source
