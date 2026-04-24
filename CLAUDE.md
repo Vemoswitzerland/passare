@@ -84,8 +84,8 @@ Dediziertes Broker-Produkt: spätere Etappe, nicht V1.
 /beta                Beta-Gate Code-Eingabe
 /auth/login          Login
 /auth/register       Register
-/dashboard/verkaufer Verkäufer-Dashboard (Meine Inserate, Anfragen, Statistiken)
-/dashboard/kaeufer   Käufer-Dashboard (Favoriten, Alerts, Anfragen, NDAs)
+/dashboard/verkaeufer Verkäufer-Dashboard (Meine Inserate, Anfragen, Statistiken)
+/dashboard/kaeufer    Käufer-Dashboard (Favoriten, Alerts, Anfragen, NDAs)
 /admin               Admin-Panel
 /api/*               Backend
 ```
@@ -194,11 +194,11 @@ git push origin main
 1. **NIEMALS Preview-Tools** verwenden (`preview_start`, `preview_screenshot` etc.) — immer Chrome auf Live-URL
 2. **NIEMALS Vemo-Repo anfassen** (siehe oben)
 3. **NIEMALS "kuratierte Redaktion" oder Broker-Sprache** — passare ist **Self-Service-Plattform**
-4. **Pricing muss IMMER stimmen:**
+4. **Pricing muss IMMER stimmen (2 Käufer-Tiers, keinen Pro-Mittelweg!):**
    - Verkäufer: CHF 290 / 890 / 1'890 einmalig
-   - Käufer: CHF 0 (Basic) / CHF 49/M (Pro) / CHF 199/M (MAX)
+   - Käufer: CHF 0 (Basic) / CHF 199/M oder CHF 1'990/Jahr (MAX)
 5. **0% Erfolgsprovision** ist das zentrale USP
-6. **Vierprachigkeit** (DE/FR/IT/EN) Pflicht ab Etappe 7
+6. **Viersprachigkeit** (DE/FR/IT/EN) Pflicht ab Etappe 7
 7. **ADMIN-DASHBOARD ist Pflicht-Feature** — wird parallel zu jeder neuen Etappe mit-befüllt. Admin muss:
    - Alle Inserate moderieren/approven/rejecten können
    - Alle User verwalten (Rollen, Sperren, KYC-Status)

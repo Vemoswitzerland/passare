@@ -90,7 +90,7 @@ function Hero() {
               <h1 className="font-serif-display text-[clamp(2.75rem,5vw,5rem)] text-navy font-light mb-6 tracking-[-0.025em] leading-[1.05]">
                 Ihre Firma verkaufen<span className="text-bronze">.</span>
                 <br />
-                <span className="text-muted">Ohne Makler<span className="text-bronze">.</span> Ohne Provision<span className="text-bronze">.</span></span>
+                <span className="text-muted">Selbst inserieren<span className="text-bronze">.</span> Direkt verhandeln<span className="text-bronze">.</span></span>
               </h1>
             </Reveal>
             <Reveal delay={0.1}>
