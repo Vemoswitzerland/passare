@@ -85,48 +85,38 @@ function Hero() {
     <section className="relative overflow-hidden pt-16 md:pt-24 pb-20 md:pb-28">
       <Container size="wide">
         <div className="grid lg:grid-cols-[1fr_1.15fr] gap-12 lg:gap-16 items-center">
-          {/* Text */}
           <div className="relative">
             <Reveal>
-              <h1 className="font-serif-display text-[clamp(2.75rem,5vw,5rem)] text-navy font-light mb-8 tracking-[-0.025em] leading-[1.02]">
-                Ihre Firma. Ihr Verkauf. Ihre Kontrolle<span className="text-bronze">.</span>
+              <h1 className="font-serif-display text-[clamp(2.75rem,5vw,5rem)] text-navy font-light mb-6 tracking-[-0.025em] leading-[1.02]">
+                Ihre Firma. Ihr Verkauf<span className="text-bronze">.</span>
               </h1>
             </Reveal>
-
             <Reveal delay={0.1}>
-              <p className="text-body-lg md:text-xl text-muted max-w-prose leading-relaxed mb-10">
-                <span className="font-serif italic text-navy">passare</span> ist die Schweizer Plattform,
-                auf der Sie Ihr KMU selbst inserieren und Käufer direkt kontaktieren.
-                Ohne Vermittler, ohne Erfolgsprovision &mdash; mit festem Paketpreis,
-                anonymem Profil und professionellem NDA-Prozess.
+              <p className="text-body-lg text-muted max-w-md leading-relaxed mb-8">
+                Die Schweizer Plattform für KMU-Nachfolge &mdash;
+                selbst inserieren, direkt verhandeln. Ohne Provision.
               </p>
             </Reveal>
-
             <Reveal delay={0.2}>
-              <div className="flex flex-col sm:flex-row gap-4 items-start mb-12">
-                <Button href="/beta" size="lg">
+              <div className="flex flex-col sm:flex-row gap-3 items-start mb-10">
+                <Button href="/verkaufen" size="lg">
                   Firma inserieren <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
                 </Button>
-                <Button href="/beta" variant="secondary" size="lg">
+                <Button href="/kaufen" variant="secondary" size="lg">
                   Firmen entdecken
                 </Button>
               </div>
             </Reveal>
-
             <Reveal delay={0.3}>
               <div className="flex flex-wrap items-center gap-x-5 gap-y-2 font-mono text-[11px] uppercase tracking-widest text-quiet">
                 <SignalDot>Ab CHF 290</SignalDot>
                 <span className="w-px h-3 bg-stone" />
                 <SignalDot>0% Provision</SignalDot>
                 <span className="w-px h-3 bg-stone" />
-                <SignalDot>Anonym</SignalDot>
-                <span className="w-px h-3 bg-stone" />
                 <SignalDot>NDA-Gate</SignalDot>
               </div>
             </Reveal>
           </div>
-
-          {/* Dashboard-Mockup */}
           <Reveal delay={0.35} className="relative">
             <DashboardMockup />
           </Reveal>
@@ -298,144 +288,57 @@ function HowItWorks() {
 }
 
 /* ═══════════════════════════════════════════════
-   PRICING — Verkäufer (3) + Käufer (Basic + MAX)
+   PRICING — Nur Verkäufer-Pakete (Käufer → /preise)
    ═══════════════════════════════════════════════ */
 function Pricing() {
   return (
     <Section className="bg-paper border-y border-stone">
       <Container>
         <Reveal>
-          <div className="mb-16 max-w-prose">
-            <p className="overline mb-5">Preise</p>
+          <div className="mb-14 max-w-prose">
+            <p className="overline mb-5">Preise für Verkäufer</p>
             <h2 className="font-serif text-display-md text-navy font-light mb-6">
-              Für Verkäufer. Für Käufer.
+              Fester Preis. Keine Provision.
             </h2>
             <p className="text-body-lg text-muted leading-relaxed max-w-prose">
-              Fester Preis. Keine Provision auf Ihren Deal.
-              Sie zahlen einmal &mdash; wir verdienen an der Plattform, nicht an Ihrem Verkauf.
+              Sie zahlen einmal für Ihr Inserat. Was Ihre Firma später bringt, bleibt bei Ihnen.
             </p>
           </div>
         </Reveal>
 
-        {/* VERKÄUFER */}
-        <Reveal>
-          <div className="flex items-center gap-4 mb-8">
-            <span className="overline text-navy">Für Verkäufer</span>
-            <span className="h-px flex-1 bg-stone" />
-            <span className="font-mono text-[11px] text-quiet">einmalige Paketgebühr</span>
-          </div>
-        </Reveal>
-
-        <div className="grid md:grid-cols-3 gap-px bg-stone border border-stone rounded-card overflow-hidden mb-20">
-          <PlanCard
-            tag="Einstieg"
-            name="Inserat Light"
-            price="CHF 290"
-            note="einmalig · 3 Monate Laufzeit"
-            features={[
-              'Anonymes Inserat im Marktplatz',
-              '5 Bilder · 2 PDFs im Datenraum',
-              'NDA-Gate mit eSign',
-              'Anfragen-Dashboard',
-              'KI-Teaser-Generator',
-            ]}
-            cta="Light wählen"
-            delay={0}
+        <div className="grid md:grid-cols-3 gap-px bg-stone border border-stone rounded-card overflow-hidden">
+          <SellerPlan
+            tag="Einstieg" name="Inserat Light" price="CHF 290" note="einmalig · 3 Monate"
+            features={['Anonymes Inserat', '5 Bilder · 2 PDFs', 'NDA-Gate mit eSign', 'KI-Teaser']}
+            cta="Light wählen" delay={0}
           />
-          <PlanCard
-            tag="Empfohlen"
-            highlight
-            name="Inserat Pro"
-            price="CHF 890"
-            note="einmalig · 6 Monate Laufzeit"
-            features={[
-              'Alles aus Light, plus:',
-              '20 Bilder + Videos · unbegrenzter Datenraum',
-              'Wasserzeichen auf PDF-Downloads',
-              'Matching mit Käuferprofilen',
-              'Newsletter-Feature (einmalig)',
-              'Detailstatistiken & Conversion',
-            ]}
-            cta="Pro wählen"
-            delay={0.08}
+          <SellerPlan
+            tag="Empfohlen" highlight name="Inserat Pro" price="CHF 890" note="einmalig · 6 Monate"
+            features={['Alles aus Light', '20 Bilder + Videos', 'Unbegrenzter Datenraum', 'Käuferprofil-Matching', 'Newsletter-Feature']}
+            cta="Pro wählen" delay={0.08}
           />
-          <PlanCard
-            tag="Maximum Reichweite"
-            name="Inserat Premium"
-            price="CHF 1'890"
-            note="einmalig · 12 Monate Laufzeit"
-            features={[
-              'Alles aus Pro, plus:',
-              'Homepage-Feature (1 Woche/Monat)',
-              'Newsletter-Feature (monatlich)',
-              'Mehrsprachige Inseratversion (FR/IT/EN)',
-              '2h persönliche Beratung inklusive',
-              'Priorisierter Support',
-            ]}
-            cta="Premium wählen"
-            delay={0.16}
+          <SellerPlan
+            tag="Maximum" name="Inserat Premium" price="CHF 1'890" note="einmalig · 12 Monate"
+            features={['Alles aus Pro', 'Homepage-Feature', 'FR/IT/EN-Version', '2h Beratung inklusive', 'Priorisierter Support']}
+            cta="Premium wählen" delay={0.16}
           />
         </div>
 
-        {/* KÄUFER */}
-        <Reveal>
-          <div className="flex items-center gap-4 mb-8">
-            <span className="overline text-navy">Für Käufer</span>
-            <span className="h-px flex-1 bg-stone" />
-            <span className="font-mono text-[11px] text-quiet">gratis oder MAX-Abo</span>
-          </div>
-        </Reveal>
-
-        <div className="grid md:grid-cols-2 gap-px bg-stone border border-stone rounded-card overflow-hidden max-w-5xl">
-          <PlanCard
-            tag="Gratis"
-            name="Käufer Basic"
-            price="CHF 0"
-            note="kostenlos · unbefristet"
-            features={[
-              'Öffentliche Inserate durchsuchen',
-              '5 Basis-Filter (Branche, Kanton, Preisrange, Umsatz, Mitarbeiter)',
-              '3 gespeicherte Suchen',
-              'Wöchentliche E-Mail-Alerts',
-              '5 Anfragen pro Monat',
-              'NDA-Signatur möglich',
-            ]}
-            cta="Gratis starten"
-            delay={0}
-          />
-          <PlanCard
-            tag="Für aktive Käufer"
-            highlight
-            dark
-            name="Käufer MAX"
-            price="CHF 199"
-            priceSuffix="/Monat"
-            altPrice="CHF 1'990/Jahr (2 Monate gratis)"
-            note="monatlich kündbar"
-            features={[
-              'Alles aus Basic, plus:',
-              '7 Tage Frühzugang vor allen anderen',
-              'Alle 18 Filter + Custom-Filter',
-              'Unbegrenzte gespeicherte Suchen',
-              'Echtzeit-Alerts + WhatsApp-Push',
-              'Unbegrenzte Anfragen',
-              'Öffentliches Käuferprofil (Featured)',
-              'NDA-Fast-Track',
-              'KMU-Multiples-Datenbank',
-              'Persönlicher Ansprechpartner',
-            ]}
-            cta="MAX buchen"
-            delay={0.08}
-          />
-        </div>
-
-        <Reveal delay={0.2}>
-          <div className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-2 font-mono text-[11px] uppercase tracking-widest text-quiet max-w-4xl">
-            <SignalDot>Preise zzgl. 8.1% MWST</SignalDot>
-            <span className="w-px h-3 bg-stone" />
-            <SignalDot>Keine automatische Verlängerung bei Verkäufer-Paketen</SignalDot>
-            <span className="w-px h-3 bg-stone" />
-            <SignalDot>MAX jederzeit kündbar</SignalDot>
+        <Reveal delay={0.25}>
+          <div className="mt-10 flex flex-wrap items-center justify-between gap-4">
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 font-mono text-[11px] uppercase tracking-widest text-quiet">
+              <SignalDot>Zzgl. 8.1% MWST</SignalDot>
+              <span className="w-px h-3 bg-stone" />
+              <SignalDot>Keine Auto-Verlängerung</SignalDot>
+              <span className="w-px h-3 bg-stone" />
+              <SignalDot>0% Erfolgsprovision</SignalDot>
+            </div>
+            <Link
+              href="/preise"
+              className="font-mono text-[11px] uppercase tracking-widest text-navy hover:text-bronze inline-flex items-center gap-1.5"
+            >
+              Preise im Detail &amp; Käufer-Abos <ArrowRight className="w-3 h-3" strokeWidth={1.5} />
+            </Link>
           </div>
         </Reveal>
       </Container>
@@ -443,119 +346,41 @@ function Pricing() {
   );
 }
 
-function PlanCard({
-  tag,
-  name,
-  price,
-  priceSuffix,
-  altPrice,
-  note,
-  features,
-  cta,
-  highlight,
-  dark,
-  delay = 0,
+function SellerPlan({
+  tag, name, price, note, features, cta, highlight, delay = 0,
 }: {
-  tag: string;
-  name: string;
-  price: string;
-  priceSuffix?: string;
-  altPrice?: string;
-  note: string;
-  features: string[];
-  cta: string;
-  highlight?: boolean;
-  dark?: boolean;
-  delay?: number;
+  tag: string; name: string; price: string; note: string;
+  features: string[]; cta: string; highlight?: boolean; delay?: number;
 }) {
-  const isDark = dark === true;
   return (
     <Reveal delay={delay}>
-      <div
-        className={`h-full p-8 md:p-10 flex flex-col ${
-          isDark ? 'bg-navy text-cream' : 'bg-paper text-ink'
-        }`}
-      >
+      <div className={`h-full p-8 md:p-10 flex flex-col ${highlight ? 'bg-cream/60' : 'bg-paper'}`}>
         <div className="flex items-start justify-between mb-6">
-          <p
-            className={`font-mono text-[11px] uppercase tracking-widest ${
-              isDark ? 'text-bronze' : highlight ? 'text-bronze-ink' : 'text-quiet'
-            }`}
-          >
+          <p className={`font-mono text-[11px] uppercase tracking-widest ${highlight ? 'text-bronze-ink' : 'text-quiet'}`}>
             {tag}
           </p>
           {highlight && (
-            <span
-              className={`font-mono text-[10px] uppercase tracking-widest px-2.5 py-1 rounded-full ${
-                isDark ? 'bg-bronze/20 text-bronze' : 'bg-bronze/15 text-bronze-ink'
-              }`}
-            >
+            <span className="font-mono text-[10px] uppercase tracking-widest px-2.5 py-1 rounded-full bg-bronze/15 text-bronze-ink">
               empfohlen
             </span>
           )}
         </div>
-
-        <h3
-          className={`font-serif text-head-lg font-normal mb-6 ${
-            isDark ? 'text-cream' : 'text-navy'
-          }`}
-        >
-          {name}
-        </h3>
-
-        <div className={`mb-6 pb-6 border-b ${isDark ? 'border-cream/15' : 'border-stone'}`}>
-          <div className="flex items-baseline gap-1">
-            <p
-              className={`font-serif text-[clamp(2rem,4vw,3rem)] font-light font-tabular leading-none ${
-                isDark ? 'text-cream' : 'text-navy'
-              }`}
-            >
-              {price}
-            </p>
-            {priceSuffix && (
-              <span
-                className={`font-mono text-sm ${isDark ? 'text-cream/60' : 'text-quiet'}`}
-              >
-                {priceSuffix}
-              </span>
-            )}
-          </div>
-          {altPrice && (
-            <p
-              className={`font-mono text-[11px] mt-2 ${
-                isDark ? 'text-bronze' : 'text-bronze-ink'
-              }`}
-            >
-              oder {altPrice}
-            </p>
-          )}
-          <p
-            className={`font-mono text-[11px] mt-3 uppercase tracking-widest ${
-              isDark ? 'text-cream/60' : 'text-quiet'
-            }`}
-          >
-            {note}
+        <h3 className="font-serif text-head-lg text-navy font-normal mb-6">{name}</h3>
+        <div className="mb-6 pb-6 border-b border-stone">
+          <p className="font-serif text-[clamp(2rem,4vw,3rem)] text-navy font-light font-tabular leading-none">
+            {price}
           </p>
+          <p className="font-mono text-[11px] mt-3 uppercase tracking-widest text-quiet">{note}</p>
         </div>
-
-        <ul className="space-y-3 mb-10 flex-1">
+        <ul className="space-y-2.5 mb-10 flex-1">
           {features.map((f, j) => (
             <li key={j} className="flex items-start gap-3 text-body-sm">
-              <Check
-                className="w-4 h-4 flex-shrink-0 mt-0.5 text-bronze"
-                strokeWidth={1.75}
-              />
-              <span className={isDark ? 'text-cream/90' : 'text-muted'}>{f}</span>
+              <Check className="w-4 h-4 flex-shrink-0 mt-0.5 text-bronze" strokeWidth={1.75} />
+              <span className="text-muted">{f}</span>
             </li>
           ))}
         </ul>
-
-        <Button
-          href="/beta"
-          variant={isDark ? 'bronze' : highlight ? 'primary' : 'secondary'}
-          size="lg"
-          className="w-full justify-center"
-        >
+        <Button href="/verkaufen" variant={highlight ? 'primary' : 'secondary'} size="lg" className="w-full justify-center">
           {cta} <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
         </Button>
       </div>

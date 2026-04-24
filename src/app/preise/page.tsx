@@ -186,20 +186,20 @@ function Cell({ children, highlight }: { children: React.ReactNode; highlight?: 
 /* ─────────────────────────────── */
 function KaeuferTable() {
   const rows = [
-    { feature: 'Inserate durchsuchen', basic: 'Öffentliche', max: 'Alle inkl. Premium' },
-    { feature: 'Frühzugang neue Inserate', basic: '—', max: '7 Tage vor allen' },
-    { feature: 'Basis-Filter (5)', basic: '✓', max: '✓' },
-    { feature: 'Alle Filter (18) + Custom', basic: '—', max: '✓' },
-    { feature: 'Gespeicherte Suchen', basic: '3', max: 'Unbegrenzt' },
-    { feature: 'E-Mail-Alerts', basic: 'Wöchentlich', max: 'Echtzeit' },
-    { feature: 'WhatsApp-Alerts', basic: '—', max: '✓' },
-    { feature: 'Anfragen pro Monat', basic: '5', max: 'Unbegrenzt' },
-    { feature: 'NDA signieren', basic: '✓', max: '✓' },
-    { feature: 'NDA-Fast-Track', basic: '—', max: '✓' },
-    { feature: 'Öffentliches Käuferprofil', basic: '—', max: 'Featured' },
-    { feature: 'KMU-Multiples-Datenbank', basic: '—', max: '✓' },
-    { feature: 'Persönlicher Ansprechpartner', basic: '—', max: '✓' },
-    { feature: 'Kündigungsfrist', basic: '—', max: 'Monatlich' },
+    { feature: 'Inserate durchsuchen',        basic: 'Öffentliche',     pro: 'Alle inkl. Premium', max: 'Alle inkl. Premium' },
+    { feature: 'Frühzugang neue Inserate',    basic: '—',               pro: '48 Stunden',         max: '7 Tage vor allen' },
+    { feature: 'Basis-Filter (5)',            basic: '✓',               pro: '✓',                   max: '✓' },
+    { feature: 'Alle Filter (18)',            basic: '—',               pro: '✓',                   max: '✓ + Custom' },
+    { feature: 'Gespeicherte Suchen',         basic: '3',               pro: '20',                  max: 'Unbegrenzt' },
+    { feature: 'E-Mail-Alerts',               basic: 'Wöchentlich',     pro: 'Täglich',             max: 'Echtzeit' },
+    { feature: 'WhatsApp-Alerts',             basic: '—',               pro: '—',                    max: '✓' },
+    { feature: 'Anfragen pro Monat',          basic: '5',               pro: '25',                  max: 'Unbegrenzt' },
+    { feature: 'NDA signieren',               basic: '✓',               pro: '✓',                   max: '✓' },
+    { feature: 'NDA-Fast-Track',              basic: '—',               pro: '✓',                   max: '✓ priorisiert' },
+    { feature: 'Öffentliches Käuferprofil',   basic: '—',               pro: 'Standard',            max: 'Featured' },
+    { feature: 'KMU-Multiples-Datenbank',     basic: '—',               pro: '—',                    max: '✓' },
+    { feature: 'Persönlicher Ansprechpartner', basic: '—',              pro: '—',                    max: '✓' },
+    { feature: 'Kündigungsfrist',             basic: '—',               pro: 'Monatlich',           max: 'Monatlich' },
   ];
 
   return (
@@ -210,40 +210,45 @@ function KaeuferTable() {
             <div className="flex items-center gap-4 mb-5">
               <span className="overline text-navy">Für Käufer</span>
               <span className="h-px flex-1 bg-stone" />
-              <span className="font-mono text-[11px] text-quiet">Basic gratis oder MAX-Abo</span>
+              <span className="font-mono text-[11px] text-quiet">Basic · Pro · MAX</span>
             </div>
             <h2 className="font-serif text-display-md text-navy font-light">
-              Basic oder MAX.
+              Drei Stufen. Ihrer Aktivität angepasst.
             </h2>
           </div>
         </Reveal>
 
         <Reveal delay={0.1}>
-          <div className="border border-stone rounded-card overflow-hidden bg-paper max-w-4xl">
-            <div className="grid grid-cols-[1.5fr_1fr_1fr] border-b border-stone">
+          <div className="border border-stone rounded-card overflow-hidden bg-paper">
+            <div className="grid grid-cols-[1.5fr_1fr_1fr_1fr] border-b border-stone">
               <div className="p-6"></div>
               <PlanHeader name="Basic" price="CHF 0" note="Unbefristet" />
-              <PlanHeader name="MAX" price="CHF 199" note="/ Monat · CHF 1'990 / Jahr" highlight />
+              <PlanHeader name="Pro" price="CHF 49" note="/ Monat · CHF 490 / Jahr" highlight />
+              <PlanHeader name="MAX" price="CHF 199" note="/ Monat · CHF 1'990 / Jahr" />
             </div>
             {rows.map((r, i) => (
               <div
                 key={i}
-                className={`grid grid-cols-[1.5fr_1fr_1fr] ${
+                className={`grid grid-cols-[1.5fr_1fr_1fr_1fr] ${
                   i !== rows.length - 1 ? 'border-b border-stone' : ''
                 } ${i % 2 === 1 ? 'bg-cream/30' : ''}`}
               >
                 <div className="p-4 text-body-sm text-ink">{r.feature}</div>
                 <Cell>{r.basic}</Cell>
-                <Cell highlight>{r.max}</Cell>
+                <Cell highlight>{r.pro}</Cell>
+                <Cell>{r.max}</Cell>
               </div>
             ))}
-            <div className="grid grid-cols-[1.5fr_1fr_1fr] border-t border-stone bg-cream/50">
+            <div className="grid grid-cols-[1.5fr_1fr_1fr_1fr] border-t border-stone bg-cream/50">
               <div className="p-4"></div>
               <div className="p-4 border-l border-stone">
                 <Button href="/beta" variant="secondary" size="sm" className="w-full justify-center">Gratis starten</Button>
               </div>
               <div className="p-4 border-l border-stone">
-                <Button href="/beta" size="sm" className="w-full justify-center">MAX buchen</Button>
+                <Button href="/beta" size="sm" className="w-full justify-center">Pro buchen</Button>
+              </div>
+              <div className="p-4 border-l border-stone">
+                <Button href="/beta" variant="secondary" size="sm" className="w-full justify-center">MAX buchen</Button>
               </div>
             </div>
           </div>
@@ -251,7 +256,7 @@ function KaeuferTable() {
 
         <Reveal delay={0.2}>
           <p className="mt-8 font-mono text-[11px] uppercase tracking-widest text-quiet">
-            ◦ Jahres-Abo: 2 Monate gratis &middot; MAX monatlich kündbar &middot; Preise zzgl. 8.1% MWST
+            ◦ Jahres-Abo: 2 Monate gratis &middot; Monatlich kündbar &middot; Preise zzgl. 8.1% MWST
           </p>
         </Reveal>
       </Container>
