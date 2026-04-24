@@ -200,16 +200,31 @@ git push origin main
 5. **0% Erfolgsprovision** ist das zentrale USP
 6. **Viersprachigkeit** (DE/FR/IT/EN) Pflicht ab Etappe 7
 7. **ADMIN-DASHBOARD ist Pflicht-Feature** — wird parallel zu jeder neuen Etappe mit-befüllt. Admin muss:
-   - Alle Inserate moderieren/approven/rejecten können
-   - Alle User verwalten (Rollen, Sperren, KYC-Status)
-   - Alle Stripe-Zahlungen + MAX-Abos einsehen
+   - Alle Inserate moderieren/approven/rejecten können (inkl. Anonymitäts-Audit-Check)
+   - Alle User verwalten (Rollen, Sperren, KYC-Status, interne Notes, Tags)
+   - Alle Stripe-Zahlungen + MAX-Abos einsehen, Refunds auslösen, Dunning-Status sehen
    - Feature-Flags togglen
-   - Alle Content-Seiten editieren (Blog, NDA-Templates, AGB)
-   - Newsletter-Kampagnen versenden
+   - Alle Content-Seiten editieren (Blog, NDA-Templates, AGB — mit Versionierung!)
+   - Newsletter-Kampagnen versenden (segmentiert)
    - Support-Tickets beantworten
    - Preise & Pakete konfigurieren
    - Reference-Daten pflegen (Branchen, Kantone, Gründe)
+   - **User impersonieren** für Support (mit Audit-Trail)
+   - **4-Eyes-Prinzip** für kritische Aktionen (permanent-sperren, Inserat-Löschung, Refund >CHF 500)
    - **Gesamte Plattform-Aktivität live sehen** (Activity-Feed: Anmeldungen, Inserate-Publikationen, NDAs, Zahlungen, Messaging, Logins, Datenraum-Zugriffe, Fehler) — gefiltert nach User/Zeitraum/Typ, exportierbar
+8. **Rechtssicherheit ist Launch-Blocker:**
+   - CH-MwSt 8.1 % auf allen Rechnungen, fortlaufende Rechnungsnummern, UID-Nummer
+   - AGB-Versionierung mit expliziter User-Zustimmung (Tabelle `terms_acceptances`)
+   - Consent-Records für Newsletter/Analytics/Marketing (CH-FADP + DSGVO)
+   - DSGVO-Self-Service (Export, Löschung, Auskunft) in Käufer+Verkäufer-Dashboard
+9. **Anonymitäts-Garantie** — Verkäufer bleibt anonym bis NDA. Jedes Inserat durchläuft Anonymitäts-Audit (Admin-Moderation + optional LLM-Check auf Firmenname im Teaser/Beschreibung/Bild-Metadaten).
+10. **Sicherheit ist nicht optional:**
+    - Rate-Limiting (Upstash) auf allen Forms + Auth
+    - hCaptcha/Turnstile auf Registrierung, Kontakt, NDA
+    - Virus-Scan (ClamAV) auf allen Uploads (Datenraum + Messaging-Attachments)
+    - MFA/TOTP Pflicht für Admin-Rolle ab Tag 1
+    - Rollen-Naming im Code durchgängig: `verkaeufer` + `kaeufer` (beide transliteriert, nie mischen!)
+11. **Testing ist nicht „später"** — Playwright-E2E für Critical Paths + Migration-Smoke-Tests in CI als harte Gates.
 
 ---
 
@@ -225,6 +240,7 @@ Code & Kommentare auch DE.
 - ✅ **Etappe 1 LIVE** — Repo, Scaffold, Beta-Gate, Deploy
 - ✅ **Etappe 1.5 LIVE** — Design-System v1.0 (Fraunces + Geist, Navy/Bronze/Cream, Lucide, Framer Motion)
 - ✅ **Etappe 1.7 LIVE** — Self-Service-Modell + Pricing 3+2 + Einzelseiten (/verkaufen, /kaufen, /entdecken, /preise)
-- ⏳ **Etappe 2 NEXT** — Supabase-Setup + Core Migrations
+- 📋 **Etappe 1.9** — Gap-Analyse abgeschlossen, 15 neue Pflicht-Etappen in MASTER_PLAN integriert (siehe `docs/GAP_ANALYSIS.md`)
+- ⏳ **Etappe 2 NEXT** — Supabase-Setup + Core Migrations (inkl. `terms_acceptances`, `consent_records`, `notifications`)
 
-Siehe [docs/MASTER_PLAN.md](docs/MASTER_PLAN.md) für alle Etappen.
+Siehe [docs/MASTER_PLAN.md](docs/MASTER_PLAN.md) für alle Etappen, [docs/GAP_ANALYSIS.md](docs/GAP_ANALYSIS.md) für die Lückenanalyse.

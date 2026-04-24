@@ -67,11 +67,23 @@ passare ist eine **Self-Service-Plattform** mit zwei bezahlten Benutzergruppen:
 -- ─── USER & ROLES ──────────────────────────────────
 profiles (1:1 auth.users)
   ├─ id (= auth.users.id)
-  ├─ rolle (enum: verkaufer | kaeufer | admin)
+  ├─ rolle (enum: verkaeufer | kaeufer | admin)         -- ACHTUNG: beide transliteriert!
   ├─ full_name, phone, kanton, sprache (de/fr/it/en)
   ├─ verified_phone bool, verified_kyc bool
   ├─ stripe_customer_id (für Zahlungen + Abos)
+  ├─ is_broker bool default false                       -- reserviert für Phase 2, JETZT anlegen
+  ├─ mfa_enrolled bool default false                    -- Pflicht für rolle=admin
+  ├─ avg_response_time_hours numeric                    -- auto-berechnet aus nachrichten
+  ├─ qualitaets_score int                               -- 0-100, auto-berechnet
+  ├─ tags jsonb                                         -- Admin-seitig, nicht user-visible
+  ├─ admin_notes text                                   -- Admin-seitig, nicht user-visible
   └─ created_at
+
+-- ─── ENTITLEMENTS VIEW (statt denormalisiertem Flag) ─
+-- v_user_entitlements
+--   Leitet aktive Berechtigungen aus `subscriptions` + `zahlungen` ab.
+--   max_active = EXISTS(subscriptions WHERE user_id=p.id AND status='active')
+--   Nie als Spalte auf `profiles` denormalisieren → Inkonsistenz-Risiko.
 
 -- ─── VERKÄUFER-SEITE ───────────────────────────────
 inserate
@@ -146,9 +158,26 @@ zahlungen
   ├─ id, user_id (→ profiles)
   ├─ typ (inserat_paket | max_abo | verlaengerung)
   ├─ stripe_payment_intent, stripe_checkout_session_id
-  ├─ amount numeric, currency (CHF), status (pending | paid | refunded)
+  ├─ amount_net numeric                                 -- Netto ohne MwSt
+  ├─ vat_rate numeric default 8.1                       -- CH-MwSt-Satz
+  ├─ vat_amount numeric                                 -- Betrag MwSt
+  ├─ amount_gross numeric                               -- Brutto (= net + vat)
+  ├─ currency (CHF), status (pending | paid | refunded | partially_refunded | failed)
   ├─ plan_code (light | pro | premium | max_monthly | max_yearly)
   ├─ inserat_id (→ inserate, optional)
+  ├─ invoice_id (→ invoices, optional)
+  ├─ source_utm jsonb                                   -- Marketing-Attribution
+  ├─ refund_reason text
+  └─ created_at
+
+invoices                                                -- CH-konforme Rechnungsnummerierung
+  ├─ id, user_id (→ profiles), zahlung_id (→ zahlungen)
+  ├─ invoice_number text unique                         -- Format: RE-2026-00001 (fortlaufend!)
+  ├─ issued_at timestamp, pdf_storage_path
+  ├─ billing_address jsonb                              -- Snapshot zum Zeitpunkt der Rechnung
+  ├─ uid_nummer text                                    -- Kunden-UID falls B2B
+  ├─ typ (rechnung | storno | gutschrift)
+  ├─ bezug_invoice_id (→ invoices, bei Storno/Gutschrift)
   └─ created_at
 
 subscriptions (nur für Käufer MAX!)
@@ -200,11 +229,64 @@ newsletter_abonnenten
   ├─ confirmed_at, unsubscribed_at
   └─ source
 
+-- ─── COMPLIANCE & CONSENT ──────────────────────────
+terms_acceptances                                       -- AGB-Versionierung (jede neue Version erneut akzeptieren)
+  ├─ id, user_id (→ profiles)
+  ├─ document (agb | datenschutz | nda_general)
+  ├─ version text                                       -- z.B. "2026-04"
+  ├─ accepted_at timestamp, ip, user_agent
+  └─ created_at
+
+consent_records                                         -- DSGVO/FADP-Zustimmungen (Newsletter, Analytics, Marketing)
+  ├─ id, user_id (→ profiles, nullable für Gäste)
+  ├─ email (falls kein user_id)
+  ├─ consent_type (newsletter | analytics | marketing | whatsapp_alerts)
+  ├─ granted bool, granted_at, revoked_at
+  ├─ ip, user_agent, source (page/form)
+  └─ created_at
+
+-- ─── NOTIFICATIONS ─────────────────────────────────
+notifications                                           -- In-App Notification-Center
+  ├─ id, user_id (→ profiles)
+  ├─ typ (anfrage_neu | nachricht_neu | nda_unterzeichnet | zahlung_ok | inserat_ablauf | match_gefunden | system)
+  ├─ title, body, action_url
+  ├─ read_at timestamp, delivered_channels jsonb        -- ['in_app', 'email', 'push']
+  └─ created_at
+
+push_subscriptions                                      -- Web Push (VAPID)
+  ├─ id, user_id (→ profiles)
+  ├─ endpoint, p256dh, auth
+  ├─ user_agent, last_used_at
+  └─ created_at
+
+-- ─── BEWERTUNGEN (Peer-Reviews) ────────────────────
+bewertungen
+  ├─ id, anfrage_id (→ anfragen)                        -- immer an konkrete Interaktion gebunden
+  ├─ rater_id (→ profiles), ratee_id (→ profiles)
+  ├─ sterne int (1–5), kommentar text
+  ├─ visible_after timestamp                            -- Blind-Mode: beide müssen abgegeben haben ODER 14 Tage rum
+  └─ created_at
+
+-- ─── API & INTEGRATIONS ────────────────────────────
+api_keys                                                -- für Etappe 132 (Public Valuation API + Broker-Webhooks)
+  ├─ id, user_id (→ profiles), label
+  ├─ key_hash text, last_4 text
+  ├─ scopes jsonb                                       -- ['valuation:read', 'listings:read']
+  ├─ last_used_at, revoked_at, expires_at
+  └─ created_at
+
 -- ─── SYSTEM ────────────────────────────────────────
 events_log (Audit-Trail, DSGVO)
   ├─ id, user_id (→ profiles)
   ├─ event_type, metadata jsonb
   ├─ ip, user_agent
+  └─ created_at
+
+admin_actions                                           -- 4-Eyes-Prinzip + Impersonation-Log
+  ├─ id, admin_id (→ profiles), target_user_id (→ profiles, nullable)
+  ├─ action (impersonate | suspend_user | delete_inserat | refund | config_change)
+  ├─ reason text, approved_by (→ profiles, nullable für 4-Eyes)
+  ├─ metadata jsonb
   └─ created_at
 
 feature_flags
@@ -227,23 +309,31 @@ support_tickets
 ```
 
 ### RLS-Strategie
-- **owner-only:** `favoriten`, `gespeicherte_suchen`, `datenraum_access_log`, `zahlungen`, `subscriptions`
-- **dual-access:** `nachrichten`, `anfragen` (sender + receiver)
+- **owner-only:** `favoriten`, `gespeicherte_suchen`, `datenraum_access_log`, `zahlungen`, `subscriptions`, `invoices`, `notifications`, `push_subscriptions`, `terms_acceptances`, `consent_records`, `api_keys`
+- **dual-access:** `nachrichten` (sender ODER anfrage.kaeufer_id=auth.uid ODER anfrage.inserat.owner_id=auth.uid), `anfragen` (kaeufer_id=auth.uid ODER inserat.owner_id=auth.uid)
+- **bewertungen:** sichtbar wenn `visible_after < now()`, rater/ratee haben immer Zugriff auf eigene
 - **public-read limited:** `inserate` (nur `status=published`), `blog_posts` (nur `published=true`), `kaeufer_profile` (nur `public=true`)
-- **admin-only writes:** `feature_flags`, `branchen`, `kantone`, `regionen`, `rechtsformen`, `uebergabe_gruende`, `kategorien`
-- **verkaufer-only:** eigene `inserate`, `inserate_media`, `datenraum_files`, Anfragen-Inbox zu eigenen Inseraten
+- **admin-only writes:** `feature_flags`, `branchen`, `kantone`, `regionen`, `rechtsformen`, `uebergabe_gruende`, `kategorien`, `admin_actions`
+- **verkaeufer-only:** eigene `inserate`, `inserate_media`, `datenraum_files`, Anfragen-Inbox zu eigenen Inseraten
+- **admin-impersonation:** via Service-Role-Key + `admin_actions`-Log, NIEMALS direkt RLS umgehen ohne Eintrag
 
 ### Kritische Indizes
 - `inserate(status, published_at)` — Marktplatz-Query
 - `inserate(branche_id, kanton_code)` — Filter
 - `inserate(kaufpreis_bucket, umsatz_bucket)` — Filter
 - `inserate(slug)` unique
+- `inserate(expires_at) WHERE status='published'` — Cron für Ablauf-Mails
 - `anfragen(inserat_id, kaeufer_id)` unique
 - `nachrichten(anfrage_id, created_at)`
 - `favoriten(user_id)`, `favoriten(inserat_id, user_id)` unique
 - `zahlungen(stripe_payment_intent)` unique
+- `zahlungen(stripe_event_id)` unique — Webhook-Idempotenz
 - `subscriptions(stripe_subscription_id)` unique
+- `invoices(invoice_number)` unique
+- `notifications(user_id, read_at)` — Unread-Badge
 - `atlas_firmen(uid)` unique, `atlas_firmen(kanton, status)`
+- `events_log(user_id, created_at)` + `events_log(event_type, created_at)` — Audit-Queries
+- Fulltext-Index auf `inserate(to_tsvector('german', titel || ' ' || teaser))` — Marktplatz-Suche
 
 ---
 
@@ -275,9 +365,14 @@ Login:
 ```
 1. Verkäufer wählt Paket im Inserat-Wizard Step 4
 2. Server-Action erstellt Stripe Checkout Session (mode='payment')
+   → Price inkludiert MwSt 8.1 %, tax_behavior='inclusive' oder 'exclusive'
 3. Redirect zu Stripe
-4. Webhook: checkout.session.completed → zahlungen.status='paid'
-5. inserate.status='in_review' (Admin-Moderation) oder direkt 'published'
+4. Webhook: checkout.session.completed
+   → zahlungen.status='paid' (idempotent via stripe_event_id)
+   → invoices neu erstellt (fortlaufende invoice_number RE-YYYY-NNNNN)
+   → PDF generiert in Storage
+5. inserate.status='in_review' (IMMER, Admin-Moderation Pflicht in V1)
+   Erst nach Admin-Freigabe: status='published', published_at=now()
 6. Resend: Bestätigung + Rechnung-PDF
 ```
 
@@ -285,17 +380,55 @@ Login:
 ```
 1. Käufer klickt "MAX buchen" auf /preise oder /kaufen
 2. Server-Action erstellt Stripe Checkout Session (mode='subscription')
+   → Monthly: CHF 199 + MwSt · Yearly: CHF 1'990 + MwSt (2 Monate Rabatt)
 3. Redirect zu Stripe
 4. Webhook: customer.subscription.created → subscriptions.status='active'
-5. profile.max_active=true (für Feature-Gates)
+5. Entitlements via `v_user_entitlements`-View abgefragt (KEIN profile.max_active-Flag)
 6. Resend: Willkommens-Mail + Rechnung
+```
+
+### Webhook-Robustheit (Pflicht)
+```
+- Idempotenz: stripe_event_id als unique constraint; doppelte Events → no-op
+- Signatur-Verifikation: stripe.webhooks.constructEvent() mit STRIPE_WEBHOOK_SECRET
+- Retry-Queue: bei DB-Fehler → Job in pg-boss/qstash, 5 Retries mit Backoff
+- Dead-Letter-Log: nach 5 Fehlschlägen → Admin-Alert + events_log
+```
+
+### Failed Payments (Dunning) — nur MAX-Abo
+```
+Stripe verschickt automatisch Mahnungen (Smart Retries, 3 Versuche).
+Webhook invoice.payment_failed → notifications + E-Mail an Käufer.
+Nach 3 Fehlversuchen: subscriptions.status='past_due' → Feature-Gates deaktivieren
+                   → nach 7 weiteren Tagen: status='canceled'.
+```
+
+### Refunds & Stornorechnungen
+```
+Admin-triggered (>CHF 500 nur mit 4-Eyes via admin_actions):
+1. Admin löst Refund in Admin-Panel aus → Stripe refund.create()
+2. zahlungen.status='refunded' (oder 'partially_refunded')
+3. Neue invoices-Row typ='storno', bezug_invoice_id=original
+4. inserate.status='paused' (falls inserat_paket refunded)
+5. Resend: Stornorechnung-PDF an User
 ```
 
 ### Verlängerungen (Verkäufer-Pakete)
 ```
 Kein Auto-Renewal!
-Verkäufer bekommt 7/3/1 Tag vor expires_at Erinnerungs-E-Mail.
-Manuelle Verlängerung: neue Checkout-Session (+CHF 190 / 490 / 990).
+Verkäufer bekommt 14/7/3/1 Tag vor expires_at Erinnerungs-E-Mail.
+Cron: Daily Vercel Cron scannt inserate WHERE expires_at BETWEEN now() AND now()+Nd.
+Manuelle Verlängerung: neue Checkout-Session (+CHF 190 / 490 / 990 + MwSt).
+Nach Bezahlung: inserate.expires_at += 3/6/12 Monate, status bleibt published.
+```
+
+### Zahlungs-Methoden (CH-spezifisch)
+```
+Stripe Checkout konfiguriert mit:
+- card (Standard)
+- twint (CH-Marktführer im B2C, nice-to-have im B2B)
+- sepa_debit (für DE/AT-Käufer)
+- paypal (optional für Käufer MAX)
 ```
 
 ---
