@@ -1,29 +1,24 @@
 import type { Metadata } from 'next';
-import { Cormorant_Garamond, Outfit } from 'next/font/google';
+import { Fraunces } from 'next/font/google';
+import { GeistSans } from 'geist/font/sans';
+import { GeistMono } from 'geist/font/mono';
 import './globals.css';
 
-const serif = Cormorant_Garamond({
+const fraunces = Fraunces({
   subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
+  axes: ['opsz', 'SOFT', 'WONK'],
   variable: '--font-serif',
   display: 'swap',
 });
 
-const sans = Outfit({
-  subsets: ['latin'],
-  weight: ['300', '400', '500', '600', '700'],
-  variable: '--font-sans',
-  display: 'swap',
-});
-
 export const metadata: Metadata = {
-  title: 'passare.ch — Schweizer Firmen-Verkaufsportal',
+  title: 'passare — Die Schweizer Nachfolge-Plattform',
   description:
-    'Passare. Der vertrauensvolle Übergang. Kaufen, verkaufen, bewerten — Schweizer KMU. Vierpassare.ch — Schweizer Firmen-Verkaufsportal.',
+    'passare kuratiert den Übergang von KMU. Für Unternehmerinnen und Unternehmer, die ihr Lebenswerk in die richtigen Hände übergeben.',
   metadataBase: new URL('https://passare.ch'),
   openGraph: {
-    title: 'passare.ch',
-    description: 'Schweizer Firmen-Verkaufsportal',
+    title: 'passare',
+    description: 'Die Schweizer Nachfolge-Plattform',
     type: 'website',
     locale: 'de_CH',
   },
@@ -32,7 +27,10 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="de-CH" className={`${serif.variable} ${sans.variable}`}>
+    <html
+      lang="de-CH"
+      className={`${fraunces.variable} ${GeistSans.variable} ${GeistMono.variable}`}
+    >
       <body>{children}</body>
     </html>
   );

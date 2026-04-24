@@ -2,6 +2,9 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import { ArrowRight } from 'lucide-react';
+import { Input, Label } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 
 export function BetaForm() {
   const router = useRouter();
@@ -29,12 +32,10 @@ export function BetaForm() {
   }
 
   return (
-    <form onSubmit={submit} className="space-y-4">
+    <form onSubmit={submit} className="space-y-5">
       <div>
-        <label htmlFor="code" className="block text-xs tracking-wider uppercase text-deep/60 mb-2">
-          Zugangscode
-        </label>
-        <input
+        <Label htmlFor="code">Zugangscode</Label>
+        <Input
           id="code"
           type="password"
           autoComplete="off"
@@ -42,24 +43,24 @@ export function BetaForm() {
           onChange={(e) => setCode(e.target.value)}
           required
           disabled={pending}
-          className="w-full px-4 py-3 bg-cream border border-deep/15 rounded-lg text-deep placeholder:text-deep/30 focus:outline-none focus:border-terra transition-colors"
           placeholder="••••••••••"
+          autoFocus
         />
       </div>
 
       {error && (
-        <p className="text-sm text-terra bg-terra/5 border border-terra/20 rounded-lg px-4 py-2">
+        <p className="text-body-sm text-danger bg-danger/5 border border-danger/20 rounded-soft px-4 py-3">
           {error}
         </p>
       )}
 
-      <button
-        type="submit"
-        disabled={pending}
-        className="w-full px-6 py-3 bg-deep text-cream rounded-lg font-medium hover:bg-terra transition-colors disabled:opacity-50"
-      >
-        {pending ? 'Prüfe…' : 'Zugang freischalten'}
-      </button>
+      <Button type="submit" disabled={pending} className="w-full" size="lg">
+        {pending ? 'Prüfe…' : (
+          <>
+            Zugang freischalten <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
+          </>
+        )}
+      </Button>
     </form>
   );
 }

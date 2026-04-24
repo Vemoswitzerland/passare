@@ -2,31 +2,155 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ═══════════════════════════════════════════════════
+   passare.ch — Base Styles
+   Swiss-Design-Principles, Editorial-Feeling
+   ═══════════════════════════════════════════════════ */
+
 :root {
-  --font-serif: 'Cormorant Garamond', serif;
-  --font-sans: 'Outfit', system-ui, sans-serif;
+  --font-serif: ui-serif, Georgia, serif;
+  --font-sans: ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, monospace;
 }
 
-html, body { height: 100%; }
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
 
-body {
-  background: #F7F2EA;
-  color: #0A0F0F;
-  font-family: var(--font-sans);
+html {
+  /* Sanftes Scroll für Anchor-Links */
+  scroll-behavior: smooth;
+  /* Sub-Pixel-Rendering (Swiss-Detail) */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
-h1, h2, h3, h4 {
+body {
+  font-family: var(--font-sans);
+  background: #FAF8F3; /* cream */
+  color: #0A0F12;       /* ink */
+  font-size: 1rem;
+  line-height: 1.6;
+  font-feature-settings: 'ss01', 'cv11'; /* Geist stylistic sets */
+}
+
+/* ── Typografie: Swiss Hierarchie ─────────────────── */
+h1, h2, h3, h4, h5 {
   font-family: var(--font-serif);
-  letter-spacing: -0.01em;
+  font-weight: 400;
+  letter-spacing: -0.015em;
+  color: #0B1F3A; /* navy */
+  /* Fraunces Variable: Optical-Size + Soft */
+  font-variation-settings: 'opsz' 144, 'SOFT' 30, 'WONK' 0;
 }
 
-/* Custom scroll */
-::-webkit-scrollbar { width: 10px; height: 10px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #C9BFAE; border-radius: 10px; }
-::-webkit-scrollbar-thumb:hover { background: #B54A2B; }
+/* Bei Hero-Titel noch grösser opsz = dünnere, eleganter */
+.font-serif-display {
+  font-variation-settings: 'opsz' 144, 'SOFT' 50, 'WONK' 0;
+}
 
-/* Selection */
-::selection { background: #B54A2B; color: #F7F2EA; }
+/* UI: Gewichte-Scale für Geist */
+.font-ui {
+  font-family: var(--font-sans);
+  letter-spacing: -0.005em;
+}
+
+/* Zahlen: Tabular-Nums für Deal-Daten */
+.font-tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Mono-Caps: für Overline-Labels ──────────────── */
+.overline {
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #5A6471;
+}
+
+/* ── Focus-Ring: Premium Bronze ──────────────────── */
+:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(184, 147, 90, 0.3);
+  border-radius: inherit;
+}
+
+/* ── Selection ───────────────────────────────────── */
+::selection {
+  background: #0B1F3A;
+  color: #FAF8F3;
+}
+
+/* ── Scroll: Hairline ─────────────────────────────── */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #DDD9D1;
+  border: 2px solid #FAF8F3;
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #B8935A;
+}
+
+/* ── Hairline Divider Utility ────────────────────── */
+.hr-hairline {
+  border-top: 0.5px solid #E8E6E0;
+  margin: 0;
+}
+
+/* ── Link: Editorial-Stil ─────────────────────────── */
+a.editorial {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-thickness: 0.5px;
+  text-underline-offset: 0.25em;
+  text-decoration-color: #B8935A;
+  transition: text-decoration-color 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+a.editorial:hover {
+  text-decoration-color: #0B1F3A;
+}
+
+/* ── Prose (Blog / Detail-Texte) ──────────────────── */
+.prose-passare {
+  max-width: 42rem;
+  font-size: 1.125rem;
+  line-height: 1.75;
+  color: #0A0F12;
+}
+.prose-passare p {
+  margin: 1.25em 0;
+}
+.prose-passare h2 {
+  font-size: 2rem;
+  margin: 2em 0 0.5em;
+}
+
+/* ── Print: saubere Druck-Ausgabe ─────────────────── */
+@media print {
+  body { background: white; color: black; }
+  nav, footer, .no-print { display: none !important; }
+}
+
+/* ── Prefers-Reduced-Motion ───────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
