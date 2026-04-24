@@ -87,9 +87,10 @@ function Hero() {
         <div className="grid lg:grid-cols-[1.35fr_1fr] gap-10 lg:gap-14 items-center">
           <div className="relative">
             <Reveal>
-              <h1 className="font-serif-display text-[clamp(2.75rem,5vw,5rem)] text-navy font-light mb-6 tracking-[-0.025em] leading-[1.02]">
-                Ihre Firma<span className="text-bronze">.</span>{' '}
-                <span className="text-muted">Wir haben die Käufer<span className="text-bronze">.</span></span>
+              <h1 className="font-serif-display text-[clamp(2.75rem,5vw,5rem)] text-navy font-light mb-6 tracking-[-0.025em] leading-[1.05]">
+                Sie haben aufgebaut<span className="text-bronze">.</span>
+                <br />
+                <span className="text-muted italic">Wir finden<span className="not-italic text-muted">,</span> wer weiterbaut<span className="text-bronze not-italic">.</span></span>
               </h1>
             </Reveal>
             <Reveal delay={0.1}>
