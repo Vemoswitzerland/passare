@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowRight, ShieldCheck, Compass, Newspaper, Terminal, Layers, FileLock2, Sparkles } from 'lucide-react';
+import { ArrowRight, ShieldCheck, Users, Scale, Upload, FileLock2, MessageCircle, Handshake, Check } from 'lucide-react';
 import { Container, Section } from '@/components/ui/container';
 import { Button } from '@/components/ui/button';
 import { Divider } from '@/components/ui/divider';
@@ -8,8 +8,13 @@ import { LiveTicker } from '@/components/sections/live-ticker';
 import { DashboardMockup } from '@/components/sections/dashboard-mockup';
 
 /**
- * passare.ch — Editorial × Tech Homepage
- * Partners-Group-Gravitas + Linear/Stripe-Precision
+ * passare.ch — Self-Service-Plattform für KMU-Nachfolge
+ *
+ * Geschäftsmodell:
+ * - Verkäufer zahlen Paket (CHF 290 / 890) — inserieren selbständig
+ * - Käufer suchen, kontaktieren Verkäufer direkt
+ * - Kein Broker, keine Erfolgsprovision
+ * - Plattform liefert: Reichweite, NDA-Prozess, Datenraum, Messaging
  */
 
 export default function HomePage() {
@@ -20,6 +25,7 @@ export default function HomePage() {
       <Principles />
       <HowItWorks />
       <DashboardSection />
+      <Pricing />
       <LiveSignal />
       <KPIs />
       <Promise />
@@ -28,9 +34,7 @@ export default function HomePage() {
   );
 }
 
-/* ═══════════════════════════════════════════════
-   TOP-BAR
-   ═══════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════ */
 function TopBar() {
   return (
     <header className="sticky top-0 z-40 border-b border-stone bg-cream/85 backdrop-blur-md">
@@ -45,11 +49,11 @@ function TopBar() {
             </span>
           </a>
           <nav className="hidden md:flex items-center gap-9">
-            {['Verkaufen', 'Entdecken', 'Bewertung', 'Redaktion'].map((n) => (
+            {['Inserieren', 'Entdecken', 'Preise', 'Ratgeber'].map((n) => (
               <a
                 key={n}
                 href="/"
-                className="relative text-[0.8125rem] font-medium text-muted hover:text-ink transition-colors duration-300"
+                className="text-[0.8125rem] font-medium text-muted hover:text-ink transition-colors duration-300"
               >
                 {n}
               </a>
@@ -85,38 +89,39 @@ function Hero() {
         <div className="relative max-w-hero">
           <Reveal>
             <h1 className="font-serif-display text-display-xl text-navy font-light mb-8 tracking-[-0.025em]">
-              Der vertrauensvolle Übergang<span className="text-bronze">.</span>
+              Ihre Firma. Ihr Verkauf. Ihre Kontrolle<span className="text-bronze">.</span>
             </h1>
           </Reveal>
 
           <Reveal delay={0.1}>
             <p className="text-body-lg md:text-xl text-muted max-w-prose leading-relaxed mb-10">
-              <span className="font-serif italic text-navy">passare</span> kuratiert den Übergang
-              von Schweizer KMU. Für Unternehmerinnen und Unternehmer, die ihr Lebenswerk nicht
-              an den nächsten Höchstbietenden geben wollen &mdash; sondern an die richtigen Hände.
+              <span className="font-serif italic text-navy">passare</span> ist die Schweizer Plattform,
+              auf der Sie Ihr KMU selbst inserieren und Käufer direkt kontaktieren.
+              Ohne Broker, ohne Erfolgsprovision &mdash; mit festem Paketpreis,
+              anonymem Profil und professionellem NDA-Prozess.
             </p>
           </Reveal>
 
           <Reveal delay={0.2}>
             <div className="flex flex-col sm:flex-row gap-4 items-start mb-16">
               <Button href="/beta" size="lg">
-                Beta-Zugang anfragen <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
+                Firma inserieren <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
               </Button>
-              <Button href="/design" variant="secondary" size="lg">
-                Designsprache ansehen
+              <Button href="/beta" variant="secondary" size="lg">
+                Firmen entdecken
               </Button>
             </div>
           </Reveal>
 
           <Reveal delay={0.3}>
             <div className="flex flex-wrap items-center gap-x-6 gap-y-3 font-mono text-[11px] uppercase tracking-widest text-quiet">
-              <SignalDot>Made in Zürich</SignalDot>
+              <SignalDot>Ab CHF 290 pro Inserat</SignalDot>
               <span className="w-px h-3 bg-stone" />
-              <SignalDot>4 Sprachen</SignalDot>
+              <SignalDot>0% Erfolgsprovision</SignalDot>
               <span className="w-px h-3 bg-stone" />
-              <SignalDot>Keine Provision</SignalDot>
+              <SignalDot>Anonym inserieren</SignalDot>
               <span className="w-px h-3 bg-stone" />
-              <SignalDot>NDA-First</SignalDot>
+              <SignalDot>NDA vor Detail-Einsicht</SignalDot>
             </div>
           </Reveal>
         </div>
@@ -135,30 +140,30 @@ function SignalDot({ children }: { children: React.ReactNode }) {
 }
 
 /* ═══════════════════════════════════════════════
-   PRINZIPIEN
+   PRINZIPIEN — Self-Service-Model erklären
    ═══════════════════════════════════════════════ */
 function Principles() {
   const principles = [
     {
-      Icon: ShieldCheck,
+      Icon: Users,
       no: '01',
-      over: 'Vertraulich',
-      title: 'Diskretion als Grundhaltung',
-      body: 'Anonymisierte Profile. NDA vor jeder Detail-Einsicht. Datenraum mit Wasserzeichen. Wer verkauft, bestimmt, wer schaut.',
+      over: 'Direkt',
+      title: 'Sie verhandeln selbst',
+      body: 'Anfragen kommen direkt in Ihr Dashboard. Sie entscheiden, mit wem Sie ins Gespräch gehen — ohne Zwischenhändler, ohne Telefon-Ping-Pong, ohne Commission-Tracker.',
     },
     {
-      Icon: Compass,
+      Icon: ShieldCheck,
       no: '02',
-      over: 'Kuratiert',
-      title: 'Kein Marktplatz – eine Redaktion',
-      body: 'Jedes Mandat wird geprüft, strukturiert, erzählt. Wir liefern den Kontext, der einen Käufer von einem Interessenten unterscheidet.',
+      over: 'Diskret',
+      title: 'Anonym, bis Sie es anders wollen',
+      body: 'Ihr Inserat ist öffentlich sichtbar — Firmenname und Details bleiben verdeckt. Erst nach unterzeichnetem NDA und Ihrer Freigabe erhält ein Interessent das volle Dossier.',
     },
     {
-      Icon: Newspaper,
+      Icon: Scale,
       no: '03',
       over: 'Transparent',
-      title: 'Klares Pricing, keine Provision',
-      body: 'Feste Pakete statt Erfolgsbeteiligung. Was Sie zahlen, wissen Sie vorab – unabhängig davon, was Ihr Unternehmen später wert ist.',
+      title: 'Fester Paketpreis, fertig',
+      body: 'Ab CHF 290 für 3 Monate Laufzeit. Keine Provision auf Ihren Verkaufspreis. Was Sie zahlen, wissen Sie vorab — unabhängig davon, was Ihr Unternehmen später bringt.',
     },
   ];
 
@@ -167,10 +172,14 @@ function Principles() {
       <Container>
         <Reveal>
           <div className="mb-16 max-w-prose">
-            <p className="overline mb-5">Haltung</p>
+            <p className="overline mb-5">Das Modell</p>
             <h2 className="font-serif text-display-md text-navy font-light">
-              Drei Prinzipien, die alles bestimmen.
+              Plattform statt Makler.
             </h2>
+            <p className="text-body-lg text-muted leading-relaxed mt-6 max-w-prose">
+              Wir verbinden Verkäufer und Käufer &mdash; den Rest machen Sie selbst.
+              Schneller, günstiger, und ohne Interessenkonflikt eines Vermittlers.
+            </p>
           </div>
         </Reveal>
 
@@ -196,41 +205,41 @@ function Principles() {
 }
 
 /* ═══════════════════════════════════════════════
-   HOW-IT-WORKS (Tech-affin, Nummerierte Steps)
+   HOW-IT-WORKS — Self-Service-Flow
    ═══════════════════════════════════════════════ */
 function HowItWorks() {
   const steps = [
     {
-      Icon: Terminal,
+      Icon: Upload,
       step: 'I',
-      over: 'Einreichen',
-      title: 'Mandat anlegen',
-      body: 'Zefix-Import, KI-Assistent für Beschreibung, Bildupload. Wir validieren — Sie entscheiden.',
-      tech: 'Ø 8 Min',
-    },
-    {
-      Icon: Layers,
-      step: 'II',
-      over: 'Kuratieren',
-      title: 'Redaktionelle Prüfung',
-      body: 'Unsere Redaktion strukturiert, prüft, platziert. Anonymisiert, präzise, verkaufsstark.',
-      tech: '48 Std SLA',
+      over: 'Inserat',
+      title: 'Paket wählen & inserieren',
+      body: 'Zefix-Import, KI-Assistent für Teaser, Foto-Upload. In 10–15 Minuten ist Ihr anonymes Inserat live.',
+      tech: 'CHF 290 – 890',
     },
     {
       Icon: FileLock2,
-      step: 'III',
-      over: 'NDA',
-      title: 'Sichere Datenräume',
-      body: 'Qualifizierte Käufer signieren digital. Wasserzeichen, Audit-Trail, Einzel-Freischaltung.',
+      step: 'II',
+      over: 'Schutz',
+      title: 'NDA-Gate aktivieren',
+      body: 'Interessenten signieren digital eine Geheimhaltung, bevor sie Firmenname oder echte Zahlen sehen.',
       tech: 'eSign · QES',
     },
     {
-      Icon: Sparkles,
+      Icon: MessageCircle,
+      step: 'III',
+      over: 'Kontakt',
+      title: 'Anfragen direkt beantworten',
+      body: 'Alle Anfragen laufen in Ihrem Dashboard zusammen. Sie wählen, mit wem Sie den Dialog suchen.',
+      tech: 'Inbox · Datenraum',
+    },
+    {
+      Icon: Handshake,
       step: 'IV',
-      over: 'Übergabe',
-      title: 'Persönliche Begleitung',
-      body: 'Vom Erstgespräch bis zum Closing. Mit Steuer-Experten, Anwälten, Treuhändern aus unserem Netzwerk.',
-      tech: '6–18 Monate',
+      over: 'Abschluss',
+      title: 'Selbst verhandeln & abschliessen',
+      body: 'Sie führen die Gespräche, Sie setzen den Preis. Bei Bedarf vermitteln wir Experten aus unserem Netzwerk.',
+      tech: '0% Provision',
     },
   ];
 
@@ -239,13 +248,13 @@ function HowItWorks() {
       <Container>
         <Reveal>
           <div className="mb-20 max-w-prose">
-            <p className="overline mb-5">Prozess</p>
+            <p className="overline mb-5">So funktioniert&apos;s</p>
             <h2 className="font-serif text-display-md text-navy font-light">
-              Vom Entschluss bis zum Closing.
+              In vier Schritten zum eigenen Verkauf.
             </h2>
             <p className="text-body-lg text-muted leading-relaxed mt-6 max-w-prose">
-              Vier Etappen, klar strukturiert. Ohne Zwischenhändler, ohne versteckte Kosten,
-              ohne Zeitdruck.
+              Kein langes Onboarding, keine Beraterverträge. Sie bleiben Eigentümer
+              des Prozesses &mdash; von der ersten Zeile bis zum Handschlag.
             </p>
           </div>
         </Reveal>
@@ -253,14 +262,12 @@ function HowItWorks() {
         <RevealStagger className="grid md:grid-cols-2 lg:grid-cols-4 gap-px bg-stone border border-stone rounded-card overflow-hidden">
           {steps.map((s, i) => (
             <RevealItem key={i} className="bg-paper relative p-8 md:p-10 flex flex-col group hover:bg-cream/40 transition-colors duration-300">
-              {/* Step-Nummer gross im Hintergrund */}
               <span
                 aria-hidden
                 className="absolute top-6 right-6 font-serif text-6xl text-bronze/10 font-light select-none"
               >
                 {s.step}
               </span>
-
               <div className="relative">
                 <s.Icon className="w-6 h-6 text-bronze mb-8" strokeWidth={1.5} />
                 <p className="font-mono text-[11px] tracking-widest uppercase text-quiet mb-3">
@@ -270,8 +277,6 @@ function HowItWorks() {
                   {s.title}
                 </h3>
                 <p className="text-body-sm text-muted leading-relaxed mb-8">{s.body}</p>
-
-                {/* Tech-Badge */}
                 <div className="mt-auto pt-4 border-t border-stone">
                   <span className="font-mono text-[11px] text-bronze-ink font-medium">
                     ◦ {s.tech}
@@ -287,7 +292,7 @@ function HowItWorks() {
 }
 
 /* ═══════════════════════════════════════════════
-   DASHBOARD-SECTION — Browser-Chrome-Mockup
+   DASHBOARD
    ═══════════════════════════════════════════════ */
 function DashboardSection() {
   return (
@@ -297,15 +302,14 @@ function DashboardSection() {
           <div className="text-center max-w-prose mx-auto mb-14">
             <p className="overline mb-5">Ihr Arbeitsbereich</p>
             <h2 className="font-serif text-display-md text-navy font-light mb-6">
-              Ein Dashboard, das für Entscheider gebaut ist.
+              Alle Anfragen. Ein Dashboard. Volle Kontrolle.
             </h2>
             <p className="text-body-lg text-muted leading-relaxed">
-              Keine Commodity-Oberfläche. Alles, was Sie für einen geordneten Verkauf brauchen
-              &mdash; ruhig, klar, präzise.
+              Kein E-Mail-Chaos. Jede Anfrage, jedes NDA, jede Datenraum-Freigabe
+              &mdash; strukturiert, prüfbar, von Ihnen gesteuert.
             </p>
           </div>
         </Reveal>
-
         <DashboardMockup />
       </Container>
     </Section>
@@ -313,26 +317,184 @@ function DashboardSection() {
 }
 
 /* ═══════════════════════════════════════════════
-   LIVE-SIGNAL — Ticker-Sektion
+   PRICING — Zentral für das Geschäftsmodell
    ═══════════════════════════════════════════════ */
-function LiveSignal() {
+function Pricing() {
+  const plans = [
+    {
+      name: 'Inserat Light',
+      tag: 'Für kleinere KMU',
+      price: 'CHF 290',
+      note: 'einmalig · 3 Monate Laufzeit',
+      features: [
+        'Anonymes Inserat im Marktplatz',
+        'Bis zu 5 Bilder',
+        'Bis zu 2 PDF-Dokumente im Datenraum',
+        'NDA-Gate mit eSign',
+        'Anfragen-Dashboard',
+        'KI-gestützter Teaser-Generator',
+      ],
+      cta: 'Light wählen',
+      variant: 'quiet' as const,
+    },
+    {
+      name: 'Inserat Pro',
+      tag: 'Empfohlen',
+      price: 'CHF 890',
+      note: 'einmalig · 6 Monate Laufzeit',
+      features: [
+        'Alles aus Light, plus:',
+        'Bis zu 20 Bilder + Videos',
+        'Unbegrenzter Datenraum mit Wasserzeichen',
+        'Featured-Platzierung auf Homepage',
+        'Newsletter-Feature bei aktiven Käufern',
+        'Priorisierter Support',
+        'Käuferprofil-Matching',
+        'Detailstatistiken & Conversion-Tracking',
+      ],
+      cta: 'Pro wählen',
+      variant: 'primary' as const,
+    },
+  ];
+
   return (
     <Section className="bg-paper border-y border-stone">
       <Container>
+        <Reveal>
+          <div className="mb-16 max-w-prose">
+            <p className="overline mb-5">Preise</p>
+            <h2 className="font-serif text-display-md text-navy font-light mb-6">
+              Fester Preis. Keine Provision.
+            </h2>
+            <p className="text-body-lg text-muted leading-relaxed max-w-prose">
+              Ein Inserat, eine Gebühr. Unabhängig davon, ob Sie für
+              CHF 500&apos;000 oder CHF 25 Mio verkaufen &mdash; wir verdienen nicht an Ihrem Deal.
+            </p>
+          </div>
+        </Reveal>
+
+        <div className="grid md:grid-cols-2 gap-px bg-stone border border-stone rounded-card overflow-hidden max-w-5xl">
+          {plans.map((p, i) => (
+            <Reveal key={i} delay={i * 0.08}>
+              <div
+                className={`h-full p-8 md:p-10 flex flex-col ${
+                  p.variant === 'primary' ? 'bg-navy text-cream' : 'bg-paper'
+                }`}
+              >
+                {/* Header */}
+                <div className="flex items-start justify-between mb-8">
+                  <div>
+                    <p
+                      className={`font-mono text-[11px] uppercase tracking-widest mb-2 ${
+                        p.variant === 'primary' ? 'text-bronze' : 'text-quiet'
+                      }`}
+                    >
+                      {p.tag}
+                    </p>
+                    <h3
+                      className={`font-serif text-head-lg font-normal ${
+                        p.variant === 'primary' ? 'text-cream' : 'text-navy'
+                      }`}
+                    >
+                      {p.name}
+                    </h3>
+                  </div>
+                  {p.variant === 'primary' && (
+                    <span className="font-mono text-[10px] uppercase tracking-widest text-bronze bg-bronze/15 px-2.5 py-1 rounded-full">
+                      empfohlen
+                    </span>
+                  )}
+                </div>
+
+                {/* Price */}
+                <div className="mb-8 pb-8 border-b border-stone/20">
+                  <p
+                    className={`font-serif text-display-md font-light font-tabular leading-none ${
+                      p.variant === 'primary' ? 'text-cream' : 'text-navy'
+                    }`}
+                  >
+                    {p.price}
+                  </p>
+                  <p
+                    className={`font-mono text-[11px] mt-3 uppercase tracking-widest ${
+                      p.variant === 'primary' ? 'text-cream/60' : 'text-quiet'
+                    }`}
+                  >
+                    {p.note}
+                  </p>
+                </div>
+
+                {/* Features */}
+                <ul className="space-y-3 mb-10 flex-1">
+                  {p.features.map((f, j) => (
+                    <li key={j} className="flex items-start gap-3 text-body-sm">
+                      <Check
+                        className={`w-4 h-4 flex-shrink-0 mt-0.5 ${
+                          p.variant === 'primary' ? 'text-bronze' : 'text-bronze'
+                        }`}
+                        strokeWidth={1.75}
+                      />
+                      <span
+                        className={
+                          p.variant === 'primary' ? 'text-cream/90' : 'text-muted'
+                        }
+                      >
+                        {f}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+
+                {/* CTA */}
+                <Button
+                  href="/beta"
+                  variant={p.variant === 'primary' ? 'bronze' : 'primary'}
+                  size="lg"
+                  className="w-full justify-center"
+                >
+                  {p.cta} <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
+                </Button>
+              </div>
+            </Reveal>
+          ))}
+        </div>
+
+        {/* Fine print */}
+        <Reveal delay={0.2}>
+          <div className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-2 font-mono text-[11px] uppercase tracking-widest text-quiet max-w-4xl">
+            <SignalDot>Keine automatische Verlängerung</SignalDot>
+            <span className="w-px h-3 bg-stone" />
+            <SignalDot>Preise zzgl. 8.1% MWST</SignalDot>
+            <span className="w-px h-3 bg-stone" />
+            <SignalDot>Broker-Abos auf Anfrage</SignalDot>
+          </div>
+        </Reveal>
+      </Container>
+    </Section>
+  );
+}
+
+/* ═══════════════════════════════════════════════
+   LIVE-SIGNAL
+   ═══════════════════════════════════════════════ */
+function LiveSignal() {
+  return (
+    <Section>
+      <Container>
         <div className="grid md:grid-cols-[1fr_1.2fr] gap-12 md:gap-20 items-center">
           <Reveal>
-            <p className="overline mb-5">Signal</p>
+            <p className="overline mb-5">Aktivität</p>
             <h2 className="font-serif text-display-sm text-navy font-light leading-tight mb-6">
-              Die Plattform bewegt sich &mdash; leise, aber spürbar.
+              Der Marktplatz lebt &mdash; anonymisiert, aber spürbar.
             </h2>
             <p className="text-body text-muted leading-relaxed mb-8 max-w-md">
-              Jeden Tag neue Mandate, Anfragen, NDAs, Abschlüsse. Ein anonymisiertes
-              Live-Bild unserer kuratierten Deal-Redaktion.
+              Verifizierte Käufer, eingehende Anfragen, signierte NDAs &mdash;
+              ein Live-Bild dessen, was auf der Plattform gerade passiert.
             </p>
             <div className="flex items-baseline gap-8">
               <div>
                 <p className="font-mono text-display-sm text-navy font-tabular font-light">47</p>
-                <p className="font-mono text-[11px] uppercase tracking-wider text-quiet mt-1">Aktive Mandate</p>
+                <p className="font-mono text-[11px] uppercase tracking-wider text-quiet mt-1">Aktive Inserate</p>
               </div>
               <div>
                 <p className="font-mono text-display-sm text-navy font-tabular font-light">312</p>
@@ -354,33 +516,16 @@ function LiveSignal() {
   );
 }
 
-/* ═══════════════════════════════════════════════
-   KPIs
-   ═══════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════ */
 function KPIs() {
   const stats = [
-    {
-      value: '72.3%',
-      label: 'der Schweizer KMU suchen in den nächsten 10 Jahren eine Nachfolge',
-      source: 'IFJ 2024',
-      bar: 72.3,
-    },
-    {
-      value: 'CHF 2.1 Mrd',
-      label: 'geschätztes jährliches Übergabe-Volumen im KMU-Segment',
-      source: 'Bisnode',
-      bar: 84,
-    },
-    {
-      value: '26',
-      label: 'Kantone – eine Plattform. Drei Landessprachen plus Englisch.',
-      source: null,
-      bar: 100,
-    },
+    { value: '72.3%', label: 'der Schweizer KMU suchen in den nächsten 10 Jahren eine Nachfolge', source: 'IFJ 2024', bar: 72.3 },
+    { value: 'CHF 2.1 Mrd', label: 'geschätztes jährliches Übergabe-Volumen im KMU-Segment', source: 'Bisnode', bar: 84 },
+    { value: '26', label: 'Kantone – eine Plattform. Drei Landessprachen plus Englisch.', source: null, bar: 100 },
   ];
 
   return (
-    <Section>
+    <Section className="bg-paper border-y border-stone">
       <Container>
         <Reveal>
           <div className="mb-16 max-w-prose">
@@ -399,17 +544,11 @@ function KPIs() {
                   {s.value}
                 </p>
                 <p className="text-body-sm text-muted leading-relaxed mb-5">{s.label}</p>
-                {/* Tech-Bar */}
                 <div className="h-0.5 w-full bg-stone rounded-full overflow-hidden mb-3">
-                  <div
-                    className="h-full bg-bronze transition-all duration-1000 ease-out-expo"
-                    style={{ width: `${s.bar}%` }}
-                  />
+                  <div className="h-full bg-bronze transition-all duration-1000 ease-out-expo" style={{ width: `${s.bar}%` }} />
                 </div>
                 {s.source && (
-                  <p className="font-mono text-[11px] uppercase tracking-wider text-quiet">
-                    Quelle: {s.source}
-                  </p>
+                  <p className="font-mono text-[11px] uppercase tracking-wider text-quiet">Quelle: {s.source}</p>
                 )}
               </div>
             </RevealItem>
@@ -420,9 +559,7 @@ function KPIs() {
   );
 }
 
-/* ═══════════════════════════════════════════════
-   VERSPRECHEN — Editorial Quote
-   ═══════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════ */
 function Promise() {
   return (
     <Section className="relative bg-navy text-cream overflow-hidden">
@@ -431,27 +568,26 @@ function Promise() {
           <Reveal>
             <p className="overline mb-8" style={{ color: '#B8935A' }}>Unser Versprechen</p>
             <blockquote className="font-serif text-display-md md:text-display-lg font-light leading-[1.08] text-cream">
-              «Ein Unternehmen übergibt man nicht an Zahlen.
+              «Wir verdienen an der Plattform &mdash;
               <br />
-              Man übergibt es an <em className="text-bronze not-italic">Menschen</em>.»
+              nicht an <em className="text-bronze not-italic">Ihrem Deal</em>.»
             </blockquote>
           </Reveal>
 
           <Reveal delay={0.15}>
             <div className="mt-16 pt-8 border-t border-cream/15 max-w-prose">
               <p className="text-body-lg text-cream/80 leading-relaxed mb-6">
-                Darum dauern unsere Prozesse länger, sind unsere Gespräche persönlicher,
-                und unsere Plattform bewusst kleiner als die der Mitbewerber.
-                <span className="font-serif italic"> passare</span> ist für die Minderheit der Verkäufer,
-                die den Unterschied spürt.
+                Klassische Broker leben von Erfolgsprovision &mdash; und haben damit ein
+                Interesse an schnellen, hohen Abschlüssen. Wir leben von festen Paketen:
+                Sie zahlen einmal, Sie behalten jeden Franken vom Verkaufspreis.
               </p>
               <div className="flex items-center gap-4 pt-4">
                 <Button href="/beta" variant="bronze" size="md">
-                  Beta-Zugang anfragen
+                  Jetzt inserieren
                   <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
                 </Button>
                 <span className="font-mono text-[11px] uppercase tracking-widest text-cream/50">
-                  Invite only &middot; Q4 2026
+                  Ab CHF 290 &middot; keine Provision
                 </span>
               </div>
             </div>
@@ -462,9 +598,7 @@ function Promise() {
   );
 }
 
-/* ═══════════════════════════════════════════════
-   FOOTER
-   ═══════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════ */
 function Footer() {
   return (
     <footer className="border-t border-stone pt-16 pb-10 bg-cream">
@@ -475,7 +609,8 @@ function Footer() {
               passare<span className="text-bronze">.</span>
             </p>
             <p className="text-body-sm text-muted max-w-xs leading-relaxed">
-              Die Schweizer Nachfolge-Plattform. Kuratiert. Diskret. Vierprachig.
+              Die Schweizer Self-Service-Plattform für die Nachfolge von KMU.
+              Inserieren, verbinden, verhandeln &mdash; ohne Zwischenhändler.
             </p>
             <div className="mt-6 flex items-center gap-4 font-mono text-[11px] uppercase tracking-widest text-quiet">
               <span className="flex items-center gap-2">
@@ -489,17 +624,17 @@ function Footer() {
           <div>
             <p className="overline mb-4">Plattform</p>
             <ul className="space-y-3 text-body-sm text-muted">
-              <li><Link className="hover:text-navy transition-colors" href="/">Verkaufen</Link></li>
+              <li><Link className="hover:text-navy transition-colors" href="/">Inserieren</Link></li>
               <li><Link className="hover:text-navy transition-colors" href="/">Entdecken</Link></li>
-              <li><Link className="hover:text-navy transition-colors" href="/">Bewertung</Link></li>
-              <li><Link className="hover:text-navy transition-colors" href="/">Broker</Link></li>
+              <li><Link className="hover:text-navy transition-colors" href="/">Preise</Link></li>
+              <li><Link className="hover:text-navy transition-colors" href="/">Broker-Bereich</Link></li>
             </ul>
           </div>
           <div>
             <p className="overline mb-4">Haus</p>
             <ul className="space-y-3 text-body-sm text-muted">
               <li><Link className="hover:text-navy transition-colors" href="/">Über passare</Link></li>
-              <li><Link className="hover:text-navy transition-colors" href="/">Redaktion</Link></li>
+              <li><Link className="hover:text-navy transition-colors" href="/">Ratgeber</Link></li>
               <li><Link className="hover:text-navy transition-colors" href="/">Kontakt</Link></li>
               <li><Link className="hover:text-navy transition-colors" href="/design">Design System</Link></li>
             </ul>

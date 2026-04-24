@@ -12,9 +12,9 @@ const fraunces = Fraunces({
 });
 
 export const metadata: Metadata = {
-  title: 'passare — Die Schweizer Nachfolge-Plattform',
+  title: 'passare — Die Schweizer Plattform für KMU-Nachfolge',
   description:
-    'passare kuratiert den Übergang von KMU. Für Unternehmerinnen und Unternehmer, die ihr Lebenswerk in die richtigen Hände übergeben.',
+    'Firma selbst inserieren und Käufer direkt kontaktieren. Fester Paketpreis ab CHF 290, 0% Erfolgsprovision, anonymes Profil und NDA-Gate. Die Schweizer Self-Service-Plattform für KMU-Verkauf.',
   metadataBase: new URL('https://passare.ch'),
   openGraph: {
     title: 'passare',
