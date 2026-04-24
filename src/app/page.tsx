@@ -87,10 +87,10 @@ function Hero() {
         <div className="grid lg:grid-cols-[1.35fr_1fr] gap-10 lg:gap-14 items-center">
           <div className="relative">
             <Reveal>
-              <h1 className="font-serif-display text-[clamp(2.75rem,5vw,5rem)] text-navy font-light mb-6 tracking-[-0.025em] leading-[1.05]">
-                Schweizer KMU<br className="hidden sm:block" /> zum Verkauf<span className="text-bronze">.</span>
+              <h1 className="font-serif-display text-[clamp(2.75rem,5.5vw,5.5rem)] text-navy font-light mb-6 tracking-[-0.025em] leading-[1.02]">
+                Der Firmenmarktplatz
                 <br />
-                <span className="text-muted">Digital<span className="text-bronze">.</span> Diskret<span className="text-bronze">.</span> Direkt<span className="text-bronze">.</span></span>
+                <span className="text-muted italic">der Schweiz<span className="not-italic text-bronze">.</span></span>
               </h1>
             </Reveal>
             <Reveal delay={0.1}>

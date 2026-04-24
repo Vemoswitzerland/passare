@@ -342,20 +342,120 @@ support_tickets
 ```
 Registrierung:
 1. User klickt "Registrieren" auf / oder /kaufen
-2. Supabase signUp (email + password) → Resend-Verifikations-E-Mail
-3. User klickt Confirm-Link → /auth/callback → Session-Cookie gesetzt
-4. /onboarding/rolle wählen (verkaufer oder kaeufer)
-5. /onboarding/profil (Name, Kanton, Telefon optional)
-6. Redirect nach /dashboard/{rolle}
+2. hCaptcha/Turnstile-Check + Rate-Limit (5 Registrierungen / IP / Stunde)
+3. AGB + Datenschutz-Checkbox zwingend → terms_acceptances Row
+4. Supabase signUp (email + password ODER SSO: Google/Apple/LinkedIn)
+5. Resend-Verifikations-E-Mail (ausser SSO)
+6. User klickt Confirm-Link → /auth/callback → Session-Cookie gesetzt
+7. /onboarding/rolle wählen (verkaeufer ODER kaeufer)
+8. /onboarding/profil (Name, Kanton, Telefon optional, Sprache)
+9. Redirect nach /dashboard/{rolle}
 
 Login:
-1. /auth/login mit Magic-Link ODER Password
-2. Supabase signIn → Session-Cookie
-3. Redirect nach /dashboard/{rolle} je nach profile.rolle
+1. /auth/login mit Magic-Link, Password ODER SSO
+2. Rate-Limit: 10 Login-Versuche / IP / 10 Minuten → hCaptcha
+3. Bei 5 Fehlversuchen auf dieselbe E-Mail → Account-Soft-Lock 15 Min
+4. Supabase signIn → Session-Cookie
+5. Bei rolle=admin: TOTP-Challenge Pflicht
+6. events_log: 'login_success' mit IP, UA, geo
+7. Device-Trust: neues Land/Device → E-Mail-Notification
+8. Redirect nach /dashboard/{rolle} je nach profile.rolle
 ```
 
-**MFA:** TOTP optional (Etappe später).
-**Password-Reset:** Standard Supabase-Flow via E-Mail-Link.
+**MFA:**
+- TOTP Pflicht für `rolle=admin` ab Tag 1
+- Optional für rolle=verkaeufer/kaeufer mit MAX-Abo
+- Recovery-Codes (10×) beim MFA-Setup generiert
+
+**Password-Reset:** Standard Supabase-Flow via E-Mail-Link + Rate-Limit (3 Resets / Stunde).
+
+**Session-Management:**
+- User sieht alle aktiven Sessions in `/dashboard/einstellungen/sicherheit`
+- Einzelne Sessions revokebar
+- "Alle ausloggen" verfügbar
+- Max Session-Lifetime: 30 Tage, Sliding-Window
+
+**Impersonation (Admin-Support):**
+- Admin startet Impersonation → `admin_actions` Row mit action='impersonate'
+- Impersonation-Session hat rotes Banner + reduzierte Rechte (nur read, keine destructive actions)
+- Max 60 Min, dann auto-logout
+- Ein-Klick-Exit zurück zur Admin-Session
+
+---
+
+## 🛡️ Security & Compliance
+
+### Rate-Limiting (Upstash Redis)
+| Endpoint | Limit |
+|---|---|
+| `/auth/register` | 5 / IP / 1h |
+| `/auth/login` | 10 / IP / 10m + 5 / E-Mail / 15m |
+| `/auth/reset` | 3 / IP / 1h |
+| `/api/contact` | 10 / IP / 1h |
+| `/api/nda/request` | 20 / User / 24h |
+| `/api/inserat/create` | 5 / User / 24h |
+| `/api/inserat/publish` | 1 / User / 1h |
+| Public API | 100 req / API-Key / Minute |
+
+### Bot-Schutz
+- hCaptcha ODER Cloudflare Turnstile auf Registrierung, Kontakt, NDA, Bewertungstool
+- Honeypot-Felder zusätzlich auf allen Forms
+- Server-side UA+IP-Fingerprinting gegen Headless-Browser
+
+### Upload-Sicherheit (Datenraum + Messaging)
+- **MIME-Type-Check** clientseitig + serverseitig (nicht auf Extension vertrauen)
+- **Size-Limit:** 20 MB/Datei, 500 MB/Inserat total
+- **Virus-Scan:** ClamAV (Docker-Service auf Fly.io oder AWS Lambda) → Files erst nach Scan freigegeben
+- **PDF-Wasserzeichen:** dynamisch, on-demand via Edge-Function (nicht vor-generiert, damit User-ID eingebettet)
+- **Storage-Pfade:** niemals enumerierbar (`{inserat_id}/{uuid}.pdf`, nicht `/{inserat_id}/1.pdf`)
+
+### Anonymitäts-Audit (Inserat-Moderation)
+Jedes publizierte Inserat läuft durch:
+1. **Regex-Check:** Firmennamen-Listen (Zefix-Cross-Check wenn Zefix-Import)
+2. **LLM-Check:** Claude prüft Titel/Teaser/Beschreibung auf identifizierende Merkmale
+3. **Bild-EXIF-Strip:** alle Metadaten entfernt, keine GPS-Koordinaten
+4. **Admin-Freigabe:** visuelle Prüfung vor Publish
+
+### DSGVO/FADP
+- **Datenexport:** User kann in `/dashboard/einstellungen/datenschutz` JSON-Export aller eigenen Daten ziehen (profiles, inserate, anfragen, nachrichten, zahlungen)
+- **Löschung:** Soft-Delete → 30-Tage-Wiederherstellung → Hard-Delete mit Anonymisierung (Nachrichten-History bleibt für Gegenseite, aber anonymisiert)
+- **Consent-Records:** jede Newsletter/Marketing-Zustimmung in `consent_records`
+- **AGB-Updates:** neue Version → Banner + Force-Accept beim nächsten Login, neue `terms_acceptances`-Row
+
+---
+
+## 🧪 Testing & Quality Gates
+
+### CI-Pipeline (GitHub Actions)
+```
+on: pull_request → main
+1. TypeScript check (tsc --noEmit)
+2. ESLint + Prettier
+3. Unit-Tests (Vitest) — min. 80% Coverage auf Business-Logic
+4. Integration-Tests (Supabase-local-dev)
+5. Playwright E2E — Critical Paths:
+   - Registrierung → Onboarding → erstes Inserat
+   - Käufer-Registrierung → Anfrage → NDA → Datenraum
+   - Stripe-Checkout (Test-Mode) → Webhook → Rechnung
+   - Admin-Login → MFA → Moderation-Queue
+6. Lighthouse CI — LCP < 2.5s, CLS < 0.1 als harte Gates
+7. Security-Scan: npm audit + Snyk
+```
+
+### Migration-Tests
+- Jede Migration gegen fresh DB + snapshot von Prod-Schema laufen lassen
+- Down-Migrations Pflicht (Rollback-fähig)
+- Seed-Daten für Reference-Tables in `supabase/seed.sql`
+
+### Staging-Umgebung (eigenes Supabase + Vercel!)
+- `passare-staging.vercel.app` → eigenes Supabase-Projekt
+- Stripe Test-Mode, Resend Sandbox
+- Migrations ZUERST auf Staging, danach Prod
+- Preview-Deploys pro PR mit temporärer DB-Branch (Supabase Branching)
+
+---
+
+## 📋 Incident-Response & Backup
 
 ---
 
@@ -497,9 +597,11 @@ Stripe Checkout konfiguriert mit:
 
 ## 🔄 Backup & Recovery
 
-- **Supabase:** Daily Automated Backups (Free Tier) / PITR (Pro-Tier)
+- **Supabase:** Daily Automated Backups (Free Tier) / PITR (Pro-Tier) — Pro ab V1 Pflicht!
 - **GitHub:** Source-of-Truth
 - **Storage:** Supabase replikiert S3-compatible (EU-Region)
+- **Monatlicher Restore-Drill:** jeden 1. des Monats Backup auf Staging einspielen und Smoke-Test laufen lassen. Ohne Drill ist ein Backup nur eine Annahme.
+- **Runbook:** Dokumentierte Schritte für DB-Ausfall, Storage-Ausfall, Stripe-Ausfall, DDoS in `docs/RUNBOOK.md` (zu erstellen, Etappe A5).
 
 ---
 

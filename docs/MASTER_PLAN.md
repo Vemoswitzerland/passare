@@ -22,11 +22,13 @@
 
 | Benutzergruppe | Einnahmequelle |
 |---|---|
-| Verkäufer | Einmalige Paketgebühr: Light CHF 290 / Pro CHF 890 / Premium CHF 1'890 |
-| Käufer | Basic gratis · MAX CHF 199/Monat oder CHF 1'990/Jahr |
-| ~~Broker~~ | ~~Phase 2, nicht V1~~ |
+| Verkäufer | Einmalige Paketgebühr: Light CHF 290 / Pro CHF 890 / Premium CHF 1'890 (je + 8.1% MwSt) |
+| Käufer | Basic gratis (2 Tiers!) · MAX CHF 199/Monat oder CHF 1'990/Jahr (je + 8.1% MwSt) |
+| ~~Broker~~ | ~~Phase 2, nicht V1~~ (aber `is_broker`-Flag ab Etappe 2 in DB) |
 
 **0% Erfolgsprovision auf Deals.** Wir verdienen an der Plattform, nicht am Verkaufspreis.
+
+**Rollen-Naming (harte Regel):** Überall `verkaeufer` + `kaeufer` (beide transliteriert). Nie mischen!
 
 ---
 
@@ -42,34 +44,46 @@ Fraunces + Geist, Navy/Bronze/Cream, Lucide, Framer Motion, Living Style Guide `
 Homepage umgebaut, `/verkaufen` (Hero mit Dashboard-Mockup), `/kaufen` (Marktplatz), `/preise`. Alle Docs aktualisiert.
 
 ### ⏳ Etappe 2 — Supabase Setup + Core-Migrations [NEXT]
-**Ziel:** Supabase-Projekt verknüpft, `profiles` Tabelle mit Rollen (verkaeufer/kaeufer/admin), RLS.
-**Tabellen:** `profiles`, Trigger `auth.users → profiles`, User-Roles-Enum.
+**Ziel:** Supabase-Projekt verknüpft, `profiles` Tabelle mit Rollen (`verkaeufer`/`kaeufer`/`admin`), RLS.
+**Tabellen:** `profiles` (inkl. `is_broker`, `mfa_enrolled`, `qualitaets_score`, `avg_response_time_hours`, `tags`, `admin_notes`), Trigger `auth.users → profiles`, User-Roles-Enum.
 **ENV:** `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`.
 **Verifikation:** Login-Registrierungs-Flow funktioniert auf Live-URL.
 
+### ⬜ Etappe 2.1 [NEU] — Staging-Umgebung + CI/CD-Gates
+**Ziel:** 2. Supabase-Projekt (staging) + 2. Vercel-Projekt (`passare-staging.vercel.app`). GitHub Actions mit TypeScript-Check, ESLint, Unit-Tests (Vitest), Lighthouse CI. Migrations laufen zuerst auf Staging.
+
 ### ⬜ Etappe 3 — Auth-Flows komplett
-`/auth/login`, `/auth/register`, `/auth/callback`, `/auth/check-email`, `/auth/reset`.
+`/auth/login`, `/auth/register`, `/auth/callback`, `/auth/check-email`, `/auth/reset`, Session-Management, Device-Trust-E-Mails.
+
+### ⬜ Etappe 3.1 [NEU] — Rate-Limiting + Bot-Schutz
+Upstash Ratelimit-Middleware auf `/auth/*`, `/api/contact`, `/api/nda`, `/api/inserat/*`. hCaptcha/Turnstile auf Registrierung, Kontakt, NDA, Bewertungstool. Honeypot-Felder überall.
+
+### ⬜ Etappe 3.2 [NEU] — MFA/TOTP (Pflicht für Admin)
+Supabase MFA-Flow für Admin-Rolle, optional für MAX-Käufer. Recovery-Codes (10×) beim Setup.
 
 ### ⬜ Etappe 4 — Rollen-Onboarding
-3-Step Wizard: Rolle wählen (verkaufer/kaeufer) → Basis-Profil → Interessen.
+3-Step Wizard: Rolle wählen (`verkaeufer`/`kaeufer`) → Basis-Profil → Interessen. Zwingende AGB+Datenschutz-Checkbox → `terms_acceptances`-Row.
 
 ### ⬜ Etappe 5 — shadcn-kompatible Basiskomponenten erweitern
 Select, Combobox, Dialog, Sheet, Tabs, Tooltip, Popover.
 
 ### ⬜ Etappe 6 — Responsive Nav + Mobile-Menu
-Sticky-Header, Mobile Drawer, Auth-State.
+Sticky-Header, Mobile Drawer, Auth-State, Notifications-Bell mit Badge.
 
 ### ⬜ Etappe 7 — i18n-Setup (next-intl) DE/FR/IT/EN
 `/de`, `/fr`, `/it`, `/en` Routing, hreflang, Language-Cookie.
 
 ### ⬜ Etappe 8 — Forms-Framework
-react-hook-form + Zod, einheitliche Error-Displays, Sonner-Toasts.
+react-hook-form + Zod (mit Range-Validations gegen Sanity-Werte!), einheitliche Error-Displays, Sonner-Toasts.
 
 ### ⬜ Etappe 9 — Analytics + Monitoring
-Plausible, Sentry, Vercel Analytics.
+Plausible, Sentry, Vercel Analytics, UTM-Capture in `zahlungen.source_utm`.
 
 ### ⬜ Etappe 10 — Feature-Flags System
-DB-basiert, Admin-Toggle.
+DB-basiert, Admin-Toggle, Rollout-% + Target-Users.
+
+### ⬜ Etappe 10.1 [NEU] — Playwright E2E-Suite (Critical Paths)
+E2E-Tests: Registrierung→Onboarding→Inserat, Käufer→Anfrage→NDA→Datenraum, Stripe-Checkout→Webhook→Rechnung, Admin→Moderation. Läuft in CI als harter Gate.
 
 ---
 
@@ -88,7 +102,10 @@ Bucket `inserat-public` (Teaser-Bilder, CDN) + `inserat-private` (Datenraum, Sig
 Unternehmen / Kapital-Investition / Beteiligung-Franchise / Share-Sales.
 
 ### ⬜ Etappe 15 — `anfragen` + `nachrichten` (Messaging-Threads)
-In-App Messaging mit Thread-Historie (companymarket hat das nicht — klarer USP).
+In-App Messaging mit Thread-Historie (companymarket hat das nicht — klarer USP). UI wird schon in Block F gebaut, aber DB-Schema + Realtime muss hier vorhanden sein.
+
+### ⬜ Etappe 15.1 [NEU] — `notifications` + `push_subscriptions`
+In-App Notification-Center + Web Push (VAPID). Jede wichtige User-Aktion schreibt Row. UI-Bell in Nav.
 
 ### ⬜ Etappe 16 — `favoriten` (Watchlist)
 Käufer markiert Inserat als Favorit, mit optionaler Notiz.
@@ -105,11 +122,14 @@ Per-User-Access, Wasserzeichen-Konfiguration.
 ### ⬜ Etappe 20 — `kaeufer_profile` (Reverse-Listings)
 Öffentliche "Ich suche…"-Profile mit Kriterien.
 
-### ⬜ Etappe 21 — `zahlungen` (Stripe Mirror)
-Jede Transaktion in DB gespiegelt.
+### ⬜ Etappe 21 — `zahlungen` + `invoices` (Stripe Mirror + CH-Rechnungen)
+Jede Transaktion in DB gespiegelt inkl. `amount_net`, `vat_rate=8.1`, `vat_amount`, `amount_gross`, `source_utm`. Separate `invoices`-Tabelle mit **fortlaufenden Rechnungsnummern `RE-YYYY-NNNNN`**, UID-Nummer-Feld, Storno/Gutschrift-Support. `stripe_event_id` unique für Webhook-Idempotenz.
 
-### ⬜ Etappe 22 — `subscriptions` (MAX-Abo)
-Laufzeit + Renewal-Logik für Käufer MAX.
+### ⬜ Etappe 21.1 [NEU] — `terms_acceptances` + `consent_records`
+AGB-Versionierung mit explizit erzwungener User-Zustimmung. Consent-Records für Newsletter/Analytics/Marketing (CH-FADP + DSGVO).
+
+### ⬜ Etappe 22 — `subscriptions` (MAX-Abo) + `v_user_entitlements`-View
+Laufzeit + Renewal-Logik für Käufer MAX. **Entitlements als View** (kein denormalisiertes `max_active`-Flag auf profiles!). Dunning-Status sichtbar.
 
 ### ⬜ Etappe 23 — `newsletter_abonnenten` + Segmente
 Double-Opt-In, nach Branche/Kanton/Rolle.
@@ -119,6 +139,9 @@ DSGVO-konform, alle sensiblen Aktionen.
 
 ### ⬜ Etappe 25 — `feature_flags`
 Global + per-User Targeting.
+
+### ⬜ Etappe 25.1 [NEU] — `bewertungen` + `admin_actions` + `api_keys`
+Peer-Reviews (blind, 14-Tage-Sichtbarkeits-Logik). Admin-Actions-Audit für Impersonation + 4-Eyes. API-Keys-Tabelle reserviert für Etappe 132.
 
 ---
 
@@ -144,84 +167,96 @@ Wert-Rechner (EBITDA-Multiples × Branche × Kanton) → gratis Range → E-Mail
 ### ⬜ Etappe 40 — Ratgeber-Hub mit Kategorien
 ### ⬜ Etappe 41 — Whitepaper-Downloads (Lead-Capture)
 ### ⬜ Etappe 42 — Newsletter-Anmeldung + Trigger
-### ⬜ Etappe 43 — Impressum / Datenschutz / AGB (rechtskonform CH)
-### ⬜ Etappe 44 — Trust-Center Page
-### ⬜ Etappe 45 — Cookie-Consent (Privacy-First)
+### ⬜ Etappe 43 — Impressum / Datenschutz / AGB (rechtskonform CH) mit Versionierung
+### ⬜ Etappe 44 — Trust-Center Page (Public-Facing: Security, Compliance, Partner-Logos, Zertifikate)
+### ⬜ Etappe 45 — Cookie-Consent (Privacy-First, CH-FADP + DSGVO, Consent-Mode v2 für Google Ads/Meta)
 
 ---
 
 ## 🧑‍💼 BLOCK D — VERKÄUFER-DASHBOARD (Etappen 46–55)
 
-### ⬜ Etappe 46 — Dashboard-Layout + Sidebar (role=verkaufer)
-### ⬜ Etappe 47 — Dashboard-Home: Stats (Views, Anfragen, NDAs)
-### ⬜ Etappe 48 — Meine Inserate: Liste + Bulk-Actions
-### ⬜ Etappe 49 — Inserat-Wizard Step 1 (Grunddaten + Zefix)
+### ⬜ Etappe 46 — Dashboard-Layout + Sidebar (role=verkaeufer)
+### ⬜ Etappe 47 — Dashboard-Home: Stats (Views, Anfragen, NDAs) + Onboarding-Checklist ("Noch 3 Schritte bis dein Inserat live ist")
+### ⬜ Etappe 48 — Meine Inserate: Liste + Bulk-Actions + Duplizieren (Multi-Standort)
+### ⬜ Etappe 49 — Inserat-Wizard Step 1 (Grunddaten + Zefix-Integration mit Fallback + Rate-Limit)
+### ⬜ Etappe 49.1 [NEU] — Auto-Save + Draft-Resume im Wizard
+Jeder Wizard-Step speichert nach 2s Idle in `inserate (status=draft)`. User kann Browser schliessen, Tab wiederfinden über Dashboard.
 ### ⬜ Etappe 50 — Inserat-Wizard Step 2 (Finanzen, EBITDA, MA)
-### ⬜ Etappe 51 — Inserat-Wizard Step 3 (Details + KI-Teaser)
-### ⬜ Etappe 52 — Inserat-Wizard Step 4 (Bilder + Paket + Stripe)
-### ⬜ Etappe 53 — Bearbeiten / Pausieren / Verkauft-setzen
-### ⬜ Etappe 54 — Interessenten-Liste + Anfrage-Management
-### ⬜ Etappe 55 — Statistiken pro Inserat (Views, Conversion)
+### ⬜ Etappe 51 — Inserat-Wizard Step 3 (Details + KI-Teaser inkl. Anonymitäts-Check via Claude)
+### ⬜ Etappe 52 — Inserat-Wizard Step 4 (Bilder EXIF-Strip + Paket + Stripe) — nach Zahlung: `status='in_review'` (IMMER)
+### ⬜ Etappe 52.1 [NEU] — Inserat-Preview (Wie sehen Käufer das?)
+Ein-Klick-Preview in neuem Tab mit "PREVIEW"-Badge, zeigt Inserat exakt wie öffentlich.
+### ⬜ Etappe 53 — Bearbeiten / Pausieren / Verkauft-setzen / Blocklist pro Inserat
+### ⬜ Etappe 54 — Interessenten-Liste + Anfrage-Management + Qualitäts-Filter (KYC, Finanzierungsnachweis)
+### ⬜ Etappe 55 — Statistiken pro Inserat (Views, Conversion) + PDF-Export
 
 ---
 
 ## 🛒 BLOCK E — KÄUFER-DASHBOARD (Etappen 56–65)
 
-### ⬜ Etappe 56 — Käufer Dashboard-Home
-### ⬜ Etappe 57 — Favoriten (Watchlist + Notizen)
-### ⬜ Etappe 58 — Gespeicherte Suchen + Alerts
-### ⬜ Etappe 59 — Käuferprofil erstellen (Reverse-Listing)
-### ⬜ Etappe 60 — Anfragen-Inbox (Threads)
+### ⬜ Etappe 56 — Käufer Dashboard-Home (Match-Score auf jedem Inserat für eingeloggte Käufer)
+### ⬜ Etappe 57 — Favoriten (Watchlist + Notizen + Tags/Ordner + Stages: Kontaktiert/NDA/DD/Abgelehnt)
+### ⬜ Etappe 58 — Gespeicherte Suchen + Alerts (E-Mail, WhatsApp für MAX)
+### ⬜ Etappe 59 — Käuferprofil erstellen (Reverse-Listing) + Anonym-Modus (Käufer sucht ohne dass Verkäufer ihn sehen)
+### ⬜ Etappe 59.1 [NEU] — Team-Accounts (Seats-Modell)
+Family-Offices + Investoren-Teams: 1 MAX-Account mit mehreren Seats (zusätzlich CHF 99/Seat/Monat).
+### ⬜ Etappe 60 — Anfragen-Inbox (Threads) + Vergleichstool (2–3 Inserate nebeneinander)
 ### ⬜ Etappe 61 — NDA-Management
-### ⬜ Etappe 62 — Datenraum-Zugänge
-### ⬜ Etappe 63 — Matching-Engine (AI)
-### ⬜ Etappe 64 — Due-Diligence-Checkliste
+### ⬜ Etappe 62 — Datenraum-Zugänge + private Datei-Notizen
+### ⬜ Etappe 63 — Matching-Engine (AI, pgvector)
+### ⬜ Etappe 64 — Due-Diligence-Checkliste (personalisiert pro Inserat)
 ### ⬜ Etappe 65 — Angebots-/LOI-Management
 
 ---
 
 ## 💬 BLOCK F — MESSAGING + NDA (Etappen 66–70)
 
-### ⬜ Etappe 66 — Secure Messaging UI + Thread-View
-### ⬜ Etappe 67 — Realtime Chat (Supabase Realtime)
-### ⬜ Etappe 68 — NDA Digital-Signatur
-### ⬜ Etappe 69 — NDA-Template-System (Admin)
-### ⬜ Etappe 70 — E-Mail-Notifications bei Messaging
+### ⬜ Etappe 66 — Secure Messaging UI + Thread-View (Typing-Indicator + Read-Receipts + Abwesenheitsmeldung)
+### ⬜ Etappe 67 — Realtime Chat (Supabase Realtime) + Push-Notifications (Web Push, später FCM)
+### ⬜ Etappe 68 — NDA Digital-Signatur (V1: einfache E-Signatur mit IP/UA/Timestamp; Upgrade auf Skribble QES in Etappe 138)
+### ⬜ Etappe 69 — NDA-Template-System (Admin, mehrere Varianten pro Inserat wählbar)
+### ⬜ Etappe 70 — E-Mail-Notifications bei Messaging + Anhang-Size-Limit + ClamAV-Virus-Scan
 
 ---
 
 ## 📂 BLOCK G — DATENRAUM (Etappen 71–75)
 
-### ⬜ Etappe 71 — Datenraum-Upload (Verkäufer)
-### ⬜ Etappe 72 — Access-Control (per-User)
-### ⬜ Etappe 73 — Dynamisches PDF-Wasserzeichen
-### ⬜ Etappe 74 — Audit-Trail
+### ⬜ Etappe 71 — Datenraum-Upload (Verkäufer) + Drag&Drop + ClamAV-Virus-Scan + MIME-Check
+### ⬜ Etappe 71.1 [NEU] — Ordner-Struktur + Vorlagen-Templates + Datei-Versionierung
+Standard-Ordner (Finanzen / Rechtliches / Verträge / HR / Operations), User kann individuell anpassen. Jede Datei hat Versionen (V1, V2 …).
+### ⬜ Etappe 72 — Access-Control (per-User) + Expiring Signed-URLs + View-Only-Mode (kein Download)
+### ⬜ Etappe 73 — Dynamisches PDF-Wasserzeichen (Edge-Function, on-demand, mit User-ID/IP/Timestamp eingebettet)
+### ⬜ Etappe 74 — Audit-Trail (events_log + datenraum_access_log) + OCR-Durchsuchbarkeit
 ### ⬜ Etappe 75 — Download-Tracking + Stats
 
 ---
 
 ## 💳 BLOCK H — ZAHLUNGEN (Etappen 76–80)
 
-### ⬜ Etappe 76 — Stripe Checkout (Verkäufer-Pakete: Light/Pro/Premium)
-### ⬜ Etappe 77 — Stripe Subscription (Käufer MAX monatlich + jährlich)
-### ⬜ Etappe 78 — Stripe Webhooks (payment_intent + subscription events)
-### ⬜ Etappe 79 — Invoice-Generation + PDF-Versand (Resend)
-### ⬜ Etappe 80 — Verlängerungen + Subscription-Management
+### ⬜ Etappe 76 — Stripe Checkout (Verkäufer-Pakete: Light/Pro/Premium) inkl. **MwSt 8.1%**, Twint, SEPA, Kreditkarte
+### ⬜ Etappe 77 — Stripe Subscription (Käufer MAX monatlich + jährlich) inkl. MwSt
+### ⬜ Etappe 78 — Stripe Webhooks (Idempotenz via `stripe_event_id`, Signatur-Check, Retry-Queue, Dead-Letter-Log, Chargeback-Handling)
+### ⬜ Etappe 79 — Invoice-Generation mit fortlaufenden Rechnungsnummern RE-YYYY-NNNNN + UID + PDF-Versand (Resend)
+### ⬜ Etappe 79.1 [NEU] — Refund-Flow + Stornorechnungen
+Admin-triggered Refund mit 4-Eyes bei >CHF 500. Storno-Invoice mit Bezug zur Original-Invoice. Resend Stornorechnung-PDF.
+### ⬜ Etappe 79.2 [NEU] — Dunning (Failed Payments) + Promo-Codes/Gutscheine
+Stripe Smart Retries + `past_due`→Feature-Gate-Deaktivierung nach 3 fehlgeschlagenen Versuchen. Admin-Panel für Launch-Promo-Codes.
+### ⬜ Etappe 80 — Verlängerungen + Subscription-Management (User sieht Zahlungshistorie + Rechnungen)
 
 ---
 
 ## 🛠️ BLOCK I — ADMIN-PANEL (Etappen 81–90)
 
-### ⬜ Etappe 81 — Admin-Layout + Role-Gate
-### ⬜ Etappe 82 — Inserate-Moderation-Queue
-### ⬜ Etappe 83 — User-Management + Rollen + Sperren
-### ⬜ Etappe 84 — Payment-Overview (alle Transaktionen)
-### ⬜ Etappe 85 — Report-Generator (MRR, GMV, Conversion)
-### ⬜ Etappe 86 — Feature-Flags Admin-UI
-### ⬜ Etappe 87 — Content-Management (Blog + Landingpages)
-### ⬜ Etappe 88 — Newsletter-Sender (Broadcasts)
-### ⬜ Etappe 89 — Support-Ticket-System
-### ⬜ Etappe 90 — System-Health Dashboard
+### ⬜ Etappe 81 — Admin-Layout + Role-Gate (MFA-Pflicht!) + 4-Eyes-Framework für kritische Aktionen
+### ⬜ Etappe 82 — Inserate-Moderation-Queue + **Anonymitäts-Audit-Check** (Regex + LLM-Check auf Firmenname)
+### ⬜ Etappe 83 — User-Management + Rollen + Sperren + **Impersonation** (mit Audit-Log) + interne Notes + Tags
+### ⬜ Etappe 84 — Payment-Overview (alle Transaktionen) + Refund-Trigger + Dunning-Status
+### ⬜ Etappe 85 — Report-Generator (MRR, GMV, Conversion, Churn-Analyse, Cohort-Analyse, Revenue-Forecasting)
+### ⬜ Etappe 86 — Feature-Flags Admin-UI + A/B-Test-Dashboard
+### ⬜ Etappe 87 — Content-Management (Blog + Landingpages + AGB/Datenschutz mit Versionierung + Force-Re-Accept)
+### ⬜ Etappe 88 — Newsletter-Versand (Broadcast-Engine, segmentiert) — Template-Editor kommt in Etappe 101
+### ⬜ Etappe 89 — Support-Ticket-System + Zuordnung zu Admin + Prioritäten
+### ⬜ Etappe 90 — System-Health Dashboard + Login-Attempts-Monitoring + Sentry-Integration + Rate-Limit-Übersicht
 
 ---
 
@@ -257,31 +292,32 @@ Wert-Rechner (EBITDA-Multiples × Branche × Kanton) → gratis Range → E-Mail
 
 ## 🛡️ BLOCK L — TRUST, QUALITÄT, COMPLIANCE (Etappen 111–120)
 
-### ⬜ Etappe 111 — Telefon-Verifikation Twilio (Verkäufer)
+### ⬜ Etappe 111 — Telefon-Verifikation Twilio (Verkäufer, Teil des Onboardings, nicht nachgelagert)
 ### ⬜ Etappe 112 — Käufer-KYC (optional, für NDA-Fast-Track)
-### ⬜ Etappe 113 — Verifikations-Badges (Verkäufer + Käufer)
-### ⬜ Etappe 114 — Portal-Bewertungen (5-Stern)
-### ⬜ Etappe 115 — Trust-Center Page
-### ⬜ Etappe 116 — DSGVO Datenauskunft + Export + Löschung
-### ⬜ Etappe 117 — Accessibility WCAG 2.1 AA
-### ⬜ Etappe 118 — OWASP Top 10 Security-Audit
-### ⬜ Etappe 119 — Bug-Bounty-Kontakt
+### ⬜ Etappe 113 — Verifikations-Badges (Verkäufer + Käufer + passare-Verified-Broker)
+### ⬜ Etappe 114 — Peer-Bewertungen (Verkäufer ↔ Käufer, blind, bidirektional, 5-Stern + Kommentar)
+### ⬜ Etappe 115 — **[NEU statt Trust-Center-Duplikat]** CH-FADP + Incident-Response-Plan + SLA-Definition (Uptime-Garantie für MAX)
+### ⬜ Etappe 116 — DSGVO/FADP Self-Service: Datenauskunft + JSON-Export + Soft-Delete → 30-Tage-Wiederherstellung → Hard-Delete mit Anonymisierung
+### ⬜ Etappe 117 — Accessibility WCAG 2.1 AA (parallel zu öffentlichen Etappen, nicht nachgelagert!)
+### ⬜ Etappe 118 — OWASP Top 10 Security-Audit + externes Pentest
+### ⬜ Etappe 119 — Bug-Bounty-Kontakt + security.txt
 ### ⬜ Etappe 120 — Finanzierungsnachweis-Upload (MAX-Käufer)
 
 ---
 
 ## 🌍 BLOCK M — I18N VOLLSTÄNDIG (Etappen 121–130)
 
-### ⬜ Etappe 121 — Alle Strings auf DE extrahiert
-### ⬜ Etappe 122 — FR Übersetzung (professionell)
-### ⬜ Etappe 123 — IT Übersetzung
+### ⬜ Etappe 121 — Alle Strings auf DE (Schweizer Hochdeutsch, kein ß) extrahiert
+### ⬜ Etappe 122 — FR Übersetzung (professionell, Swiss French)
+### ⬜ Etappe 123 — IT Übersetzung (Ticino-Italienisch)
 ### ⬜ Etappe 124 — EN Übersetzung
-### ⬜ Etappe 125 — Formatierung pro Locale (CHF, Datum, Dezimal)
+### ⬜ Etappe 124.1 [NEU] — RM (Rhätoromanisch) Übersetzung — Kern-Seiten (Landessprache der Schweiz!)
+### ⬜ Etappe 125 — Formatierung pro Locale (CHF mit Hochkomma, Datum, Dezimal)
 ### ⬜ Etappe 126 — Sprachwechsler mit Persistenz
 ### ⬜ Etappe 127 — SEO-Sprach-Routing
-### ⬜ Etappe 128 — hreflang-Matrix + x-default
+### ⬜ Etappe 128 — hreflang-Matrix + x-default + robots/sitemap **pro Sprache**
 ### ⬜ Etappe 129 — E-Mail-Templates lokalisiert
-### ⬜ Etappe 130 — CMS-Content mehrsprachig
+### ⬜ Etappe 130 — CMS-Content mehrsprachig + Auto-Translation DeepL/Claude für User-Generated Content
 
 ---
 
