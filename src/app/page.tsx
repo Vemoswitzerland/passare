@@ -2,10 +2,10 @@ import Link from 'next/link';
 import { ArrowRight, ShieldCheck, Compass, Newspaper, Terminal, Layers, FileLock2, Sparkles } from 'lucide-react';
 import { Container, Section } from '@/components/ui/container';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Divider } from '@/components/ui/divider';
 import { Reveal, RevealStagger, RevealItem } from '@/components/ui/reveal';
 import { LiveTicker } from '@/components/sections/live-ticker';
+import { DashboardMockup } from '@/components/sections/dashboard-mockup';
 
 /**
  * passare.ch — Editorial × Tech Homepage
@@ -19,6 +19,7 @@ export default function HomePage() {
       <Hero />
       <Principles />
       <HowItWorks />
+      <DashboardSection />
       <LiveSignal />
       <KPIs />
       <Promise />
@@ -83,22 +84,12 @@ function Hero() {
       <Container>
         <div className="relative max-w-hero">
           <Reveal>
-            <Badge variant="live" dot className="mb-10 font-mono text-[11px] tracking-widest uppercase">
-              <span>Beta</span>
-              <span className="text-stone">·</span>
-              <span>Launch Herbst 2026</span>
-              <span className="text-stone">·</span>
-              <span className="text-bronze-ink">Invite only</span>
-            </Badge>
-          </Reveal>
-
-          <Reveal delay={0.1}>
             <h1 className="font-serif-display text-display-xl text-navy font-light mb-8 tracking-[-0.025em]">
               Der vertrauensvolle Übergang<span className="text-bronze">.</span>
             </h1>
           </Reveal>
 
-          <Reveal delay={0.2}>
+          <Reveal delay={0.1}>
             <p className="text-body-lg md:text-xl text-muted max-w-prose leading-relaxed mb-10">
               <span className="font-serif italic text-navy">passare</span> kuratiert den Übergang
               von Schweizer KMU. Für Unternehmerinnen und Unternehmer, die ihr Lebenswerk nicht
@@ -106,7 +97,7 @@ function Hero() {
             </p>
           </Reveal>
 
-          <Reveal delay={0.3}>
+          <Reveal delay={0.2}>
             <div className="flex flex-col sm:flex-row gap-4 items-start mb-16">
               <Button href="/beta" size="lg">
                 Beta-Zugang anfragen <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
@@ -117,8 +108,7 @@ function Hero() {
             </div>
           </Reveal>
 
-          {/* Mini-Signals-Zeile (tech-style, mono) */}
-          <Reveal delay={0.4}>
+          <Reveal delay={0.3}>
             <div className="flex flex-wrap items-center gap-x-6 gap-y-3 font-mono text-[11px] uppercase tracking-widest text-quiet">
               <SignalDot>Made in Zürich</SignalDot>
               <span className="w-px h-3 bg-stone" />
@@ -291,6 +281,32 @@ function HowItWorks() {
             </RevealItem>
           ))}
         </RevealStagger>
+      </Container>
+    </Section>
+  );
+}
+
+/* ═══════════════════════════════════════════════
+   DASHBOARD-SECTION — Browser-Chrome-Mockup
+   ═══════════════════════════════════════════════ */
+function DashboardSection() {
+  return (
+    <Section className="bg-cream">
+      <Container>
+        <Reveal>
+          <div className="text-center max-w-prose mx-auto mb-14">
+            <p className="overline mb-5">Ihr Arbeitsbereich</p>
+            <h2 className="font-serif text-display-md text-navy font-light mb-6">
+              Ein Dashboard, das für Entscheider gebaut ist.
+            </h2>
+            <p className="text-body-lg text-muted leading-relaxed">
+              Keine Commodity-Oberfläche. Alles, was Sie für einen geordneten Verkauf brauchen
+              &mdash; ruhig, klar, präzise.
+            </p>
+          </div>
+        </Reveal>
+
+        <DashboardMockup />
       </Container>
     </Section>
   );
