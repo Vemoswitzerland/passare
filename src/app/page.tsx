@@ -11,10 +11,9 @@ import { DashboardMockup } from '@/components/sections/dashboard-mockup';
  * passare.ch — Self-Service-Plattform für KMU-Nachfolge
  *
  * Geschäftsmodell:
- * - Verkäufer zahlen Paket (CHF 290 / 890) — inserieren selbständig
- * - Käufer suchen, kontaktieren Verkäufer direkt
- * - Kein Broker, keine Erfolgsprovision
- * - Plattform liefert: Reichweite, NDA-Prozess, Datenraum, Messaging
+ * - Verkäufer: 3 Inseratspakete (Light/Pro/Premium, einmalig)
+ * - Käufer: Basic (gratis) + MAX (CHF 199/Monat)
+ * - Kein Broker-Angebot in V1
  */
 
 export default function HomePage() {
@@ -24,7 +23,6 @@ export default function HomePage() {
       <Hero />
       <Principles />
       <HowItWorks />
-      <DashboardSection />
       <Pricing />
       <LiveSignal />
       <KPIs />
@@ -80,49 +78,57 @@ function TopBar() {
 }
 
 /* ═══════════════════════════════════════════════
-   HERO
+   HERO — Text links, Dashboard-Mockup rechts
    ═══════════════════════════════════════════════ */
 function Hero() {
   return (
-    <section className="relative overflow-hidden pt-24 md:pt-36 pb-24 md:pb-40">
-      <Container>
-        <div className="relative max-w-hero">
-          <Reveal>
-            <h1 className="font-serif-display text-display-xl text-navy font-light mb-8 tracking-[-0.025em]">
-              Ihre Firma. Ihr Verkauf. Ihre Kontrolle<span className="text-bronze">.</span>
-            </h1>
-          </Reveal>
+    <section className="relative overflow-hidden pt-16 md:pt-24 pb-20 md:pb-28">
+      <Container size="wide">
+        <div className="grid lg:grid-cols-[1fr_1.15fr] gap-12 lg:gap-16 items-center">
+          {/* Text */}
+          <div className="relative">
+            <Reveal>
+              <h1 className="font-serif-display text-[clamp(2.75rem,5vw,5rem)] text-navy font-light mb-8 tracking-[-0.025em] leading-[1.02]">
+                Ihre Firma. Ihr Verkauf. Ihre Kontrolle<span className="text-bronze">.</span>
+              </h1>
+            </Reveal>
 
-          <Reveal delay={0.1}>
-            <p className="text-body-lg md:text-xl text-muted max-w-prose leading-relaxed mb-10">
-              <span className="font-serif italic text-navy">passare</span> ist die Schweizer Plattform,
-              auf der Sie Ihr KMU selbst inserieren und Käufer direkt kontaktieren.
-              Ohne Broker, ohne Erfolgsprovision &mdash; mit festem Paketpreis,
-              anonymem Profil und professionellem NDA-Prozess.
-            </p>
-          </Reveal>
+            <Reveal delay={0.1}>
+              <p className="text-body-lg md:text-xl text-muted max-w-prose leading-relaxed mb-10">
+                <span className="font-serif italic text-navy">passare</span> ist die Schweizer Plattform,
+                auf der Sie Ihr KMU selbst inserieren und Käufer direkt kontaktieren.
+                Ohne Vermittler, ohne Erfolgsprovision &mdash; mit festem Paketpreis,
+                anonymem Profil und professionellem NDA-Prozess.
+              </p>
+            </Reveal>
 
-          <Reveal delay={0.2}>
-            <div className="flex flex-col sm:flex-row gap-4 items-start mb-16">
-              <Button href="/beta" size="lg">
-                Firma inserieren <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
-              </Button>
-              <Button href="/beta" variant="secondary" size="lg">
-                Firmen entdecken
-              </Button>
-            </div>
-          </Reveal>
+            <Reveal delay={0.2}>
+              <div className="flex flex-col sm:flex-row gap-4 items-start mb-12">
+                <Button href="/beta" size="lg">
+                  Firma inserieren <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
+                </Button>
+                <Button href="/beta" variant="secondary" size="lg">
+                  Firmen entdecken
+                </Button>
+              </div>
+            </Reveal>
 
-          <Reveal delay={0.3}>
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-3 font-mono text-[11px] uppercase tracking-widest text-quiet">
-              <SignalDot>Ab CHF 290 pro Inserat</SignalDot>
-              <span className="w-px h-3 bg-stone" />
-              <SignalDot>0% Erfolgsprovision</SignalDot>
-              <span className="w-px h-3 bg-stone" />
-              <SignalDot>Anonym inserieren</SignalDot>
-              <span className="w-px h-3 bg-stone" />
-              <SignalDot>NDA vor Detail-Einsicht</SignalDot>
-            </div>
+            <Reveal delay={0.3}>
+              <div className="flex flex-wrap items-center gap-x-5 gap-y-2 font-mono text-[11px] uppercase tracking-widest text-quiet">
+                <SignalDot>Ab CHF 290</SignalDot>
+                <span className="w-px h-3 bg-stone" />
+                <SignalDot>0% Provision</SignalDot>
+                <span className="w-px h-3 bg-stone" />
+                <SignalDot>Anonym</SignalDot>
+                <span className="w-px h-3 bg-stone" />
+                <SignalDot>NDA-Gate</SignalDot>
+              </div>
+            </Reveal>
+          </div>
+
+          {/* Dashboard-Mockup */}
+          <Reveal delay={0.35} className="relative">
+            <DashboardMockup />
           </Reveal>
         </div>
       </Container>
@@ -140,7 +146,7 @@ function SignalDot({ children }: { children: React.ReactNode }) {
 }
 
 /* ═══════════════════════════════════════════════
-   PRINZIPIEN — Self-Service-Model erklären
+   PRINZIPIEN — Plattform-Modell
    ═══════════════════════════════════════════════ */
 function Principles() {
   const principles = [
@@ -205,7 +211,7 @@ function Principles() {
 }
 
 /* ═══════════════════════════════════════════════
-   HOW-IT-WORKS — Self-Service-Flow
+   HOW-IT-WORKS
    ═══════════════════════════════════════════════ */
 function HowItWorks() {
   const steps = [
@@ -215,7 +221,7 @@ function HowItWorks() {
       over: 'Inserat',
       title: 'Paket wählen & inserieren',
       body: 'Zefix-Import, KI-Assistent für Teaser, Foto-Upload. In 10–15 Minuten ist Ihr anonymes Inserat live.',
-      tech: 'CHF 290 – 890',
+      tech: 'CHF 290 – 1\'890',
     },
     {
       Icon: FileLock2,
@@ -292,71 +298,9 @@ function HowItWorks() {
 }
 
 /* ═══════════════════════════════════════════════
-   DASHBOARD
-   ═══════════════════════════════════════════════ */
-function DashboardSection() {
-  return (
-    <Section className="bg-cream">
-      <Container>
-        <Reveal>
-          <div className="text-center max-w-prose mx-auto mb-14">
-            <p className="overline mb-5">Ihr Arbeitsbereich</p>
-            <h2 className="font-serif text-display-md text-navy font-light mb-6">
-              Alle Anfragen. Ein Dashboard. Volle Kontrolle.
-            </h2>
-            <p className="text-body-lg text-muted leading-relaxed">
-              Kein E-Mail-Chaos. Jede Anfrage, jedes NDA, jede Datenraum-Freigabe
-              &mdash; strukturiert, prüfbar, von Ihnen gesteuert.
-            </p>
-          </div>
-        </Reveal>
-        <DashboardMockup />
-      </Container>
-    </Section>
-  );
-}
-
-/* ═══════════════════════════════════════════════
-   PRICING — Zentral für das Geschäftsmodell
+   PRICING — Verkäufer (3) + Käufer (Basic + MAX)
    ═══════════════════════════════════════════════ */
 function Pricing() {
-  const plans = [
-    {
-      name: 'Inserat Light',
-      tag: 'Für kleinere KMU',
-      price: 'CHF 290',
-      note: 'einmalig · 3 Monate Laufzeit',
-      features: [
-        'Anonymes Inserat im Marktplatz',
-        'Bis zu 5 Bilder',
-        'Bis zu 2 PDF-Dokumente im Datenraum',
-        'NDA-Gate mit eSign',
-        'Anfragen-Dashboard',
-        'KI-gestützter Teaser-Generator',
-      ],
-      cta: 'Light wählen',
-      variant: 'quiet' as const,
-    },
-    {
-      name: 'Inserat Pro',
-      tag: 'Empfohlen',
-      price: 'CHF 890',
-      note: 'einmalig · 6 Monate Laufzeit',
-      features: [
-        'Alles aus Light, plus:',
-        'Bis zu 20 Bilder + Videos',
-        'Unbegrenzter Datenraum mit Wasserzeichen',
-        'Featured-Platzierung auf Homepage',
-        'Newsletter-Feature bei aktiven Käufern',
-        'Priorisierter Support',
-        'Käuferprofil-Matching',
-        'Detailstatistiken & Conversion-Tracking',
-      ],
-      cta: 'Pro wählen',
-      variant: 'primary' as const,
-    },
-  ];
-
   return (
     <Section className="bg-paper border-y border-stone">
       <Container>
@@ -364,109 +308,134 @@ function Pricing() {
           <div className="mb-16 max-w-prose">
             <p className="overline mb-5">Preise</p>
             <h2 className="font-serif text-display-md text-navy font-light mb-6">
-              Fester Preis. Keine Provision.
+              Für Verkäufer. Für Käufer.
             </h2>
             <p className="text-body-lg text-muted leading-relaxed max-w-prose">
-              Ein Inserat, eine Gebühr. Unabhängig davon, ob Sie für
-              CHF 500&apos;000 oder CHF 25 Mio verkaufen &mdash; wir verdienen nicht an Ihrem Deal.
+              Fester Preis. Keine Provision auf Ihren Deal.
+              Sie zahlen einmal &mdash; wir verdienen an der Plattform, nicht an Ihrem Verkauf.
             </p>
           </div>
         </Reveal>
 
-        <div className="grid md:grid-cols-2 gap-px bg-stone border border-stone rounded-card overflow-hidden max-w-5xl">
-          {plans.map((p, i) => (
-            <Reveal key={i} delay={i * 0.08}>
-              <div
-                className={`h-full p-8 md:p-10 flex flex-col ${
-                  p.variant === 'primary' ? 'bg-navy text-cream' : 'bg-paper'
-                }`}
-              >
-                {/* Header */}
-                <div className="flex items-start justify-between mb-8">
-                  <div>
-                    <p
-                      className={`font-mono text-[11px] uppercase tracking-widest mb-2 ${
-                        p.variant === 'primary' ? 'text-bronze' : 'text-quiet'
-                      }`}
-                    >
-                      {p.tag}
-                    </p>
-                    <h3
-                      className={`font-serif text-head-lg font-normal ${
-                        p.variant === 'primary' ? 'text-cream' : 'text-navy'
-                      }`}
-                    >
-                      {p.name}
-                    </h3>
-                  </div>
-                  {p.variant === 'primary' && (
-                    <span className="font-mono text-[10px] uppercase tracking-widest text-bronze bg-bronze/15 px-2.5 py-1 rounded-full">
-                      empfohlen
-                    </span>
-                  )}
-                </div>
+        {/* VERKÄUFER */}
+        <Reveal>
+          <div className="flex items-center gap-4 mb-8">
+            <span className="overline text-navy">Für Verkäufer</span>
+            <span className="h-px flex-1 bg-stone" />
+            <span className="font-mono text-[11px] text-quiet">einmalige Paketgebühr</span>
+          </div>
+        </Reveal>
 
-                {/* Price */}
-                <div className="mb-8 pb-8 border-b border-stone/20">
-                  <p
-                    className={`font-serif text-display-md font-light font-tabular leading-none ${
-                      p.variant === 'primary' ? 'text-cream' : 'text-navy'
-                    }`}
-                  >
-                    {p.price}
-                  </p>
-                  <p
-                    className={`font-mono text-[11px] mt-3 uppercase tracking-widest ${
-                      p.variant === 'primary' ? 'text-cream/60' : 'text-quiet'
-                    }`}
-                  >
-                    {p.note}
-                  </p>
-                </div>
-
-                {/* Features */}
-                <ul className="space-y-3 mb-10 flex-1">
-                  {p.features.map((f, j) => (
-                    <li key={j} className="flex items-start gap-3 text-body-sm">
-                      <Check
-                        className={`w-4 h-4 flex-shrink-0 mt-0.5 ${
-                          p.variant === 'primary' ? 'text-bronze' : 'text-bronze'
-                        }`}
-                        strokeWidth={1.75}
-                      />
-                      <span
-                        className={
-                          p.variant === 'primary' ? 'text-cream/90' : 'text-muted'
-                        }
-                      >
-                        {f}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-
-                {/* CTA */}
-                <Button
-                  href="/beta"
-                  variant={p.variant === 'primary' ? 'bronze' : 'primary'}
-                  size="lg"
-                  className="w-full justify-center"
-                >
-                  {p.cta} <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
-                </Button>
-              </div>
-            </Reveal>
-          ))}
+        <div className="grid md:grid-cols-3 gap-px bg-stone border border-stone rounded-card overflow-hidden mb-20">
+          <PlanCard
+            tag="Einstieg"
+            name="Inserat Light"
+            price="CHF 290"
+            note="einmalig · 3 Monate Laufzeit"
+            features={[
+              'Anonymes Inserat im Marktplatz',
+              '5 Bilder · 2 PDFs im Datenraum',
+              'NDA-Gate mit eSign',
+              'Anfragen-Dashboard',
+              'KI-Teaser-Generator',
+            ]}
+            cta="Light wählen"
+            delay={0}
+          />
+          <PlanCard
+            tag="Empfohlen"
+            highlight
+            name="Inserat Pro"
+            price="CHF 890"
+            note="einmalig · 6 Monate Laufzeit"
+            features={[
+              'Alles aus Light, plus:',
+              '20 Bilder + Videos · unbegrenzter Datenraum',
+              'Wasserzeichen auf PDF-Downloads',
+              'Matching mit Käuferprofilen',
+              'Newsletter-Feature (einmalig)',
+              'Detailstatistiken & Conversion',
+            ]}
+            cta="Pro wählen"
+            delay={0.08}
+          />
+          <PlanCard
+            tag="Maximum Reichweite"
+            name="Inserat Premium"
+            price="CHF 1'890"
+            note="einmalig · 12 Monate Laufzeit"
+            features={[
+              'Alles aus Pro, plus:',
+              'Homepage-Feature (1 Woche/Monat)',
+              'Newsletter-Feature (monatlich)',
+              'Mehrsprachige Inseratversion (FR/IT/EN)',
+              '2h persönliche Beratung inklusive',
+              'Priorisierter Support',
+            ]}
+            cta="Premium wählen"
+            delay={0.16}
+          />
         </div>
 
-        {/* Fine print */}
+        {/* KÄUFER */}
+        <Reveal>
+          <div className="flex items-center gap-4 mb-8">
+            <span className="overline text-navy">Für Käufer</span>
+            <span className="h-px flex-1 bg-stone" />
+            <span className="font-mono text-[11px] text-quiet">gratis oder MAX-Abo</span>
+          </div>
+        </Reveal>
+
+        <div className="grid md:grid-cols-2 gap-px bg-stone border border-stone rounded-card overflow-hidden max-w-5xl">
+          <PlanCard
+            tag="Gratis"
+            name="Käufer Basic"
+            price="CHF 0"
+            note="kostenlos · unbefristet"
+            features={[
+              'Öffentliche Inserate durchsuchen',
+              '5 Basis-Filter (Branche, Kanton, Preisrange, Umsatz, Mitarbeiter)',
+              '3 gespeicherte Suchen',
+              'Wöchentliche E-Mail-Alerts',
+              '5 Anfragen pro Monat',
+              'NDA-Signatur möglich',
+            ]}
+            cta="Gratis starten"
+            delay={0}
+          />
+          <PlanCard
+            tag="Für aktive Käufer"
+            highlight
+            dark
+            name="Käufer MAX"
+            price="CHF 199"
+            priceSuffix="/Monat"
+            altPrice="CHF 1'990/Jahr (2 Monate gratis)"
+            note="monatlich kündbar"
+            features={[
+              'Alles aus Basic, plus:',
+              '7 Tage Frühzugang vor allen anderen',
+              'Alle 18 Filter + Custom-Filter',
+              'Unbegrenzte gespeicherte Suchen',
+              'Echtzeit-Alerts + WhatsApp-Push',
+              'Unbegrenzte Anfragen',
+              'Öffentliches Käuferprofil (Featured)',
+              'NDA-Fast-Track',
+              'KMU-Multiples-Datenbank',
+              'Persönlicher Ansprechpartner',
+            ]}
+            cta="MAX buchen"
+            delay={0.08}
+          />
+        </div>
+
         <Reveal delay={0.2}>
           <div className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-2 font-mono text-[11px] uppercase tracking-widest text-quiet max-w-4xl">
-            <SignalDot>Keine automatische Verlängerung</SignalDot>
-            <span className="w-px h-3 bg-stone" />
             <SignalDot>Preise zzgl. 8.1% MWST</SignalDot>
             <span className="w-px h-3 bg-stone" />
-            <SignalDot>Broker-Abos auf Anfrage</SignalDot>
+            <SignalDot>Keine automatische Verlängerung bei Verkäufer-Paketen</SignalDot>
+            <span className="w-px h-3 bg-stone" />
+            <SignalDot>MAX jederzeit kündbar</SignalDot>
           </div>
         </Reveal>
       </Container>
@@ -474,9 +443,127 @@ function Pricing() {
   );
 }
 
-/* ═══════════════════════════════════════════════
-   LIVE-SIGNAL
-   ═══════════════════════════════════════════════ */
+function PlanCard({
+  tag,
+  name,
+  price,
+  priceSuffix,
+  altPrice,
+  note,
+  features,
+  cta,
+  highlight,
+  dark,
+  delay = 0,
+}: {
+  tag: string;
+  name: string;
+  price: string;
+  priceSuffix?: string;
+  altPrice?: string;
+  note: string;
+  features: string[];
+  cta: string;
+  highlight?: boolean;
+  dark?: boolean;
+  delay?: number;
+}) {
+  const isDark = dark === true;
+  return (
+    <Reveal delay={delay}>
+      <div
+        className={`h-full p-8 md:p-10 flex flex-col ${
+          isDark ? 'bg-navy text-cream' : 'bg-paper text-ink'
+        }`}
+      >
+        <div className="flex items-start justify-between mb-6">
+          <p
+            className={`font-mono text-[11px] uppercase tracking-widest ${
+              isDark ? 'text-bronze' : highlight ? 'text-bronze-ink' : 'text-quiet'
+            }`}
+          >
+            {tag}
+          </p>
+          {highlight && (
+            <span
+              className={`font-mono text-[10px] uppercase tracking-widest px-2.5 py-1 rounded-full ${
+                isDark ? 'bg-bronze/20 text-bronze' : 'bg-bronze/15 text-bronze-ink'
+              }`}
+            >
+              empfohlen
+            </span>
+          )}
+        </div>
+
+        <h3
+          className={`font-serif text-head-lg font-normal mb-6 ${
+            isDark ? 'text-cream' : 'text-navy'
+          }`}
+        >
+          {name}
+        </h3>
+
+        <div className={`mb-6 pb-6 border-b ${isDark ? 'border-cream/15' : 'border-stone'}`}>
+          <div className="flex items-baseline gap-1">
+            <p
+              className={`font-serif text-[clamp(2rem,4vw,3rem)] font-light font-tabular leading-none ${
+                isDark ? 'text-cream' : 'text-navy'
+              }`}
+            >
+              {price}
+            </p>
+            {priceSuffix && (
+              <span
+                className={`font-mono text-sm ${isDark ? 'text-cream/60' : 'text-quiet'}`}
+              >
+                {priceSuffix}
+              </span>
+            )}
+          </div>
+          {altPrice && (
+            <p
+              className={`font-mono text-[11px] mt-2 ${
+                isDark ? 'text-bronze' : 'text-bronze-ink'
+              }`}
+            >
+              oder {altPrice}
+            </p>
+          )}
+          <p
+            className={`font-mono text-[11px] mt-3 uppercase tracking-widest ${
+              isDark ? 'text-cream/60' : 'text-quiet'
+            }`}
+          >
+            {note}
+          </p>
+        </div>
+
+        <ul className="space-y-3 mb-10 flex-1">
+          {features.map((f, j) => (
+            <li key={j} className="flex items-start gap-3 text-body-sm">
+              <Check
+                className="w-4 h-4 flex-shrink-0 mt-0.5 text-bronze"
+                strokeWidth={1.75}
+              />
+              <span className={isDark ? 'text-cream/90' : 'text-muted'}>{f}</span>
+            </li>
+          ))}
+        </ul>
+
+        <Button
+          href="/beta"
+          variant={isDark ? 'bronze' : highlight ? 'primary' : 'secondary'}
+          size="lg"
+          className="w-full justify-center"
+        >
+          {cta} <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
+        </Button>
+      </div>
+    </Reveal>
+  );
+}
+
+/* ═══════════════════════════════════════════════ */
 function LiveSignal() {
   return (
     <Section>
@@ -577,9 +664,9 @@ function Promise() {
           <Reveal delay={0.15}>
             <div className="mt-16 pt-8 border-t border-cream/15 max-w-prose">
               <p className="text-body-lg text-cream/80 leading-relaxed mb-6">
-                Klassische Broker leben von Erfolgsprovision &mdash; und haben damit ein
-                Interesse an schnellen, hohen Abschlüssen. Wir leben von festen Paketen:
-                Sie zahlen einmal, Sie behalten jeden Franken vom Verkaufspreis.
+                Klassische Makler leben von Erfolgsprovision &mdash; und haben damit ein
+                Interesse an schnellen Abschlüssen. Wir leben von festen Paketen und
+                Käufer-Abos: Sie zahlen einmal, Sie behalten jeden Franken vom Verkaufspreis.
               </p>
               <div className="flex items-center gap-4 pt-4">
                 <Button href="/beta" variant="bronze" size="md">
@@ -610,7 +697,7 @@ function Footer() {
             </p>
             <p className="text-body-sm text-muted max-w-xs leading-relaxed">
               Die Schweizer Self-Service-Plattform für die Nachfolge von KMU.
-              Inserieren, verbinden, verhandeln &mdash; ohne Zwischenhändler.
+              Inserieren, verbinden, verhandeln &mdash; ohne Vermittler.
             </p>
             <div className="mt-6 flex items-center gap-4 font-mono text-[11px] uppercase tracking-widest text-quiet">
               <span className="flex items-center gap-2">
@@ -627,7 +714,7 @@ function Footer() {
               <li><Link className="hover:text-navy transition-colors" href="/">Inserieren</Link></li>
               <li><Link className="hover:text-navy transition-colors" href="/">Entdecken</Link></li>
               <li><Link className="hover:text-navy transition-colors" href="/">Preise</Link></li>
-              <li><Link className="hover:text-navy transition-colors" href="/">Broker-Bereich</Link></li>
+              <li><Link className="hover:text-navy transition-colors" href="/">Käufer MAX</Link></li>
             </ul>
           </div>
           <div>
