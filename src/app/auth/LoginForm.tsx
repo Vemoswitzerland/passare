@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
-import { loginAction, type ActionResult } from './actions';
+import { loginAction } from './actions';
+import type { ActionResult } from './constants';
 
 export function LoginForm() {
   const [state, action, pending] = useActionState<ActionResult | null, FormData>(

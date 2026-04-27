@@ -4,7 +4,8 @@ import { useActionState } from 'react';
 import { ArrowRight, MailCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
-import { requestResetAction, type ActionResult } from './actions';
+import { requestResetAction } from './actions';
+import type { ActionResult } from './constants';
 
 export function ResetForm() {
   const [state, action, pending] = useActionState<ActionResult | null, FormData>(

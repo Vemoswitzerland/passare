@@ -4,7 +4,8 @@ import { useActionState } from 'react';
 import { ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
-import { updatePasswordAction, type ActionResult } from './actions';
+import { updatePasswordAction } from './actions';
+import type { ActionResult } from './constants';
 
 export function ResetConfirmForm() {
   const [state, action, pending] = useActionState<ActionResult | null, FormData>(

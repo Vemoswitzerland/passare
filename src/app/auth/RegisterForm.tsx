@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
-import { registerAction, type ActionResult } from './actions';
+import { registerAction } from './actions';
+import type { ActionResult } from './constants';
 
 export function RegisterForm() {
   const [state, action, pending] = useActionState<ActionResult | null, FormData>(

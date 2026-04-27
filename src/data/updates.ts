@@ -29,33 +29,26 @@ export type Task = {
  * KEINE Software-/Produktnamen in den Texten.
  */
 const CURRENT_TASKS: Task[] = [
-  { label: 'project · provisioning',        status: 'done' },
-  { label: 'env · secrets_wiring',          status: 'done' },
-  { label: 'schema · profiles_table',       status: 'done' },
-  { label: 'schema · roles_enum',           status: 'done' },
-  { label: 'policy · row_level_security',   status: 'done' },
-  { label: 'trigger · auth_to_profiles',    status: 'done' },
-  { label: 'auth · session_cookies',        status: 'done' },
-  { label: 'auth · register_flow',          status: 'done' },
-  { label: 'auth · login_flow',             status: 'done' },
-  { label: 'auth · email_verification',     status: 'done' },
-  { label: 'auth · password_reset',         status: 'done' },
-  { label: 'verify · live_environment',     status: 'done' },
+  { label: 'wizard · step_1_rolle',          status: 'done' },
+  { label: 'wizard · step_2_basis_profil',   status: 'done' },
+  { label: 'wizard · step_3_bestaetigen',    status: 'done' },
+  { label: 'terms · zwingende_zustimmung',   status: 'done' },
+  { label: 'rolle · einmalig_setzbar',       status: 'done' },
+  { label: 'redirect · nach_rolle',          status: 'done' },
 ];
 
 export const CURRENT_STEP = {
-  etappe: 'Etappe 03',
-  branch: 'feat/onboarding-wizard',
-  titel: 'Rollen-Onboarding und Profil-Wizard',
+  etappe: 'Etappe 04',
+  branch: 'feat/mobile-nav-and-user-header',
+  titel: 'Mobile Navigation und Header für angemeldete Nutzer',
   beschreibung:
-    'Nach der Registrierung führen wir den Nutzer in 3 Schritten durch die Konto-Einrichtung: Rolle wählen (verkaufen oder kaufen), Basis-Profil erfassen, Einstellungen bestätigen.',
+    'Klappbare Mobile-Navigation für unterwegs. Im Header wird angemeldeten Nutzern direkt der Name und Schnellzugriff aufs Dashboard angezeigt, statt Anmelden/Registrieren.',
   geplant: '~ Mai 2026',
   tasks: [
-    { label: 'wizard · step_1_rolle',          status: 'pending' },
-    { label: 'wizard · step_2_basis_profil',   status: 'pending' },
-    { label: 'wizard · step_3_interessen',     status: 'pending' },
-    { label: 'terms · zwingende_zustimmung',   status: 'pending' },
-    { label: 'redirect · nach_rolle',          status: 'pending' },
+    { label: 'header · mobile_drawer',         status: 'pending' },
+    { label: 'header · benutzer_status',       status: 'pending' },
+    { label: 'header · dashboard_shortcut',    status: 'pending' },
+    { label: 'sprache · umschalter_mobile',    status: 'pending' },
   ] as Task[],
 };
 
@@ -63,6 +56,20 @@ export const CURRENT_STEP = {
  * Alle bisherigen Updates — neueste zuerst.
  */
 export const UPDATES: Update[] = [
+  {
+    date: '2026-04-27',
+    type: 'milestone',
+    titel: 'Konto-Einrichtung in 3 Schritten live',
+    beschreibung:
+      'Neue Nutzer wählen direkt nach der Registrierung in einem schlanken Wizard ihre Rolle (verkaufen oder kaufen), erfassen Name + Kanton + Sprache und akzeptieren AGB sowie Datenschutz — alles auf einer Seite. Erst danach landet man im Dashboard.',
+  },
+  {
+    date: '2026-04-27',
+    type: 'feature',
+    titel: 'AGB- und Datenschutz-Zustimmung wird versioniert gespeichert',
+    beschreibung:
+      'Jede einzelne Zustimmung (Version, Zeitpunkt, IP, Browser) wird im Hintergrund festgehalten — sauber für die Buchhaltung und falls die Bedingungen je angepasst werden.',
+  },
   {
     date: '2026-04-27',
     type: 'milestone',

@@ -67,8 +67,8 @@ Upstash Ratelimit-Middleware auf `/auth/*`, `/api/contact`, `/api/nda`, `/api/in
 ### ⬜ Etappe 3.2 [NEU] — MFA/TOTP (Pflicht für Admin)
 Supabase MFA-Flow für Admin-Rolle, optional für MAX-Käufer. Recovery-Codes (10×) beim Setup.
 
-### ⬜ Etappe 4 — Rollen-Onboarding
-3-Step Wizard: Rolle wählen (`verkaeufer`/`kaeufer`) → Basis-Profil → Interessen. Zwingende AGB+Datenschutz-Checkbox → `terms_acceptances`-Row.
+### ✅ Etappe 4 — Rollen-Onboarding [LIVE]
+3-Step Wizard `/onboarding`: Rolle (verkaeufer/kaeufer) → Basis-Profil (Name, Kanton, Sprache) → Bestätigen mit AGB+Datenschutz. RPC `complete_onboarding` (security definer) setzt rolle einmalig (Trigger schützt vor Wechsel), aktualisiert Profil und schreibt zwei `terms_acceptances`-Rows (agb + datenschutz, mit Version, IP, UA). Dashboard und Onboarding redirecten gegenseitig anhand `onboarding_completed_at`.
 
 ### ⬜ Etappe 5 — shadcn-kompatible Basiskomponenten erweitern
 Select, Combobox, Dialog, Sheet, Tabs, Tooltip, Popover.
@@ -442,7 +442,7 @@ Stripe Smart Retries + `past_due`→Feature-Gate-Deaktivierung nach 3 fehlgeschl
 
 | Block | Status |
 |---|---|
-| A Fundament (1–10 + 2.1, 3.1, 3.2, 10.1) | 4 ✓ / 10 ⏳ |
+| A Fundament (1–10 + 2.1, 3.1, 3.2, 10.1) | 5 ✓ / 9 ⏳ |
 | B Datenmodelle (11–25 + 15.1, 21.1, 25.1) | 0/18 |
 | C Public (26–45 + 28.1, 32.5, 34.1) | 0/23 |
 | D Verkäufer-Dashboard (46–55 + 47.1, 49.1, 51.1, 51.2, 52.1, 54.1) | 0/16 |
@@ -459,7 +459,7 @@ Stripe Smart Retries + `past_due`→Feature-Gate-Deaktivierung nach 3 fehlgeschl
 | O Optimierung (141–150) | 0/10 |
 | P Phase 2 Broker (151–160) | 0/10 |
 
-**Gesamt: 4 / 196 Etappen ✓** (15 aus Gap-Analyse + 21 aus Persona-Walkthrough integriert)
+**Gesamt: 5 / 196 Etappen ✓** (15 aus Gap-Analyse + 21 aus Persona-Walkthrough integriert)
 
 ---
 
@@ -482,4 +482,4 @@ Stripe Smart Retries + `past_due`→Feature-Gate-Deaktivierung nach 3 fehlgeschl
 
 ---
 
-*Letzte Aktualisierung: 27.04.2026 · Etappe 2 live · Konto-System steht (Registrieren, Anmelden, Reset). Eigenes passare-Supabase eu-central-1. Profile-Schema mit RLS und Auto-Trigger.*
+*Letzte Aktualisierung: 27.04.2026 · Etappe 4 live · Onboarding-Wizard mit Rollenwahl + AGB-Versionierung. passare.ch ist als Hauptdomain aufgeschaltet.*
