@@ -9,8 +9,15 @@
 
 🚧 **In aktiver Entwicklung** — siehe [docs/MASTER_PLAN.md](docs/MASTER_PLAN.md) für alle 196 Etappen (15 aus Gap-Analyse + 21 aus Persona-Walkthrough integriert).
 
-- ✅ **Etappe 1** — Repo, Scaffold, Beta-Gate, Deploy (LIVE)
-- ⏳ **Etappe 2** — Supabase Setup (NEXT)
+- ✅ **Etappe 1** — Repo, Scaffold, Beta-Gate, Deploy
+- ✅ **Etappe 1.5** — Design-System v1.0 (Fraunces + Geist, Navy/Bronze/Cream)
+- ✅ **Etappe 1.7** — Self-Service-Modell + Einzelseiten (`/verkaufen`, `/kaufen`, `/preise`)
+- ✅ **Etappe 1.8** — Live-Status-Seite `/status` (Build-Log + Tasks, Pin-Code-Gate `2827`)
+- ✅ **Etappe 1.9** — Vercel SSO-Protection deaktiviert + `robots.txt` Disallow:/
+- ⏳ **Etappe 2** — Persistenz-Layer + Authentifizierung (NEXT)
+
+**Live:** https://passare-ch.vercel.app · Beta-Code: `passare2026`
+**Status (intern):** https://passare-ch.vercel.app/status · Code: `2827`
 
 ---
 
@@ -94,9 +101,13 @@ public/
 
 ## Dokumentation
 
-- **[MASTER_PLAN.md](docs/MASTER_PLAN.md)** — Die 160-Etappen-Roadmap
+- **[CLAUDE.md](CLAUDE.md)** — Globale Anweisungen für die KI-Entwicklung (Pflicht-Read pro neuem Chat)
+- **[MASTER_PLAN.md](docs/MASTER_PLAN.md)** — Die 196-Etappen-Roadmap
 - **[INFRASTRUCTURE.md](docs/INFRASTRUCTURE.md)** — Architektur & Datenmodell
-- **[CLAUDE.md](CLAUDE.md)** — Anweisungen für die KI-Entwicklung
+- **[DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md)** — Farben, Fonts, Komponenten, Motion
+- **[COMPETITOR_RESEARCH.md](docs/COMPETITOR_RESEARCH.md)** — Markt-Analyse (companymarket.ch)
+- **[GAP_ANALYSIS.md](docs/GAP_ANALYSIS.md)** — Gap-Analyse mit zusätzlichen Pflicht-Etappen
+- **[PERSONA_WALKTHROUGH.md](docs/PERSONA_WALKTHROUGH.md)** — Walkthrough aus User-Sicht
 
 ---
 
