@@ -26,32 +26,10 @@ export default function PreisePage() {
   );
 }
 
+import { SiteHeader } from '../page';
+
 function TopBar() {
-  return (
-    <header className="sticky top-0 z-40 border-b border-stone bg-cream/85 backdrop-blur-md">
-      <Container>
-        <div className="flex items-center justify-between h-16 md:h-20">
-          <Link href="/" className="font-serif text-2xl text-navy tracking-tight">
-            passare<span className="text-bronze">.</span>
-          </Link>
-          <nav className="hidden md:flex items-center gap-9">
-            <Link href="/verkaufen" className="text-[0.8125rem] font-medium text-muted hover:text-ink">Inserieren</Link>
-            <Link href="/entdecken" className="text-[0.8125rem] font-medium text-muted hover:text-ink">Entdecken</Link>
-            <Link href="/preise" className="text-[0.8125rem] font-medium text-navy">Preise</Link>
-            <Link href="/" className="text-[0.8125rem] font-medium text-muted hover:text-ink">Ratgeber</Link>
-          </nav>
-          <div className="flex items-center gap-3">
-            <Button href="/auth/login" size="sm" variant="ghost" className="hidden md:inline-flex">
-              Anmelden
-            </Button>
-            <Button href="/auth/register" size="sm" className="hidden md:inline-flex">
-              Registrieren
-            </Button>
-          </div>
-        </div>
-      </Container>
-    </header>
-  );
+  return <SiteHeader />;
 }
 
 function Hero() {
