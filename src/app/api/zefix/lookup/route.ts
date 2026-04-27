@@ -1,16 +1,25 @@
 /**
  * GET /api/zefix/lookup?uid=CHE-123.456.789
  *
- * Proxy zur Zefix-Public-API mit 24h-Cache und stale-while-revalidate.
+ * Hybrid-Lookup-Strategie (LINDAS-SPARQL ist 13-15s, Vercel cuts at ~10s):
+ *   1. Cache-Hit → sofort zurück
+ *   2. Race: max. 7s auf LINDAS warten
+ *   3. Bei Timeout → 202 Accepted + Retry-After. Im Hintergrund läuft
+ *      der Lookup via `after()` weiter und füllt den Cache, sodass
+ *      ein Retry nach ~10s einen Cache-Hit hat.
+ *
  * Rate-Limit: 60 req/min pro IP.
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { isValidUid, lookupByUid } from '@/lib/zefix';
+import { after } from 'next/server';
+import { isValidUid, lookupByUid, primeLookupCache } from '@/lib/zefix';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
+
+const FAST_TIMEOUT_MS = 7000;
 
 export async function GET(req: NextRequest) {
   const uid = req.nextUrl.searchParams.get('uid')?.trim() ?? '';
@@ -51,25 +60,40 @@ export async function GET(req: NextRequest) {
     console.warn('[zefix/lookup] rate-limit unavailable, allowing:', err instanceof Error ? err.message : err);
   }
 
-  try {
-    const company = await lookupByUid(uid);
-    if (!company) {
-      return NextResponse.json(
-        { error: 'Firma nicht gefunden.', uid },
-        { status: 404 },
-      );
-    }
+  // Race: schnelle Antwort oder 202 + Background-Fill
+  const fastResult = await Promise.race([
+    lookupByUid(uid).catch((err) => ({ __error: err })),
+    new Promise<'__timeout'>((resolve) => setTimeout(() => resolve('__timeout'), FAST_TIMEOUT_MS)),
+  ]);
 
+  if (fastResult === '__timeout') {
+    // LINDAS hängt. Im Hintergrund weiter abrufen → Cache füllen.
+    after(async () => {
+      try {
+        await primeLookupCache(uid);
+      } catch (err) {
+        console.error('[zefix/lookup] background-fill failed:', err);
+      }
+    });
     return NextResponse.json(
-      { company },
       {
+        status: 'pending',
+        uid,
+        message: 'Handelsregister-Abfrage dauert länger als erwartet. Bitte in 10–15 Sekunden erneut versuchen.',
+        retry_after_seconds: 12,
+      },
+      {
+        status: 202,
         headers: {
-          'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+          'Retry-After': '12',
           'X-RateLimit-Remaining': String(limitRemaining),
         },
       },
     );
-  } catch (err) {
+  }
+
+  if (fastResult && typeof fastResult === 'object' && '__error' in fastResult) {
+    const err = (fastResult as { __error: unknown }).__error;
     const message = err instanceof Error ? err.message : 'Unbekannter Fehler';
     console.error('[zefix/lookup]', message);
     return NextResponse.json(
@@ -77,4 +101,22 @@ export async function GET(req: NextRequest) {
       { status: 502 },
     );
   }
+
+  const company = fastResult as Awaited<ReturnType<typeof lookupByUid>>;
+  if (!company) {
+    return NextResponse.json(
+      { error: 'Firma nicht gefunden.', uid },
+      { status: 404 },
+    );
+  }
+
+  return NextResponse.json(
+    { company },
+    {
+      headers: {
+        'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+        'X-RateLimit-Remaining': String(limitRemaining),
+      },
+    },
+  );
 }

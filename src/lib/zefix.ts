@@ -399,6 +399,110 @@ export async function lookupByUid(uid: string): Promise<ZefixCompany | null> {
 }
 
 /**
+ * Background-Variante: ignoriert kurze Timeouts, nutzt grosszügige
+ * Limits, schreibt am Ende in den Cache. Wird per `after()` aus
+ * dem Lookup-Endpoint aufgerufen wenn die Live-Abfrage zu langsam ist.
+ */
+export async function primeLookupCache(uid: string): Promise<void> {
+  const { formatted, compact } = normaliseUid(uid);
+
+  // Falls bereits frisch im Cache, nichts tun.
+  const cached = await readCache(formatted);
+  if (cached?.fresh) return;
+
+  let company: ZefixCompany | null = null;
+  try {
+    company = await lookupViaRest(formatted);
+  } catch {
+    // ignore
+  }
+
+  if (!company) {
+    try {
+      // Bewusst grosszügiger Timeout im Background (60s)
+      const findCompanyQuery = `
+        PREFIX schema: <http://schema.org/>
+        SELECT DISTINCT ?company WHERE {
+          ?company a <https://schema.ld.admin.ch/ZefixOrganisation> ;
+                   schema:identifier ?id .
+          FILTER(STRENDS(STR(?id), "/${compact}"))
+        } LIMIT 1
+      `;
+      const findRes = await sparqlQuery(findCompanyQuery, 60_000);
+      const companyUri = findRes.results.bindings[0]?.company?.value;
+      if (!companyUri) return;
+
+      const detailQuery = `
+        PREFIX schema: <http://schema.org/>
+        PREFIX locn: <http://www.w3.org/ns/locn#>
+        SELECT ?name ?nameLang ?description ?strasse ?hausnummer ?plz ?ort ?kanton ?gruendung ?status ?legalFormName ?legalFormLang
+        WHERE {
+          <${companyUri}> schema:name ?name .
+          BIND(LANG(?name) AS ?nameLang)
+          OPTIONAL { <${companyUri}> schema:description ?description }
+          OPTIONAL {
+            <${companyUri}> schema:address ?addr .
+            OPTIONAL { ?addr locn:thoroughfare ?strasse }
+            OPTIONAL { ?addr locn:locatorDesignator ?hausnummer }
+            OPTIONAL { ?addr schema:postalCode ?plz }
+            OPTIONAL { ?addr schema:addressLocality ?ort }
+            OPTIONAL { ?addr schema:addressRegion ?kanton }
+          }
+          OPTIONAL { <${companyUri}> schema:foundingDate ?gruendung }
+          OPTIONAL { <${companyUri}> schema:status ?status }
+          OPTIONAL {
+            <${companyUri}> <https://schema.ld.admin.ch/legalForm> ?lf .
+            ?lf schema:name ?legalFormName .
+            BIND(LANG(?legalFormName) AS ?legalFormLang)
+          }
+        } LIMIT 50
+      `;
+      const detail = await sparqlQuery(detailQuery, 60_000);
+      const rows = detail.results.bindings;
+      if (!rows.length) return;
+
+      const nameDe = pickByLang(rows, 'name', 'de');
+      const beschreibung = rows.find((r) => r.description)?.description.value ?? null;
+      const strasse = rows.find((r) => r.strasse)?.strasse.value ?? null;
+      const hausnummer = rows.find((r) => r.hausnummer)?.hausnummer.value ?? null;
+      const plz = rows.find((r) => r.plz)?.plz.value ?? null;
+      const ort = rows.find((r) => r.ort)?.ort.value ?? null;
+      const kanton = rows.find((r) => r.kanton)?.kanton.value ?? null;
+      const gruendung = rows.find((r) => r.gruendung)?.gruendung.value ?? null;
+      const status = rows.find((r) => r.status)?.status.value ?? null;
+      const legalFormName = pickByLang(rows, 'legalFormName', 'de');
+      const year = (() => {
+        if (!gruendung) return null;
+        const m = gruendung.match(/^(\d{4})/);
+        return m ? parseInt(m[1], 10) : null;
+      })();
+
+      company = {
+        uid: formatted,
+        name: nameDe,
+        rechtsform: legalFormName,
+        status,
+        statusActive: status !== 'CANCELLED' && status !== 'DELETED',
+        kanton,
+        gemeinde: ort,
+        adresse: { strasse, hausnummer, plz, ort, land: 'CH' },
+        branche: null,
+        zweck: beschreibung,
+        gruendungsjahr: year,
+        source: 'lindas',
+      };
+    } catch (err) {
+      console.error('[primeLookupCache]', err);
+      return;
+    }
+  }
+
+  if (company) {
+    await writeCache(formatted, company, 'lookup');
+  }
+}
+
+/**
  * Generiert smartere Such-Varianten falls die Volltext-Suche
  * keine Treffer liefert. Beispiel "Vemo Group GmbH":
  *   1. "Vemo Group GmbH"   → exact substring
