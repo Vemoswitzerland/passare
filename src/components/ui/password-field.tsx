@@ -71,59 +71,59 @@ export function PasswordField({
   );
 }
 
-/* ───────────── Strength + Requirements ───────────── */
+/* ───────────── Strength + Requirements (kompakt & ruhig) ───────────── */
 function PasswordStrength({ pw }: { pw: string }) {
-  const checks = {
-    length: pw.length >= 8,
-    lower: /[a-z]/.test(pw),
-    upper: /[A-Z]/.test(pw),
-    digit: /[0-9]/.test(pw),
-    special: /[^A-Za-z0-9]/.test(pw),
-  };
-  const met = Object.values(checks).filter(Boolean).length;
+  const checks = [
+    { label: '8 Zeichen', ok: pw.length >= 8 },
+    { label: 'a-z', ok: /[a-z]/.test(pw) },
+    { label: 'A-Z', ok: /[A-Z]/.test(pw) },
+    { label: '0-9', ok: /[0-9]/.test(pw) },
+    { label: '!@#', ok: /[^A-Za-z0-9]/.test(pw) },
+  ];
+  const met = checks.filter((c) => c.ok).length;
 
-  const { label, color, width } =
+  const { label, color } =
     met <= 2
-      ? { label: 'Schwach', color: 'bg-danger', width: 'w-1/4' }
+      ? { label: 'Schwach', color: 'bg-danger' }
       : met === 3
-        ? { label: 'Mittel', color: 'bg-warn', width: 'w-2/4' }
+        ? { label: 'Mittel', color: 'bg-warn' }
         : met === 4
-          ? { label: 'Stark', color: 'bg-success/80', width: 'w-3/4' }
-          : { label: 'Sehr stark', color: 'bg-success', width: 'w-full' };
+          ? { label: 'Stark', color: 'bg-success/80' }
+          : { label: 'Sehr stark', color: 'bg-success' };
+
+  const labelColor =
+    met <= 2 ? 'text-danger' : met === 3 ? 'text-warn' : 'text-success';
 
   return (
-    <div className="mt-2.5 space-y-2">
-      <div className="flex items-center gap-3">
-        <div className="flex-1 h-1 bg-stone rounded-full overflow-hidden">
-          <div className={cn('h-full transition-all duration-300', color, width)} />
+    <div className="mt-2 space-y-1.5">
+      {/* Bar mit 5 Segmenten */}
+      <div className="flex items-center gap-2.5">
+        <div className="flex-1 flex gap-1">
+          {checks.map((c, i) => (
+            <div
+              key={i}
+              className={cn(
+                'flex-1 h-1 rounded-full transition-all duration-300',
+                i < met ? color : 'bg-stone',
+              )}
+            />
+          ))}
         </div>
-        <span className={cn(
-          'text-caption font-mono uppercase tracking-widest',
-          met <= 2 ? 'text-danger' : met === 3 ? 'text-warn' : 'text-success',
-        )}>
+        <span className={cn('text-caption font-mono tracking-tight tabular-nums', labelColor)}>
           {label}
         </span>
       </div>
-      <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-1 text-caption">
-        <Req ok={checks.length}>Mindestens 8 Zeichen</Req>
-        <Req ok={checks.lower}>1 Kleinbuchstabe (a-z)</Req>
-        <Req ok={checks.upper}>1 Grossbuchstabe (A-Z)</Req>
-        <Req ok={checks.digit}>1 Ziffer (0-9)</Req>
-        <Req ok={checks.special}>1 Sonderzeichen (!@#$…)</Req>
+
+      {/* Requirements: ruhige Pills, alle in einer Zeile */}
+      <ul className="flex flex-wrap gap-x-2.5 gap-y-1 text-caption text-quiet">
+        {checks.map((c) => (
+          <li key={c.label} className={cn('inline-flex items-center gap-1', c.ok && 'text-success')}>
+            <span className="font-mono w-2 inline-flex justify-center">{c.ok ? '✓' : '·'}</span>
+            {c.label}
+          </li>
+        ))}
       </ul>
     </div>
-  );
-}
-
-function Req({ ok, children }: { ok: boolean; children: React.ReactNode }) {
-  return (
-    <li className={cn(
-      'flex items-center gap-1.5 leading-snug',
-      ok ? 'text-success' : 'text-quiet',
-    )}>
-      <span className="w-3 inline-flex justify-center">{ok ? '✓' : '·'}</span>
-      <span>{children}</span>
-    </li>
   );
 }
 
