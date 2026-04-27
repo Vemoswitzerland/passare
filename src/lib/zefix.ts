@@ -105,7 +105,7 @@ type SparqlResponse = {
   results: { bindings: SparqlBinding[] };
 };
 
-async function sparqlQuery(query: string, timeoutMs = 7000): Promise<SparqlResponse> {
+async function sparqlQuery(query: string, timeoutMs = 20000): Promise<SparqlResponse> {
   const url = `${SPARQL_ENDPOINT}?query=${encodeURIComponent(query)}`;
   const res = await fetch(url, {
     headers: {
@@ -243,14 +243,20 @@ async function searchViaLindas(name: string, maxResults: number): Promise<ZefixS
       FILTER(CONTAINS(STR(?id), "/UID/"))
     }
   `;
-  const uidRes = await sparqlQuery(uidQuery);
+  // UID-Query darf nicht den ganzen Search-Endpoint kippen — bei Timeout/Error
+  // geben wir hits ohne UID zurück (User kann manuell weiter).
   const uidMap = new Map<string, string>();
-  for (const b of uidRes.results.bindings) {
-    const m = b.id.value.match(/UID\/(CHE\d{9})/);
-    if (m) {
-      const c = m[1];
-      uidMap.set(b.company.value, `CHE-${c.slice(3, 6)}.${c.slice(6, 9)}.${c.slice(9, 12)}`);
+  try {
+    const uidRes = await sparqlQuery(uidQuery, 8000);
+    for (const b of uidRes.results.bindings) {
+      const m = b.id.value.match(/UID\/(CHE\d{9})/);
+      if (m) {
+        const c = m[1];
+        uidMap.set(b.company.value, `CHE-${c.slice(3, 6)}.${c.slice(6, 9)}.${c.slice(9, 12)}`);
+      }
     }
+  } catch (err) {
+    console.warn('[zefix/lindas] uid-lookup failed, returning hits without UIDs:', err);
   }
 
   return companies.map((b) => ({
