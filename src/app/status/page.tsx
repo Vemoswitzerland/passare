@@ -1,5 +1,10 @@
 import { cookies } from 'next/headers';
 import { CURRENT_STEP, UPDATES, TYPE_LABELS } from '@/data/updates';
+import {
+  SESSIONS, BEREICH_LABELS, sessionKostenChf, sessionKostenUsd,
+  gesamtTokens, gesamtKostenChf, gesamtKostenUsd, fmtTokens, fmtChf, fmtUsd,
+  PRICING,
+} from '@/data/agent-tokens';
 import { StatusForm } from './StatusForm';
 
 export const metadata = {
@@ -96,6 +101,9 @@ export default async function StatusPage() {
           </div>
         </div>
       </section>
+
+      {/* Token & Kosten — Live pro Agent */}
+      <TokenSection />
 
       {/* Verlauf — Log-Style */}
       <section className="px-5 pb-16">
@@ -247,4 +255,153 @@ function taskStatusClass(status: 'done' | 'in_progress' | 'pending'): string {
   if (status === 'done') return 'text-success';
   if (status === 'in_progress') return 'text-bronze';
   return 'text-quiet';
+}
+
+/* ════════════════════════ Token & Kosten ════════════════════════ */
+
+function TokenSection() {
+  const totalTokens = gesamtTokens();
+  const totalChf = gesamtKostenChf();
+  const totalUsd = gesamtKostenUsd();
+  const liveCount = SESSIONS.filter((s) => s.status === 'live').length;
+
+  return (
+    <section className="px-5 pb-10">
+      <div className="max-w-3xl mx-auto">
+        <p className="font-mono text-[10px] uppercase tracking-widest text-bronze-ink mb-3">
+          $ kosten --tail={SESSIONS.length}
+        </p>
+
+        {/* Aggregate-Karten */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 mb-4">
+          <KostenKarte
+            label="Sessions"
+            value={`${SESSIONS.length}`}
+            sub={liveCount > 0 ? `${liveCount} live` : 'alle done'}
+            accent={liveCount > 0 ? 'bronze' : 'navy'}
+          />
+          <KostenKarte
+            label="Tokens total"
+            value={fmtTokens(totalTokens)}
+            sub="alle Chats"
+          />
+          <KostenKarte
+            label="Kosten CHF"
+            value={fmtChf(totalChf)}
+            sub={fmtUsd(totalUsd)}
+            accent="bronze"
+          />
+          <KostenKarte
+            label="Modell"
+            value="Opus 4.7"
+            sub={`$${PRICING.inputUsdPerMTok}/$${PRICING.outputUsdPerMTok} pro MTok`}
+          />
+        </div>
+
+        {/* Sessions-Tabelle */}
+        <div className="border border-stone rounded-card bg-paper overflow-hidden">
+          <div className="hidden md:grid grid-cols-[80px_1fr_90px_90px_90px] gap-3 px-4 py-2 border-b border-stone bg-cream/40">
+            <span className="font-mono text-[10px] uppercase tracking-widest text-quiet">datum</span>
+            <span className="font-mono text-[10px] uppercase tracking-widest text-quiet">bereich · titel</span>
+            <span className="font-mono text-[10px] uppercase tracking-widest text-quiet text-right">tokens</span>
+            <span className="font-mono text-[10px] uppercase tracking-widest text-quiet text-right">USD</span>
+            <span className="font-mono text-[10px] uppercase tracking-widest text-quiet text-right">CHF</span>
+          </div>
+
+          <div className="divide-y divide-stone">
+            {SESSIONS.map((s, i) => {
+              const sessTokens = s.inputTokens + s.outputTokens + (s.cacheReadTokens ?? 0);
+              const usd = sessionKostenUsd(s);
+              const chf = sessionKostenChf(s);
+              return (
+                <article
+                  key={i}
+                  className="px-4 py-2.5 md:grid md:grid-cols-[80px_1fr_90px_90px_90px] md:gap-3 md:items-center hover:bg-cream/30 transition-colors"
+                >
+                  {/* Mobile-Header */}
+                  <div className="flex items-center gap-2 mb-1 md:mb-0 md:contents">
+                    <span className="font-mono text-[11px] text-quiet font-tabular">
+                      {s.date.slice(5)}
+                    </span>
+                    {s.status === 'live' && (
+                      <span className="md:hidden flex items-center gap-1 font-mono text-[9px] uppercase tracking-widest text-bronze">
+                        <span className="w-1 h-1 rounded-full bg-bronze animate-pulse-dot" />
+                        live
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="min-w-0">
+                    <p className="text-body-sm text-ink font-medium leading-snug truncate">
+                      <span className="font-mono text-[10px] uppercase tracking-wider text-bronze-ink mr-2">
+                        {BEREICH_LABELS[s.bereich]}
+                      </span>
+                      {s.status === 'live' && (
+                        <span className="hidden md:inline-flex items-center gap-1 font-mono text-[9px] uppercase tracking-widest text-bronze mr-2">
+                          <span className="w-1 h-1 rounded-full bg-bronze animate-pulse-dot" />
+                          live
+                        </span>
+                      )}
+                    </p>
+                    <p className="text-caption text-muted leading-relaxed truncate">
+                      {s.titel}
+                    </p>
+                  </div>
+
+                  <span className="font-mono text-[11px] text-navy font-tabular md:text-right">
+                    {fmtTokens(sessTokens)}
+                  </span>
+                  <span className="font-mono text-[11px] text-quiet font-tabular md:text-right hidden md:block">
+                    {fmtUsd(usd)}
+                  </span>
+                  <span className="font-mono text-[11px] text-bronze font-tabular md:text-right">
+                    {fmtChf(chf)}
+                  </span>
+                </article>
+              );
+            })}
+          </div>
+
+          {/* Footer mit Total */}
+          <div className="px-4 py-2.5 border-t border-stone bg-cream/40 flex items-center justify-between gap-3 flex-wrap">
+            <span className="font-mono text-[10px] uppercase tracking-widest text-quiet">
+              total · {SESSIONS.length} sessions
+            </span>
+            <div className="flex items-center gap-3 font-mono text-[11px] font-tabular">
+              <span className="text-quiet">{fmtTokens(totalTokens)} tok</span>
+              <span className="text-quiet">{fmtUsd(totalUsd)}</span>
+              <span className="text-bronze font-medium">{fmtChf(totalChf)}</span>
+            </div>
+          </div>
+        </div>
+
+        <p className="font-mono text-[10px] uppercase tracking-widest text-quiet mt-3 leading-relaxed">
+          Anthropic Claude Opus 4.7 · Schätzwerte (jeder Chat trägt seinen Verbrauch in <span className="text-bronze-ink">src/data/agent-tokens.ts</span> ein)
+        </p>
+      </div>
+    </section>
+  );
+}
+
+function KostenKarte({
+  label, value, sub, accent = 'navy',
+}: {
+  label: string;
+  value: string;
+  sub: string;
+  accent?: 'navy' | 'bronze';
+}) {
+  return (
+    <div className="border border-stone rounded-soft bg-paper p-3">
+      <p className="font-mono text-[9px] uppercase tracking-widest text-quiet mb-1.5">
+        {label}
+      </p>
+      <p className={`font-mono text-base font-tabular font-medium leading-tight ${accent === 'bronze' ? 'text-bronze' : 'text-navy'}`}>
+        {value}
+      </p>
+      <p className="font-mono text-[9px] text-quiet mt-0.5">
+        {sub}
+      </p>
+    </div>
+  );
 }

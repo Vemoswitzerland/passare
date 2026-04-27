@@ -1,5 +1,17 @@
 # Globale Claude Code Anweisungen — passare.ch
 
+## ⚡ AGENT-PROTOKOLL — PFLICHT-LEKTÜRE
+
+**Bevor du irgendetwas tust:** [docs/AGENT_PROTOCOL.md](docs/AGENT_PROTOCOL.md) lesen.
+
+Es regelt:
+- Token-Tracking (jeder Chat trägt sich in `src/data/agent-tokens.ts` ein → live auf `/status` sichtbar)
+- Konflikt-Vermeidung beim parallelen Arbeiten (Migration-Slots, Routes, geteilte Files)
+- Status-Update-Pflicht nach jedem Deploy
+- Token-Report-Block am Session-Ende
+
+---
+
 ## 🎯 Standard-Projekt: passare.ch
 Jeder neue Chat dreht sich um die **passare.ch** Plattform (https://passare-ch.vercel.app, später https://passare.ch), ausser ich sage explizit etwas anderes.
 
