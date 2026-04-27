@@ -54,6 +54,8 @@ export type AgentSession = {
   outputTokens: number;
   cacheReadTokens?: number;
   cacheWriteTokens?: number;
+  /** Wall-Clock-Zeit in Minuten (seriell summiert für Total-Stunden-KPI) */
+  dauerMinuten: number;
   /** 'live' = grad am Laufen, 'done' = abgeschlossen */
   status: 'live' | 'done';
 };
@@ -65,10 +67,20 @@ export type AgentSession = {
 export const SESSIONS: AgentSession[] = [
   {
     date: '2026-04-27',
+    bereich: 'sonstiges',
+    titel: 'Token-Tracking + Agent-Protokoll Live auf /status',
+    inputTokens: 280_000,
+    outputTokens: 85_000,
+    dauerMinuten: 35,
+    status: 'done',
+  },
+  {
+    date: '2026-04-27',
     bereich: 'inserat-cards',
     titel: 'Inserat-Cards mit Blur-Cover + Key-Facts-Algorithmus',
     inputTokens: 380_000,
     outputTokens: 120_000,
+    dauerMinuten: 105,
     status: 'done',
   },
   {
@@ -77,6 +89,7 @@ export const SESSIONS: AgentSession[] = [
     titel: 'Marketplace-Pivot: Homepage = Marktplatz',
     inputTokens: 450_000,
     outputTokens: 150_000,
+    dauerMinuten: 120,
     status: 'done',
   },
   {
@@ -85,6 +98,7 @@ export const SESSIONS: AgentSession[] = [
     titel: 'OAuth Setup (Google + LinkedIn) + Page + App',
     inputTokens: 600_000,
     outputTokens: 200_000,
+    dauerMinuten: 180,
     status: 'done',
   },
   {
@@ -93,6 +107,7 @@ export const SESSIONS: AgentSession[] = [
     titel: 'Etappe 3 — Onboarding-Wizard mit Atomic RPC',
     inputTokens: 280_000,
     outputTokens: 90_000,
+    dauerMinuten: 90,
     status: 'done',
   },
   {
@@ -101,6 +116,7 @@ export const SESSIONS: AgentSession[] = [
     titel: 'Etappe 2 — Persistenz + Auth + Profiles + RLS',
     inputTokens: 350_000,
     outputTokens: 100_000,
+    dauerMinuten: 105,
     status: 'done',
   },
   {
@@ -109,6 +125,7 @@ export const SESSIONS: AgentSession[] = [
     titel: 'Etappe 1.9 — Vercel SSO weg + robots.txt Disallow',
     inputTokens: 50_000,
     outputTokens: 15_000,
+    dauerMinuten: 15,
     status: 'done',
   },
   {
@@ -117,6 +134,7 @@ export const SESSIONS: AgentSession[] = [
     titel: 'Etappe 1.8 — Live-Status-Seite mit Code 2827',
     inputTokens: 90_000,
     outputTokens: 30_000,
+    dauerMinuten: 30,
     status: 'done',
   },
   {
@@ -125,6 +143,7 @@ export const SESSIONS: AgentSession[] = [
     titel: 'Etappe 1.7 — Self-Service + /verkaufen /kaufen /preise',
     inputTokens: 200_000,
     outputTokens: 60_000,
+    dauerMinuten: 75,
     status: 'done',
   },
   {
@@ -133,6 +152,7 @@ export const SESSIONS: AgentSession[] = [
     titel: 'Etappe 1.5 — Design-System v1.0',
     inputTokens: 120_000,
     outputTokens: 40_000,
+    dauerMinuten: 45,
     status: 'done',
   },
   {
@@ -141,6 +161,7 @@ export const SESSIONS: AgentSession[] = [
     titel: 'Etappe 1 — Repo + Scaffold + Beta-Gate + Vercel-Deploy',
     inputTokens: 80_000,
     outputTokens: 25_000,
+    dauerMinuten: 30,
     status: 'done',
   },
 ];
@@ -174,6 +195,15 @@ export function gesamtKostenChf(): number {
   return gesamtKostenUsd() * PRICING.usdToChf;
 }
 
+/** Total Wall-Clock-Stunden, alle Chats seriell summiert (auch wenn parallel gelaufen) */
+export function gesamtMinuten(): number {
+  return SESSIONS.reduce((acc, s) => acc + s.dauerMinuten, 0);
+}
+
+export function gesamtStunden(): number {
+  return gesamtMinuten() / 60;
+}
+
 /* ─── Display-Helper ─── */
 export function fmtTokens(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(2)} Mio`;
@@ -187,6 +217,20 @@ export function fmtChf(n: number): string {
 
 export function fmtUsd(n: number): string {
   return `$${n.toFixed(2)}`;
+}
+
+/** "1h 45m" oder "45m" */
+export function fmtDauer(min: number): string {
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  if (h === 0) return `${m}m`;
+  if (m === 0) return `${h}h`;
+  return `${h}h ${m}m`;
+}
+
+/** "14.5 h" für KPI-Karte */
+export function fmtStunden(h: number): string {
+  return `${h.toFixed(1)} h`;
 }
 
 /* ─── Bereich-Labels für Anzeige ─── */

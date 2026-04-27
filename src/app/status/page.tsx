@@ -2,7 +2,8 @@ import { cookies } from 'next/headers';
 import { CURRENT_STEP, UPDATES, TYPE_LABELS } from '@/data/updates';
 import {
   SESSIONS, BEREICH_LABELS, sessionKostenChf, sessionKostenUsd,
-  gesamtTokens, gesamtKostenChf, gesamtKostenUsd, fmtTokens, fmtChf, fmtUsd,
+  gesamtTokens, gesamtKostenChf, gesamtKostenUsd, gesamtStunden, gesamtMinuten,
+  fmtTokens, fmtChf, fmtUsd, fmtDauer, fmtStunden,
   PRICING,
 } from '@/data/agent-tokens';
 import { StatusForm } from './StatusForm';
@@ -263,7 +264,10 @@ function TokenSection() {
   const totalTokens = gesamtTokens();
   const totalChf = gesamtKostenChf();
   const totalUsd = gesamtKostenUsd();
+  const totalStd = gesamtStunden();
+  const totalMin = gesamtMinuten();
   const liveCount = SESSIONS.filter((s) => s.status === 'live').length;
+  const chfProStd = totalStd > 0 ? totalChf / totalStd : 0;
 
   return (
     <section className="px-5 pb-10">
@@ -273,12 +277,18 @@ function TokenSection() {
         </p>
 
         {/* Aggregate-Karten */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 mb-4">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-2.5 mb-4">
           <KostenKarte
             label="Sessions"
             value={`${SESSIONS.length}`}
             sub={liveCount > 0 ? `${liveCount} live` : 'alle done'}
             accent={liveCount > 0 ? 'bronze' : 'navy'}
+          />
+          <KostenKarte
+            label="Stunden seriell"
+            value={fmtStunden(totalStd)}
+            sub={`${totalMin} min total`}
+            accent="navy"
           />
           <KostenKarte
             label="Tokens total"
@@ -292,17 +302,19 @@ function TokenSection() {
             accent="bronze"
           />
           <KostenKarte
-            label="Modell"
-            value="Opus 4.7"
-            sub={`$${PRICING.inputUsdPerMTok}/$${PRICING.outputUsdPerMTok} pro MTok`}
+            label="CHF / Stunde"
+            value={fmtChf(chfProStd)}
+            sub={`Opus 4.7 · $${PRICING.inputUsdPerMTok}/$${PRICING.outputUsdPerMTok} per MTok`}
+            accent="bronze"
           />
         </div>
 
         {/* Sessions-Tabelle */}
         <div className="border border-stone rounded-card bg-paper overflow-hidden">
-          <div className="hidden md:grid grid-cols-[80px_1fr_90px_90px_90px] gap-3 px-4 py-2 border-b border-stone bg-cream/40">
+          <div className="hidden md:grid grid-cols-[70px_1fr_70px_85px_85px_85px] gap-3 px-4 py-2 border-b border-stone bg-cream/40">
             <span className="font-mono text-[10px] uppercase tracking-widest text-quiet">datum</span>
             <span className="font-mono text-[10px] uppercase tracking-widest text-quiet">bereich · titel</span>
+            <span className="font-mono text-[10px] uppercase tracking-widest text-quiet text-right">dauer</span>
             <span className="font-mono text-[10px] uppercase tracking-widest text-quiet text-right">tokens</span>
             <span className="font-mono text-[10px] uppercase tracking-widest text-quiet text-right">USD</span>
             <span className="font-mono text-[10px] uppercase tracking-widest text-quiet text-right">CHF</span>
@@ -316,7 +328,7 @@ function TokenSection() {
               return (
                 <article
                   key={i}
-                  className="px-4 py-2.5 md:grid md:grid-cols-[80px_1fr_90px_90px_90px] md:gap-3 md:items-center hover:bg-cream/30 transition-colors"
+                  className="px-4 py-2.5 md:grid md:grid-cols-[70px_1fr_70px_85px_85px_85px] md:gap-3 md:items-center hover:bg-cream/30 transition-colors"
                 >
                   {/* Mobile-Header */}
                   <div className="flex items-center gap-2 mb-1 md:mb-0 md:contents">
@@ -349,6 +361,9 @@ function TokenSection() {
                   </div>
 
                   <span className="font-mono text-[11px] text-navy font-tabular md:text-right">
+                    {fmtDauer(s.dauerMinuten)}
+                  </span>
+                  <span className="font-mono text-[11px] text-navy font-tabular md:text-right">
                     {fmtTokens(sessTokens)}
                   </span>
                   <span className="font-mono text-[11px] text-quiet font-tabular md:text-right hidden md:block">
@@ -365,7 +380,7 @@ function TokenSection() {
           {/* Footer mit Total */}
           <div className="px-4 py-2.5 border-t border-stone bg-cream/40 flex items-center justify-between gap-3 flex-wrap">
             <span className="font-mono text-[10px] uppercase tracking-widest text-quiet">
-              total · {SESSIONS.length} sessions
+              total · {SESSIONS.length} sessions · {fmtStunden(totalStd)}
             </span>
             <div className="flex items-center gap-3 font-mono text-[11px] font-tabular">
               <span className="text-quiet">{fmtTokens(totalTokens)} tok</span>

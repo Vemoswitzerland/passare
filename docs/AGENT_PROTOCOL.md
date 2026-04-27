@@ -58,15 +58,21 @@ Wird live auf `/status` (Code 2827) für Cyrill angezeigt.
   titel: 'Admin-Tabellen + UI + RLS',
   inputTokens: 800_000,
   outputTokens: 250_000,
+  dauerMinuten: 180,               // PFLICHT: Wall-Clock-Zeit
   status: 'done',                  // 'live' während der Arbeit
 },
 ```
+
+**`dauerMinuten`** = Wall-Clock-Zeit deines Chats vom Start bis Ende. Wird auf
+`/status` **seriell summiert** (auch wenn mehrere Agents parallel laufen) →
+Cyrill sieht "Mannstunden". Schätze ehrlich: 30 min = 30, 1h 45m = 105 etc.
 
 ### Token-Report-Block (am Ende jeder Session ins Chat-Output)
 Nach Abschluss eines Tasks gib Cyrill diesen Block aus:
 ```
 ┌─────────────── TOKEN-REPORT ───────────────┐
 │ Diese Session (Bereich: <NAME>):            │
+│   Dauer:        XXX min  (=  Xh XXm)        │
 │   Input:        XXX'XXX Tokens              │
 │   Output:        XX'XXX Tokens              │
 │   Cache Read:   XXX'XXX Tokens              │
@@ -74,6 +80,7 @@ Nach Abschluss eines Tasks gib Cyrill diesen Block aus:
 │   Kosten:       $XX.XX  (≈ CHF YY.YY)       │
 │                                              │
 │ Gesamt passare (alle Sessions):             │
+│   Stunden:      ~XX h (seriell)             │
 │   Tokens:       ~X.X Mio                    │
 │   Kosten:       ~$XXX  (≈ CHF YYY)          │
 └──────────────────────────────────────────────┘
