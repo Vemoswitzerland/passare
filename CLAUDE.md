@@ -13,7 +13,7 @@ git clone git@github.com:Vemoswitzerland/passare.git /Users/cyrill/Desktop/passa
 ### Infrastruktur
 | Service | URL / Zugang |
 |---------|-------------|
-| **Live App** | https://passare-ch.vercel.app (auto-alias auf neuesten Prod-Deploy) |
+| **Live App** | https://passare.ch (Hauptdomain) bzw. https://passare-ch.vercel.app (Test-Alias) |
 | **Beta-Code** (Public-Site) | `passare2026` |
 | **Live-Status (intern)** | https://passare-ch.vercel.app/status — Code `2827` |
 | **GitHub Repo** | https://github.com/Vemoswitzerland/passare |

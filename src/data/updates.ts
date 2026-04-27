@@ -66,6 +66,20 @@ export const UPDATES: Update[] = [
   {
     date: '2026-04-27',
     type: 'milestone',
+    titel: 'Eigene Adresse passare.ch live aufgeschaltet',
+    beschreibung:
+      'Die Plattform ist ab jetzt direkt unter passare.ch erreichbar (statt der Test-Adresse). www-Variante geht ebenfalls. Die alte Test-URL bleibt vorerst parallel gültig.',
+  },
+  {
+    date: '2026-04-27',
+    type: 'feature',
+    titel: 'Anmelden- und Registrieren-Knöpfe in alle Headers eingebaut',
+    beschreibung:
+      'Auf Startseite, Verkaufen-, Entdecken- und Preise-Seite gibt es jetzt oben rechts «Anmelden» (dezent) und «Registrieren» (prominent). Alle Paket- und Kauf-Buttons führen direkt in die Anmeldung.',
+  },
+  {
+    date: '2026-04-27',
+    type: 'milestone',
     titel: 'Konto-System steht: Registrieren, Anmelden, Passwort-Reset',
     beschreibung:
       'Du kannst jetzt ein Konto anlegen, dich anmelden, deine E-Mail bestätigen und dein Passwort zurücksetzen — alles auf passare. Im Hintergrund wird automatisch ein Profil-Datensatz angelegt.',
