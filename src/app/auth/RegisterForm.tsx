@@ -3,7 +3,7 @@
 import { useActionState, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { ArrowRight, ShieldCheck, Lock, Zap, Building2, Sparkles } from 'lucide-react';
+import { ArrowRight, Building2, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
 import { PasswordField } from '@/components/ui/password-field';
@@ -16,7 +16,6 @@ export function RegisterForm() {
   const intendedRole = params.get('role'); // 'kaeufer' | 'verkaeufer' | null
   const next = params.get('next') ?? '';
   const fromPreReg = params.get('from') === 'pre-reg';
-  const isKaeufer = intendedRole === 'kaeufer';
 
   // Wenn aus Pre-Reg-Funnel: lade Draft für Anzeige
   const [preRegInfo, setPreRegInfo] = useState<{
@@ -70,25 +69,6 @@ export function RegisterForm() {
         </div>
       )}
 
-      {isKaeufer && !fromPreReg && (
-        <div className="mb-6 bg-bronze/5 border border-bronze/20 rounded-card p-4">
-          <p className="overline text-bronze-ink mb-2">In 2 Minuten zum Marktplatz</p>
-          <ul className="grid grid-cols-3 gap-2 text-caption">
-            <li className="flex flex-col items-center gap-1 text-center">
-              <ShieldCheck className="w-4 h-4 text-bronze" strokeWidth={1.5} />
-              <span className="text-muted leading-tight">0 % Provision</span>
-            </li>
-            <li className="flex flex-col items-center gap-1 text-center">
-              <Lock className="w-4 h-4 text-bronze" strokeWidth={1.5} />
-              <span className="text-muted leading-tight">Anonyme Teaser</span>
-            </li>
-            <li className="flex flex-col items-center gap-1 text-center">
-              <Zap className="w-4 h-4 text-bronze" strokeWidth={1.5} />
-              <span className="text-muted leading-tight">7T Frühzugang (MAX)</span>
-            </li>
-          </ul>
-        </div>
-      )}
       <OAuthButtons mode="register" />
       <AuthDivider />
 

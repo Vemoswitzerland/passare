@@ -103,8 +103,8 @@ export function SiteHeader({ activeSell = false }: { activeSell?: boolean } = {}
             <Button href="/auth/login" size="sm" variant="ghost" className="hidden md:inline-flex">
               Anmelden
             </Button>
-            <Button href="/auth/register?role=kaeufer" size="sm" className="hidden md:inline-flex">
-              Käufer werden
+            <Button href="/auth/register" size="sm" className="hidden md:inline-flex">
+              Registrieren
             </Button>
           </div>
         </div>
