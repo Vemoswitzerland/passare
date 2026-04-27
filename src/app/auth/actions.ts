@@ -141,7 +141,7 @@ export async function loginAction(_prev: ActionResult | null, formData: FormData
 
   const supabase = await createClient();
 
-  const { error } = await supabase.auth.signInWithPassword({
+  const { data: signIn, error } = await supabase.auth.signInWithPassword({
     email: parsed.data.email,
     password: parsed.data.password,
   });
@@ -150,8 +150,19 @@ export async function loginAction(_prev: ActionResult | null, formData: FormData
     return { ok: false, error: translateAuthError(error.message) };
   }
 
+  // Rolle laden — Admins direkt in den Admin-Bereich leiten
+  let target = '/dashboard';
+  if (signIn.user) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('rolle')
+      .eq('id', signIn.user.id)
+      .maybeSingle();
+    if (profile?.rolle === 'admin') target = '/admin';
+  }
+
   revalidatePath('/', 'layout');
-  redirect('/dashboard');
+  redirect(target);
 }
 
 // ═══════════════════════════════════════════════════════════════
