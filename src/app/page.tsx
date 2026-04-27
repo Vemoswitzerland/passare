@@ -159,7 +159,7 @@ export function SiteFooter() {
 /* ════════════════════════ Hero ════════════════════════ */
 function Hero() {
   return (
-    <Section className="pt-8 md:pt-10 pb-4">
+    <Section className="pt-8 md:pt-10 pb-4 md:pb-4">
       <Container>
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 max-w-content">
           <div>
@@ -188,7 +188,7 @@ function Hero() {
 /* ════════════════════════ Marketplace ════════════════════════ */
 function Marketplace() {
   return (
-    <Section className="pt-0 pb-24">
+    <Section className="pt-0 md:pt-0 pb-24 md:pb-24">
       <Container>
         <div className="grid lg:grid-cols-[280px_1fr] gap-10">
           {/* Sidebar */}
