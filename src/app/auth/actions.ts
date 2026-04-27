@@ -20,19 +20,28 @@ const emailSchema = z
 const passwordSchema = z
   .string()
   .min(8, 'Mindestens 8 Zeichen')
-  .max(72, 'Maximal 72 Zeichen');
+  .max(72, 'Maximal 72 Zeichen')
+  .refine((p) => /[a-z]/.test(p), 'Mindestens 1 Kleinbuchstabe (a-z)')
+  .refine((p) => /[A-Z]/.test(p), 'Mindestens 1 Grossbuchstabe (A-Z)')
+  .refine((p) => /[0-9]/.test(p), 'Mindestens 1 Ziffer (0-9)')
+  .refine((p) => /[^A-Za-z0-9]/.test(p), 'Mindestens 1 Sonderzeichen (!@#$…)');
 
 const registerSchema = z
   .object({
     email: emailSchema,
     password: passwordSchema,
+    confirm: z.string(),
     full_name: z.string().trim().min(2, 'Name erforderlich').max(120),
     sprache: z.enum(['de', 'fr', 'it', 'en']).default('de'),
     accept_terms: z
       .union([z.literal('on'), z.literal('true'), z.literal(true)])
       .transform(() => true),
   })
-  .strict();
+  .strict()
+  .refine((d) => d.password === d.confirm, {
+    message: 'Passwörter stimmen nicht überein',
+    path: ['confirm'],
+  });
 
 const loginSchema = z.object({
   email: emailSchema,
@@ -68,6 +77,7 @@ export async function registerAction(_prev: ActionResult | null, formData: FormD
   const parsed = registerSchema.safeParse({
     email: formData.get('email'),
     password: formData.get('password'),
+    confirm: formData.get('confirm'),
     full_name: formData.get('full_name'),
     sprache: (formData.get('sprache') as string) || 'de',
     accept_terms: formData.get('accept_terms'),
@@ -178,6 +188,31 @@ export async function updatePasswordAction(_prev: ActionResult | null, formData:
 
   revalidatePath('/', 'layout');
   redirect('/dashboard?reset=ok');
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  GOOGLE OAUTH (PKCE-Flow via Supabase)
+// ═══════════════════════════════════════════════════════════════
+export async function startGoogleOAuthAction() {
+  const supabase = await createClient();
+  const origin = await getAppOrigin();
+
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: `${origin}/auth/callback?next=/dashboard`,
+      queryParams: {
+        access_type: 'offline',
+        prompt: 'consent',
+      },
+    },
+  });
+
+  if (error || !data?.url) {
+    redirect(`/auth/login?error=${encodeURIComponent(error?.message ?? 'oauth_failed')}`);
+  }
+
+  redirect(data.url);
 }
 
 // ═══════════════════════════════════════════════════════════════

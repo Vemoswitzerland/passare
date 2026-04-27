@@ -1,9 +1,9 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useState } from 'react';
 import { ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input, Label } from '@/components/ui/input';
+import { PasswordField } from '@/components/ui/password-field';
 import { updatePasswordAction } from './actions';
 import type { ActionResult } from './constants';
 
@@ -12,37 +12,41 @@ export function ResetConfirmForm() {
     updatePasswordAction,
     null,
   );
+  const [pw, setPw] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const mismatch = confirm.length > 0 && pw !== confirm;
 
   return (
     <form action={action} className="space-y-5">
-      <div>
-        <Label htmlFor="password">Neues Passwort</Label>
-        <Input
-          id="password"
-          name="password"
-          type="password"
-          autoComplete="new-password"
-          required
-          minLength={8}
-          maxLength={72}
-          disabled={pending}
-          placeholder="Mindestens 8 Zeichen"
-          autoFocus
-        />
-      </div>
+      <PasswordField
+        id="password"
+        name="password"
+        label="Neues Passwort"
+        placeholder="Mindestens 8 Zeichen"
+        autoComplete="new-password"
+        required
+        disabled={pending}
+        showStrength
+        value={pw}
+        onChange={setPw}
+      />
 
       <div>
-        <Label htmlFor="confirm">Passwort bestätigen</Label>
-        <Input
+        <PasswordField
           id="confirm"
           name="confirm"
-          type="password"
+          label="Passwort bestätigen"
           autoComplete="new-password"
           required
-          minLength={8}
-          maxLength={72}
           disabled={pending}
+          value={confirm}
+          onChange={setConfirm}
         />
+        {mismatch && (
+          <p className="mt-1.5 text-caption text-danger">
+            Passwörter stimmen nicht überein
+          </p>
+        )}
       </div>
 
       {state && !state.ok && (
@@ -51,7 +55,7 @@ export function ResetConfirmForm() {
         </p>
       )}
 
-      <Button type="submit" disabled={pending} className="w-full" size="lg">
+      <Button type="submit" disabled={pending || mismatch} className="w-full" size="lg">
         {pending ? 'Speichere…' : (
           <>
             Passwort speichern <ArrowRight className="w-4 h-4" strokeWidth={1.5} />

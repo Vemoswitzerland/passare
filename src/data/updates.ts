@@ -58,6 +58,20 @@ export const CURRENT_STEP = {
 export const UPDATES: Update[] = [
   {
     date: '2026-04-27',
+    type: 'feature',
+    titel: 'Anmeldung mit Google + sichere Passwörter',
+    beschreibung:
+      'Auf der Anmelde- und Registrieren-Seite gibt es jetzt einen Google-Knopf für die Ein-Klick-Anmeldung. Bei der Passwort-Eingabe siehst du live wie stark dein Passwort ist (Schwach / Mittel / Stark / Sehr stark) und welche Anforderungen noch fehlen. Pflicht-Anforderung: 8 Zeichen, ein Klein- und Grossbuchstabe, eine Ziffer, ein Sonderzeichen.',
+  },
+  {
+    date: '2026-04-27',
+    type: 'feature',
+    titel: 'Passwort-Bestätigungsfeld bei Registrierung und Reset',
+    beschreibung:
+      'Bei jeder Passwort-Vergabe musst du das Passwort zweimal tippen — Tippfehler werden sofort angezeigt. Augen-Symbol zum Anzeigen / Verbergen.',
+  },
+  {
+    date: '2026-04-27',
     type: 'milestone',
     titel: 'Konto-Einrichtung in 3 Schritten live',
     beschreibung:
