@@ -20,14 +20,17 @@ export default async function KaeuferLayout({ children }: { children: React.Reac
     .eq('id', u.user.id)
     .maybeSingle();
 
-  if (!profile?.onboarding_completed_at) redirect('/onboarding/kaeufer/tunnel');
+  // Loop-Vermeidung: KEIN automatischer Redirect zum Tunnel mehr.
+  // Wer das Onboarding nicht abgeschlossen hat, sieht das Dashboard
+  // mit einem prominenten «Profil vervollständigen»-Banner — siehe page.tsx.
 
   // Admin darf den Käufer-Bereich auch betreten (zum Testen via View-Switcher)
-  const isAdmin = profile.rolle === 'admin';
-  const isKaeufer = profile.rolle === 'kaeufer';
-  if (!isKaeufer && !isAdmin) redirect('/dashboard');
+  const isAdmin = profile?.rolle === 'admin';
+  const isKaeufer = profile?.rolle === 'kaeufer';
+  // Nur Verkäufer wegleiten — alle anderen (kaeufer, admin, null) durch
+  if (profile?.rolle === 'verkaeufer') redirect('/dashboard/verkaeufer');
 
-  const isMax = profile.subscription_tier === 'max';
+  const isMax = profile?.subscription_tier === 'max';
 
   // Counts aggregieren — defensive
   const counts: SidebarCounts = {

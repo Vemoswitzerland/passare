@@ -23,11 +23,8 @@ export default async function KaeuferTunnelPage() {
 
   // Wenn schon Verkäufer → falsche Stelle
   if (profile?.rolle === 'verkaeufer') redirect('/dashboard/verkaeufer');
-
-  // Wenn schon Käufer + onboarded → schon durch (User kann via /dashboard/kaeufer/profil ändern)
-  if (profile?.rolle === 'kaeufer' && profile?.onboarding_completed_at) {
-    redirect('/dashboard/kaeufer');
-  }
+  // KEIN automatischer Redirect zum Dashboard wenn schon onboarded —
+  // sonst Loop wenn das Layout zurückleitet.
 
   return (
     <main className="min-h-screen bg-cream">
