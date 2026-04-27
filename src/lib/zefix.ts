@@ -221,7 +221,6 @@ async function searchViaLindas(name: string, maxResults: number): Promise<ZefixS
       ?company a <https://schema.ld.admin.ch/ZefixOrganisation> ;
                schema:name ?name .
       FILTER(CONTAINS(LCASE(?name), LCASE("${escaped}")))
-      FILTER(LANG(?name) = "de" || LANG(?name) = "")
       OPTIONAL {
         ?company schema:address ?addr .
         OPTIONAL { ?addr schema:addressLocality ?ort }
