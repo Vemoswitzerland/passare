@@ -43,9 +43,14 @@ function TopBar() {
             <Link href="/preise" className="text-[0.8125rem] font-medium text-muted hover:text-ink">Preise</Link>
             <Link href="/" className="text-[0.8125rem] font-medium text-muted hover:text-ink">Ratgeber</Link>
           </nav>
-          <Button href="/beta" size="sm" variant="secondary" className="hidden md:inline-flex">
-            Einloggen
-          </Button>
+          <div className="flex items-center gap-3">
+            <Button href="/auth/login" size="sm" variant="ghost" className="hidden md:inline-flex">
+              Anmelden
+            </Button>
+            <Button href="/auth/register" size="sm" className="hidden md:inline-flex">
+              Registrieren
+            </Button>
+          </div>
         </div>
       </Container>
     </header>
@@ -76,7 +81,7 @@ function Hero() {
             </Reveal>
             <Reveal delay={0.2}>
               <div className="flex flex-col sm:flex-row gap-4 items-start mb-12">
-                <Button href="/beta" size="lg">
+                <Button href="/auth/register" size="lg">
                   Inserat erstellen <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
                 </Button>
                 <Button href="#pakete" variant="secondary" size="lg">
@@ -255,7 +260,7 @@ function Packages() {
                   {p.verlaengerung}
                 </p>
                 <Button
-                  href="/beta"
+                  href="/auth/register"
                   variant={p.highlight ? 'primary' : 'secondary'}
                   size="lg"
                   className="w-full justify-center"
@@ -365,7 +370,7 @@ function CTA() {
           </Reveal>
           <Reveal delay={0.2}>
             <div className="flex flex-col sm:flex-row gap-4 items-start">
-              <Button href="/beta" variant="bronze" size="lg">
+              <Button href="/auth/register" variant="bronze" size="lg">
                 Inserat erstellen <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
               </Button>
               <span className="font-mono text-[11px] uppercase tracking-widest text-cream/50 mt-3">

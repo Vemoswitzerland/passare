@@ -189,6 +189,42 @@ export async function logoutAction() {
   redirect('/');
 }
 
+// ═══════════════════════════════════════════════════════════════
+//  TEST-QUICK-LOGIN (nur intern, hinter /status-Code 2827)
+// ═══════════════════════════════════════════════════════════════
+const TEST_ACCOUNTS = new Set([
+  'verkaufen-test@passare.ch',
+  'kaufen-test@passare.ch',
+  'admin-test@passare.ch',
+]);
+
+const TEST_PASSWORD = 'passare2026';
+
+export async function quickLoginAction(_prev: ActionResult | null, formData: FormData): Promise<ActionResult> {
+  const email = String(formData.get('email') ?? '').trim().toLowerCase();
+  if (!TEST_ACCOUNTS.has(email)) {
+    return { ok: false, error: 'Unbekannter Test-Account' };
+  }
+
+  // Sicherheitsgate: Quick-Login darf nur ausgelöst werden, wenn der Status-
+  // Code-Cookie gesetzt ist. Sonst wäre das ein offenes Hintertürchen.
+  const { cookies } = await import('next/headers');
+  const store = await cookies();
+  if (store.get('passare_status')?.value !== '2827') {
+    return { ok: false, error: 'Quick-Login nur über /status verfügbar' };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.signInWithPassword({
+    email,
+    password: TEST_PASSWORD,
+  });
+  if (error) return { ok: false, error: translateAuthError(error.message) };
+
+  revalidatePath('/', 'layout');
+  redirect('/dashboard');
+}
+
 // ─── Fehlertexte deutsch ──────────────────────────────────────
 function translateAuthError(msg: string): string {
   const m = msg.toLowerCase();

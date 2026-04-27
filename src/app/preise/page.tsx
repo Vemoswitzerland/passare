@@ -40,9 +40,14 @@ function TopBar() {
             <Link href="/preise" className="text-[0.8125rem] font-medium text-navy">Preise</Link>
             <Link href="/" className="text-[0.8125rem] font-medium text-muted hover:text-ink">Ratgeber</Link>
           </nav>
-          <Button href="/beta" size="sm" variant="secondary" className="hidden md:inline-flex">
-            Einloggen
-          </Button>
+          <div className="flex items-center gap-3">
+            <Button href="/auth/login" size="sm" variant="ghost" className="hidden md:inline-flex">
+              Anmelden
+            </Button>
+            <Button href="/auth/register" size="sm" className="hidden md:inline-flex">
+              Registrieren
+            </Button>
+          </div>
         </div>
       </Container>
     </header>
@@ -135,13 +140,13 @@ function VerkaeuferTable() {
             <div className="grid grid-cols-[1.5fr_1fr_1fr_1fr] border-t border-stone bg-cream/50">
               <div className="p-4"></div>
               <div className="p-4 border-l border-stone">
-                <Button href="/beta" variant="secondary" size="sm" className="w-full justify-center">Light wählen</Button>
+                <Button href="/auth/register" variant="secondary" size="sm" className="w-full justify-center">Light wählen</Button>
               </div>
               <div className="p-4 border-l border-stone">
-                <Button href="/beta" size="sm" className="w-full justify-center">Pro wählen</Button>
+                <Button href="/auth/register" size="sm" className="w-full justify-center">Pro wählen</Button>
               </div>
               <div className="p-4 border-l border-stone">
-                <Button href="/beta" variant="secondary" size="sm" className="w-full justify-center">Premium wählen</Button>
+                <Button href="/auth/register" variant="secondary" size="sm" className="w-full justify-center">Premium wählen</Button>
               </div>
             </div>
           </div>
@@ -240,10 +245,10 @@ function KaeuferTable() {
             <div className="grid grid-cols-[1.5fr_1fr_1fr] border-t border-stone bg-cream/50">
               <div className="p-4"></div>
               <div className="p-4 border-l border-stone">
-                <Button href="/beta" variant="secondary" size="sm" className="w-full justify-center">Gratis starten</Button>
+                <Button href="/auth/register" variant="secondary" size="sm" className="w-full justify-center">Gratis starten</Button>
               </div>
               <div className="p-4 border-l border-stone">
-                <Button href="/beta" size="sm" className="w-full justify-center">MAX buchen</Button>
+                <Button href="/auth/register" size="sm" className="w-full justify-center">MAX buchen</Button>
               </div>
             </div>
           </div>

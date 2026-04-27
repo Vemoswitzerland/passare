@@ -67,8 +67,11 @@ function TopBar() {
               <span className="text-stone">·</span>
               <span className="hover:text-navy cursor-pointer">EN</span>
             </div>
-            <Button href="/beta" size="sm" variant="secondary" className="hidden md:inline-flex">
-              Einloggen
+            <Button href="/auth/login" size="sm" variant="ghost" className="hidden md:inline-flex">
+              Anmelden
+            </Button>
+            <Button href="/auth/register" size="sm" className="hidden md:inline-flex">
+              Registrieren
             </Button>
           </div>
         </div>
@@ -496,7 +499,7 @@ function Promise() {
                 Käufer-Abos: Sie zahlen einmal, Sie behalten jeden Franken vom Verkaufspreis.
               </p>
               <div className="flex items-center gap-4 pt-4">
-                <Button href="/beta" variant="bronze" size="md">
+                <Button href="/auth/register" variant="bronze" size="md">
                   Jetzt inserieren
                   <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
                 </Button>

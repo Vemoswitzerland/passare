@@ -80,10 +80,10 @@ function TopBar() {
             <Link href="/" className="text-[0.8125rem] font-medium text-muted hover:text-ink">Ratgeber</Link>
           </nav>
           <div className="flex items-center gap-3">
-            <Button href="/beta" size="sm" variant="secondary">
-              Einloggen
+            <Button href="/auth/login" size="sm" variant="ghost">
+              Anmelden
             </Button>
-            <Button href="/beta" size="sm" className="hidden md:inline-flex">
+            <Button href="/auth/register" size="sm" className="hidden md:inline-flex">
               Registrieren
             </Button>
           </div>
@@ -252,7 +252,7 @@ function Marketplace() {
                   <span className="text-navy font-medium">Teaser sind öffentlich.</span> Für Dossier-Anfrage, NDA-Signatur und Datenraum-Zugriff ist eine kostenlose Registrierung nötig.
                 </p>
                 <Link
-                  href="/beta"
+                  href="/auth/register"
                   className="font-mono text-[11px] uppercase tracking-widest text-navy hover:text-bronze inline-flex items-center gap-1"
                 >
                   Registrieren <ArrowRight className="w-3 h-3" strokeWidth={1.5} />
@@ -363,7 +363,7 @@ function ListingCard({ listing }: { listing: typeof LISTINGS[number] }) {
       </p>
 
       <div className="mt-auto flex items-center gap-3">
-        <Button href="/beta" size="sm" className="flex-1 justify-center">
+        <Button href="/auth/register" size="sm" className="flex-1 justify-center">
           <FileLock2 className="w-3.5 h-3.5" strokeWidth={1.5} />
           Dossier anfragen
         </Button>
