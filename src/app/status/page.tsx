@@ -33,32 +33,65 @@ export default async function StatusPage() {
         </div>
       </header>
 
-      {/* Aktueller Schritt — kompakt */}
+      {/* Aktueller Schritt — Build-Log-Style */}
       <section className="px-5 pt-7 md:pt-10 pb-7">
         <div className="max-w-3xl mx-auto">
           <p className="font-mono text-[10px] uppercase tracking-widest text-bronze-ink mb-3">
-            $ aktueller_schritt
+            $ status --current
           </p>
-          <div className="border-l-2 border-bronze pl-5 py-2">
-            <div className="flex items-baseline gap-3 mb-2 flex-wrap">
-              <span className="font-mono text-[11px] uppercase tracking-widest text-bronze-ink">
-                {CURRENT_STEP.etappe}
-              </span>
-              <span className="font-mono text-[10px] text-quiet">↳</span>
-              <span className="font-serif text-head-md text-navy italic">
-                {CURRENT_STEP.titel}
+
+          <div className="border border-stone rounded-card bg-paper overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between gap-2 px-4 py-2.5 border-b border-stone bg-cream/40 flex-wrap">
+              <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest">
+                <span className="text-bronze-ink">{CURRENT_STEP.etappe}</span>
+                <span className="text-stone">/</span>
+                <span className="text-quiet">branch:</span>
+                <span className="text-navy">{CURRENT_STEP.branch}</span>
+              </div>
+              <span className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-bronze">
+                <span className="w-1.5 h-1.5 rounded-full bg-bronze animate-pulse-dot" />
+                running
               </span>
             </div>
-            <p className="text-body-sm text-muted leading-relaxed mb-3 max-w-xl">
-              {CURRENT_STEP.beschreibung}
-            </p>
-            <div className="flex items-center gap-3 font-mono text-[10px] uppercase tracking-widest text-quiet">
-              <span className="flex items-center gap-1.5">
-                <span className="w-1 h-1 rounded-full bg-bronze animate-pulse-dot" />
-                in_arbeit
+
+            {/* Title */}
+            <div className="px-4 py-4 border-b border-stone">
+              <h2 className="font-serif text-head-md text-navy mb-2 leading-tight">
+                {CURRENT_STEP.titel}<span className="text-bronze">.</span>
+              </h2>
+              <p className="text-body-sm text-muted leading-relaxed">
+                {CURRENT_STEP.beschreibung}
+              </p>
+            </div>
+
+            {/* Task-Liste */}
+            <div className="px-4 py-3 bg-cream/30">
+              <p className="font-mono text-[10px] uppercase tracking-widest text-quiet mb-2.5">
+                tasks · {CURRENT_STEP.tasks.filter(t => t.status === 'done').length}/{CURRENT_STEP.tasks.length}
+              </p>
+              <ul className="space-y-1">
+                {CURRENT_STEP.tasks.map((task, i) => (
+                  <li key={i} className="flex items-center gap-3 font-mono text-[11px]">
+                    <TaskIcon status={task.status} />
+                    <span className={taskTextClass(task.status)}>{task.label}</span>
+                    <span className="flex-1 border-b border-dotted border-stone min-w-[10px]" />
+                    <span className={`text-[9px] uppercase tracking-widest ${taskStatusClass(task.status)}`}>
+                      {task.status === 'done' ? 'ok' : task.status === 'in_progress' ? 'wip' : 'todo'}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Footer */}
+            <div className="px-4 py-2 border-t border-stone bg-cream/40 flex items-center justify-between gap-2 flex-wrap">
+              <span className="font-mono text-[10px] uppercase tracking-widest text-quiet">
+                eta: {CURRENT_STEP.geplant}
               </span>
-              <span className="text-stone">·</span>
-              <span>geplant: {CURRENT_STEP.geplant}</span>
+              <span className="font-mono text-[10px] uppercase tracking-widest text-quiet">
+                exit_code: pending
+              </span>
             </div>
           </div>
         </div>
@@ -182,4 +215,36 @@ function typeClass(type: string): string {
     case 'infrastruktur': return 'text-navy';
     default:              return 'text-quiet';
   }
+}
+
+function TaskIcon({ status }: { status: 'done' | 'in_progress' | 'pending' }) {
+  if (status === 'done') {
+    return (
+      <span className="flex-shrink-0 w-3.5 h-3.5 rounded-full bg-success/20 flex items-center justify-center text-success text-[10px]">
+        ✓
+      </span>
+    );
+  }
+  if (status === 'in_progress') {
+    return (
+      <span className="flex-shrink-0 w-3.5 h-3.5 rounded-full border border-bronze/40 flex items-center justify-center bg-bronze/10">
+        <span className="w-1.5 h-1.5 rounded-full bg-bronze animate-pulse-dot" />
+      </span>
+    );
+  }
+  return (
+    <span className="flex-shrink-0 w-3.5 h-3.5 rounded-full border border-stone" />
+  );
+}
+
+function taskTextClass(status: 'done' | 'in_progress' | 'pending'): string {
+  if (status === 'done') return 'text-muted line-through';
+  if (status === 'in_progress') return 'text-navy font-medium';
+  return 'text-ink';
+}
+
+function taskStatusClass(status: 'done' | 'in_progress' | 'pending'): string {
+  if (status === 'done') return 'text-success';
+  if (status === 'in_progress') return 'text-bronze';
+  return 'text-quiet';
 }

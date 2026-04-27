@@ -17,15 +17,38 @@ export type Update = {
   beschreibung: string;  // 1-2 Sätze, klar verständlich
 };
 
+export type TaskStatus = 'done' | 'in_progress' | 'pending';
+export type Task = {
+  label: string;
+  status: TaskStatus;
+};
+
 /**
  * Was als Nächstes ansteht (oben auf der Status-Seite).
+ * Tasks werden als Build-Log-artige Liste gerendert.
+ * KEINE Software-/Produktnamen in den Texten.
  */
 export const CURRENT_STEP = {
-  etappe: 'Etappe 2',
-  titel: 'Datenbank + Login',
+  etappe: 'Etappe 02',
+  branch: 'feat/auth-persistence',
+  titel: 'Persistenz-Layer + Authentifizierung',
   beschreibung:
-    'Wir richten die Datenbank ein (Supabase) — damit User sich registrieren, einloggen und ihre Inserate später wirklich speichern können. Aktuell ist alles nur als Demo sichtbar.',
+    'Datenhaltung und Login-Flow aufsetzen. Profile-Schema mit Rollen, Zugriffsregeln pro Tabelle, sichere Session-Cookies.',
   geplant: '~ April 2026',
+  tasks: [
+    { label: 'project · provisioning',        status: 'pending'  as const },
+    { label: 'env · secrets_wiring',          status: 'pending'  as const },
+    { label: 'schema · profiles_table',       status: 'pending'  as const },
+    { label: 'schema · roles_enum',           status: 'pending'  as const },
+    { label: 'policy · row_level_security',   status: 'pending'  as const },
+    { label: 'trigger · auth_to_profiles',    status: 'pending'  as const },
+    { label: 'auth · session_cookies',        status: 'pending'  as const },
+    { label: 'auth · register_flow',          status: 'pending'  as const },
+    { label: 'auth · login_flow',             status: 'pending'  as const },
+    { label: 'auth · email_verification',     status: 'pending'  as const },
+    { label: 'auth · password_reset',         status: 'pending'  as const },
+    { label: 'verify · live_environment',     status: 'pending'  as const },
+  ] satisfies Task[],
 };
 
 /**
@@ -119,30 +142,30 @@ export const UPDATES: Update[] = [
   {
     date: '2026-04-24',
     type: 'design',
-    titel: 'Design-System v1.0 fertig',
+    titel: 'Design-System v1.0 finalisiert',
     beschreibung:
-      'Edle Premium-Optik mit Fraunces (Serif) + Geist (Sans). Farbpalette Navy / Bronze / Cream. Living Style Guide unter /design.',
+      'Premium-Look mit editorialer Serif + neutraler Sans. Farbpalette Navy / Bronze / Cream. Living Style Guide unter /design.',
   },
   {
     date: '2026-04-24',
     type: 'milestone',
     titel: 'Beta-Site online geschaltet',
     beschreibung:
-      'passare.ch läuft live unter passare-ch.vercel.app — geschützt mit Beta-Code. Alle Hauptseiten sind verlinkt.',
+      'passare.ch ist live, geschützt mit Beta-Code. Alle Hauptseiten sind verlinkt und navigierbar.',
   },
   {
     date: '2026-04-24',
     type: 'infrastruktur',
-    titel: 'Master-Plan erstellt: 175 Etappen',
+    titel: 'Master-Plan: 175 Etappen in 16 Blöcken',
     beschreibung:
-      'Kompletter Bauplan in 16 Themenblöcken. Jeder neue Chat baut eine Etappe — von Datenbank über Auth, Dashboards, Zahlungen, Admin bis zur Mehrsprachigkeit.',
+      'Kompletter Bauplan steht. Jeder neue Chat baut eine Etappe — von Datenbank über Auth, Dashboards, Zahlungen, Admin bis zur Mehrsprachigkeit.',
   },
   {
     date: '2026-04-24',
     type: 'infrastruktur',
-    titel: 'Repository auf GitHub + Auto-Deploy auf Vercel',
+    titel: 'Auto-Deploy-Pipeline aktiv',
     beschreibung:
-      'Alles liegt unter github.com/Vemoswitzerland/passare. Jeder Push deployed automatisch — passare-ch.vercel.app ist immer auf dem neuesten Stand.',
+      'Jede Änderung am Code geht automatisch live. Die stabile URL zeigt immer die aktuellste Version.',
   },
 ];
 
