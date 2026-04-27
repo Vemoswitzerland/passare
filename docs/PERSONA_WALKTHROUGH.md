@@ -410,3 +410,5 @@ Vorschlag für MASTER_PLAN-Erweiterung:
 ---
 
 *Walkthrough-Dokument erstellt: 24.04.2026 · 3 Personas × echte Workflows · 60 Gaps identifiziert, 20 davon Must-Fix*
+
+*Update 27.04.2026: Alle 21 Etappen-Kandidaten direkt in `MASTER_PLAN.md` integriert (28.1, 32.5, 34.1, 47.1, 51.1, 51.2, 54.1, 56.1, 57.1, 62.1, 71.2, 81.1, 82.1, 83.1, 83.2, 84.1, 89.1, 90.1, 103.1, 134.1, 140.1). Master-Plan jetzt bei 196 Etappen total.*

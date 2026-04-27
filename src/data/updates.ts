@@ -34,6 +34,13 @@ export const CURRENT_STEP = {
 export const UPDATES: Update[] = [
   {
     date: '2026-04-24',
+    type: 'design',
+    titel: 'Status-Seite: Verlauf statt Karten',
+    beschreibung:
+      'Die Live-Status-Seite zeigt jetzt einen kompakten Build-Log-Verlauf statt grosser Karten — technischer, übersichtlicher.',
+  },
+  {
+    date: '2026-04-24',
     type: 'feature',
     titel: 'Live-Entwicklungsseite eingerichtet',
     beschreibung:
@@ -141,9 +148,9 @@ export const UPDATES: Update[] = [
 
 export const TYPE_LABELS: Record<UpdateType, string> = {
   milestone: 'Meilenstein',
-  feature: 'Neues Feature',
+  feature: 'Feature',
   design: 'Design',
-  fix: 'Bugfix',
+  fix: 'Fix',
   content: 'Inhalt',
   infrastruktur: 'Infrastruktur',
 };

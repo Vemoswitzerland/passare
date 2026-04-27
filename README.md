@@ -7,7 +7,7 @@
 
 ## Status
 
-🚧 **In aktiver Entwicklung** — siehe [docs/MASTER_PLAN.md](docs/MASTER_PLAN.md) für alle 175 Etappen.
+🚧 **In aktiver Entwicklung** — siehe [docs/MASTER_PLAN.md](docs/MASTER_PLAN.md) für alle 196 Etappen (15 aus Gap-Analyse + 21 aus Persona-Walkthrough integriert).
 
 - ✅ **Etappe 1** — Repo, Scaffold, Beta-Gate, Deploy (LIVE)
 - ⏳ **Etappe 2** — Supabase Setup (NEXT)

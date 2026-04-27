@@ -242,9 +242,10 @@ Code & Kommentare auch DE.
 - ✅ **Etappe 1.7 LIVE** — Self-Service-Modell + Pricing 3+2 + Einzelseiten (/verkaufen, /kaufen, /entdecken, /preise)
 - ✅ **Etappe 1.8 LIVE** — Live-Status-Seite `/status` (Code `2827`)
 - 📋 **Etappe 1.9** — Gap-Analyse abgeschlossen, 15 neue Pflicht-Etappen in MASTER_PLAN integriert (siehe `docs/GAP_ANALYSIS.md`)
+- 📋 **Etappe 1.95** — Persona-Walkthrough (Käufer/Verkäufer/Admin) abgeschlossen, 21 weitere Pflicht-Etappen integriert. Master-Plan jetzt **196 Etappen** (siehe `docs/PERSONA_WALKTHROUGH.md`).
 - ⏳ **Etappe 2 NEXT** — Supabase-Setup + Core Migrations (inkl. `terms_acceptances`, `consent_records`, `notifications`)
 
-Siehe [docs/MASTER_PLAN.md](docs/MASTER_PLAN.md) für alle Etappen, [docs/GAP_ANALYSIS.md](docs/GAP_ANALYSIS.md) für die Lückenanalyse.
+Siehe [docs/MASTER_PLAN.md](docs/MASTER_PLAN.md) für alle Etappen, [docs/GAP_ANALYSIS.md](docs/GAP_ANALYSIS.md) für die Lückenanalyse, [docs/PERSONA_WALKTHROUGH.md](docs/PERSONA_WALKTHROUGH.md) für die User-Journey-Analyse.
 
 ---
 
