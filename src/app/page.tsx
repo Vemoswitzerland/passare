@@ -159,19 +159,19 @@ export function SiteFooter() {
 /* ════════════════════════ Hero ════════════════════════ */
 function Hero() {
   return (
-    <Section className="pt-14 md:pt-20 pb-10">
+    <Section className="pt-8 md:pt-10 pb-4">
       <Container>
-        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 max-w-content">
+        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 max-w-content">
           <div>
             <Reveal>
-              <p className="overline mb-4 text-bronze-ink">Schweizer KMU-Marktplatz</p>
+              <p className="overline mb-3 text-bronze-ink">Schweizer KMU-Marktplatz</p>
               <h1 className="font-serif-display text-[clamp(2rem,4vw,3.5rem)] text-navy font-light tracking-[-0.02em] leading-[1.08]">
                 Firmen entdecken<span className="text-bronze">.</span>
               </h1>
             </Reveal>
           </div>
           <Reveal delay={0.1}>
-            <p className="text-body text-muted max-w-md leading-relaxed">
+            <p className="text-body-sm text-muted max-w-md leading-relaxed">
               <span className="font-mono text-[11px] uppercase tracking-widest text-navy">
                 {LISTINGS.length} aktive Inserate
               </span> &middot;
@@ -188,7 +188,7 @@ function Hero() {
 /* ════════════════════════ Marketplace ════════════════════════ */
 function Marketplace() {
   return (
-    <Section className="pt-4 pb-24">
+    <Section className="pt-0 pb-24">
       <Container>
         <div className="grid lg:grid-cols-[280px_1fr] gap-10">
           {/* Sidebar */}
@@ -399,10 +399,10 @@ function ListingCard({ listing }: { listing: typeof LISTINGS[number] }) {
         </span>
 
         <div className="absolute bottom-4 left-5 right-5 z-[1]">
-          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-bronze font-semibold leading-tight drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)]">
+          <p className="font-mono text-[14px] md:text-[15px] uppercase tracking-[0.16em] text-bronze font-semibold leading-tight drop-shadow-[0_2px_8px_rgba(0,0,0,0.7)]">
             {listing.branche} · Kanton {listing.kanton}
           </p>
-          <p className="font-mono text-[12px] tracking-wider text-cream/90 mt-1 drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)]">
+          <p className="font-mono text-[15px] md:text-base tracking-wider text-cream mt-1.5 drop-shadow-[0_2px_8px_rgba(0,0,0,0.7)]">
             {facts}
           </p>
         </div>
@@ -410,7 +410,7 @@ function ListingCard({ listing }: { listing: typeof LISTINGS[number] }) {
 
       {/* ─── Body ─── */}
       <div className="p-6 flex flex-col flex-1">
-        <h3 className="font-serif text-head-md text-navy leading-tight font-normal mb-5">
+        <h3 className="font-serif text-head-md text-navy leading-tight font-normal mb-5 min-h-[3.9rem]">
           {listing.titel}<span className="text-bronze">.</span>
         </h3>
 
