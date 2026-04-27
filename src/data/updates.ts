@@ -29,26 +29,35 @@ export type Task = {
  * KEINE Software-/Produktnamen in den Texten.
  */
 const CURRENT_TASKS: Task[] = [
-  { label: 'wizard · step_1_rolle',          status: 'done' },
-  { label: 'wizard · step_2_basis_profil',   status: 'done' },
-  { label: 'wizard · step_3_bestaetigen',    status: 'done' },
-  { label: 'terms · zwingende_zustimmung',   status: 'done' },
-  { label: 'rolle · einmalig_setzbar',       status: 'done' },
-  { label: 'redirect · nach_rolle',          status: 'done' },
+  { label: 'kaeufer · sales_tunnel_5_fragen',      status: 'done' },
+  { label: 'kaeufer · paket_basic_oder_max',       status: 'done' },
+  { label: 'kaeufer · dashboard_daily_digest',     status: 'done' },
+  { label: 'kaeufer · favoriten_pipeline_kanban',  status: 'done' },
+  { label: 'kaeufer · suchprofile_max3',           status: 'done' },
+  { label: 'kaeufer · ndas_berater_share',         status: 'done' },
+  { label: 'kaeufer · max_abo_stripe',             status: 'done' },
+  { label: 'kaeufer · profil_reverse_listing',     status: 'done' },
 ];
 
 export const CURRENT_STEP = {
-  etappe: 'Etappe 04',
-  branch: 'feat/mobile-nav-and-user-header',
-  titel: 'Mobile Navigation und Header für angemeldete Nutzer',
+  etappe: 'Etappe 46-55',
+  branch: 'feat/verkaeufer-bereich',
+  titel: 'Verkäufer-Bereich: Pre-Reg-Funnel + Dashboard + Wizard',
   beschreibung:
-    'Klappbare Mobile-Navigation für unterwegs. Im Header wird angemeldeten Nutzern direkt der Name und Schnellzugriff aufs Dashboard angezeigt, statt Anmelden/Registrieren.',
-  geplant: '~ Mai 2026',
+    'Verkäufer starten BEVOR sie sich registrieren mit ihrer Firma im Live-Handelsregister-Suche, bekommen eine Smart-Bewertung mit animiertem Reveal und gehen erst danach zur Konto-Erstellung. Im Dashboard managen sie Inserat (5-Step-Wizard), Anfragen mit Drawer, NDA-Pipeline, Datenraum mit Versionierung und Audit, Statistik (Charts), Paket-Verwaltung und Vorschau.',
+  geplant: '~ April 2026',
   tasks: [
-    { label: 'header · mobile_drawer',         status: 'pending' },
-    { label: 'header · benutzer_status',       status: 'pending' },
-    { label: 'header · dashboard_shortcut',    status: 'pending' },
-    { label: 'sprache · umschalter_mobile',    status: 'pending' },
+    { label: 'verkaeufer · pre_reg_funnel_zefix_smart_pricing', status: 'done' },
+    { label: 'verkaeufer · sidebar_topbar_view_switcher',       status: 'done' },
+    { label: 'verkaeufer · uebersicht_kpi_checklist',           status: 'done' },
+    { label: 'verkaeufer · inserat_wizard_5_steps_autosave',    status: 'done' },
+    { label: 'verkaeufer · anfragen_drawer_status_logic',       status: 'done' },
+    { label: 'verkaeufer · nda_pipeline_3_spalten',             status: 'done' },
+    { label: 'verkaeufer · datenraum_versionen_audit',          status: 'done' },
+    { label: 'verkaeufer · statistik_charts',                   status: 'done' },
+    { label: 'verkaeufer · paket_verwaltung_stripe_mock',       status: 'done' },
+    { label: 'verkaeufer · public_preview_anonym_check',        status: 'done' },
+    { label: 'integration · 3_bereiche_verbinden',              status: 'pending' },
   ] as Task[],
 };
 
@@ -56,6 +65,69 @@ export const CURRENT_STEP = {
  * Alle bisherigen Updates — neueste zuerst.
  */
 export const UPDATES: Update[] = [
+  {
+    date: '2026-04-27',
+    type: 'feature',
+    titel: 'Verkäufer-Bereich live: Pre-Onboarding mit Smart-Bewertung',
+    beschreibung:
+      'Wer eine Firma verkaufen möchte, startet jetzt mit einem 5-Schritt-Pre-Onboarding noch BEVOR ein Konto angelegt wird: Live-Suche im Handelsregister füllt Firmenname/Sitz/Rechtsform automatisch aus, dann werden Branche, Umsatz, Ertrag und Mitarbeiter eingegeben — und der indikative Marktwert wird mit Animation eingeblendet. Erst dann folgt die Konto-Erstellung, wobei die Daten nahtlos ins erste Inserat übernommen werden.',
+  },
+  {
+    date: '2026-04-27',
+    type: 'feature',
+    titel: 'Verkäufer-Dashboard: Inserat, Anfragen, NDA, Datenraum, Statistik',
+    beschreibung:
+      'Komplettes Verkäufer-Dashboard mit linker Navigation: Übersicht mit Live-Statistik und Onboarding-Checkliste, 5-Schritt-Inserat-Wizard mit Auto-Save und Anonymitäts-Hinweisen, Anfragen-Inbox mit Detail-Slider, NDA-Pipeline (Ausstehend → Signiert → Datenraum offen), Datenraum mit Drag-&-Drop-Upload, Versionierung und vollem Käufer-Zugriffs-Protokoll, sowie Statistik-Bereich mit Charts.',
+  },
+  {
+    date: '2026-04-27',
+    type: 'feature',
+    titel: 'Firmen-Atlas mit interaktiver Karte',
+    beschreibung:
+      'Auf einer Schweizer Karte sind alle aktiven Inserate als Punkte sichtbar — gruppiert nach Region, mit Filter nach Branche und Kanton. Ein Klick zeigt Eckdaten und einen Knopf zum Dossier-Anfragen.',
+  },
+  {
+    date: '2026-04-27',
+    type: 'feature',
+    titel: 'Gratis-Firmenbewertung — Marktwert in 60 Sekunden',
+    beschreibung:
+      'Sechs Fragen — Branche, Mitarbeitende, Umsatz, Ertrag, Standort, Wachstum — und der Marktwert wird auf Basis aktueller Schweizer KMU-Multiples geschätzt. Wer einen ausführlichen Detail-Report möchte, hinterlässt seine Mail.',
+  },
+  {
+    date: '2026-04-27',
+    type: 'feature',
+    titel: 'Ratgeber-Bereich mit ersten Fachartikeln',
+    beschreibung:
+      'Eigener Redaktions-Bereich mit drei Erst-Artikeln zu den meistgestellten Verkäufer-Fragen: «Wann ist die richtige Zeit zu verkaufen?», «Was ist meine Firma wert?», «NDA — Schutz vor Indiskretion».',
+  },
+  {
+    date: '2026-04-27',
+    type: 'milestone',
+    titel: 'Käufer-Bereich live: Sales-Tunnel + Dashboard',
+    beschreibung:
+      'Käufer können sich jetzt komplett selbst einrichten und nutzen ein eigenes Dashboard. Der neue Ablauf: Auf der Marktplatz-Seite klickt der Käufer auf «Dossier anfragen» → Konto erstellen mit Email + Passwort → fünf kurze Fragen zu Investor-Typ, gesuchten Branchen + Kantonen, Budget, Timing und Erfahrung → Paket wählen (Gratis-Basic oder MAX-Abo CHF 199/Monat oder CHF 1\'990/Jahr) → fertig im Dashboard. Im Dashboard sieht der Käufer eine Tages-Auswahl von 3 passenden Inseraten, kann Favoriten in 7 Pipeline-Stufen sortieren (Neu / Kontaktiert / NDA / Due Diligence / LOI / Gewonnen / Verloren), bis zu 3 Suchprofile mit Email- bzw. WhatsApp-Alerts (MAX) anlegen, eigene Geheimhaltungs-Verträge übersehen, einen zeitlich begrenzten Datenraum-Zugang an seinen Steuerberater oder Anwalt geben (max 14 Tage), das Abonnement verwalten und sein öffentliches Käufer-Profil pflegen — Verkäufer sehen das Profil mit Investor-Typ, Region, Budget-Range und Beschreibung wenn er eine Anfrage stellt.',
+  },
+  {
+    date: '2026-04-27',
+    type: 'feature',
+    titel: 'Konversations-Tunnel statt Wizard — 90 Sekunden bis fertig',
+    beschreibung:
+      'Statt eines klassischen Schritt-für-Schritt-Wizards führt der neue Käufer-Tunnel den Nutzer in 5 schnellen Fragen durch. Jede Frage ist ein Klick (ausser optionale Beschreibung). Aus den Antworten wird automatisch das erste Suchprofil generiert — der Käufer muss nichts zweimal eintippen.',
+  },
+  {
+    date: '2026-04-27',
+    type: 'feature',
+    titel: 'Personalisierte Paket-Empfehlung',
+    beschreibung:
+      'Wenn der Käufer im Tunnel «Family Office» oder «Strategischer Käufer» wählt oder ein Budget über CHF 5 Mio. angibt, zeigt die Paket-Seite ein persönliches Banner: «Bei deinem Profil empfehlen wir MAX». Auf der Paket-Seite steht direkt im Header: «Wir haben N passende Inserate für dich» — N kommt aus dem soeben angelegten Suchprofil.',
+  },
+  {
+    date: '2026-04-27',
+    type: 'design',
+    titel: 'Käufer-Sidebar mit Pipeline-Übersicht und Live-Status',
+    beschreibung:
+      'Das Käufer-Dashboard hat eine eigene Sidebar mit dem Hauptmenü (Übersicht, Anfragen, Favoriten, NDAs, Suchprofile), einer Mini-Pipeline-Übersicht (alle 7 Stufen mit den jeweiligen Inserate-Anzahlen) und einem Account-Bereich (MAX-Abo, Käufer-Profil). Unten pulsiert ein grüner «Live»-Punkt, der zeigt dass die Tages-Auswahl jeden Morgen um 7:00 Uhr neu generiert wird.',
+  },
   {
     date: '2026-04-27',
     type: 'infrastruktur',

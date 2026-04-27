@@ -58,7 +58,7 @@ function Hero() {
             </Reveal>
             <Reveal delay={0.2}>
               <div className="flex flex-col sm:flex-row gap-4 items-start mb-12">
-                <Button href="/auth/register" size="lg">
+                <Button href="/verkaufen/start" size="lg">
                   Inserat erstellen <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
                 </Button>
                 <Button href="#pakete" variant="secondary" size="lg">
@@ -237,7 +237,7 @@ function Packages() {
                   {p.verlaengerung}
                 </p>
                 <Button
-                  href="/auth/register"
+                  href="/verkaufen/start"
                   variant={p.highlight ? 'primary' : 'secondary'}
                   size="lg"
                   className="w-full justify-center"
@@ -347,7 +347,7 @@ function CTA() {
           </Reveal>
           <Reveal delay={0.2}>
             <div className="flex flex-col sm:flex-row gap-4 items-start">
-              <Button href="/auth/register" variant="bronze" size="lg">
+              <Button href="/verkaufen/start" variant="bronze" size="lg">
                 Inserat erstellen <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
               </Button>
               <span className="font-mono text-[11px] uppercase tracking-widest text-cream/50 mt-3">
