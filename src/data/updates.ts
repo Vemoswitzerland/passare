@@ -29,34 +29,75 @@ export type Task = {
  * KEINE Software-/Produktnamen in den Texten.
  */
 const CURRENT_TASKS: Task[] = [
-  { label: 'project · provisioning',        status: 'pending' },
-  { label: 'env · secrets_wiring',          status: 'pending' },
-  { label: 'schema · profiles_table',       status: 'pending' },
-  { label: 'schema · roles_enum',           status: 'pending' },
-  { label: 'policy · row_level_security',   status: 'pending' },
-  { label: 'trigger · auth_to_profiles',    status: 'pending' },
-  { label: 'auth · session_cookies',        status: 'pending' },
-  { label: 'auth · register_flow',          status: 'pending' },
-  { label: 'auth · login_flow',             status: 'pending' },
-  { label: 'auth · email_verification',     status: 'pending' },
-  { label: 'auth · password_reset',         status: 'pending' },
-  { label: 'verify · live_environment',     status: 'pending' },
+  { label: 'project · provisioning',        status: 'done' },
+  { label: 'env · secrets_wiring',          status: 'done' },
+  { label: 'schema · profiles_table',       status: 'done' },
+  { label: 'schema · roles_enum',           status: 'done' },
+  { label: 'policy · row_level_security',   status: 'done' },
+  { label: 'trigger · auth_to_profiles',    status: 'done' },
+  { label: 'auth · session_cookies',        status: 'done' },
+  { label: 'auth · register_flow',          status: 'done' },
+  { label: 'auth · login_flow',             status: 'done' },
+  { label: 'auth · email_verification',     status: 'done' },
+  { label: 'auth · password_reset',         status: 'done' },
+  { label: 'verify · live_environment',     status: 'done' },
 ];
 
 export const CURRENT_STEP = {
-  etappe: 'Etappe 02',
-  branch: 'feat/auth-persistence',
-  titel: 'Persistenz-Layer + Authentifizierung',
+  etappe: 'Etappe 03',
+  branch: 'feat/onboarding-wizard',
+  titel: 'Rollen-Onboarding und Profil-Wizard',
   beschreibung:
-    'Datenhaltung und Login-Flow aufsetzen. Profile-Schema mit Rollen, Zugriffsregeln pro Tabelle, sichere Session-Cookies.',
-  geplant: '~ April 2026',
-  tasks: CURRENT_TASKS,
+    'Nach der Registrierung führen wir den Nutzer in 3 Schritten durch die Konto-Einrichtung: Rolle wählen (verkaufen oder kaufen), Basis-Profil erfassen, Einstellungen bestätigen.',
+  geplant: '~ Mai 2026',
+  tasks: [
+    { label: 'wizard · step_1_rolle',          status: 'pending' },
+    { label: 'wizard · step_2_basis_profil',   status: 'pending' },
+    { label: 'wizard · step_3_interessen',     status: 'pending' },
+    { label: 'terms · zwingende_zustimmung',   status: 'pending' },
+    { label: 'redirect · nach_rolle',          status: 'pending' },
+  ],
 };
 
 /**
  * Alle bisherigen Updates — neueste zuerst.
  */
 export const UPDATES: Update[] = [
+  {
+    date: '2026-04-27',
+    type: 'milestone',
+    titel: 'Konto-System steht: Registrieren, Anmelden, Passwort-Reset',
+    beschreibung:
+      'Du kannst jetzt ein Konto anlegen, dich anmelden, deine E-Mail bestätigen und dein Passwort zurücksetzen — alles auf passare. Im Hintergrund wird automatisch ein Profil-Datensatz angelegt.',
+  },
+  {
+    date: '2026-04-27',
+    type: 'infrastruktur',
+    titel: 'Datenbank für passare aufgesetzt',
+    beschreibung:
+      'Eigene, von Vemo getrennte Datenbank in der Schweizer Nachbarregion (Frankfurt). Profile-Schema mit Rollen (Verkäufer / Käufer / Admin), strikte Zugriffsregeln pro Datensatz, sichere Session-Cookies.',
+  },
+  {
+    date: '2026-04-27',
+    type: 'feature',
+    titel: 'Anmelde-Strecke gestaltet im passare-Look',
+    beschreibung:
+      'Die Login- und Registrieren-Seiten passen visuell zum Rest der Seite (gleiche Schrift, gleiche Farben). Klare Fehlermeldungen auf Deutsch.',
+  },
+  {
+    date: '2026-04-27',
+    type: 'milestone',
+    titel: 'Master-Plan auf 196 Etappen erweitert',
+    beschreibung:
+      'Drei Personen-Walkthroughs (Käufer, Verkäufer, Admin) durchgespielt. 21 zusätzliche Pflicht-Etappen identifiziert und in den Bauplan integriert. Beispiele: Tages-Auswahl per Mail, Verkäuflich-Check vor Anmeldung, Anonymitäts-Coach beim Tippen, Buchhaltungs-Import, Notfall-Knopf im Datenraum, Status-Seite, mobile Web-App.',
+  },
+  {
+    date: '2026-04-27',
+    type: 'milestone',
+    titel: 'Plan-Lückenanalyse abgeschlossen',
+    beschreibung:
+      '15 Lücken im ursprünglichen Plan gefunden und geschlossen — fehlende Mehrwertsteuer-Logik, fortlaufende Rechnungsnummern, Bot-Schutz, Test-Suite, AGB-Versionierung, Datenschutz-Einwilligungen.',
+  },
   {
     date: '2026-04-24',
     type: 'design',

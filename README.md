@@ -103,6 +103,7 @@ public/
 
 - **[CLAUDE.md](CLAUDE.md)** — Globale Anweisungen für die KI-Entwicklung (Pflicht-Read pro neuem Chat)
 - **[MASTER_PLAN.md](docs/MASTER_PLAN.md)** — Die 196-Etappen-Roadmap
+- **[PLAN_EINFACH_ERKLAERT.md](docs/PLAN_EINFACH_ERKLAERT.md)** — Einfache Erklärung für Nicht-Techniker (was bauen wir? was muss noch entschieden werden?)
 - **[INFRASTRUCTURE.md](docs/INFRASTRUCTURE.md)** — Architektur & Datenmodell
 - **[DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md)** — Farben, Fonts, Komponenten, Motion
 - **[COMPETITOR_RESEARCH.md](docs/COMPETITOR_RESEARCH.md)** — Markt-Analyse (companymarket.ch)
