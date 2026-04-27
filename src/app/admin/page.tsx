@@ -8,6 +8,8 @@ import {
   UserPlus,
   ArrowRight,
   Activity,
+  Newspaper,
+  Sparkles,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { StatCard } from '@/components/admin/StatCard';
@@ -43,17 +45,27 @@ const formatRelative = (iso: string) => {
 export default async function AdminDashboardPage() {
   const supabase = await createClient();
 
-  const [{ count: usersTotal }, { count: usersVerkaeufer }, { count: usersKaeufer }, { data: latestProfiles }] =
-    await Promise.all([
-      supabase.from('profiles').select('id', { count: 'exact', head: true }),
-      supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('rolle', 'verkaeufer'),
-      supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('rolle', 'kaeufer'),
-      supabase
-        .from('profiles')
-        .select('id, full_name, rolle, created_at')
-        .order('created_at', { ascending: false })
-        .limit(5),
-    ]);
+  const [
+    { count: usersTotal },
+    { count: usersVerkaeufer },
+    { count: usersKaeufer },
+    { data: latestProfiles },
+    { count: blogTotal },
+    { count: blogDraft },
+    { count: blogPublished },
+  ] = await Promise.all([
+    supabase.from('profiles').select('id', { count: 'exact', head: true }),
+    supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('rolle', 'verkaeufer'),
+    supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('rolle', 'kaeufer'),
+    supabase
+      .from('profiles')
+      .select('id, full_name, rolle, created_at')
+      .order('created_at', { ascending: false })
+      .limit(5),
+    supabase.from('blog_posts').select('id', { count: 'exact', head: true }),
+    supabase.from('blog_posts').select('id', { count: 'exact', head: true }).eq('status', 'entwurf'),
+    supabase.from('blog_posts').select('id', { count: 'exact', head: true }).eq('status', 'veroeffentlicht'),
+  ]);
 
   const realActivity = (latestProfiles ?? []).map((p) => ({
     id: `reg-${p.id}`,
@@ -81,7 +93,7 @@ export default async function AdminDashboardPage() {
         </p>
       </header>
 
-      <section className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+      <section className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-10">
         <StatCard
           icon={FileText}
           value={ADMIN_DEMO_STATS.aktive_inserate}
@@ -110,9 +122,18 @@ export default async function AdminDashboardPage() {
           label="MAX-Abos"
           trend={{ direction: 'up', text: ADMIN_DEMO_STATS.trend_abos }}
         />
+        <StatCard
+          icon={Newspaper}
+          value={blogPublished ?? 0}
+          label="Blog veröff."
+          trend={{
+            direction: 'up',
+            text: `${blogDraft ?? 0} Entwürfe · ${blogTotal ?? 0} total`,
+          }}
+        />
       </section>
 
-      <section className="grid lg:grid-cols-3 gap-4 mb-10">
+      <section className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
         <QuickAction
           href="/admin/inserate"
           icon={CheckCircle2}
@@ -133,6 +154,13 @@ export default async function AdminDashboardPage() {
           label="Anfragen prüfen"
           count={ADMIN_DEMO_STATS.offene_anfragen}
           countLabel="Offen"
+        />
+        <QuickAction
+          href="/admin/blog"
+          icon={Sparkles}
+          label="Blog-Artikel generieren"
+          count={blogDraft ?? 0}
+          countLabel="Entwürfe"
         />
       </section>
 

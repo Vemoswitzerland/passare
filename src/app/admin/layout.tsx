@@ -25,19 +25,23 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const offeneAnfragen = ADMIN_DEMO_ANFRAGEN.filter((a) => a.status === 'offen').length;
 
   let userCount = 0;
+  let blogDraftCount = 0;
   try {
-    const { count } = await supabase
-      .from('profiles')
-      .select('id', { count: 'exact', head: true });
-    userCount = count ?? 0;
+    const [{ count: uc }, { count: bdc }] = await Promise.all([
+      supabase.from('profiles').select('id', { count: 'exact', head: true }),
+      supabase.from('blog_posts').select('id', { count: 'exact', head: true }).eq('status', 'entwurf'),
+    ]);
+    userCount = uc ?? 0;
+    blogDraftCount = bdc ?? 0;
   } catch {
-    userCount = 0;
+    /* ignore */
   }
 
   const badges = {
     '/admin/inserate': pendingInserate > 0 ? pendingInserate : undefined,
     '/admin/users': userCount > 0 ? userCount : undefined,
     '/admin/anfragen': offeneAnfragen > 0 ? offeneAnfragen : undefined,
+    '/admin/blog': blogDraftCount > 0 ? blogDraftCount : undefined,
   };
 
   return (

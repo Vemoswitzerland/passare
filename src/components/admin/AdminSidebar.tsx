@@ -9,6 +9,7 @@ import {
   MessageSquare,
   Activity,
   Settings,
+  Newspaper,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -34,6 +35,12 @@ const SECTIONS: Section[] = [
       { label: 'Inserate', href: '/admin/inserate', icon: FileText },
       { label: 'User', href: '/admin/users', icon: Users },
       { label: 'Anfragen', href: '/admin/anfragen', icon: MessageSquare },
+    ],
+  },
+  {
+    label: 'Inhalt',
+    items: [
+      { label: 'Blog', href: '/admin/blog', icon: Newspaper },
     ],
   },
   {
