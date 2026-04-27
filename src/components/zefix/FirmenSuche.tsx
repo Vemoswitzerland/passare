@@ -13,7 +13,7 @@ export type FirmaHit = {
 };
 
 type Props = {
-  onSelect: (uid: string) => void;
+  onSelect: (hit: FirmaHit) => void;
   placeholder?: string;
 };
 
@@ -83,10 +83,9 @@ export function FirmenSuche({ onSelect, placeholder = 'Firma suchen (Name oder U
   }, [query, search]);
 
   function handleSelect(hit: FirmaHit) {
-    if (!hit.uid) return;
-    setQuery(hit.name ?? hit.uid);
+    setQuery(hit.name ?? hit.uid ?? '');
     setOpen(false);
-    onSelect(hit.uid);
+    onSelect(hit);
   }
 
   return (

@@ -219,32 +219,64 @@ function Step1Firma({ draft, update }: { draft: Draft; update: (p: Partial<Draft
   const [err, setErr] = useState<string | null>(null);
   const [manual, setManual] = useState(false);
 
-  async function selectByUid(uid: string) {
+  async function selectByHit(hit: { uid: string | null; name: string | null; ort: string | null; kanton: string | null }) {
+    // Sofort-UX: Basisdaten aus Search-Hit übernehmen, dann im
+    // Hintergrund Detail-Lookup laden (mit 202-Retry).
+    if (hit.uid) {
+      update({
+        zefix_uid: hit.uid,
+        firma_name: hit.name,
+        firma_sitz_gemeinde: hit.ort,
+        kanton: hit.kanton,
+      });
+    }
+    if (!hit.uid) return;
+
     setLoading(true);
     setErr(null);
     try {
-      const res = await fetch(`/api/zefix/lookup?uid=${encodeURIComponent(uid)}`);
-      if (!res.ok) {
-        setErr('Diese Firma konnte gerade nicht abgerufen werden — du kannst manuell weiter.');
-        update({ zefix_uid: uid });
+      const company = await fetchLookupWithRetry(hit.uid);
+      if (!company) {
+        // Lookup-Service nicht verfügbar — Basisdaten reichen für Onboarding
         return;
       }
-      const { company } = await res.json();
       const matchedBranche = matchBrancheFromPurpose(company.branche ?? company.zweck);
       update({
-        zefix_uid: company.uid,
-        firma_name: company.name,
+        zefix_uid: company.uid ?? hit.uid,
+        firma_name: company.name ?? hit.name,
         firma_rechtsform: company.rechtsform,
-        firma_sitz_gemeinde: company.gemeinde ?? company.adresse?.ort ?? null,
+        firma_sitz_gemeinde: company.gemeinde ?? company.adresse?.ort ?? hit.ort,
         branche_id: matchedBranche,
-        kanton: company.kanton,
+        kanton: company.kanton ?? hit.kanton,
         jahr: company.gruendungsjahr,
       });
     } catch {
-      setErr('Verbindungs-Fehler — bitte später erneut versuchen oder manuell eingeben.');
+      // Basisdaten sind bereits gesetzt — kein blockierender Fehler
     } finally {
       setLoading(false);
     }
+  }
+
+  async function fetchLookupWithRetry(uid: string, attempts = 3): Promise<any | null> {
+    for (let i = 0; i < attempts; i++) {
+      const res = await fetch(`/api/zefix/lookup?uid=${encodeURIComponent(uid)}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.company) return data.company;
+        if (data.status === 'pending') {
+          const wait = Math.min(15, Number(data.retry_after_seconds) || 12);
+          await new Promise((r) => setTimeout(r, wait * 1000));
+          continue;
+        }
+        return null;
+      }
+      if (res.status === 202) {
+        await new Promise((r) => setTimeout(r, 12_000));
+        continue;
+      }
+      return null;
+    }
+    return null;
   }
 
   return (
@@ -261,7 +293,7 @@ function Step1Firma({ draft, update }: { draft: Draft; update: (p: Partial<Draft
 
       {!manual ? (
         <>
-          <FirmenSuche onSelect={selectByUid} />
+          <FirmenSuche onSelect={selectByHit} />
           {loading && (
             <div className="flex items-center gap-2 justify-center text-body-sm text-quiet">
               <Loader2 className="w-4 h-4 animate-spin" strokeWidth={1.5} />

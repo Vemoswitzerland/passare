@@ -212,15 +212,27 @@ async function lookupViaLindas(uidCompact: string): Promise<ZefixCompany | null>
   };
 }
 
-async function searchViaLindas(name: string, maxResults: number): Promise<ZefixSearchHit[]> {
-  const escaped = name.replace(/"/g, '\\"');
+async function searchViaLindas(names: string[], maxResults: number): Promise<ZefixSearchHit[]> {
+  // Akzeptiert mehrere Such-Begriffe und baut einen OR-Filter — eine
+  // einzige SPARQL-Query statt sequenzieller Variants. Latenz ~3-5s
+  // statt 3 × 5s.
+  const list = names
+    .map((n) => n.trim())
+    .filter((n) => n.length >= 2);
+  if (list.length === 0) return [];
+  const filterParts = list.map((n) => {
+    const escaped = n.replace(/"/g, '\\"');
+    return `CONTAINS(LCASE(?name), LCASE("${escaped}"))`;
+  });
+  const filterExpr = filterParts.join(' || ');
+
   const query = `
     PREFIX schema: <http://schema.org/>
     PREFIX locn: <http://www.w3.org/ns/locn#>
     SELECT DISTINCT ?company ?name ?ort ?kanton WHERE {
       ?company a <https://schema.ld.admin.ch/ZefixOrganisation> ;
                schema:name ?name .
-      FILTER(CONTAINS(LCASE(?name), LCASE("${escaped}")))
+      FILTER(${filterExpr})
       OPTIONAL {
         ?company schema:address ?addr .
         OPTIONAL { ?addr schema:addressLocality ?ort }
@@ -535,21 +547,24 @@ export async function searchByName(query: string, maxResults = 20): Promise<Zefi
   const q = query.trim();
   if (q.length < 2) return [];
 
-  // REST zuerst (falls Auth gesetzt), dann LINDAS — jeweils mit Such-Varianten
   const variants = buildSearchVariants(q);
+
+  // 1. REST (falls Auth gesetzt) — pro Variant einzeln, schnell
   for (const variant of variants) {
     try {
       const restHits = await searchViaRest(variant, maxResults);
       if (restHits.length > 0) return restHits;
     } catch {
-      // ignore — fallback auf LINDAS
+      // ignore
     }
-    try {
-      const lindasHits = await searchViaLindas(variant, maxResults);
-      if (lindasHits.length > 0) return lindasHits;
-    } catch {
-      // ignore — nächste Variante
-    }
+  }
+
+  // 2. LINDAS in EINER Query mit OR-Filter über alle Variants
+  try {
+    const lindasHits = await searchViaLindas(variants, maxResults);
+    if (lindasHits.length > 0) return lindasHits;
+  } catch {
+    // ignore
   }
   return [];
 }
