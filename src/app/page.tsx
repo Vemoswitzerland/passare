@@ -159,7 +159,7 @@ export function SiteFooter() {
 /* ════════════════════════ Hero ════════════════════════ */
 function Hero() {
   return (
-    <Section className="pt-12 md:pt-16 pb-4 md:pb-4">
+    <Section className="pt-12 md:pt-16 pb-10 md:pb-14">
       <Container>
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 max-w-content">
           <div>
