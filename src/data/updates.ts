@@ -28,6 +28,21 @@ export type Task = {
  * Tasks werden als Build-Log-artige Liste gerendert.
  * KEINE Software-/Produktnamen in den Texten.
  */
+const CURRENT_TASKS: Task[] = [
+  { label: 'project · provisioning',        status: 'pending' },
+  { label: 'env · secrets_wiring',          status: 'pending' },
+  { label: 'schema · profiles_table',       status: 'pending' },
+  { label: 'schema · roles_enum',           status: 'pending' },
+  { label: 'policy · row_level_security',   status: 'pending' },
+  { label: 'trigger · auth_to_profiles',    status: 'pending' },
+  { label: 'auth · session_cookies',        status: 'pending' },
+  { label: 'auth · register_flow',          status: 'pending' },
+  { label: 'auth · login_flow',             status: 'pending' },
+  { label: 'auth · email_verification',     status: 'pending' },
+  { label: 'auth · password_reset',         status: 'pending' },
+  { label: 'verify · live_environment',     status: 'pending' },
+];
+
 export const CURRENT_STEP = {
   etappe: 'Etappe 02',
   branch: 'feat/auth-persistence',
@@ -35,20 +50,7 @@ export const CURRENT_STEP = {
   beschreibung:
     'Datenhaltung und Login-Flow aufsetzen. Profile-Schema mit Rollen, Zugriffsregeln pro Tabelle, sichere Session-Cookies.',
   geplant: '~ April 2026',
-  tasks: [
-    { label: 'project · provisioning',        status: 'pending'  as const },
-    { label: 'env · secrets_wiring',          status: 'pending'  as const },
-    { label: 'schema · profiles_table',       status: 'pending'  as const },
-    { label: 'schema · roles_enum',           status: 'pending'  as const },
-    { label: 'policy · row_level_security',   status: 'pending'  as const },
-    { label: 'trigger · auth_to_profiles',    status: 'pending'  as const },
-    { label: 'auth · session_cookies',        status: 'pending'  as const },
-    { label: 'auth · register_flow',          status: 'pending'  as const },
-    { label: 'auth · login_flow',             status: 'pending'  as const },
-    { label: 'auth · email_verification',     status: 'pending'  as const },
-    { label: 'auth · password_reset',         status: 'pending'  as const },
-    { label: 'verify · live_environment',     status: 'pending'  as const },
-  ] satisfies Task[],
+  tasks: CURRENT_TASKS,
 };
 
 /**
