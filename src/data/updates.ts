@@ -56,7 +56,7 @@ export const CURRENT_STEP = {
     { label: 'wizard · step_3_interessen',     status: 'pending' },
     { label: 'terms · zwingende_zustimmung',   status: 'pending' },
     { label: 'redirect · nach_rolle',          status: 'pending' },
-  ],
+  ] as Task[],
 };
 
 /**
