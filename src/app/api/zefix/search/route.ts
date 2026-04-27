@@ -23,19 +23,26 @@ export async function GET(req: NextRequest) {
     );
   }
 
+  // Rate-Limit defensiv: bei DB-Fehler (z.B. Tabelle fehlt) durchwinken
   const ip = getClientIp(req);
-  const rate = await checkRateLimit(ip, 'zefix_search', 60);
-  if (!rate.allowed) {
-    return NextResponse.json(
-      { error: 'Rate-Limit erreicht. Versuch es in einer Minute erneut.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rate.retryAfter),
-          'X-RateLimit-Remaining': '0',
+  let rateRemaining = 60;
+  try {
+    const rate = await checkRateLimit(ip, 'zefix_search', 60);
+    if (!rate.allowed) {
+      return NextResponse.json(
+        { error: 'Rate-Limit erreicht. Versuch es in einer Minute erneut.' },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(rate.retryAfter),
+            'X-RateLimit-Remaining': '0',
+          },
         },
-      },
-    );
+      );
+    }
+    rateRemaining = rate.remaining;
+  } catch (err) {
+    console.warn('[zefix/search] rate-limit unavailable, allowing:', err instanceof Error ? err.message : err);
   }
 
   try {
@@ -45,7 +52,7 @@ export async function GET(req: NextRequest) {
       {
         headers: {
           'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=3600',
-          'X-RateLimit-Remaining': String(rate.remaining),
+          'X-RateLimit-Remaining': String(rateRemaining),
         },
       },
     );
