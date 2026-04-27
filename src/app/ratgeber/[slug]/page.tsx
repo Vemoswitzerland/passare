@@ -2,15 +2,26 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ArrowLeft, ArrowRight, Calendar, User, Tag } from 'lucide-react';
 import { MDXRemote } from 'next-mdx-remote/rsc';
+import { createClient } from '@supabase/supabase-js';
 import { Container, Section } from '@/components/ui/container';
 import { Button } from '@/components/ui/button';
 import { Reveal } from '@/components/ui/reveal';
 import { Divider } from '@/components/ui/divider';
 import { SiteHeader } from '../../page';
-import { createClient } from '@/lib/supabase/server';
 import { mdxComponents } from '../components';
 
+export const dynamic = 'force-static';
 export const revalidate = 600;
+export const dynamicParams = true;
+
+/** Cookie-loser Public-Client für SSG/ISR (artikel-Tabelle = Public-RLS). */
+function publicSupabase() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { auth: { persistSession: false, autoRefreshToken: false } },
+  );
+}
 
 type Artikel = {
   id: string;
@@ -26,7 +37,7 @@ type Artikel = {
 
 async function loadArtikel(slug: string): Promise<Artikel | null> {
   try {
-    const supabase = await createClient();
+    const supabase = publicSupabase();
     const { data, error } = await supabase
       .from('artikel')
       .select('*')
@@ -44,7 +55,7 @@ async function loadArtikel(slug: string): Promise<Artikel | null> {
 
 async function loadOtherArtikel(currentSlug: string, limit = 2): Promise<Artikel[]> {
   try {
-    const supabase = await createClient();
+    const supabase = publicSupabase();
     const { data } = await supabase
       .from('artikel')
       .select('id, slug, titel, lead, kategorie, cover_url, autor, published_at, body_mdx')
@@ -61,7 +72,7 @@ async function loadOtherArtikel(currentSlug: string, limit = 2): Promise<Artikel
 
 export async function generateStaticParams() {
   try {
-    const supabase = await createClient();
+    const supabase = publicSupabase();
     const { data } = await supabase
       .from('artikel')
       .select('slug')
