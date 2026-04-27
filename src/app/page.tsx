@@ -399,10 +399,10 @@ function ListingCard({ listing }: { listing: typeof LISTINGS[number] }) {
         </span>
 
         <div className="absolute bottom-4 left-5 right-5 z-[1]">
-          <p className="font-mono text-[14px] md:text-[15px] uppercase tracking-[0.16em] text-bronze font-semibold leading-tight drop-shadow-[0_2px_8px_rgba(0,0,0,0.7)]">
+          <p className="font-mono text-[12px] md:text-[13px] uppercase tracking-[0.16em] text-bronze font-semibold leading-tight drop-shadow-[0_2px_8px_rgba(0,0,0,0.7)]">
             {listing.branche} · Kanton {listing.kanton}
           </p>
-          <p className="font-mono text-[15px] md:text-base tracking-wider text-cream mt-1.5 drop-shadow-[0_2px_8px_rgba(0,0,0,0.7)]">
+          <p className="font-mono text-[13px] md:text-[14px] tracking-wider text-cream mt-1.5 drop-shadow-[0_2px_8px_rgba(0,0,0,0.7)]">
             {facts}
           </p>
         </div>
