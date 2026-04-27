@@ -43,6 +43,12 @@ Fraunces + Geist, Navy/Bronze/Cream, Lucide, Framer Motion, Living Style Guide `
 ### ✅ Etappe 1.7 — Self-Service-Modell + Einzelseiten [LIVE]
 Homepage umgebaut, `/verkaufen` (Hero mit Dashboard-Mockup), `/kaufen` (Marktplatz), `/preise`. Alle Docs aktualisiert.
 
+### ✅ Etappe 1.8 — Live-Status-Seite `/status` [LIVE]
+Build-Log-Style Verlauf mit `CURRENT_STEP` (Etappe + Task-Liste) + chronologischer Update-Timeline. Pin-Code-Gate `2827` (4-stelliger iPhone-Style-Input). Mobile-First. Workflow in CLAUDE.md festgehalten.
+
+### ✅ Etappe 1.9 — Public-Access + Crawler-Schutz [LIVE]
+Vercel SSO-Protection deaktiviert (externe User landen direkt auf Beta-Gate, nicht Vercel-Login). `app/robots.ts` mit `Disallow: /` für alle Bots während Beta. `<meta name="robots" content="noindex, nofollow">` global.
+
 ### ⏳ Etappe 2 — Supabase Setup + Core-Migrations [NEXT]
 **Ziel:** Supabase-Projekt verknüpft, `profiles` Tabelle mit Rollen (`verkaeufer`/`kaeufer`/`admin`), RLS.
 **Tabellen:** `profiles` (inkl. `is_broker`, `mfa_enrolled`, `qualitaets_score`, `avg_response_time_hours`, `tags`, `admin_notes`), Trigger `auth.users → profiles`, User-Roles-Enum.
@@ -476,4 +482,4 @@ Stripe Smart Retries + `past_due`→Feature-Gate-Deaktivierung nach 3 fehlgeschl
 
 ---
 
-*Letzte Aktualisierung: 27.04.2026 · Etappe 1.7 live · Gap-Analyse + Persona-Walkthrough integriert (196 Etappen total) · Siehe `docs/GAP_ANALYSIS.md` und `docs/PERSONA_WALKTHROUGH.md`*
+*Letzte Aktualisierung: 27.04.2026 · Etappe 1.9 live · Gap-Analyse + Persona-Walkthrough integriert (196 Etappen total) · Siehe `docs/GAP_ANALYSIS.md` und `docs/PERSONA_WALKTHROUGH.md`*
