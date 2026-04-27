@@ -68,6 +68,13 @@ export const UPDATES: Update[] = [
   {
     date: '2026-04-27',
     type: 'feature',
+    titel: 'Handelsregister-Lookup + KI-Teaser sind live',
+    beschreibung:
+      'Sobald ein Verkäufer seine UID-Nummer eingibt, wird Firmenname, Rechtsform, Adresse, Zweck und Sitz automatisch aus dem offiziellen Schweizer Handelsregister geholt. Antwort kommt in unter 2 Sekunden — beim Erstkontakt schickt die Plattform eine «Bitte 12 Sekunden warten»-Antwort und füllt im Hintergrund den Speicher, sodass alle weiteren Anfragen sofort funktionieren. Zusätzlich gibt es zwei KI-Funktionen: Auf Knopfdruck wird ein anonymer Inserate-Text mit Titel, Kurzbeschreibung, Detailbeschreibung, Preisempfehlung und drei Schlüsselargumenten generiert (typisch 6 Sekunden, Kosten unter 1 Rappen pro Inserat). Eine zweite Funktion schlägt automatisch die passende Branche aus dem Plattform-Katalog vor, sobald der Zweck eingegeben ist.',
+  },
+  {
+    date: '2026-04-27',
+    type: 'feature',
     titel: 'Verkäufer-Bereich live: Pre-Onboarding mit Smart-Bewertung',
     beschreibung:
       'Wer eine Firma verkaufen möchte, startet jetzt mit einem 5-Schritt-Pre-Onboarding noch BEVOR ein Konto angelegt wird: Live-Suche im Handelsregister füllt Firmenname/Sitz/Rechtsform automatisch aus, dann werden Branche, Umsatz, Ertrag und Mitarbeiter eingegeben — und der indikative Marktwert wird mit Animation eingeblendet. Erst dann folgt die Konto-Erstellung, wobei die Daten nahtlos ins erste Inserat übernommen werden.',
