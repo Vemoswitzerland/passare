@@ -12,13 +12,14 @@ type RevealProps = React.HTMLAttributes<HTMLDivElement> & {
 /**
  * Scroll-Reveal mit fade-up.
  * Duration 700ms, cubic-bezier expo-out. Dezent.
+ * `amount: 0.05` triggert auch bei sehr grossen Hero-Elementen zuverlässig.
  */
 export function Reveal({ children, className, delay = 0, once = true, ...props }: RevealProps) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
       whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once, margin: '-50px' }}
+      viewport={{ once, margin: '0px', amount: 0.05 }}
       transition={{ duration: 0.7, delay, ease: [0.16, 1, 0.3, 1] }}
       className={className}
       {...(props as object)}
@@ -40,7 +41,7 @@ export function RevealStagger({ children, className, gap = 0.08 }: RevealStagger
     <motion.div
       initial="hidden"
       whileInView="visible"
-      viewport={{ once: true, margin: '-50px' }}
+      viewport={{ once: true, margin: '0px', amount: 0.05 }}
       variants={{
         hidden: {},
         visible: { transition: { staggerChildren: gap } },
