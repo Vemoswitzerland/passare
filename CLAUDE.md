@@ -240,7 +240,62 @@ Code & Kommentare auch DE.
 - ✅ **Etappe 1 LIVE** — Repo, Scaffold, Beta-Gate, Deploy
 - ✅ **Etappe 1.5 LIVE** — Design-System v1.0 (Fraunces + Geist, Navy/Bronze/Cream, Lucide, Framer Motion)
 - ✅ **Etappe 1.7 LIVE** — Self-Service-Modell + Pricing 3+2 + Einzelseiten (/verkaufen, /kaufen, /entdecken, /preise)
+- ✅ **Etappe 1.8 LIVE** — Live-Status-Seite `/status` (Code `2827`)
 - 📋 **Etappe 1.9** — Gap-Analyse abgeschlossen, 15 neue Pflicht-Etappen in MASTER_PLAN integriert (siehe `docs/GAP_ANALYSIS.md`)
 - ⏳ **Etappe 2 NEXT** — Supabase-Setup + Core Migrations (inkl. `terms_acceptances`, `consent_records`, `notifications`)
 
 Siehe [docs/MASTER_PLAN.md](docs/MASTER_PLAN.md) für alle Etappen, [docs/GAP_ANALYSIS.md](docs/GAP_ANALYSIS.md) für die Lückenanalyse.
+
+---
+
+## 📡 LIVE-STATUS-SEITE — Pflicht-Workflow
+
+**Die Seite `/status` (Code `2827`) zeigt Cyrill in nicht-technischer Sprache was bisher gemacht wurde und was als Nächstes ansteht.**
+
+Nach JEDER abgeschlossenen Aufgabe (jedem Deploy, jedem Fix, jedem neuen Feature):
+
+### Schritt 1 — `src/data/updates.ts` aktualisieren
+Füge **oben in der `UPDATES`-Liste** (= neueste zuerst) eine neue Entry hinzu:
+
+```ts
+{
+  date: '2026-04-XX',                // ISO-Format
+  type: 'feature' | 'design' | 'fix' | 'content' | 'milestone' | 'infrastruktur',
+  titel: 'Kurzer Titel, max 60 Zeichen',
+  beschreibung: 'Ein bis zwei Sätze. Klar verständlich für Nicht-Techniker. Keine Tech-Begriffe wie API, RLS, Webhook, Schema, Migration. Lieber: «Datenbank», «Login funktioniert jetzt», «Seite lädt schneller».',
+},
+```
+
+### Schritt 2 — Wenn neue Etappe dran ist: `CURRENT_STEP` updaten
+Wenn die aktuelle Etappe abgeschlossen ist, ersetze in `src/data/updates.ts` den `CURRENT_STEP`-Block:
+
+```ts
+export const CURRENT_STEP = {
+  etappe: 'Etappe N',
+  titel: 'Kurzer Untertitel',
+  beschreibung: 'Was passiert jetzt — laienverständlich, 2-3 Sätze, nutzt keine Fachbegriffe.',
+  geplant: '~ Monat YYYY',
+};
+```
+
+### Schritt 3 — Deploy + Alias
+```bash
+git add -A && git commit -m "..." && git push
+vercel --prod --yes
+vercel alias set <neue-url> passare-ch.vercel.app
+```
+
+### Schritt 4 — Verifizieren auf `/status`
+- https://passare-ch.vercel.app/status mit Code `2827` aufrufen
+- Prüfen ob die neue Entry oben erscheint
+- Aktueller Schritt korrekt?
+
+### Sprach-Regeln für Updates
+- ❌ NICHT: «RLS-Policy auf `inserate` Tabelle eingerichtet»
+- ✅ JA: «Inserate sind jetzt geschützt — niemand sieht fremde Daten»
+- ❌ NICHT: «Stripe Webhook integriert»
+- ✅ JA: «Bezahlung mit Kreditkarte funktioniert — wir bekommen Bescheid wenn jemand zahlt»
+- ❌ NICHT: «Next.js 16 Server Actions verwendet»
+- ✅ JA: «Formulare auf der Webseite funktionieren jetzt schneller»
+
+**Mobile-First:** Die `/status`-Seite ist primär für Cyrills Handy gebaut.

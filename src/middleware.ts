@@ -12,6 +12,8 @@ import { NextRequest, NextResponse } from 'next/server';
 const PUBLIC_PATHS = [
   '/beta',
   '/api/beta',
+  '/status',
+  '/api/status',
   '/favicon.ico',
   '/robots.txt',
   '/sitemap.xml',
