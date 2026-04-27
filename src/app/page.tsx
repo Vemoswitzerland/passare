@@ -1,12 +1,14 @@
 import Link from 'next/link';
 import {
-  ArrowRight, Search, MapPin, TrendingUp, Users, Calendar,
-  FileLock2, Building2, Filter, Heart,
+  ArrowRight, Search, TrendingUp,
+  FileLock2, Filter, Heart,
 } from 'lucide-react';
 import { Container, Section } from '@/components/ui/container';
 import { Button } from '@/components/ui/button';
 import { Divider } from '@/components/ui/divider';
 import { Reveal } from '@/components/ui/reveal';
+import { branchenStockfoto } from '@/data/branchen-stockfotos';
+import { renderKeyFacts } from '@/lib/key-facts';
 
 /**
  * passare.ch — Homepage = Plattform / Marktplatz
@@ -358,10 +360,10 @@ function Marketplace() {
 /* ════════════════════════ ListingCard ════════════════════════ */
 function ListingCard({ listing }: { listing: typeof LISTINGS[number] }) {
   const statusColor =
-    listing.status === 'featured' ? 'bg-bronze/15 text-bronze-ink'
-    : listing.status === 'neu' ? 'bg-success/10 text-success'
-    : listing.status === 'nda' ? 'bg-navy-soft text-navy'
-    : 'bg-stone/60 text-muted';
+    listing.status === 'featured' ? 'bg-bronze/90 text-cream'
+    : listing.status === 'neu' ? 'bg-success/90 text-cream'
+    : listing.status === 'nda' ? 'bg-navy/90 text-cream'
+    : 'bg-paper/90 text-navy';
 
   const statusLabel =
     listing.status === 'featured' ? 'Featured'
@@ -369,76 +371,82 @@ function ListingCard({ listing }: { listing: typeof LISTINGS[number] }) {
     : listing.status === 'nda' ? 'NDA-Prozess'
     : 'Live';
 
+  const cover = branchenStockfoto(listing.branche, listing.id);
+  const facts = renderKeyFacts(listing);
+
   return (
-    <article className="group bg-paper border border-stone rounded-card p-6 hover:-translate-y-0.5 hover:shadow-lift transition-all duration-300 flex flex-col">
-      <div className="flex items-center justify-between mb-4">
-        <span className="font-mono text-[10px] uppercase tracking-widest text-quiet">
+    <article className="group bg-paper border border-stone rounded-card overflow-hidden hover:-translate-y-0.5 hover:shadow-lift transition-all duration-300 flex flex-col">
+      {/* ─── Cover ─── */}
+      <div className="relative h-44 md:h-48 overflow-hidden">
+        <div
+          className="absolute inset-0 transition-transform duration-700 ease-out-expo group-hover:scale-110"
+          style={{
+            backgroundImage: `url(${cover})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            filter: 'blur(6px) brightness(0.55) saturate(1.1)',
+            transform: 'scale(1.15)',
+          }}
+        />
+        {/* Verlauf für bessere Lesbarkeit unten */}
+        <div className="absolute inset-0 bg-gradient-to-t from-navy/70 via-navy/20 to-transparent" />
+
+        <span className="absolute top-3 left-3 font-mono text-[10px] uppercase tracking-widest text-cream/85 backdrop-blur-sm bg-navy/40 px-2 py-1 rounded-full">
           {listing.id}
         </span>
-        <span className={`font-mono text-[10px] uppercase tracking-widest px-2.5 py-0.5 rounded-full ${statusColor}`}>
+        <span className={`absolute top-3 right-3 font-mono text-[10px] uppercase tracking-widest px-2.5 py-1 rounded-full backdrop-blur-sm ${statusColor}`}>
           {statusLabel}
         </span>
+
+        <div className="absolute bottom-4 left-5 right-5 z-[1]">
+          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-bronze font-semibold leading-tight drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)]">
+            {listing.branche} · Kanton {listing.kanton}
+          </p>
+          <p className="font-mono text-[12px] tracking-wider text-cream/90 mt-1 drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)]">
+            {facts}
+          </p>
+        </div>
       </div>
 
-      <div className="mb-5">
-        <div className="flex items-center gap-2 mb-3">
-          <Building2 className="w-3.5 h-3.5 text-bronze" strokeWidth={1.5} />
-          <span className="font-mono text-[11px] uppercase tracking-wider text-muted">
-            {listing.branche}
-          </span>
-        </div>
-        <h3 className="font-serif text-head-md text-navy leading-tight font-normal">
+      {/* ─── Body ─── */}
+      <div className="p-6 flex flex-col flex-1">
+        <h3 className="font-serif text-head-md text-navy leading-tight font-normal mb-5">
           {listing.titel}<span className="text-bronze">.</span>
         </h3>
-      </div>
 
-      <div className="flex items-center gap-4 mb-5 text-caption text-quiet flex-wrap">
-        <span className="flex items-center gap-1.5">
-          <MapPin className="w-3 h-3" strokeWidth={1.5} />
-          Kanton {listing.kanton}
-        </span>
-        <span className="flex items-center gap-1.5">
-          <Calendar className="w-3 h-3" strokeWidth={1.5} />
-          seit {listing.jahr}
-        </span>
-        <span className="flex items-center gap-1.5">
-          <Users className="w-3 h-3" strokeWidth={1.5} />
-          {listing.mitarbeitende} MA
-        </span>
-      </div>
-
-      <div className="grid grid-cols-3 gap-3 py-4 border-t border-b border-stone mb-5">
-        <div>
-          <p className="overline mb-1">Umsatz</p>
-          <p className="font-mono text-body-sm text-navy font-tabular font-medium">{listing.umsatz}</p>
+        <div className="grid grid-cols-3 gap-3 py-4 border-t border-b border-stone mb-5">
+          <div>
+            <p className="overline mb-1">Umsatz</p>
+            <p className="font-mono text-body-sm text-navy font-tabular font-medium">{listing.umsatz}</p>
+          </div>
+          <div>
+            <p className="overline mb-1">EBITDA</p>
+            <p className="font-mono text-body-sm text-navy font-tabular font-medium">{listing.ebitda}</p>
+          </div>
+          <div>
+            <p className="overline mb-1">Preis</p>
+            <p className="font-mono text-body-sm text-navy font-tabular font-medium">{listing.kaufpreis}</p>
+          </div>
         </div>
-        <div>
-          <p className="overline mb-1">EBITDA</p>
-          <p className="font-mono text-body-sm text-navy font-tabular font-medium">{listing.ebitda}</p>
-        </div>
-        <div>
-          <p className="overline mb-1">Preis</p>
-          <p className="font-mono text-body-sm text-navy font-tabular font-medium">{listing.kaufpreis}</p>
-        </div>
-      </div>
 
-      <p className="font-mono text-[11px] uppercase tracking-wider text-quiet mb-5">
-        <TrendingUp className="inline w-3 h-3 mr-1 text-bronze" strokeWidth={1.5} />
-        {listing.grund}
-      </p>
+        <p className="font-mono text-[11px] uppercase tracking-wider text-quiet mb-5">
+          <TrendingUp className="inline w-3 h-3 mr-1 text-bronze" strokeWidth={1.5} />
+          {listing.grund}
+        </p>
 
-      <div className="mt-auto flex items-center gap-3">
-        <Button href="/auth/register" size="sm" className="flex-1 justify-center">
-          <FileLock2 className="w-3.5 h-3.5" strokeWidth={1.5} />
-          Dossier anfragen
-        </Button>
-        <button
-          type="button"
-          className="px-3 py-2 border border-stone rounded-soft text-muted hover:border-bronze hover:text-bronze transition-colors"
-          aria-label="Favorit"
-        >
-          <Heart className="w-3.5 h-3.5" strokeWidth={1.5} />
-        </button>
+        <div className="mt-auto flex items-center gap-3">
+          <Button href="/auth/register" size="sm" className="flex-1 justify-center">
+            <FileLock2 className="w-3.5 h-3.5" strokeWidth={1.5} />
+            Dossier anfragen
+          </Button>
+          <button
+            type="button"
+            className="px-3 py-2 border border-stone rounded-soft text-muted hover:border-bronze hover:text-bronze transition-colors"
+            aria-label="Favorit"
+          >
+            <Heart className="w-3.5 h-3.5" strokeWidth={1.5} />
+          </button>
+        </div>
       </div>
     </article>
   );
