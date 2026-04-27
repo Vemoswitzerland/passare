@@ -2,51 +2,39 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import {
   ArrowLeft,
-  Mail,
-  Calendar,
-  CalendarClock,
   Building2,
   MapPin,
+  Calendar,
+  CalendarClock,
   Users,
   TrendingUp,
   Wallet,
+  Mail,
   Eye,
-  Pencil,
-  Pause,
-  Play,
-  Info,
   ExternalLink,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { StatusBadge } from '@/components/admin/StatusBadge';
+import { InseratActions } from '@/components/admin/InseratActions';
 import {
-  ADMIN_DEMO_LISTINGS,
-  ADMIN_DEMO_ANFRAGEN,
-  ANFRAGE_STATUS_LABELS,
+  type AdminInserat,
+  type AdminAnfrage,
+  type AnfrageStatus,
   PAKET_LABELS,
-  type AdminAnfrageStatus,
-} from '@/data/admin-demo';
+  PAKET_VARIANTS,
+  ANFRAGE_STATUS_LABELS,
+  formatDate,
+  formatCHF,
+} from '@/lib/admin/types';
+import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
 export const metadata = {
-  title: 'Admin · Inserat-Detail — passare',
+  title: 'Admin · Inserat — passare',
   robots: { index: false, follow: false },
 };
 
-const formatDate = (iso: string) =>
-  new Intl.DateTimeFormat('de-CH', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  }).format(new Date(iso));
-
-const PAKET_VARIANTS: Record<string, string> = {
-  light: 'bg-stone/60 text-muted',
-  pro: 'bg-bronze-soft text-bronze-ink',
-  premium: 'bg-navy-soft text-navy',
-};
-
-const anfrageStatusStyles: Record<AdminAnfrageStatus, string> = {
+const anfrageStatusStyles: Record<AnfrageStatus, string> = {
   offen: 'bg-bronze/15 text-bronze-ink border-bronze/30',
   in_bearbeitung: 'bg-navy-soft text-navy border-navy/20',
   akzeptiert: 'bg-success/10 text-success border-success/30',
@@ -59,10 +47,36 @@ export default async function AdminInseratDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const listing = ADMIN_DEMO_LISTINGS.find((l) => l.id === id);
-  if (!listing) notFound();
+  const supabase = await createClient();
+  const { data } = await supabase.from('inserate').select('*').eq('id', id).maybeSingle();
+  if (!data) notFound();
+  const listing = data as AdminInserat;
 
-  const anfragen = ADMIN_DEMO_ANFRAGEN.filter((a) => a.inserat_id === id);
+  const { data: anfrData } = await supabase
+    .from('anfragen')
+    .select('*')
+    .eq('inserat_id', id)
+    .order('created_at', { ascending: false });
+  const anfragen = (anfrData ?? []) as AdminAnfrage[];
+
+  let verkaeufer: { id: string; full_name: string | null; email: string | null } | null = null;
+  if (listing.verkaeufer_id) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('id, full_name')
+      .eq('id', listing.verkaeufer_id)
+      .maybeSingle();
+    let email: string | null = null;
+    try {
+      const admin = createAdminClient();
+      const { data: au } = await admin.auth.admin.getUserById(listing.verkaeufer_id);
+      type AuthUserShape = { email?: string | null };
+      email = ((au as { user?: AuthUserShape } | null)?.user?.email ?? null) || null;
+    } catch {
+      /* ignore */
+    }
+    if (profile) verkaeufer = { id: profile.id as string, full_name: (profile.full_name as string | null) ?? null, email };
+  }
 
   return (
     <div className="max-w-5xl">
@@ -77,7 +91,7 @@ export default async function AdminInseratDetailPage({
       <header className="bg-paper border border-stone rounded-card p-6 mb-6">
         <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
           <div className="flex flex-wrap items-center gap-3">
-            <StatusBadge status={listing.admin_status} />
+            <StatusBadge status={listing.status} />
             <span
               className={cn(
                 'inline-flex px-2 py-0.5 rounded-soft text-caption font-medium',
@@ -86,11 +100,13 @@ export default async function AdminInseratDetailPage({
             >
               {PAKET_LABELS[listing.paket]}
             </span>
-            <code className="font-mono text-caption text-quiet">{listing.id}</code>
+            <code className="font-mono text-caption text-quiet">
+              {listing.public_id ?? listing.id.slice(0, 8)}
+            </code>
           </div>
-          <div className="flex gap-2">
+          {listing.status === 'live' && (
             <a
-              href={`/?inserat=${listing.id}`}
+              href={`/?inserat=${listing.public_id ?? listing.id}`}
               target="_blank"
               rel="noopener"
               className="inline-flex items-center gap-1.5 px-3 py-2 rounded-soft border border-stone bg-paper text-navy text-caption hover:border-navy/40 transition-colors"
@@ -99,57 +115,67 @@ export default async function AdminInseratDetailPage({
               Public-Ansicht
               <ExternalLink className="w-3 h-3" strokeWidth={1.5} />
             </a>
-            <ActionButton title="Bearbeiten" icon={Pencil} label="Bearbeiten" />
-            {listing.admin_status === 'live' ? (
-              <ActionButton title="Pausieren" icon={Pause} label="Pausieren" />
-            ) : (
-              <ActionButton title="Aktivieren" icon={Play} label="Aktivieren" />
-            )}
-          </div>
+          )}
         </div>
 
         <h1 className="font-serif text-3xl text-navy leading-tight mb-2">{listing.titel}</h1>
         <p className="text-body text-muted">
-          {listing.branche} · {listing.kanton} · gegründet {listing.jahr} ·{' '}
-          <span className="text-quiet">Grund: {listing.grund}</span>
+          {[listing.branche, listing.kanton, listing.gruendungsjahr ? `gegründet ${listing.gruendungsjahr}` : null]
+            .filter(Boolean)
+            .join(' · ') || 'Keine Eckdaten erfasst.'}
         </p>
       </header>
-
-      <div className="bg-bronze/10 border border-bronze/30 rounded-card px-4 py-3 mb-6 flex items-start gap-3">
-        <Info className="w-4 h-4 text-bronze-ink flex-shrink-0 mt-0.5" strokeWidth={1.5} />
-        <p className="text-body-sm text-navy">
-          <strong>Demo-Daten</strong> — Aktionen sind aktuell deaktiviert. Echte
-          Inserate-Verwaltung kommt in Etappe 47.
-        </p>
-      </div>
 
       <div className="grid lg:grid-cols-[1fr_320px] gap-6">
         <div className="space-y-6">
           <section className="bg-paper border border-stone rounded-card p-6">
             <h3 className="font-serif text-xl text-navy mb-4">Eckdaten</h3>
             <dl className="grid sm:grid-cols-2 gap-4">
-              <Detail icon={Building2} label="Branche" value={listing.branche} />
-              <Detail icon={MapPin} label="Kanton" value={listing.kanton} mono />
-              <Detail icon={Calendar} label="Gründungsjahr" value={listing.jahr.toString()} mono />
-              <Detail icon={Users} label="Mitarbeitende" value={listing.mitarbeitende.toString()} mono />
-              <Detail icon={TrendingUp} label="Umsatz" value={listing.umsatz} mono />
-              <Detail icon={TrendingUp} label="EBITDA" value={listing.ebitda} mono />
-              <Detail icon={Wallet} label="Kaufpreis" value={listing.kaufpreis} mono />
-              <Detail icon={Building2} label="Übergabegrund" value={listing.grund} />
+              <Detail icon={Building2} label="Branche" value={listing.branche ?? '—'} />
+              <Detail icon={MapPin} label="Kanton" value={listing.kanton ?? '—'} mono />
+              <Detail
+                icon={Calendar}
+                label="Gründungsjahr"
+                value={listing.gruendungsjahr?.toString() ?? '—'}
+                mono
+              />
+              <Detail
+                icon={Users}
+                label="Mitarbeitende"
+                value={listing.mitarbeitende?.toString() ?? '—'}
+                mono
+              />
+              <Detail
+                icon={TrendingUp}
+                label="Umsatz"
+                value={formatCHF(listing.umsatz_chf)}
+                mono
+              />
+              <Detail
+                icon={TrendingUp}
+                label="EBITDA-Marge"
+                value={listing.ebitda_pct !== null ? `${listing.ebitda_pct} %` : '—'}
+                mono
+              />
+              <Detail
+                icon={Wallet}
+                label="Kaufpreis"
+                value={listing.kaufpreis_label ?? '—'}
+                mono
+              />
+              <Detail icon={Building2} label="Übergabegrund" value={listing.grund ?? '—'} />
             </dl>
           </section>
 
           <section className="bg-paper border border-stone rounded-card p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-serif text-xl text-navy">
-                Anfragen ({anfragen.length})
-              </h3>
+              <h3 className="font-serif text-xl text-navy">Anfragen ({anfragen.length})</h3>
               {anfragen.length > 0 && (
                 <Link
-                  href="/admin/anfragen"
-                  className="text-caption text-quiet hover:text-navy transition-colors inline-flex items-center gap-1"
+                  href={`/admin/anfragen?inserat=${listing.id}`}
+                  className="text-caption text-quiet hover:text-navy transition-colors"
                 >
-                  Alle anzeigen <ArrowLeft className="w-3 h-3 rotate-180" strokeWidth={1.5} />
+                  Alle anzeigen →
                 </Link>
               )}
             </div>
@@ -157,15 +183,15 @@ export default async function AdminInseratDetailPage({
               <p className="text-caption text-quiet italic">Noch keine Anfragen.</p>
             ) : (
               <ul className="divide-y divide-stone/60 -mx-2">
-                {anfragen.map((a) => (
+                {anfragen.slice(0, 5).map((a) => (
                   <li key={a.id}>
                     <Link
                       href={`/admin/anfragen/${a.id}`}
                       className="flex items-start gap-3 px-2 py-3 hover:bg-cream/60 transition-colors rounded-soft"
                     >
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <p className="text-body-sm text-ink truncate">{a.kaeufer_name}</p>
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <p className="text-body-sm text-ink">{a.public_id ?? a.id.slice(0, 8)}</p>
                           <span
                             className={cn(
                               'inline-flex items-center gap-1 px-2 py-0.5 rounded-soft text-caption font-medium border',
@@ -175,8 +201,9 @@ export default async function AdminInseratDetailPage({
                             {ANFRAGE_STATUS_LABELS[a.status]}
                           </span>
                         </div>
-                        <p className="text-caption text-quiet font-mono">{a.kaeufer_email}</p>
-                        <p className="text-caption text-muted mt-1 line-clamp-2">{a.nachricht}</p>
+                        {a.nachricht && (
+                          <p className="text-caption text-muted line-clamp-2">{a.nachricht}</p>
+                        )}
                       </div>
                       <p className="text-caption text-quiet font-mono whitespace-nowrap">
                         {formatDate(a.created_at)}
@@ -190,33 +217,45 @@ export default async function AdminInseratDetailPage({
         </div>
 
         <aside className="space-y-6">
+          <InseratActions
+            id={listing.id}
+            currentStatus={listing.status}
+            publicId={listing.public_id ?? null}
+          />
+
           <section className="bg-paper border border-stone rounded-card p-5">
             <h3 className="font-serif text-lg text-navy mb-3">Verkäufer</h3>
-            <p className="text-body-sm text-ink truncate">
-              <Mail className="inline w-3.5 h-3.5 text-quiet mr-1.5" strokeWidth={1.5} />
-              <code className="font-mono">{listing.verkaeufer_email}</code>
-            </p>
-            <p className="text-caption text-quiet italic mt-2">
-              Verlinkung mit User-Profil folgt sobald Inserate-Tabelle in der DB existiert.
-            </p>
+            {verkaeufer ? (
+              <Link
+                href={`/admin/users/${verkaeufer.id}`}
+                className="block hover:bg-cream/60 -mx-2 px-2 py-2 rounded-soft transition-colors"
+              >
+                <p className="text-body-sm text-ink mb-1">{verkaeufer.full_name ?? '— ohne Namen'}</p>
+                {verkaeufer.email && (
+                  <p className="text-caption text-quiet font-mono break-all">
+                    <Mail className="inline w-3.5 h-3.5 mr-1" strokeWidth={1.5} />
+                    {verkaeufer.email}
+                  </p>
+                )}
+                <p className="text-caption text-bronze-ink mt-2">User-Profil öffnen →</p>
+              </Link>
+            ) : (
+              <p className="text-caption text-quiet italic">Kein Verkäufer-Profil verknüpft.</p>
+            )}
           </section>
 
           <section className="bg-paper border border-stone rounded-card p-5">
             <h3 className="font-serif text-lg text-navy mb-3">Laufzeit</h3>
             <ul className="space-y-2 text-caption">
               <DetailRow icon={Calendar} label="Erstellt" value={formatDate(listing.created_at)} />
-              <DetailRow icon={CalendarClock} label="Läuft ab" value={formatDate(listing.expires_at)} />
+              {listing.published_at && (
+                <DetailRow icon={Calendar} label="Veröffentlicht" value={formatDate(listing.published_at)} />
+              )}
+              {listing.expires_at && (
+                <DetailRow icon={CalendarClock} label="Läuft ab" value={formatDate(listing.expires_at)} />
+              )}
               <DetailRow label="Paket" value={PAKET_LABELS[listing.paket]} />
-              <DetailRow label="Anfragen" value={listing.pending_anfragen.toString()} />
             </ul>
-          </section>
-
-          <section className="bg-paper border border-stone rounded-card p-5">
-            <h3 className="font-serif text-lg text-navy mb-3">Verlängerung</h3>
-            <p className="text-caption text-quiet leading-relaxed">
-              Verkäufer kann sein Inserat eigenständig verlängern. Bei Ablauf
-              werden automatische Reminder verschickt (Etappe 48).
-            </p>
           </section>
         </aside>
       </div>
@@ -263,27 +302,5 @@ function DetailRow({
       </span>
       <span className="font-mono text-ink">{value}</span>
     </li>
-  );
-}
-
-function ActionButton({
-  title,
-  icon: Icon,
-  label,
-}: {
-  title: string;
-  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
-  label: string;
-}) {
-  return (
-    <button
-      type="button"
-      title={`${title} (kommt in Etappe 47)`}
-      disabled
-      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-soft border border-stone bg-paper text-quiet text-caption hover:text-navy hover:border-navy/40 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-    >
-      <Icon className="w-3.5 h-3.5" strokeWidth={1.5} />
-      {label}
-    </button>
   );
 }

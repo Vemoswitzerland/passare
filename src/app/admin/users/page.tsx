@@ -1,9 +1,11 @@
 import Link from 'next/link';
-import { ChevronRight, Phone, ShieldCheck, AlertTriangle, Search } from 'lucide-react';
+import { ChevronRight, Phone, ShieldCheck, AlertTriangle, Users as UsersIcon } from 'lucide-react';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { DataTable, Td, Tr } from '@/components/admin/DataTable';
 import { Badge } from '@/components/ui/badge';
 import { UsersFilterBar } from '@/components/admin/UsersFilterBar';
+import { PageHeader, EmptyState } from '@/components/admin/PageHeader';
+import { formatDate } from '@/lib/admin/types';
 
 export const metadata = {
   title: 'Admin · User — passare',
@@ -27,15 +29,6 @@ type UserRow = {
   qualitaets_score: number | null;
   created_at: string;
   onboarding_completed_at: string | null;
-};
-
-const formatDate = (iso: string | null | undefined) => {
-  if (!iso) return '—';
-  return new Intl.DateTimeFormat('de-CH', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  }).format(new Date(iso));
 };
 
 const roleVariant = (rolle: string | null): 'navy' | 'bronze' | 'neutral' => {
@@ -107,22 +100,19 @@ export default async function AdminUsersPage({
   const counts = await getCounts(supabase);
 
   return (
-    <div>
-      <header className="mb-8">
-        <p className="overline text-bronze mb-3">Verwaltung</p>
-        <h1 className="font-serif text-display-sm text-navy font-light">User</h1>
-        <p className="text-body text-muted mt-3 max-w-prose">
-          Alle registrierten Verkäufer, Käufer und Admins. Klick auf einen User
-          öffnet das Detail mit Notizen, Tags, Score und Verifikations-Toggles.
-        </p>
-      </header>
+    <div className="max-w-6xl">
+      <PageHeader
+        overline="Verwaltung"
+        title="User"
+        description="Alle registrierten Verkäufer, Käufer und Admins. Klick auf einen User öffnet das Detail mit Notizen, Tags, Score und Verifikation."
+      />
 
       {!serviceRoleAvailable && (
         <div className="bg-warn/10 border border-warn/30 rounded-card px-4 py-3 mb-6 flex items-start gap-3">
           <AlertTriangle className="w-4 h-4 text-warn flex-shrink-0 mt-0.5" strokeWidth={1.5} />
           <p className="text-body-sm text-navy">
-            <strong>Service-Role-Key fehlt</strong> — E-Mail-Adressen sind
-            nicht abrufbar. Trage <code className="font-mono">SUPABASE_SERVICE_ROLE_KEY</code> in den Vercel-Variablen ein.
+            <strong>Service-Role-Key fehlt</strong> — E-Mail-Adressen sind nicht abrufbar. Trage{' '}
+            <code className="font-mono">SUPABASE_SERVICE_ROLE_KEY</code> in den Vercel-ENV-Variablen ein.
           </p>
         </div>
       )}
@@ -130,87 +120,90 @@ export default async function AdminUsersPage({
       <UsersFilterBar counts={counts} initialQuery={query} />
 
       <p className="text-caption text-quiet mb-4">
-        {profiles.length} {profiles.length === 1 ? 'User' : 'User'} gefunden
+        {profiles.length} {profiles.length === 1 ? 'User' : 'User'}
         {query && <> für «{query}»</>}
       </p>
 
-      <DataTable
-        columns={[
-          { key: 'name', label: 'Name' },
-          { key: 'email', label: 'E-Mail' },
-          { key: 'rolle', label: 'Rolle' },
-          { key: 'kanton', label: 'Kanton' },
-          { key: 'sprache', label: 'Sprache' },
-          { key: 'verified', label: 'Verifiziert' },
-          { key: 'score', label: 'Score', align: 'right' },
-          { key: 'created', label: 'Registriert' },
-          { key: 'arrow', label: '', align: 'right' },
-        ]}
-        empty={
-          query ? (
-            <span>
-              Keine User gefunden für «<span className="font-mono">{query}</span>».
-            </span>
-          ) : (
-            'Keine User für diesen Filter.'
-          )
-        }
-      >
-        {profiles.map((u) => (
-          <Tr key={u.id} className="cursor-pointer">
-            <Td className="text-ink">
-              <Link href={`/admin/users/${u.id}`} className="block hover:text-bronze-ink transition-colors">
-                {u.full_name || <span className="text-quiet italic">— ohne Namen</span>}
-              </Link>
-            </Td>
-            <Td className="font-mono text-caption text-ink">
-              {emails.get(u.id) ?? <span className="text-quiet">—</span>}
-            </Td>
-            <Td>
-              {u.rolle ? (
-                <Badge variant={roleVariant(u.rolle)}>{ROLLE_LABEL[u.rolle]}</Badge>
-              ) : (
-                <span className="text-caption text-quiet italic">offen</span>
-              )}
-            </Td>
-            <Td className="font-mono text-caption text-ink">
-              {u.kanton ?? <span className="text-quiet">—</span>}
-            </Td>
-            <Td className="text-caption text-quiet uppercase">{u.sprache ?? '—'}</Td>
-            <Td>
-              <div className="inline-flex gap-1.5">
-                <span
-                  title={u.verified_phone ? 'Telefon verifiziert' : 'Telefon nicht verifiziert'}
-                  className={u.verified_phone ? 'text-success' : 'text-stone'}
+      {profiles.length === 0 ? (
+        <EmptyState
+          icon={UsersIcon}
+          title={query ? 'Keine Treffer' : 'Noch keine User'}
+          description={
+            query
+              ? `Keine User für «${query}». Andere Schreibweise probieren?`
+              : 'Sobald sich der erste User registriert, erscheint er hier.'
+          }
+        />
+      ) : (
+        <DataTable
+          columns={[
+            { key: 'name', label: 'Name' },
+            { key: 'email', label: 'E-Mail' },
+            { key: 'rolle', label: 'Rolle' },
+            { key: 'kanton', label: 'Kanton' },
+            { key: 'sprache', label: 'Spr.' },
+            { key: 'verified', label: 'Verifiziert' },
+            { key: 'score', label: 'Score', align: 'right' },
+            { key: 'created', label: 'Registriert' },
+            { key: 'arrow', label: '', align: 'right' },
+          ]}
+        >
+          {profiles.map((u) => (
+            <Tr key={u.id} className="cursor-pointer">
+              <Td className="text-ink">
+                <Link href={`/admin/users/${u.id}`} className="block hover:text-bronze-ink transition-colors">
+                  {u.full_name || <span className="text-quiet italic">— ohne Namen</span>}
+                </Link>
+              </Td>
+              <Td className="font-mono text-caption text-ink">
+                {emails.get(u.id) ?? <span className="text-quiet">—</span>}
+              </Td>
+              <Td>
+                {u.rolle ? (
+                  <Badge variant={roleVariant(u.rolle)}>{ROLLE_LABEL[u.rolle]}</Badge>
+                ) : (
+                  <span className="text-caption text-quiet italic">offen</span>
+                )}
+              </Td>
+              <Td className="font-mono text-caption text-ink">
+                {u.kanton ?? <span className="text-quiet">—</span>}
+              </Td>
+              <Td className="text-caption text-quiet uppercase">{u.sprache ?? '—'}</Td>
+              <Td>
+                <div className="inline-flex gap-1.5">
+                  <span
+                    title={u.verified_phone ? 'Telefon verifiziert' : 'Telefon nicht verifiziert'}
+                    className={u.verified_phone ? 'text-success' : 'text-stone'}
+                  >
+                    <Phone className="w-3.5 h-3.5" strokeWidth={1.5} />
+                  </span>
+                  <span
+                    title={u.verified_kyc ? 'KYC abgeschlossen' : 'KYC ausstehend'}
+                    className={u.verified_kyc ? 'text-success' : 'text-stone'}
+                  >
+                    <ShieldCheck className="w-3.5 h-3.5" strokeWidth={1.5} />
+                  </span>
+                </div>
+              </Td>
+              <Td align="right" className="font-mono text-caption">
+                {u.qualitaets_score ?? <span className="text-quiet">—</span>}
+              </Td>
+              <Td className="font-mono text-caption text-quiet whitespace-nowrap">
+                {formatDate(u.created_at)}
+              </Td>
+              <Td align="right">
+                <Link
+                  href={`/admin/users/${u.id}`}
+                  className="inline-flex p-1 text-quiet hover:text-bronze-ink transition-colors"
+                  aria-label={`Detail von ${u.full_name ?? 'User'}`}
                 >
-                  <Phone className="w-3.5 h-3.5" strokeWidth={1.5} />
-                </span>
-                <span
-                  title={u.verified_kyc ? 'KYC abgeschlossen' : 'KYC ausstehend'}
-                  className={u.verified_kyc ? 'text-success' : 'text-stone'}
-                >
-                  <ShieldCheck className="w-3.5 h-3.5" strokeWidth={1.5} />
-                </span>
-              </div>
-            </Td>
-            <Td align="right" className="font-mono text-caption">
-              {u.qualitaets_score ?? <span className="text-quiet">—</span>}
-            </Td>
-            <Td className="font-mono text-caption text-quiet whitespace-nowrap">
-              {formatDate(u.created_at)}
-            </Td>
-            <Td align="right">
-              <Link
-                href={`/admin/users/${u.id}`}
-                className="inline-flex items-center gap-1 text-quiet hover:text-bronze-ink transition-colors"
-                aria-label={`Detail von ${u.full_name ?? 'User'}`}
-              >
-                <ChevronRight className="w-4 h-4" strokeWidth={1.5} />
-              </Link>
-            </Td>
-          </Tr>
-        ))}
-      </DataTable>
+                  <ChevronRight className="w-4 h-4" strokeWidth={1.5} />
+                </Link>
+              </Td>
+            </Tr>
+          ))}
+        </DataTable>
+      )}
     </div>
   );
 }

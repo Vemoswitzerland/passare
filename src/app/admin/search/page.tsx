@@ -1,8 +1,8 @@
 import Link from 'next/link';
-import { Search as SearchIcon, FileText, Users, MessageSquare } from 'lucide-react';
+import { Search as SearchIcon, FileText, Users, MessageSquare, Newspaper } from 'lucide-react';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { Badge } from '@/components/ui/badge';
-import { ADMIN_DEMO_LISTINGS, ADMIN_DEMO_ANFRAGEN } from '@/data/admin-demo';
+import { PageHeader, EmptyState } from '@/components/admin/PageHeader';
 
 export const metadata = {
   title: 'Admin · Suche — passare',
@@ -28,97 +28,109 @@ export default async function AdminSearchPage({
 }) {
   const params = await searchParams;
   const query = (params.q ?? '').trim();
-  const lower = query.toLowerCase();
 
-  let users: Array<{
-    id: string;
-    full_name: string | null;
-    rolle: string | null;
-    kanton: string | null;
-    email?: string;
-  }> = [];
-
-  let listings = ADMIN_DEMO_LISTINGS.slice(0, 0);
-  let anfragen = ADMIN_DEMO_ANFRAGEN.slice(0, 0);
-
-  if (query) {
-    listings = ADMIN_DEMO_LISTINGS.filter(
-      (l) =>
-        l.id.toLowerCase().includes(lower) ||
-        l.titel.toLowerCase().includes(lower) ||
-        l.branche.toLowerCase().includes(lower) ||
-        l.kanton.toLowerCase().includes(lower) ||
-        l.verkaeufer_email.toLowerCase().includes(lower),
+  if (!query) {
+    return (
+      <div className="max-w-3xl">
+        <PageHeader
+          overline="Admin"
+          title="Globale Suche"
+          description="Durchsucht User, Inserate, Anfragen und Blog-Artikel gleichzeitig."
+        />
+        <SearchForm />
+      </div>
     );
-
-    anfragen = ADMIN_DEMO_ANFRAGEN.filter(
-      (a) =>
-        a.id.toLowerCase().includes(lower) ||
-        a.kaeufer_name.toLowerCase().includes(lower) ||
-        a.kaeufer_email.toLowerCase().includes(lower) ||
-        a.inserat_titel.toLowerCase().includes(lower),
-    );
-
-    const supabase = await createClient();
-    const { data: profilesData } = await supabase
-      .from('profiles')
-      .select('id, full_name, rolle, kanton');
-
-    const profiles = profilesData ?? [];
-
-    let emailMap = new Map<string, string>();
-    try {
-      const admin = createAdminClient();
-      const { data } = await admin.auth.admin.listUsers();
-      type AdminAuthUser = { id: string; email?: string | null };
-      const list = (data as { users?: AdminAuthUser[] }).users ?? [];
-      emailMap = new Map(list.map((u) => [u.id, u.email ?? '']));
-    } catch {
-      /* SR-Key fehlt */
-    }
-
-    users = profiles
-      .map((p) => ({
-        ...p,
-        email: emailMap.get(p.id),
-      }))
-      .filter(
-        (p) =>
-          (p.full_name ?? '').toLowerCase().includes(lower) ||
-          (p.email ?? '').toLowerCase().includes(lower) ||
-          (p.kanton ?? '').toLowerCase().includes(lower),
-      );
   }
 
-  const totalResults = users.length + listings.length + anfragen.length;
+  const like = `%${query}%`;
+  const supabase = await createClient();
+
+  // Inserate
+  const { data: inserateData } = await supabase
+    .from('inserate')
+    .select('id, public_id, titel, branche, kanton, status')
+    .or(`titel.ilike.${like},branche.ilike.${like},kanton.ilike.${like},public_id.ilike.${like}`)
+    .limit(20);
+
+  // Anfragen
+  const { data: anfragenData } = await supabase
+    .from('anfragen')
+    .select('id, public_id, status, nachricht')
+    .or(`public_id.ilike.${like},nachricht.ilike.${like}`)
+    .limit(20);
+
+  // Blog
+  const { data: blogData } = await supabase
+    .from('blog_posts')
+    .select('id, slug, titel, kategorie, status')
+    .or(`titel.ilike.${like},slug.ilike.${like},excerpt.ilike.${like}`)
+    .limit(20);
+
+  // Profile + Email
+  const { data: profilesData } = await supabase
+    .from('profiles')
+    .select('id, full_name, rolle, kanton')
+    .or(`full_name.ilike.${like},kanton.ilike.${like}`)
+    .limit(50);
+
+  let users = (profilesData ?? []).map((p) => ({
+    id: p.id as string,
+    full_name: (p.full_name as string | null) ?? null,
+    rolle: (p.rolle as string | null) ?? null,
+    kanton: (p.kanton as string | null) ?? null,
+    email: undefined as string | undefined,
+  }));
+
+  // Email match: braucht Service-Role
+  try {
+    const adminClient = createAdminClient();
+    const { data } = await adminClient.auth.admin.listUsers();
+    type AdminAuthUser = { id: string; email?: string | null };
+    const list = (data as { users?: AdminAuthUser[] }).users ?? [];
+    const emailMap = new Map(list.map((u) => [u.id, u.email ?? '']));
+    users = users.map((u) => ({ ...u, email: emailMap.get(u.id) }));
+    // Plus alle die per Email matchen aber Profil-Felder nicht treffen
+    const lq = query.toLowerCase();
+    const emailMatches = list.filter((u) => (u.email ?? '').toLowerCase().includes(lq));
+    const existing = new Set(users.map((u) => u.id));
+    for (const u of emailMatches) {
+      if (existing.has(u.id)) continue;
+      // Profil holen
+      const { data: p } = await supabase.from('profiles').select('full_name, rolle, kanton').eq('id', u.id).maybeSingle();
+      users.push({
+        id: u.id,
+        full_name: (p?.full_name as string | null) ?? null,
+        rolle: (p?.rolle as string | null) ?? null,
+        kanton: (p?.kanton as string | null) ?? null,
+        email: u.email ?? undefined,
+      });
+    }
+  } catch {
+    /* SR-Key fehlt */
+  }
+
+  const total =
+    users.length + (inserateData?.length ?? 0) + (anfragenData?.length ?? 0) + (blogData?.length ?? 0);
 
   return (
-    <div>
-      <header className="mb-8">
-        <p className="overline text-bronze mb-3">Suche</p>
-        <h1 className="font-serif text-display-sm text-navy font-light">
-          {query ? <>Resultate für «{query}»</> : 'Globale Suche'}
-        </h1>
-        <p className="text-body text-muted mt-3 max-w-prose">
-          {query
-            ? `${totalResults} Treffer in User, Inserate und Anfragen.`
-            : 'Tippe oben in das Suchfeld einen Begriff — oder rufe direkt /admin/search?q=… auf.'}
-        </p>
-      </header>
+    <div className="max-w-4xl">
+      <PageHeader
+        overline="Suche"
+        title={`Resultate für «${query}»`}
+        description={`${total} Treffer in User, Inserate, Anfragen und Blog.`}
+      />
 
-      {!query && (
-        <SearchForm />
-      )}
+      <SearchForm initial={query} />
 
-      {query && (
-        <div className="space-y-8">
-          {/* User */}
-          <ResultSection
-            title="User"
-            icon={Users}
-            count={users.length}
-            empty="Keine User gefunden."
-          >
+      {total === 0 ? (
+        <EmptyState
+          icon={SearchIcon}
+          title="Keine Treffer"
+          description={`Keine Daten zu «${query}» gefunden. Andere Schreibweise probieren?`}
+        />
+      ) : (
+        <div className="space-y-8 mt-8">
+          <ResultSection title="User" icon={Users} count={users.length}>
             <ul className="divide-y divide-stone/60">
               {users.slice(0, 10).map((u) => (
                 <li key={u.id}>
@@ -129,34 +141,23 @@ export default async function AdminSearchPage({
                     <Users className="w-4 h-4 text-quiet flex-shrink-0" strokeWidth={1.5} />
                     <div className="flex-1 min-w-0">
                       <p className="text-body-sm text-ink truncate">
-                        {u.full_name ?? <span className="italic text-quiet">— ohne Namen</span>}
+                        {u.full_name ?? <em className="text-quiet">— ohne Namen</em>}
                       </p>
                       {u.email && <p className="text-caption text-quiet font-mono truncate">{u.email}</p>}
                     </div>
                     {u.rolle && <Badge variant={roleVariant(u.rolle)}>{ROLLE_LABEL[u.rolle]}</Badge>}
-                    {u.kanton && (
-                      <span className="font-mono text-caption text-quiet">{u.kanton}</span>
-                    )}
                   </Link>
                 </li>
               ))}
             </ul>
             {users.length > 10 && (
-              <p className="text-caption text-quiet mt-3">
-                + {users.length - 10} weitere — verfeinere die Suche.
-              </p>
+              <p className="text-caption text-quiet mt-3 px-3">+ {users.length - 10} weitere</p>
             )}
           </ResultSection>
 
-          {/* Inserate */}
-          <ResultSection
-            title="Inserate"
-            icon={FileText}
-            count={listings.length}
-            empty="Keine Inserate gefunden."
-          >
+          <ResultSection title="Inserate" icon={FileText} count={inserateData?.length ?? 0}>
             <ul className="divide-y divide-stone/60">
-              {listings.slice(0, 10).map((l) => (
+              {(inserateData ?? []).map((l) => (
                 <li key={l.id}>
                   <Link
                     href={`/admin/inserate/${l.id}`}
@@ -166,24 +167,19 @@ export default async function AdminSearchPage({
                     <div className="flex-1 min-w-0">
                       <p className="text-body-sm text-ink truncate">{l.titel}</p>
                       <p className="text-caption text-quiet font-mono truncate">
-                        {l.id} · {l.branche} · {l.kanton}
+                        {l.public_id ?? l.id.slice(0, 8)} · {l.branche ?? '—'} · {l.kanton ?? '—'}
                       </p>
                     </div>
+                    <Badge variant="neutral">{l.status as string}</Badge>
                   </Link>
                 </li>
               ))}
             </ul>
           </ResultSection>
 
-          {/* Anfragen */}
-          <ResultSection
-            title="Anfragen"
-            icon={MessageSquare}
-            count={anfragen.length}
-            empty="Keine Anfragen gefunden."
-          >
+          <ResultSection title="Anfragen" icon={MessageSquare} count={anfragenData?.length ?? 0}>
             <ul className="divide-y divide-stone/60">
-              {anfragen.slice(0, 10).map((a) => (
+              {(anfragenData ?? []).map((a) => (
                 <li key={a.id}>
                   <Link
                     href={`/admin/anfragen/${a.id}`}
@@ -192,12 +188,33 @@ export default async function AdminSearchPage({
                     <MessageSquare className="w-4 h-4 text-quiet flex-shrink-0" strokeWidth={1.5} />
                     <div className="flex-1 min-w-0">
                       <p className="text-body-sm text-ink truncate">
-                        {a.kaeufer_name} → {a.inserat_titel}
+                        {a.public_id ?? a.id.slice(0, 8)}
                       </p>
-                      <p className="text-caption text-quiet font-mono truncate">
-                        {a.id} · {a.kaeufer_email}
-                      </p>
+                      {a.nachricht && (
+                        <p className="text-caption text-quiet truncate">{a.nachricht}</p>
+                      )}
                     </div>
+                    <Badge variant="neutral">{a.status as string}</Badge>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </ResultSection>
+
+          <ResultSection title="Blog" icon={Newspaper} count={blogData?.length ?? 0}>
+            <ul className="divide-y divide-stone/60">
+              {(blogData ?? []).map((b) => (
+                <li key={b.id}>
+                  <Link
+                    href={`/admin/blog/${b.id}`}
+                    className="flex items-center gap-3 px-3 py-2.5 hover:bg-cream/60 transition-colors rounded-soft"
+                  >
+                    <Newspaper className="w-4 h-4 text-quiet flex-shrink-0" strokeWidth={1.5} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-body-sm text-ink truncate">{b.titel}</p>
+                      <p className="text-caption text-quiet font-mono truncate">/{b.slug}</p>
+                    </div>
+                    <Badge variant="neutral">{b.status as string}</Badge>
                   </Link>
                 </li>
               ))}
@@ -214,14 +231,13 @@ function ResultSection({
   icon: Icon,
   count,
   children,
-  empty,
 }: {
   title: string;
   icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
   count: number;
   children: React.ReactNode;
-  empty: string;
 }) {
+  if (count === 0) return null;
   return (
     <section>
       <h2 className="font-serif text-xl text-navy mb-3 flex items-center gap-2">
@@ -229,21 +245,14 @@ function ResultSection({
         {title}
         <span className="font-mono text-caption text-quiet font-normal">({count})</span>
       </h2>
-      <div className="bg-paper border border-stone rounded-card p-2">
-        {count === 0 ? (
-          <p className="px-3 py-6 text-center text-caption text-quiet">{empty}</p>
-        ) : (
-          children
-        )}
-      </div>
+      <div className="bg-paper border border-stone rounded-card p-2">{children}</div>
     </section>
   );
 }
 
-function SearchForm() {
+function SearchForm({ initial = '' }: { initial?: string }) {
   return (
-    <form className="bg-paper border border-stone rounded-card p-6" action="/admin/search">
-      <label className="overline text-quiet mb-2 block">Suchbegriff</label>
+    <form className="bg-paper border border-stone rounded-card p-4" action="/admin/search">
       <div className="relative">
         <SearchIcon
           className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-quiet"
@@ -252,14 +261,12 @@ function SearchForm() {
         <input
           type="search"
           name="q"
-          placeholder="Name, E-Mail, Inserat-ID, Branche, Kanton …"
+          defaultValue={initial}
+          placeholder="Name, E-Mail, Inserat-ID, Titel, Branche, Kanton …"
           className="w-full pl-10 pr-4 py-3 bg-cream border border-stone rounded-soft text-body-sm focus:outline-none focus:border-bronze"
-          autoFocus
+          autoFocus={!initial}
         />
       </div>
-      <p className="text-caption text-quiet mt-3">
-        Sucht in User, Inserate und Anfragen gleichzeitig.
-      </p>
     </form>
   );
 }

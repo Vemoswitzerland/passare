@@ -5,16 +5,16 @@ import {
   ChevronRight,
   ExternalLink,
   PenLine,
-  Eye,
   CheckCircle2,
   Circle,
+  Newspaper,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { DataTable, Td, Tr } from '@/components/admin/DataTable';
 import { BlogGenerateButton } from '@/components/admin/BlogGenerateButton';
 import { BlogFilterTabs } from '@/components/admin/BlogFilterTabs';
+import { PageHeader, EmptyState } from '@/components/admin/PageHeader';
 import { KATEGORIE_LABEL, type BlogKategorie } from '@/data/blog-topics';
 import { cn } from '@/lib/utils';
 
@@ -79,23 +79,17 @@ export default async function AdminBlogPage({
 
   return (
     <div className="max-w-6xl">
-      <header className="mb-8 flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="overline text-bronze mb-3">Inhalt</p>
-          <h1 className="font-serif text-display-sm text-navy font-light">Blog</h1>
-          <p className="text-body text-muted mt-3 max-w-prose">
-            {totalCount ?? 0} Beiträge ({draftCount ?? 0} Entwürfe ·{' '}
-            {publishedCount ?? 0} veröffentlicht). Spezialisiert auf passare-Themen:
-            Nachfolge, KMU-Verkauf, Bewertung, Recht, Steuern.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
+      <PageHeader
+        overline="Inhalt"
+        title="Blog"
+        description={`${totalCount ?? 0} Beiträge · ${draftCount ?? 0} Entwürfe · ${publishedCount ?? 0} veröffentlicht. Spezialisiert auf KMU-Nachfolge, Verkauf, Bewertung, Recht, Steuern.`}
+        actions={
           <Button href="/admin/blog/neu" variant="primary" size="sm">
             <Plus className="w-3.5 h-3.5" strokeWidth={1.5} />
             Manuell schreiben
           </Button>
-        </div>
-      </header>
+        }
+      />
 
       {/* Auto-Generator-Banner */}
       <section className="bg-gradient-to-br from-bronze-soft/40 to-paper border border-bronze/40 rounded-card p-6 mb-6 relative overflow-hidden">
@@ -138,6 +132,17 @@ export default async function AdminBlogPage({
         }}
       />
 
+      {posts.length === 0 ? (
+        <EmptyState
+          icon={Newspaper}
+          title={statusFilter === 'alle' ? 'Noch kein Beitrag' : 'Keine Treffer für diesen Filter'}
+          description={
+            statusFilter === 'alle'
+              ? 'Klick auf «Blog-Artikel generieren» oben oder schreibe manuell einen Artikel.'
+              : 'Andere Status oder Kategorie probieren.'
+          }
+        />
+      ) : (
       <DataTable
         columns={[
           { key: 'titel', label: 'Titel' },
@@ -147,18 +152,6 @@ export default async function AdminBlogPage({
           { key: 'updated', label: 'Geändert' },
           { key: 'arrow', label: '', align: 'right' },
         ]}
-        empty={
-          posts.length === 0 ? (
-            <div>
-              <p className="mb-2">Noch kein Beitrag.</p>
-              <p className="text-caption text-quiet">
-                Klick auf «Generieren» oben oder schreibe manuell.
-              </p>
-            </div>
-          ) : (
-            'Keine Treffer für diesen Filter.'
-          )
-        }
       >
         {posts.map((p) => (
           <Tr key={p.id} className="cursor-pointer">
@@ -226,6 +219,7 @@ export default async function AdminBlogPage({
           </Tr>
         ))}
       </DataTable>
+      )}
     </div>
   );
 }

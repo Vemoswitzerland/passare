@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import {
   LogIn,
+  LogOut,
   FileEdit,
   CheckCircle2,
   Lock,
@@ -11,44 +12,57 @@ import {
   UserCog,
   Filter,
   RefreshCcw,
+  Newspaper,
+  PauseCircle,
+  Trash2,
+  ShieldCheck,
   type LucideIcon,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { LOG_TYPE_LABELS, type AdminLogType, type AdminDemoLog } from '@/data/admin-demo';
+import type { AdminAuditLog } from '@/lib/admin/types';
+import { formatDateTime } from '@/lib/admin/types';
 import { cn } from '@/lib/utils';
 
-const TYPE_ICONS: Record<AdminLogType, LucideIcon> = {
+const TYPE_ICONS: Record<string, LucideIcon> = {
   login: LogIn,
-  inserat_edit: FileEdit,
-  inserat_freigabe: CheckCircle2,
-  nda_signed: Lock,
-  anfrage: MessageSquare,
+  logout: LogOut,
   register: UserPlus,
   profile_update: UserCog,
+  verification_change: ShieldCheck,
+  inserat_create: FileEdit,
+  inserat_edit: FileEdit,
+  inserat_publish: CheckCircle2,
+  inserat_pause: PauseCircle,
+  inserat_delete: Trash2,
+  anfrage_create: MessageSquare,
+  anfrage_status_change: MessageSquare,
+  nda_signed: Lock,
+  blog_publish: Newspaper,
+  blog_generate: Newspaper,
+  admin_action: ShieldCheck,
 };
 
-const FILTERS: { value: AdminLogType | 'alle'; label: string }[] = [
-  { value: 'alle', label: 'Alle' },
-  { value: 'login', label: 'Login' },
-  { value: 'register', label: 'Registrierung' },
-  { value: 'inserat_edit', label: 'Inserat-Edit' },
-  { value: 'inserat_freigabe', label: 'Status-Wechsel' },
-  { value: 'anfrage', label: 'Anfragen' },
-  { value: 'nda_signed', label: 'NDA' },
-  { value: 'profile_update', label: 'Profil' },
-];
+const TYPE_LABELS: Record<string, string> = {
+  login: 'Login',
+  logout: 'Logout',
+  register: 'Registrierung',
+  profile_update: 'Profil',
+  verification_change: 'Verifikation',
+  inserat_create: 'Inserat erstellt',
+  inserat_edit: 'Inserat-Edit',
+  inserat_publish: 'Freigabe',
+  inserat_pause: 'Pausiert',
+  inserat_delete: 'Gelöscht',
+  anfrage_create: 'Anfrage',
+  anfrage_status_change: 'Anfrage-Status',
+  nda_signed: 'NDA',
+  blog_publish: 'Blog veröffentlicht',
+  blog_generate: 'Blog generiert',
+  admin_action: 'Admin-Aktion',
+};
 
-const formatDateTime = (iso: string) =>
-  new Intl.DateTimeFormat('de-CH', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(iso));
-
-export function LogsFilterClient({ logs }: { logs: AdminDemoLog[] }) {
-  const [filter, setFilter] = useState<AdminLogType | 'alle'>('alle');
+export function LogsFilterClient({ logs }: { logs: AdminAuditLog[] }) {
+  const [filter, setFilter] = useState<string>('alle');
 
   const counts = useMemo(() => {
     const map: Record<string, number> = { alle: logs.length };
@@ -56,6 +70,12 @@ export function LogsFilterClient({ logs }: { logs: AdminDemoLog[] }) {
       map[l.type] = (map[l.type] ?? 0) + 1;
     }
     return map;
+  }, [logs]);
+
+  const types = useMemo(() => {
+    const set = new Set<string>();
+    for (const l of logs) set.add(l.type);
+    return Array.from(set).sort();
   }, [logs]);
 
   const filtered = useMemo(() => {
@@ -68,15 +88,29 @@ export function LogsFilterClient({ logs }: { logs: AdminDemoLog[] }) {
       <div className="flex items-center justify-between gap-3 mb-5 flex-wrap">
         <div className="flex items-center gap-2 flex-wrap">
           <Filter className="w-4 h-4 text-quiet" strokeWidth={1.5} />
-          {FILTERS.map((f) => {
-            const count = counts[f.value] ?? 0;
-            const active = filter === f.value;
-            if (count === 0 && f.value !== 'alle') return null;
+          <button
+            type="button"
+            onClick={() => setFilter('alle')}
+            className={cn(
+              'px-3 py-1.5 rounded-pill text-caption font-medium transition-colors',
+              filter === 'alle'
+                ? 'bg-navy text-cream'
+                : 'bg-paper text-quiet border border-stone hover:border-navy/40 hover:text-navy',
+            )}
+          >
+            Alle
+            <span className={cn('ml-1.5 font-mono', filter === 'alle' ? 'opacity-80' : 'opacity-60')}>
+              {counts.alle ?? 0}
+            </span>
+          </button>
+          {types.map((t) => {
+            const active = filter === t;
+            const c = counts[t] ?? 0;
             return (
               <button
-                key={f.value}
+                key={t}
                 type="button"
-                onClick={() => setFilter(f.value)}
+                onClick={() => setFilter(t)}
                 className={cn(
                   'px-3 py-1.5 rounded-pill text-caption font-medium transition-colors',
                   active
@@ -84,9 +118,9 @@ export function LogsFilterClient({ logs }: { logs: AdminDemoLog[] }) {
                     : 'bg-paper text-quiet border border-stone hover:border-navy/40 hover:text-navy',
                 )}
               >
-                {f.label}
+                {TYPE_LABELS[t] ?? t}
                 <span className={cn('ml-1.5 font-mono', active ? 'opacity-80' : 'opacity-60')}>
-                  {count}
+                  {c}
                 </span>
               </button>
             );
@@ -110,7 +144,7 @@ export function LogsFilterClient({ logs }: { logs: AdminDemoLog[] }) {
             </li>
           ) : (
             filtered.map((log) => {
-              const Icon = TYPE_ICONS[log.type];
+              const Icon = TYPE_ICONS[log.type] ?? UserCog;
               return (
                 <li
                   key={log.id}
@@ -122,12 +156,15 @@ export function LogsFilterClient({ logs }: { logs: AdminDemoLog[] }) {
                   <div className="min-w-0 flex-1">
                     <p className="text-body-sm text-ink">{log.beschreibung}</p>
                     <p className="text-caption text-quiet mt-0.5 flex items-center gap-2 flex-wrap">
-                      <span className="font-mono">{log.user_email}</span>
+                      {log.user_email && <span className="font-mono">{log.user_email}</span>}
+                      {log.user_id && !log.user_email && (
+                        <span className="font-mono opacity-70">{log.user_id.slice(0, 8)}</span>
+                      )}
                       {log.ip && <span className="font-mono opacity-70">· {log.ip}</span>}
                     </p>
                   </div>
                   <Badge variant="neutral" className="hidden sm:inline-flex">
-                    {LOG_TYPE_LABELS[log.type]}
+                    {TYPE_LABELS[log.type] ?? log.type}
                   </Badge>
                   <span className="font-mono text-caption text-quiet whitespace-nowrap flex-shrink-0">
                     {formatDateTime(log.created_at)}

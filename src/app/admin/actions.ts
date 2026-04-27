@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { logAuditEvent } from '@/lib/admin/audit';
 
 async function assertAdmin() {
   const supabase = await createClient();
@@ -74,6 +75,37 @@ export async function setVerificationAction(input: {
     .update({ [parsed.field]: parsed.value })
     .eq('id', parsed.user_id);
   if (error) return { ok: false, error: error.message };
+  await logAuditEvent({
+    type: 'verification_change',
+    user_id: parsed.user_id,
+    beschreibung: `${parsed.field === 'verified_phone' ? 'Telefon' : 'KYC'} ${parsed.value ? 'verifiziert' : 'zurückgesetzt'}`,
+    metadata: { field: parsed.field, value: parsed.value },
+  });
+  revalidatePath('/admin/users');
+  revalidatePath(`/admin/users/${parsed.user_id}`);
+  return { ok: true };
+}
+
+const RoleSchema = z.object({
+  user_id: z.string().uuid(),
+  rolle: z.enum(['verkaeufer', 'kaeufer', 'admin']),
+});
+
+export async function setUserRoleAction(input: { user_id: string; rolle: 'verkaeufer' | 'kaeufer' | 'admin' }) {
+  await assertAdmin();
+  const parsed = RoleSchema.parse(input);
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('admin_set_user_role', {
+    p_user_id: parsed.user_id,
+    p_rolle: parsed.rolle,
+  });
+  if (error) return { ok: false, error: error.message };
+  await logAuditEvent({
+    type: 'admin_action',
+    user_id: parsed.user_id,
+    beschreibung: `Rolle auf «${parsed.rolle}» gesetzt (Admin-Override)`,
+    metadata: { rolle: parsed.rolle },
+  });
   revalidatePath('/admin/users');
   revalidatePath(`/admin/users/${parsed.user_id}`);
   return { ok: true };

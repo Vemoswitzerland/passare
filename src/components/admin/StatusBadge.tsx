@@ -1,8 +1,8 @@
 import { cn } from '@/lib/utils';
-import type { AdminListingStatus } from '@/data/admin-demo';
-import { STATUS_LABELS } from '@/data/admin-demo';
+import type { InseratStatus } from '@/lib/admin/types';
+import { STATUS_LABELS } from '@/lib/admin/types';
 
-const styles: Record<AdminListingStatus, string> = {
+const styles: Record<InseratStatus, string> = {
   entwurf: 'bg-stone/60 text-muted border-stone',
   pending: 'bg-warn/15 text-warn border-warn/30',
   live: 'bg-success/10 text-success border-success/30',
@@ -14,7 +14,7 @@ export function StatusBadge({
   status,
   className,
 }: {
-  status: AdminListingStatus;
+  status: InseratStatus;
   className?: string;
 }) {
   return (

@@ -14,22 +14,11 @@ import {
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { Badge } from '@/components/ui/badge';
 import { UserDetailForm } from '@/components/admin/UserDetailForm';
-import { ADMIN_DEMO_LOGS, LOG_TYPE_LABELS } from '@/data/admin-demo';
+import { formatDateTime } from '@/lib/admin/types';
 
 export const metadata = {
   title: 'Admin · User-Detail — passare',
   robots: { index: false, follow: false },
-};
-
-const formatDateTime = (iso: string | null | undefined) => {
-  if (!iso) return '—';
-  return new Intl.DateTimeFormat('de-CH', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(iso));
 };
 
 const ROLLE_LABEL: Record<string, string> = {
@@ -105,9 +94,13 @@ export default async function AdminUserDetailPage({
     .join('')
     .toUpperCase();
 
-  const fakeUserActivity = ADMIN_DEMO_LOGS.filter((l) =>
-    l.user_email?.toLowerCase().includes((email ?? '').toLowerCase()) && email,
-  ).slice(0, 5);
+  const { data: activityData } = await supabase
+    .from('audit_log')
+    .select('id, type, beschreibung, created_at')
+    .eq('user_id', profile.id)
+    .order('created_at', { ascending: false })
+    .limit(5);
+  const userActivity = (activityData ?? []) as Array<{ id: string; type: string; beschreibung: string; created_at: string }>;
 
   return (
     <div className="max-w-5xl">
@@ -202,15 +195,15 @@ export default async function AdminUserDetailPage({
             </p>
           </section>
 
-          {fakeUserActivity.length > 0 && (
+          {userActivity.length > 0 && (
             <section className="bg-paper border border-stone rounded-card p-5">
               <h3 className="font-serif text-lg text-navy mb-3">Letzte Aktivitäten</h3>
               <ul className="space-y-3">
-                {fakeUserActivity.map((log) => (
+                {userActivity.map((log) => (
                   <li key={log.id} className="text-caption">
                     <p className="text-ink">{log.beschreibung}</p>
                     <p className="text-quiet font-mono mt-0.5">
-                      {LOG_TYPE_LABELS[log.type]} · {formatDateTime(log.created_at)}
+                      {log.type} · {formatDateTime(log.created_at)}
                     </p>
                   </li>
                 ))}

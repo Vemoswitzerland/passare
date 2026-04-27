@@ -1,7 +1,6 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { AdminShell } from '@/components/admin/AdminShell';
-import { ADMIN_DEMO_LISTINGS, ADMIN_DEMO_ANFRAGEN } from '@/data/admin-demo';
 
 export const metadata = {
   title: 'Admin — passare',
@@ -21,17 +20,21 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   if (profile?.rolle !== 'admin') redirect('/dashboard');
 
-  const pendingInserate = ADMIN_DEMO_LISTINGS.filter((l) => l.admin_status === 'pending').length;
-  const offeneAnfragen = ADMIN_DEMO_ANFRAGEN.filter((a) => a.status === 'offen').length;
-
+  // Sidebar-Badges live aus DB
+  let pendingInserate = 0;
   let userCount = 0;
+  let offeneAnfragen = 0;
   let blogDraftCount = 0;
   try {
-    const [{ count: uc }, { count: bdc }] = await Promise.all([
+    const [{ count: pi }, { count: uc }, { count: oa }, { count: bdc }] = await Promise.all([
+      supabase.from('inserate').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
       supabase.from('profiles').select('id', { count: 'exact', head: true }),
+      supabase.from('anfragen').select('id', { count: 'exact', head: true }).eq('status', 'offen'),
       supabase.from('blog_posts').select('id', { count: 'exact', head: true }).eq('status', 'entwurf'),
     ]);
+    pendingInserate = pi ?? 0;
     userCount = uc ?? 0;
+    offeneAnfragen = oa ?? 0;
     blogDraftCount = bdc ?? 0;
   } catch {
     /* ignore */

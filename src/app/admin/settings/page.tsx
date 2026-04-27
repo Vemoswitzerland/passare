@@ -1,4 +1,5 @@
 import { Info, CheckCircle2, XCircle } from 'lucide-react';
+import { PageHeader } from '@/components/admin/PageHeader';
 
 export const metadata = {
   title: 'Admin · Settings — passare',
@@ -30,20 +31,17 @@ export default function AdminSettingsPage() {
 
   return (
     <div className="max-w-4xl">
-      <header className="mb-8">
-        <p className="overline text-bronze mb-3">System</p>
-        <h1 className="font-serif text-display-sm text-navy font-light">Settings</h1>
-        <p className="text-body text-muted mt-3 max-w-prose">
-          Plattform-Konfiguration, Pricing und System-Status. Editierbare
-          Einstellungen folgen in Etappe 80+.
-        </p>
-      </header>
+      <PageHeader
+        overline="System"
+        title="Einstellungen"
+        description="Plattform-Konfiguration, Pricing und Deployment-Status."
+      />
 
-      <div className="bg-bronze/10 border border-bronze/30 rounded-card px-4 py-3 mb-8 flex items-start gap-3">
-        <Info className="w-4 h-4 text-bronze-ink flex-shrink-0 mt-0.5" strokeWidth={1.5} />
-        <p className="text-body-sm text-navy">
-          <strong>Read-Only V1</strong> — Änderungen erfolgen aktuell direkt
-          im Code-Repository und werden via Deploy aktiv.
+      <div className="bg-stone/40 border border-stone rounded-card px-4 py-3 mb-8 flex items-start gap-3">
+        <Info className="w-4 h-4 text-quiet flex-shrink-0 mt-0.5" strokeWidth={1.5} />
+        <p className="text-body-sm text-muted">
+          Änderungen erfolgen aktuell direkt im Code-Repository und werden via Deploy aktiv.
+          Editierbare Settings folgen in Etappe 80+.
         </p>
       </div>
 
