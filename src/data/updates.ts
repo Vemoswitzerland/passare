@@ -58,6 +58,13 @@ export const CURRENT_STEP = {
 export const UPDATES: Update[] = [
   {
     date: '2026-04-27',
+    type: 'infrastruktur',
+    titel: 'Email-System aufgebaut — automatischer Versand bei allen Ereignissen',
+    beschreibung:
+      'Die Plattform versendet jetzt eigenständig Emails — bei der Registrierung («Willkommen»), bei der Email-Bestätigung, beim Passwort-Reset, wenn eine Anfrage eingeht oder beantwortet wird, wenn ein Geheimhaltungs-Vertrag unterschrieben ist, wenn ein Käufer-Alert auslöst, nach jeder Zahlung sowie 14 Tage bevor ein Inserat ausläuft. Alle Emails sind im passare-Look gestaltet (Schrift, Farben, Logo) und mobil lesbar. Jede Email wird intern mitprotokolliert, damit man später nachvollziehen kann was wann an wen ging. Der Versand läuft über einen separaten Email-Dienst (statt direkt über die Webseite), damit es schnell, zuverlässig und mit hoher Zustellrate funktioniert.',
+  },
+  {
+    date: '2026-04-27',
     type: 'feature',
     titel: 'Handelsregister-Anbindung + KI-Teaser-Generator',
     beschreibung:
