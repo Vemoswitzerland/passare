@@ -67,28 +67,37 @@ export default async function KaeuferLayout({ children }: { children: React.Reac
     counts.suchprofile = count ?? 0;
   }
 
-  // Anfragen + NDAs sind aus Chat 2 — defensive
+  // Anfragen + NDAs sind aus Chat 2 — defensiv (try/catch verhindert Loop bei Schema-Drift)
   if (await hasTable('anfragen')) {
-    const { count } = await supabase
-      .from('anfragen')
-      .select('*', { count: 'exact', head: true })
-      .eq('kaeufer_id', u.user.id)
-      .in('status', ['offen', 'pending', 'in_bearbeitung']);
-    counts.anfragen = count ?? 0;
+    try {
+      const { count } = await supabase
+        .from('anfragen')
+        .select('*', { count: 'exact', head: true })
+        .eq('kaeufer_id', u.user.id)
+        .in('status', ['neu', 'in_pruefung', 'akzeptiert', 'nda_pending']);
+      counts.anfragen = count ?? 0;
+    } catch (err) {
+      console.warn('[kaeufer-layout] anfragen-count failed:', err);
+    }
   }
 
-  if (await hasTable('nda_signaturen')) {
-    const { count } = await supabase
-      .from('nda_signaturen')
-      .select('*', { count: 'exact', head: true })
-      .eq('kaeufer_id', u.user.id);
-    counts.ndas = count ?? 0;
+  // NDAs: nda_signaturen hat KEIN kaeufer_id — JOIN via anfragen
+  if (await hasTable('nda_signaturen') && await hasTable('anfragen')) {
+    try {
+      const { count } = await supabase
+        .from('nda_signaturen')
+        .select('*, anfragen!inner(kaeufer_id)', { count: 'exact', head: true })
+        .eq('anfragen.kaeufer_id', u.user.id);
+      counts.ndas = count ?? 0;
+    } catch (err) {
+      console.warn('[kaeufer-layout] nda-count failed:', err);
+    }
   }
 
   return (
     <KaeuferShell
       email={u.user.email ?? ''}
-      fullName={profile.full_name}
+      fullName={profile?.full_name ?? null}
       isMax={isMax}
       isAdmin={isAdmin}
       counts={counts}
