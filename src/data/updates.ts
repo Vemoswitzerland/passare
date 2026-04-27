@@ -59,6 +59,13 @@ export const UPDATES: Update[] = [
   {
     date: '2026-04-27',
     type: 'feature',
+    titel: 'Handelsregister-Anbindung + KI-Teaser-Generator',
+    beschreibung:
+      'Verkäufer müssen ihre Firmendaten nicht mehr von Hand eintippen — die Plattform zieht Firmenname, Rechtsform, Adresse und Gründungsjahr direkt aus dem offiziellen Schweizer Handelsregister, sobald die UID-Nummer eingegeben wird. Zusätzlich erstellt eine KI auf Knopfdruck einen anonymen Inserate-Text mit Titel, Beschreibung, Preisvorschlag und drei Schlüsselargumenten — einfach Branche, Mitarbeitende und Umsatz angeben, der Rest schreibt sich selbst. Anfragen werden zwischengespeichert (24 Stunden) und sind gegen Missbrauch geschützt.',
+  },
+  {
+    date: '2026-04-27',
+    type: 'feature',
     titel: 'Admin-Bereich aufgeschaltet',
     beschreibung:
       'Das Vemo-Team kann sich jetzt unter einem geschützten Bereich einloggen und sieht eine Übersicht der Plattform — registrierte Nutzer, Inserate, eingegangene Anfragen und ein Aktivitäts-Protokoll. Es gibt drei Ansichten: «als Admin», «als Verkäufer» und «als Käufer», damit man die Plattform jederzeit aus der Sicht eines Kunden testen kann. Nur Administratoren haben Zugriff — alle anderen werden weitergeleitet.',

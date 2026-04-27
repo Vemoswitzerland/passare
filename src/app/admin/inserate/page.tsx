@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import {
   Eye,
@@ -8,6 +9,7 @@ import {
   Play,
   Info,
   Filter,
+  ChevronRight,
 } from 'lucide-react';
 import { DataTable, Td, Tr } from '@/components/admin/DataTable';
 import { StatusBadge } from '@/components/admin/StatusBadge';
@@ -123,15 +125,19 @@ function TableView({ listings }: { listings: AdminDemoListing[] }) {
       empty="Keine Inserate für diesen Filter."
     >
       {listings.map((l) => (
-        <Tr key={l.id}>
-          <Td className="font-mono text-caption text-quiet whitespace-nowrap">{l.id}</Td>
+        <Tr key={l.id} className="cursor-pointer">
+          <Td className="font-mono text-caption text-quiet whitespace-nowrap">
+            <Link href={`/admin/inserate/${l.id}`} className="hover:text-navy transition-colors">
+              {l.id}
+            </Link>
+          </Td>
           <Td>
-            <div>
+            <Link href={`/admin/inserate/${l.id}`} className="block hover:text-bronze-ink transition-colors">
               <p className="text-ink">{l.titel}</p>
               <p className="text-caption text-quiet mt-0.5">
                 {l.branche} · {l.kanton} · {l.umsatz}
               </p>
-            </div>
+            </Link>
           </Td>
           <Td>
             <span
@@ -157,14 +163,27 @@ function TableView({ listings }: { listings: AdminDemoListing[] }) {
             )}
           </Td>
           <Td align="right">
-            <div className="inline-flex gap-1">
-              <ActionButton title="Anzeigen" icon={Eye} />
+            <div className="inline-flex gap-1 items-center">
+              <Link
+                href={`/admin/inserate/${l.id}`}
+                title="Detail öffnen"
+                className="p-2 rounded-soft border border-stone bg-paper text-quiet hover:text-navy hover:border-navy/40 transition-colors"
+              >
+                <Eye className="w-3.5 h-3.5" strokeWidth={1.5} />
+              </Link>
               <ActionButton title="Bearbeiten" icon={Pencil} />
               {l.admin_status === 'live' ? (
                 <ActionButton title="Pausieren" icon={Pause} />
               ) : (
                 <ActionButton title="Aktivieren" icon={Play} />
               )}
+              <Link
+                href={`/admin/inserate/${l.id}`}
+                className="ml-1 p-1 text-quiet hover:text-bronze-ink transition-colors"
+                aria-label={`Detail von ${l.id}`}
+              >
+                <ChevronRight className="w-4 h-4" strokeWidth={1.5} />
+              </Link>
             </div>
           </Td>
         </Tr>
@@ -185,9 +204,10 @@ function GridView({ listings }: { listings: AdminDemoListing[] }) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       {listings.map((l) => (
-        <article
+        <Link
           key={l.id}
-          className="bg-paper border border-stone rounded-card p-5 flex flex-col gap-4 hover:border-bronze/40 transition-colors"
+          href={`/admin/inserate/${l.id}`}
+          className="bg-paper border border-stone rounded-card p-5 flex flex-col gap-4 hover:border-bronze/40 hover:shadow-card transition-all"
         >
           <div className="flex items-start justify-between gap-3">
             <StatusBadge status={l.admin_status} />
@@ -227,16 +247,15 @@ function GridView({ listings }: { listings: AdminDemoListing[] }) {
               </dd>
             </div>
           </dl>
-          <div className="flex justify-end gap-1 pt-3 border-t border-stone">
-            <ActionButton title="Anzeigen" icon={Eye} />
-            <ActionButton title="Bearbeiten" icon={Pencil} />
-            {l.admin_status === 'live' ? (
-              <ActionButton title="Pausieren" icon={Pause} />
-            ) : (
-              <ActionButton title="Aktivieren" icon={Play} />
-            )}
+          <div className="flex items-center justify-between gap-1 pt-3 border-t border-stone">
+            <span className="text-caption text-bronze-ink inline-flex items-center gap-1">
+              Detail öffnen <ChevronRight className="w-3 h-3" strokeWidth={1.5} />
+            </span>
+            <span className="text-caption text-quiet font-mono">
+              {l.pending_anfragen > 0 ? `${l.pending_anfragen} Anfragen` : '— Anfragen'}
+            </span>
           </div>
-        </article>
+        </Link>
       ))}
     </div>
   );

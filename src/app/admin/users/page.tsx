@@ -1,11 +1,19 @@
-import { Phone, ShieldCheck, AlertTriangle } from 'lucide-react';
+import Link from 'next/link';
+import { ChevronRight, Phone, ShieldCheck, AlertTriangle, Search } from 'lucide-react';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { DataTable, Td, Tr } from '@/components/admin/DataTable';
 import { Badge } from '@/components/ui/badge';
+import { UsersFilterBar } from '@/components/admin/UsersFilterBar';
 
 export const metadata = {
   title: 'Admin · User — passare',
   robots: { index: false, follow: false },
+};
+
+type SearchParams = {
+  rolle?: string;
+  verified?: string;
+  q?: string;
 };
 
 type UserRow = {
@@ -42,21 +50,38 @@ const ROLLE_LABEL: Record<string, string> = {
   kaeufer: 'Käufer',
 };
 
-export default async function AdminUsersPage() {
+export default async function AdminUsersPage({
+  searchParams,
+}: {
+  searchParams: Promise<SearchParams>;
+}) {
+  const params = await searchParams;
+  const rolleFilter = params.rolle ?? 'alle';
+  const verifiedFilter = params.verified ?? 'alle';
+  const query = (params.q ?? '').trim().toLowerCase();
+
   const supabase = await createClient();
 
-  const { data: profilesData } = await supabase
+  let q = supabase
     .from('profiles')
     .select(
       'id, full_name, rolle, kanton, sprache, verified_phone, verified_kyc, qualitaets_score, created_at, onboarding_completed_at',
     )
     .order('created_at', { ascending: false });
 
-  const profiles: UserRow[] = (profilesData ?? []) as UserRow[];
+  if (rolleFilter !== 'alle' && ['verkaeufer', 'kaeufer', 'admin'].includes(rolleFilter)) {
+    q = q.eq('rolle', rolleFilter);
+  }
+  if (verifiedFilter === 'phone') q = q.eq('verified_phone', true);
+  if (verifiedFilter === 'kyc') q = q.eq('verified_kyc', true);
+  if (verifiedFilter === 'beide') q = q.eq('verified_phone', true).eq('verified_kyc', true);
+  if (verifiedFilter === 'keine') q = q.eq('verified_phone', false).eq('verified_kyc', false);
+
+  const { data: profilesData } = await q;
+  let profiles: UserRow[] = (profilesData ?? []) as UserRow[];
 
   let emails: Map<string, string> = new Map();
   let serviceRoleAvailable = true;
-
   try {
     const adminClient = createAdminClient();
     const { data, error } = await adminClient.auth.admin.listUsers();
@@ -68,14 +93,27 @@ export default async function AdminUsersPage() {
     serviceRoleAvailable = false;
   }
 
+  if (query) {
+    profiles = profiles.filter((p) => {
+      const email = emails.get(p.id) ?? '';
+      return (
+        (p.full_name ?? '').toLowerCase().includes(query) ||
+        email.toLowerCase().includes(query) ||
+        (p.kanton ?? '').toLowerCase().includes(query)
+      );
+    });
+  }
+
+  const counts = await getCounts(supabase);
+
   return (
     <div>
       <header className="mb-8">
         <p className="overline text-bronze mb-3">Verwaltung</p>
         <h1 className="font-serif text-display-sm text-navy font-light">User</h1>
         <p className="text-body text-muted mt-3 max-w-prose">
-          Alle registrierten Verkäufer, Käufer und Admins. Die Daten kommen
-          live aus der Datenbank.
+          Alle registrierten Verkäufer, Käufer und Admins. Klick auf einen User
+          öffnet das Detail mit Notizen, Tags, Score und Verifikations-Toggles.
         </p>
       </header>
 
@@ -89,9 +127,12 @@ export default async function AdminUsersPage() {
         </div>
       )}
 
-      <div className="mb-4 text-caption text-quiet">
-        {profiles.length} Profile total
-      </div>
+      <UsersFilterBar counts={counts} initialQuery={query} />
+
+      <p className="text-caption text-quiet mb-4">
+        {profiles.length} {profiles.length === 1 ? 'User' : 'User'} gefunden
+        {query && <> für «{query}»</>}
+      </p>
 
       <DataTable
         columns={[
@@ -103,19 +144,31 @@ export default async function AdminUsersPage() {
           { key: 'verified', label: 'Verifiziert' },
           { key: 'score', label: 'Score', align: 'right' },
           { key: 'created', label: 'Registriert' },
-          { key: 'onboarding', label: 'Onboarding' },
+          { key: 'arrow', label: '', align: 'right' },
         ]}
-        empty="Noch keine User registriert."
+        empty={
+          query ? (
+            <span>
+              Keine User gefunden für «<span className="font-mono">{query}</span>».
+            </span>
+          ) : (
+            'Keine User für diesen Filter.'
+          )
+        }
       >
         {profiles.map((u) => (
-          <Tr key={u.id}>
-            <Td className="text-ink">{u.full_name || <span className="text-quiet">—</span>}</Td>
+          <Tr key={u.id} className="cursor-pointer">
+            <Td className="text-ink">
+              <Link href={`/admin/users/${u.id}`} className="block hover:text-bronze-ink transition-colors">
+                {u.full_name || <span className="text-quiet italic">— ohne Namen</span>}
+              </Link>
+            </Td>
             <Td className="font-mono text-caption text-ink">
               {emails.get(u.id) ?? <span className="text-quiet">—</span>}
             </Td>
             <Td>
               {u.rolle ? (
-                <Badge variant={roleVariant(u.rolle)}>{ROLLE_LABEL[u.rolle] ?? u.rolle}</Badge>
+                <Badge variant={roleVariant(u.rolle)}>{ROLLE_LABEL[u.rolle]}</Badge>
               ) : (
                 <span className="text-caption text-quiet italic">offen</span>
               )}
@@ -146,16 +199,33 @@ export default async function AdminUsersPage() {
             <Td className="font-mono text-caption text-quiet whitespace-nowrap">
               {formatDate(u.created_at)}
             </Td>
-            <Td>
-              {u.onboarding_completed_at ? (
-                <span className="text-caption text-success">✓</span>
-              ) : (
-                <span className="text-caption text-quiet italic">offen</span>
-              )}
+            <Td align="right">
+              <Link
+                href={`/admin/users/${u.id}`}
+                className="inline-flex items-center gap-1 text-quiet hover:text-bronze-ink transition-colors"
+                aria-label={`Detail von ${u.full_name ?? 'User'}`}
+              >
+                <ChevronRight className="w-4 h-4" strokeWidth={1.5} />
+              </Link>
             </Td>
           </Tr>
         ))}
       </DataTable>
     </div>
   );
+}
+
+async function getCounts(supabase: Awaited<ReturnType<typeof createClient>>) {
+  const [{ count: total }, { count: verkaeufer }, { count: kaeufer }, { count: admins }] = await Promise.all([
+    supabase.from('profiles').select('id', { count: 'exact', head: true }),
+    supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('rolle', 'verkaeufer'),
+    supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('rolle', 'kaeufer'),
+    supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('rolle', 'admin'),
+  ]);
+  return {
+    alle: total ?? 0,
+    verkaeufer: verkaeufer ?? 0,
+    kaeufer: kaeufer ?? 0,
+    admin: admins ?? 0,
+  };
 }

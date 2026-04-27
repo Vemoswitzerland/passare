@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useState, useRef, useEffect } from 'react';
 import { Menu, Search, LogOut, ChevronDown, User as UserIcon } from 'lucide-react';
 import { ViewSwitcher } from './ViewSwitcher';
@@ -15,7 +16,9 @@ type Props = {
 
 export function AdminHeader({ email, fullName, onMenuToggle }: Props) {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [searchValue, setSearchValue] = useState('');
   const userRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
 
   useEffect(() => {
     if (!userMenuOpen) return;
@@ -25,6 +28,24 @@ export function AdminHeader({ email, fullName, onMenuToggle }: Props) {
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [userMenuOpen]);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        document.getElementById('admin-search-input')?.focus();
+      }
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, []);
+
+  const submitSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    const q = searchValue.trim();
+    if (!q) return;
+    router.push(`/admin/search?q=${encodeURIComponent(q)}`);
+  };
 
   const initials =
     fullName
@@ -53,17 +74,19 @@ export function AdminHeader({ email, fullName, onMenuToggle }: Props) {
         </span>
       </Link>
 
-      <div className="hidden lg:flex flex-1 max-w-md mx-auto">
+      <form onSubmit={submitSearch} className="hidden lg:flex flex-1 max-w-md mx-auto">
         <div className="relative w-full">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-quiet" strokeWidth={1.5} />
           <input
-            type="text"
-            placeholder="Suche … (Cmd+K)"
-            disabled
-            className="w-full pl-10 pr-3 py-2 bg-paper border border-stone rounded-soft text-body-sm placeholder:text-quiet focus:outline-none focus:border-bronze disabled:cursor-not-allowed"
+            id="admin-search-input"
+            type="search"
+            value={searchValue}
+            onChange={(e) => setSearchValue(e.target.value)}
+            placeholder="User, Inserate, Anfragen …  (Cmd+K)"
+            className="w-full pl-10 pr-3 py-2 bg-paper border border-stone rounded-soft text-body-sm placeholder:text-quiet focus:outline-none focus:border-bronze"
           />
         </div>
-      </div>
+      </form>
 
       <div className="flex items-center gap-2 ml-auto">
         <ViewSwitcher />
