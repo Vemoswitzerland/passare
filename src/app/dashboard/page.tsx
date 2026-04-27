@@ -11,7 +11,7 @@ export const metadata = {
   robots: { index: false, follow: false },
 };
 
-type Props = { searchParams: Promise<{ reset?: string }> };
+type Props = { searchParams: Promise<{ reset?: string; welcome?: string }> };
 
 export default async function DashboardPage({ searchParams }: Props) {
   const supabase = await createClient();
@@ -20,11 +20,13 @@ export default async function DashboardPage({ searchParams }: Props) {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('full_name, sprache, rolle, kanton')
+    .select('full_name, sprache, rolle, kanton, onboarding_completed_at')
     .eq('id', data.user.id)
     .maybeSingle();
 
-  const { reset } = await searchParams;
+  if (!profile?.onboarding_completed_at) redirect('/onboarding');
+
+  const { reset, welcome } = await searchParams;
 
   return (
     <main className="min-h-screen flex flex-col">
@@ -58,6 +60,13 @@ export default async function DashboardPage({ searchParams }: Props) {
             <div className="mb-8 inline-flex items-center gap-2 text-success bg-success/10 border border-success/20 rounded-soft px-4 py-2 text-body-sm">
               <ShieldCheck className="w-4 h-4" strokeWidth={1.5} />
               Passwort wurde aktualisiert.
+            </div>
+          )}
+
+          {welcome === '1' && (
+            <div className="mb-8 inline-flex items-center gap-2 text-success bg-success/10 border border-success/20 rounded-soft px-4 py-2 text-body-sm">
+              <ShieldCheck className="w-4 h-4" strokeWidth={1.5} />
+              Konto eingerichtet — schön, dass du da bist!
             </div>
           )}
 

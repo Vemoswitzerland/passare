@@ -5,6 +5,9 @@ import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
+import { AGB_VERSION, DATENSCHUTZ_VERSION, KANTONE, type ActionResult } from './constants';
+
+const VALID_KANTON = new Set(KANTONE.map(([c]) => c));
 
 // ─── Schemas ──────────────────────────────────────────────────
 const emailSchema = z
@@ -57,8 +60,6 @@ async function getAppOrigin() {
   const host = h.get('x-forwarded-host') ?? h.get('host') ?? 'passare-ch.vercel.app';
   return `${proto}://${host}`;
 }
-
-export type ActionResult = { ok: true } | { ok: false; error: string };
 
 // ═══════════════════════════════════════════════════════════════
 //  REGISTRIERUNG
@@ -190,39 +191,63 @@ export async function logoutAction() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  TEST-QUICK-LOGIN (nur intern, hinter /status-Code 2827)
+//  ONBOARDING — atomare Completion via RPC
 // ═══════════════════════════════════════════════════════════════
-const TEST_ACCOUNTS = new Set([
-  'verkaufen-test@passare.ch',
-  'kaufen-test@passare.ch',
-  'admin-test@passare.ch',
-]);
+const onboardingSchema = z.object({
+  rolle: z.enum(['verkaeufer', 'kaeufer']),
+  full_name: z.string().trim().min(2, 'Name erforderlich').max(120),
+  kanton: z.string().length(2, 'Kanton ungültig'),
+  sprache: z.enum(['de', 'fr', 'it', 'en']).default('de'),
+  accept_agb: z.union([z.literal('on'), z.literal('true'), z.literal(true)]),
+  accept_datenschutz: z.union([z.literal('on'), z.literal('true'), z.literal(true)]),
+});
 
-const TEST_PASSWORD = 'passare2026';
+export async function completeOnboardingAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  const parsed = onboardingSchema.safeParse({
+    rolle: formData.get('rolle'),
+    full_name: formData.get('full_name'),
+    kanton: formData.get('kanton'),
+    sprache: formData.get('sprache') ?? 'de',
+    accept_agb: formData.get('accept_agb'),
+    accept_datenschutz: formData.get('accept_datenschutz'),
+  });
 
-export async function quickLoginAction(_prev: ActionResult | null, formData: FormData): Promise<ActionResult> {
-  const email = String(formData.get('email') ?? '').trim().toLowerCase();
-  if (!TEST_ACCOUNTS.has(email)) {
-    return { ok: false, error: 'Unbekannter Test-Account' };
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? 'Eingaben unvollständig' };
   }
 
-  // Sicherheitsgate: Quick-Login darf nur ausgelöst werden, wenn der Status-
-  // Code-Cookie gesetzt ist. Sonst wäre das ein offenes Hintertürchen.
-  const { cookies } = await import('next/headers');
-  const store = await cookies();
-  if (store.get('passare_status')?.value !== '2827') {
-    return { ok: false, error: 'Quick-Login nur über /status verfügbar' };
+  const kantonUpper = parsed.data.kanton.toUpperCase();
+  if (!VALID_KANTON.has(kantonUpper as (typeof KANTONE)[number][0])) {
+    return { ok: false, error: 'Bitte einen Schweizer Kanton wählen' };
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword({
-    email,
-    password: TEST_PASSWORD,
+  const { data: u } = await supabase.auth.getUser();
+  if (!u.user) return { ok: false, error: 'Nicht eingeloggt' };
+
+  // IP + User-Agent für Audit-Trail (terms_acceptances)
+  const h = await headers();
+  const ip = h.get('x-forwarded-for')?.split(',')[0]?.trim() ?? null;
+  const ua = h.get('user-agent') ?? null;
+
+  const { error } = await supabase.rpc('complete_onboarding', {
+    p_rolle: parsed.data.rolle,
+    p_full_name: parsed.data.full_name,
+    p_kanton: kantonUpper,
+    p_sprache: parsed.data.sprache,
+    p_agb_version: AGB_VERSION,
+    p_datenschutz_version: DATENSCHUTZ_VERSION,
+    p_ip: ip,
+    p_user_agent: ua,
   });
-  if (error) return { ok: false, error: translateAuthError(error.message) };
+
+  if (error) return { ok: false, error: error.message };
 
   revalidatePath('/', 'layout');
-  redirect('/dashboard');
+  redirect('/dashboard?welcome=1');
 }
 
 // ─── Fehlertexte deutsch ──────────────────────────────────────
