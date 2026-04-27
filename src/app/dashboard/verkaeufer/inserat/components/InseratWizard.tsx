@@ -54,11 +54,21 @@ const UEBERGABE_GRUENDE: Array<[string, string]> = [
   ['andere', 'Andere'],
 ];
 
-const PAKETE = [
+type Paket = {
+  id: 'light' | 'pro' | 'premium';
+  name: string;
+  price: number;
+  monate: number;
+  color: string;
+  popular?: boolean;
+  features: readonly string[];
+};
+
+const PAKETE: readonly Paket[] = [
   { id: 'light', name: 'Light', price: 290, monate: 3, color: 'navy', features: ['5 Bilder', '2 PDFs', 'NDA-Gate', 'KI-Teaser', 'Basis-Statistik'] },
   { id: 'pro', name: 'Pro', price: 890, monate: 6, popular: true, color: 'bronze', features: ['20 Bilder + Videos', 'Unbegrenzte PDFs', 'NDA-Gate', 'Käufer-Matching', 'KMU-Multiples-DB', 'Detail-Statistik'] },
   { id: 'premium', name: 'Premium', price: 1890, monate: 12, color: 'navy', features: ['Unbegrenzte Bilder', 'Homepage-Feature 1×/Monat', 'Mehrsprachig FR/IT/EN', '2h persönliche Beratung', 'Priorisierter Support'] },
-] as const;
+];
 
 type Inserat = {
   id: string;
