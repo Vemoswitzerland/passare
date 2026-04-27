@@ -105,14 +105,14 @@ type SparqlResponse = {
   results: { bindings: SparqlBinding[] };
 };
 
-async function sparqlQuery(query: string): Promise<SparqlResponse> {
+async function sparqlQuery(query: string, timeoutMs = 7000): Promise<SparqlResponse> {
   const url = `${SPARQL_ENDPOINT}?query=${encodeURIComponent(query)}`;
   const res = await fetch(url, {
     headers: {
       'Accept': 'application/sparql-results+json',
       'User-Agent': 'passare.ch/1.0',
     },
-    signal: AbortSignal.timeout(12000),
+    signal: AbortSignal.timeout(timeoutMs),
   });
   if (!res.ok) throw new Error(`LINDAS HTTP ${res.status}`);
   return res.json() as Promise<SparqlResponse>;
@@ -129,13 +129,13 @@ function pickByLang(rows: SparqlBinding[], key: string, preferLang = 'de'): stri
 }
 
 async function lookupViaLindas(uidCompact: string): Promise<ZefixCompany | null> {
-  // 1. Company-URI über UID-Identifier finden
+  // 1. Company-URI über UID-Identifier finden (STRENDS ist deutlich schneller als CONTAINS)
   const findCompanyQuery = `
     PREFIX schema: <http://schema.org/>
     SELECT DISTINCT ?company WHERE {
       ?company a <https://schema.ld.admin.ch/ZefixOrganisation> ;
                schema:identifier ?id .
-      FILTER(CONTAINS(STR(?id), "${uidCompact}"))
+      FILTER(STRENDS(STR(?id), "/${uidCompact}"))
     } LIMIT 1
   `;
   const findRes = await sparqlQuery(findCompanyQuery);

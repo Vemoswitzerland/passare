@@ -10,6 +10,7 @@ import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+export const maxDuration = 30;
 
 export async function GET(req: NextRequest) {
   const uid = req.nextUrl.searchParams.get('uid')?.trim() ?? '';
