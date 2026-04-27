@@ -59,6 +59,13 @@ export const UPDATES: Update[] = [
   {
     date: '2026-04-27',
     type: 'feature',
+    titel: 'Admin-Bereich aufgeschaltet',
+    beschreibung:
+      'Das Vemo-Team kann sich jetzt unter einem geschützten Bereich einloggen und sieht eine Übersicht der Plattform — registrierte Nutzer, Inserate, eingegangene Anfragen und ein Aktivitäts-Protokoll. Es gibt drei Ansichten: «als Admin», «als Verkäufer» und «als Käufer», damit man die Plattform jederzeit aus der Sicht eines Kunden testen kann. Nur Administratoren haben Zugriff — alle anderen werden weitergeleitet.',
+  },
+  {
+    date: '2026-04-27',
+    type: 'feature',
     titel: 'Anmeldung mit Google + sichere Passwörter',
     beschreibung:
       'Auf der Anmelde- und Registrieren-Seite gibt es jetzt einen Google-Knopf für die Ein-Klick-Anmeldung. Bei der Passwort-Eingabe siehst du live wie stark dein Passwort ist (Schwach / Mittel / Stark / Sehr stark) und welche Anforderungen noch fehlen. Pflicht-Anforderung: 8 Zeichen, ein Klein- und Grossbuchstabe, eine Ziffer, ein Sonderzeichen.',
