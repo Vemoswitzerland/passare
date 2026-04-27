@@ -20,9 +20,10 @@ const C = {
   muted:      '#5A6471',
 };
 
+// font-family ohne Doppel-Quotes — sonst brechen sie style="..." Attribute.
 const F = {
-  serif: '"Fraunces", "Tiempos", Georgia, serif',
-  sans:  '"Geist", "Inter", system-ui, -apple-system, sans-serif',
+  serif: "'Fraunces','Tiempos',Georgia,serif",
+  sans:  "'Geist','Inter',system-ui,-apple-system,sans-serif",
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────
