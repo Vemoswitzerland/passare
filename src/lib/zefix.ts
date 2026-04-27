@@ -392,17 +392,54 @@ export async function lookupByUid(uid: string): Promise<ZefixCompany | null> {
   return company;
 }
 
+/**
+ * Generiert smartere Such-Varianten falls die Volltext-Suche
+ * keine Treffer liefert. Beispiel "Vemo Group GmbH":
+ *   1. "Vemo Group GmbH"   → exact substring
+ *   2. "Vemo Group"         → ohne Rechtsform
+ *   3. "Vemo"               → Hauptwort allein
+ */
+function buildSearchVariants(q: string): string[] {
+  const trimmed = q.trim();
+  const variants: string[] = [trimmed];
+
+  // Rechtsform-Suffixe entfernen
+  const stripRechtsform = trimmed
+    .replace(/\b(GmbH|AG|SA|S\.A\.|Sàrl|Sarl|S\.à r\.l\.|Genossenschaft|Verein|Stiftung|in Liquidation|i\.\s*L\.|& Co\.?|& Cie\.?)\b/gi, '')
+    .trim()
+    .replace(/\s+/g, ' ');
+  if (stripRechtsform.length >= 3 && stripRechtsform.toLowerCase() !== trimmed.toLowerCase()) {
+    variants.push(stripRechtsform);
+  }
+
+  // Erstes signifikantes Wort
+  const firstWord = stripRechtsform.split(/\s+/).find((w) => w.length >= 3);
+  if (firstWord && !variants.some((v) => v.toLowerCase() === firstWord.toLowerCase())) {
+    variants.push(firstWord);
+  }
+
+  return variants;
+}
+
 export async function searchByName(query: string, maxResults = 20): Promise<ZefixSearchHit[]> {
   const q = query.trim();
   if (q.length < 2) return [];
 
-  // REST zuerst, dann LINDAS
-  try {
-    const restHits = await searchViaRest(q, maxResults);
-    if (restHits.length > 0) return restHits;
-  } catch {
-    // ignore
+  // REST zuerst (falls Auth gesetzt), dann LINDAS — jeweils mit Such-Varianten
+  const variants = buildSearchVariants(q);
+  for (const variant of variants) {
+    try {
+      const restHits = await searchViaRest(variant, maxResults);
+      if (restHits.length > 0) return restHits;
+    } catch {
+      // ignore — fallback auf LINDAS
+    }
+    try {
+      const lindasHits = await searchViaLindas(variant, maxResults);
+      if (lindasHits.length > 0) return lindasHits;
+    } catch {
+      // ignore — nächste Variante
+    }
   }
-
-  return searchViaLindas(q, maxResults);
+  return [];
 }
