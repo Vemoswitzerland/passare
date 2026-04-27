@@ -24,6 +24,11 @@ export default async function KaeuferTunnelPage() {
   // Wenn schon Verkäufer → falsche Stelle
   if (profile?.rolle === 'verkaeufer') redirect('/dashboard/verkaeufer');
 
+  // Wenn schon Käufer + onboarded → schon durch (User kann via /dashboard/kaeufer/profil ändern)
+  if (profile?.rolle === 'kaeufer' && profile?.onboarding_completed_at) {
+    redirect('/dashboard/kaeufer');
+  }
+
   return (
     <main className="min-h-screen bg-cream">
       <header className="border-b border-stone bg-cream/85 backdrop-blur-md sticky top-0 z-30">
@@ -42,12 +47,12 @@ export default async function KaeuferTunnelPage() {
       <section className="py-10 md:py-14">
         <Container size="narrow">
           <div className="text-center mb-8 md:mb-10">
-            <p className="overline text-bronze mb-3">In 90 Sekunden</p>
+            <p className="overline text-bronze mb-3">In 60 Sekunden</p>
             <h1 className="font-serif-display text-display-sm md:text-display-md text-navy font-light leading-tight">
-              Lass uns dein<br />Suchprofil bauen<span className="text-bronze">.</span>
+              Was suchst du<span className="text-bronze">?</span>
             </h1>
             <p className="text-body text-muted mt-4 max-w-md mx-auto leading-relaxed">
-              5 Fragen — keine Pflicht-Pflicht. Danach siehst du Inserate, die wirklich zu dir passen.
+              3 kurze Fragen — danach siehst du Inserate, die wirklich zu dir passen. Du kannst auch <em>überspringen</em>.
             </p>
           </div>
 
@@ -58,7 +63,7 @@ export default async function KaeuferTunnelPage() {
             <TrustBadge icon={Zap} label="7 Tage Frühzugang (MAX)" />
           </div>
 
-          <TunnelForm defaultName={profile?.full_name ?? ''} />
+          <TunnelForm />
 
           <p className="text-center text-caption text-quiet mt-8">
             Schon eingerichtet?{' '}

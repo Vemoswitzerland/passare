@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createAdminClient } from '@/lib/supabase/server';
+import { sendEmail } from '@/lib/email';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -61,6 +62,26 @@ export async function POST(req: NextRequest) {
             subscription_cancel_at: cancelAt,
           })
           .eq('id', userId);
+
+        // Welcome-MAX-Email bei erstmaliger Aktivierung
+        if (event.type === 'customer.subscription.created' && isActive) {
+          const { data: prof } = await admin
+            .from('profiles')
+            .select('id')
+            .eq('id', userId)
+            .maybeSingle();
+          if (prof) {
+            const { data: authUser } = await admin.auth.admin.getUserById(userId);
+            if (authUser?.user?.email) {
+              void sendEmail({
+                template: 'EmailWelcome',
+                to: authUser.user.email,
+                vars: { rolle: 'kaeufer', tier: 'max' },
+                user_id: userId,
+              });
+            }
+          }
+        }
         break;
       }
 
