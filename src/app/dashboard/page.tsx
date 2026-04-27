@@ -24,7 +24,18 @@ export default async function DashboardPage({ searchParams }: Props) {
     .eq('id', data.user.id)
     .maybeSingle();
 
-  if (!profile?.onboarding_completed_at) redirect('/onboarding');
+  // Onboarding noch nicht fertig? → in den passenden Tunnel
+  if (!profile?.onboarding_completed_at) {
+    const intended = data.user.user_metadata?.intended_role;
+    if (intended === 'kaeufer' || profile?.rolle === 'kaeufer') {
+      redirect('/onboarding/kaeufer/tunnel');
+    }
+    redirect('/onboarding');
+  }
+
+  // Rollen-Routing — Käufer und Verkäufer haben eigene Bereiche
+  if (profile.rolle === 'kaeufer') redirect('/dashboard/kaeufer');
+  if (profile.rolle === 'verkaeufer') redirect('/dashboard/verkaeufer');
 
   const { reset, welcome } = await searchParams;
 

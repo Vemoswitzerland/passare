@@ -2,7 +2,7 @@
 
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
-import { headers } from 'next/headers';
+import { headers, cookies } from 'next/headers';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { AGB_VERSION, DATENSCHUTZ_VERSION, KANTONE, type ActionResult } from './constants';
@@ -36,6 +36,8 @@ const registerSchema = z
     accept_terms: z
       .union([z.literal('on'), z.literal('true'), z.literal(true)])
       .transform(() => true),
+    intended_role: z.enum(['kaeufer', 'verkaeufer']).optional(),
+    next: z.string().optional(),
   })
   .strict()
   .refine((d) => d.password === d.confirm, {
@@ -81,6 +83,8 @@ export async function registerAction(_prev: ActionResult | null, formData: FormD
     full_name: formData.get('full_name'),
     sprache: (formData.get('sprache') as string) || 'de',
     accept_terms: formData.get('accept_terms'),
+    intended_role: formData.get('intended_role') || undefined,
+    next: formData.get('next') || undefined,
   });
 
   if (!parsed.success) {
@@ -95,14 +99,22 @@ export async function registerAction(_prev: ActionResult | null, formData: FormD
   const supabase = await createClient();
   const origin = await getAppOrigin();
 
+  // Nach Bestätigungs-Mail-Klick wollen wir Käufer direkt in den Tunnel routen
+  const callbackNext = parsed.data.intended_role === 'kaeufer'
+    ? '/onboarding/kaeufer/tunnel'
+    : parsed.data.next || '';
+
+  const callbackUrl = `${origin}/auth/callback${callbackNext ? `?next=${encodeURIComponent(callbackNext)}` : ''}`;
+
   const { error } = await supabase.auth.signUp({
     email: parsed.data.email,
     password: parsed.data.password,
     options: {
-      emailRedirectTo: `${origin}/auth/callback`,
+      emailRedirectTo: callbackUrl,
       data: {
         full_name: parsed.data.full_name,
         sprache: parsed.data.sprache,
+        intended_role: parsed.data.intended_role,
       },
     },
   });
@@ -258,6 +270,27 @@ export async function completeOnboardingAction(
   });
 
   if (error) return { ok: false, error: error.message };
+
+  // Pre-Reg-Funnel: Bei Verkäufern Cookie auslesen + Inserat-Draft anlegen
+  if (parsed.data.rolle === 'verkaeufer') {
+    try {
+      const cookieStore = await cookies();
+      const draftCookie = cookieStore.get('pre_reg_draft')?.value;
+      if (draftCookie) {
+        const draft = JSON.parse(draftCookie);
+        const { data: inserat, error: rpcErr } = await supabase.rpc('create_inserat_from_pre_reg', {
+          p: draft,
+        });
+        cookieStore.set('pre_reg_draft', '', { maxAge: 0, path: '/' });
+        if (!rpcErr && inserat) {
+          revalidatePath('/', 'layout');
+          redirect(`/dashboard/verkaeufer/inserat/${inserat}/edit?from=pre-reg`);
+        }
+      }
+    } catch {
+      // Fallback: normaler Dashboard-Redirect
+    }
+  }
 
   revalidatePath('/', 'layout');
   redirect('/dashboard?welcome=1');

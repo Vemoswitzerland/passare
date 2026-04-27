@@ -22,6 +22,12 @@ export default async function OnboardingPage() {
 
   if (profile?.onboarding_completed_at) redirect('/dashboard');
 
+  // Käufer-Tunnel überspringt den 3-Step-Wizard und nutzt Konversations-Onboarding
+  const intended = u.user.user_metadata?.intended_role;
+  if (intended === 'kaeufer' || profile?.rolle === 'kaeufer') {
+    redirect('/onboarding/kaeufer/tunnel');
+  }
+
   return (
     <AuthShell
       overline="Schritt für Schritt"

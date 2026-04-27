@@ -1,8 +1,9 @@
 'use client';
 
-import { useActionState, useState } from 'react';
+import { useActionState, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowRight } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
+import { ArrowRight, ShieldCheck, Lock, Zap, Building2, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
 import { PasswordField } from '@/components/ui/password-field';
@@ -11,6 +12,30 @@ import { registerAction } from './actions';
 import type { ActionResult } from './constants';
 
 export function RegisterForm() {
+  const params = useSearchParams();
+  const intendedRole = params.get('role'); // 'kaeufer' | 'verkaeufer' | null
+  const next = params.get('next') ?? '';
+  const fromPreReg = params.get('from') === 'pre-reg';
+  const isKaeufer = intendedRole === 'kaeufer';
+
+  // Wenn aus Pre-Reg-Funnel: lade Draft für Anzeige
+  const [preRegInfo, setPreRegInfo] = useState<{
+    firma_name?: string | null;
+    valuation_mid?: number | null;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!fromPreReg) return;
+    fetch('/api/pre-reg').then(r => r.json()).then(({ data }) => {
+      if (data) {
+        setPreRegInfo({
+          firma_name: data.firma_name,
+          valuation_mid: data.valuation?.mid,
+        });
+      }
+    }).catch(() => {});
+  }, [fromPreReg]);
+
   const [state, action, pending] = useActionState<ActionResult | null, FormData>(
     registerAction,
     null,
@@ -21,10 +46,56 @@ export function RegisterForm() {
 
   return (
     <div>
+      {fromPreReg && preRegInfo?.firma_name && (
+        <div className="mb-6 bg-bronze/5 border border-bronze/30 rounded-card p-4 animate-fade-up">
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-soft bg-bronze/15 flex items-center justify-center flex-shrink-0">
+              <Sparkles className="w-4 h-4 text-bronze-ink" strokeWidth={1.5} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-body-sm text-navy">
+                <Building2 className="inline w-3.5 h-3.5 mr-1 -mt-0.5 text-bronze-ink" strokeWidth={1.5} />
+                <span className="font-medium">{preRegInfo.firma_name}</span> ist vorgemerkt
+              </p>
+              {preRegInfo.valuation_mid && (
+                <p className="text-caption text-quiet font-mono mt-1">
+                  Indikative Bewertung: CHF {preRegInfo.valuation_mid.toLocaleString('de-CH').replace(/,/g, "'")}
+                </p>
+              )}
+              <p className="text-caption text-bronze-ink mt-2">
+                Nach Login geht es direkt zum Inserat — keine doppelte Eingabe.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isKaeufer && !fromPreReg && (
+        <div className="mb-6 bg-bronze/5 border border-bronze/20 rounded-card p-4">
+          <p className="overline text-bronze-ink mb-2">In 2 Minuten zum Marktplatz</p>
+          <ul className="grid grid-cols-3 gap-2 text-caption">
+            <li className="flex flex-col items-center gap-1 text-center">
+              <ShieldCheck className="w-4 h-4 text-bronze" strokeWidth={1.5} />
+              <span className="text-muted leading-tight">0 % Provision</span>
+            </li>
+            <li className="flex flex-col items-center gap-1 text-center">
+              <Lock className="w-4 h-4 text-bronze" strokeWidth={1.5} />
+              <span className="text-muted leading-tight">Anonyme Teaser</span>
+            </li>
+            <li className="flex flex-col items-center gap-1 text-center">
+              <Zap className="w-4 h-4 text-bronze" strokeWidth={1.5} />
+              <span className="text-muted leading-tight">7T Frühzugang (MAX)</span>
+            </li>
+          </ul>
+        </div>
+      )}
       <OAuthButtons mode="register" />
       <AuthDivider />
 
       <form action={action} className="space-y-5">
+        {/* Hidden: intended role + next-URL aus Query */}
+        {intendedRole && <input type="hidden" name="intended_role" value={intendedRole} />}
+        {next && <input type="hidden" name="next" value={next} />}
         <div>
           <Label htmlFor="full_name">Vollständiger Name</Label>
           <Input

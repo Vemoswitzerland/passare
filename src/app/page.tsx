@@ -103,8 +103,8 @@ export function SiteHeader({ activeSell = false }: { activeSell?: boolean } = {}
             <Button href="/auth/login" size="sm" variant="ghost" className="hidden md:inline-flex">
               Anmelden
             </Button>
-            <Button href="/auth/register" size="sm" className="hidden md:inline-flex">
-              Registrieren
+            <Button href="/auth/register?role=kaeufer" size="sm" className="hidden md:inline-flex">
+              Käufer werden
             </Button>
           </div>
         </div>
@@ -318,10 +318,10 @@ function Marketplace() {
                   <span className="text-navy font-medium">Teaser sind öffentlich.</span> Für Dossier-Anfrage, NDA-Signatur und Datenraum-Zugriff ist eine kostenlose Registrierung nötig.
                 </p>
                 <Link
-                  href="/auth/register"
+                  href="/auth/register?role=kaeufer"
                   className="font-mono text-[11px] uppercase tracking-widest text-navy hover:text-bronze inline-flex items-center gap-1"
                 >
-                  Registrieren <ArrowRight className="w-3 h-3" strokeWidth={1.5} />
+                  Käufer werden <ArrowRight className="w-3 h-3" strokeWidth={1.5} />
                 </Link>
               </div>
             </Reveal>
@@ -435,7 +435,11 @@ function ListingCard({ listing }: { listing: typeof LISTINGS[number] }) {
         </p>
 
         <div className="mt-auto flex items-center gap-3">
-          <Button href="/auth/register" size="sm" className="flex-1 justify-center">
+          <Button
+            href={`/auth/register?role=kaeufer&next=${encodeURIComponent(`/onboarding/kaeufer/tunnel?listing=${listing.id}`)}`}
+            size="sm"
+            className="flex-1 justify-center"
+          >
             <FileLock2 className="w-3.5 h-3.5" strokeWidth={1.5} />
             Dossier anfragen
           </Button>
