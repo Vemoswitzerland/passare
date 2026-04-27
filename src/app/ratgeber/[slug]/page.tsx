@@ -166,7 +166,15 @@ export default async function ArtikelPage({ params }: { params: Promise<{ slug: 
 
             <Reveal delay={0.1}>
               <div className="prose-passare">
-                <MDXRemote source={artikel.body_mdx} components={mdxComponents} />
+                <MDXRemote
+                  source={artikel.body_mdx}
+                  components={mdxComponents}
+                  options={{
+                    mdxOptions: {
+                      remarkPlugins: [(await import('remark-gfm')).default],
+                    },
+                  }}
+                />
               </div>
             </Reveal>
 
