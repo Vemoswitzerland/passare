@@ -49,11 +49,11 @@ Build-Log-Style Verlauf mit `CURRENT_STEP` (Etappe + Task-Liste) + chronologisch
 ### ✅ Etappe 1.9 — Public-Access + Crawler-Schutz [LIVE]
 Vercel SSO-Protection deaktiviert (externe User landen direkt auf Beta-Gate, nicht Vercel-Login). `app/robots.ts` mit `Disallow: /` für alle Bots während Beta. `<meta name="robots" content="noindex, nofollow">` global.
 
-### ⏳ Etappe 2 — Supabase Setup + Core-Migrations [NEXT]
-**Ziel:** Supabase-Projekt verknüpft, `profiles` Tabelle mit Rollen (`verkaeufer`/`kaeufer`/`admin`), RLS.
-**Tabellen:** `profiles` (inkl. `is_broker`, `mfa_enrolled`, `qualitaets_score`, `avg_response_time_hours`, `tags`, `admin_notes`), Trigger `auth.users → profiles`, User-Roles-Enum.
-**ENV:** `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`.
-**Verifikation:** Login-Registrierungs-Flow funktioniert auf Live-URL.
+### ✅ Etappe 2 — Persistenz-Layer + Authentifizierung [LIVE]
+Eigenes Supabase-Projekt `passare` (eu-central-1, Frankfurt) provisioniert, ENV in Vercel + lokal verdrahtet.
+`profiles`-Tabelle 1:1 zu `auth.users` (rolle-Enum: verkaeufer/kaeufer/admin, is_broker, mfa_enrolled, qualitaets_score, avg_response_time_hours, tags, admin_notes etc.). Trigger `on_auth_user_created` legt Profil-Row automatisch an.
+RLS: owner-only SELECT/UPDATE auf `profiles`, INSERT nur via Trigger. Column-level GRANTs schützen Admin-Felder.
+SSR-Session-Refresh in `middleware.ts` (`updateSession`). Auth-Pages: `/auth/register`, `/auth/login`, `/auth/check-email`, `/auth/callback` (PKCE + OTP), `/auth/reset`, `/auth/reset/confirm`. `/dashboard` als Stub für eingeloggte User.
 
 ### ⬜ Etappe 2.1 [NEU] — Staging-Umgebung + CI/CD-Gates
 **Ziel:** 2. Supabase-Projekt (staging) + 2. Vercel-Projekt (`passare-staging.vercel.app`). GitHub Actions mit TypeScript-Check, ESLint, Unit-Tests (Vitest), Lighthouse CI. Migrations laufen zuerst auf Staging.
@@ -442,7 +442,7 @@ Stripe Smart Retries + `past_due`→Feature-Gate-Deaktivierung nach 3 fehlgeschl
 
 | Block | Status |
 |---|---|
-| A Fundament (1–10 + 2.1, 3.1, 3.2, 10.1) | 3 ✓ / 11 ⏳ |
+| A Fundament (1–10 + 2.1, 3.1, 3.2, 10.1) | 4 ✓ / 10 ⏳ |
 | B Datenmodelle (11–25 + 15.1, 21.1, 25.1) | 0/18 |
 | C Public (26–45 + 28.1, 32.5, 34.1) | 0/23 |
 | D Verkäufer-Dashboard (46–55 + 47.1, 49.1, 51.1, 51.2, 52.1, 54.1) | 0/16 |
@@ -459,7 +459,7 @@ Stripe Smart Retries + `past_due`→Feature-Gate-Deaktivierung nach 3 fehlgeschl
 | O Optimierung (141–150) | 0/10 |
 | P Phase 2 Broker (151–160) | 0/10 |
 
-**Gesamt: 3 / 196 Etappen ✓** (15 aus Gap-Analyse + 21 aus Persona-Walkthrough integriert)
+**Gesamt: 4 / 196 Etappen ✓** (15 aus Gap-Analyse + 21 aus Persona-Walkthrough integriert)
 
 ---
 
@@ -482,4 +482,4 @@ Stripe Smart Retries + `past_due`→Feature-Gate-Deaktivierung nach 3 fehlgeschl
 
 ---
 
-*Letzte Aktualisierung: 27.04.2026 · Etappe 1.9 live · Gap-Analyse + Persona-Walkthrough integriert (196 Etappen total) · Siehe `docs/GAP_ANALYSIS.md` und `docs/PERSONA_WALKTHROUGH.md`*
+*Letzte Aktualisierung: 27.04.2026 · Etappe 2 live · Konto-System steht (Registrieren, Anmelden, Reset). Eigenes passare-Supabase eu-central-1. Profile-Schema mit RLS und Auto-Trigger.*

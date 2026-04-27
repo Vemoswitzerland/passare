@@ -164,7 +164,7 @@ Im Code IMMER `verkaeufer` + `kaeufer` (beide transliteriert). Nie mischen!
 
 ## 🗺️ DER MASTER PLAN
 
-Die vollständige Roadmap liegt in [docs/MASTER_PLAN.md](docs/MASTER_PLAN.md) — **175 Etappen in 16 Blöcken**.
+Die vollständige Roadmap liegt in [docs/MASTER_PLAN.md](docs/MASTER_PLAN.md) — **196 Etappen in 16 Blöcken** (15 aus Gap-Analyse + 21 aus Persona-Walkthrough integriert).
 
 **Grundregel: 1 Chat = 1 Etappe.** Keine zwei Etappen pro Chat.
 Jede Etappe wird **enorm tief** implementiert, niemals oberflächlich.

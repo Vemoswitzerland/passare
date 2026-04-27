@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { updateSession } from '@/lib/supabase/middleware';
 
 /**
- * Beta-Gate Middleware
- *
- * Blockiert die komplette Site — ausser die Beta-Gate-Seite selbst und Assets —
- * bis der User den Beta-Code in einem Cookie hat.
- *
- * Disable: setze BETA_GATE_ENABLED=false in den Vercel Env Vars.
+ * Two-stage middleware:
+ *  1) Beta-Gate (Cookie passare_beta) — blockiert die ganze Site bis der
+ *     Beta-Code eingegeben wurde. Auth-Pages liegen HINTER dem Beta-Gate.
+ *  2) Supabase-Session-Refresh — sobald die Auth-Pages aktiv sind,
+ *     muss bei jedem Request der Token erneuert werden.
  */
 
-const PUBLIC_PATHS = [
+const BETA_PUBLIC_PATHS = new Set([
   '/beta',
   '/api/beta',
   '/status',
@@ -17,31 +17,48 @@ const PUBLIC_PATHS = [
   '/favicon.ico',
   '/robots.txt',
   '/sitemap.xml',
-];
+]);
 
-const PUBLIC_PREFIXES = ['/_next', '/assets', '/images'];
+const BETA_PUBLIC_PREFIXES = ['/_next', '/assets', '/images'];
 
-export function middleware(req: NextRequest) {
+const AUTH_PROTECTED_PREFIXES = ['/dashboard', '/admin'];
+const AUTH_PUBLIC_PREFIXES = ['/auth'];
+
+export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // Gate deaktiviert? Dann freier Zugriff.
-  if (process.env.BETA_GATE_ENABLED !== 'true') return NextResponse.next();
-
-  // Öffentliche Pfade immer erlauben
-  if (PUBLIC_PATHS.includes(pathname)) return NextResponse.next();
-  if (PUBLIC_PREFIXES.some((p) => pathname.startsWith(p))) return NextResponse.next();
-
-  // Cookie prüfen
-  const token = req.cookies.get('passare_beta')?.value;
-  if (token && token === process.env.BETA_ACCESS_CODE) {
-    return NextResponse.next();
+  // ── 1) Beta-Gate ──────────────────────────────────────────
+  if (process.env.BETA_GATE_ENABLED === 'true') {
+    const isPublic =
+      BETA_PUBLIC_PATHS.has(pathname) ||
+      BETA_PUBLIC_PREFIXES.some((p) => pathname.startsWith(p));
+    if (!isPublic) {
+      const beta = req.cookies.get('passare_beta')?.value;
+      if (!beta || beta !== process.env.BETA_ACCESS_CODE) {
+        const url = req.nextUrl.clone();
+        url.pathname = '/beta';
+        url.searchParams.set('from', pathname);
+        return NextResponse.redirect(url);
+      }
+    }
   }
 
-  // Sonst redirect auf Beta-Gate
-  const url = req.nextUrl.clone();
-  url.pathname = '/beta';
-  url.searchParams.set('from', pathname);
-  return NextResponse.redirect(url);
+  // ── 2) Supabase-Session ──────────────────────────────────
+  // Nur wenn Supabase überhaupt konfiguriert ist (vor Etappe 2: nicht).
+  const hasSupabase =
+    !!process.env.NEXT_PUBLIC_SUPABASE_URL &&
+    !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!hasSupabase) return NextResponse.next();
+
+  // Session-Refresh + User-Lookup nur auf Routen, die ihn brauchen.
+  const needsAuth =
+    AUTH_PROTECTED_PREFIXES.some((p) => pathname.startsWith(p)) ||
+    AUTH_PUBLIC_PREFIXES.some((p) => pathname.startsWith(p));
+
+  if (!needsAuth) return NextResponse.next();
+
+  return updateSession(req);
 }
 
 export const config = {
