@@ -46,7 +46,7 @@ function Hero() {
             <Reveal>
               <p className="overline mb-6 text-bronze-ink">Für Verkäufer</p>
               <h1 className="font-serif-display text-[clamp(2.5rem,4.5vw,4.5rem)] text-navy font-light mb-8 tracking-[-0.025em] leading-[1.05]">
-                Der Firmenmarktplatz
+                Der Firmenmarktplatz —
                 <br />
                 <span className="text-muted italic">der Schweiz<span className="not-italic text-bronze">.</span></span>
               </h1>
