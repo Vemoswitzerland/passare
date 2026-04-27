@@ -1,25 +1,23 @@
 'use client';
 
-import {
-  startGoogleOAuthAction,
-  startAppleOAuthAction,
-  startLinkedInOAuthAction,
-} from '@/app/auth/actions';
+import { useState } from 'react';
+import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 
 type Mode = 'login' | 'register';
+type Provider = 'google' | 'apple' | 'linkedin_oidc';
 
 export function OAuthButtons({ mode = 'login' }: { mode?: Mode }) {
   const verb = mode === 'register' ? 'registrieren' : 'anmelden';
   return (
     <div className="space-y-2.5">
-      <OAuthBtn action={startGoogleOAuthAction} label={`Mit Google ${verb}`}>
+      <OAuthBtn provider="google" label={`Mit Google ${verb}`}>
         <GoogleIcon />
       </OAuthBtn>
-      <OAuthBtn action={startAppleOAuthAction} label={`Mit Apple ${verb}`}>
+      <OAuthBtn provider="apple" label={`Mit Apple ${verb}`}>
         <AppleIcon />
       </OAuthBtn>
-      <OAuthBtn action={startLinkedInOAuthAction} label={`Mit LinkedIn ${verb}`}>
+      <OAuthBtn provider="linkedin_oidc" label={`Mit LinkedIn ${verb}`}>
         <LinkedInIcon />
       </OAuthBtn>
     </div>
@@ -27,12 +25,46 @@ export function OAuthButtons({ mode = 'login' }: { mode?: Mode }) {
 }
 
 function OAuthBtn({
-  action, label, children,
-}: { action: () => Promise<void>; label: string; children: React.ReactNode }) {
+  provider, label, children,
+}: { provider: Provider; label: string; children: React.ReactNode }) {
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleClick() {
+    setError(null);
+    setPending(true);
+    try {
+      const supabase = createClient();
+      const origin = window.location.origin;
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: `${origin}/auth/callback?next=/dashboard`,
+          queryParams:
+            provider === 'google'
+              ? { access_type: 'offline', prompt: 'consent' }
+              : undefined,
+        },
+      });
+      if (error) throw error;
+      if (data?.url) window.location.assign(data.url);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Anmeldung fehlgeschlagen';
+      const friendly =
+        /provider is not enabled/i.test(msg)
+          ? `${providerName(provider)}-Anmeldung ist noch nicht freigeschaltet.`
+          : msg;
+      setError(friendly);
+      setPending(false);
+    }
+  }
+
   return (
-    <form action={action}>
+    <div>
       <button
-        type="submit"
+        type="button"
+        onClick={handleClick}
+        disabled={pending}
         className={cn(
           'w-full inline-flex items-center justify-center gap-3 font-sans font-medium',
           'border border-stone rounded-soft px-6 py-3 text-[0.9375rem] text-ink',
@@ -44,10 +76,19 @@ function OAuthBtn({
         <span className="w-[18px] h-[18px] inline-flex items-center justify-center">
           {children}
         </span>
-        {label}
+        {pending ? 'Weiterleitung…' : label}
       </button>
-    </form>
+      {error && (
+        <p className="mt-1.5 text-caption text-danger leading-snug">{error}</p>
+      )}
+    </div>
   );
+}
+
+function providerName(p: Provider) {
+  if (p === 'google') return 'Google';
+  if (p === 'apple') return 'Apple';
+  return 'LinkedIn';
 }
 
 export function AuthDivider({ children = 'oder mit E-Mail' }: { children?: string }) {

@@ -190,35 +190,8 @@ export async function updatePasswordAction(_prev: ActionResult | null, formData:
   redirect('/dashboard?reset=ok');
 }
 
-// ═══════════════════════════════════════════════════════════════
-//  OAUTH-PROVIDER (Google · LinkedIn · Apple)
-// ═══════════════════════════════════════════════════════════════
-type OAuthProvider = 'google' | 'apple' | 'linkedin_oidc';
-
-async function startOAuth(provider: OAuthProvider) {
-  const supabase = await createClient();
-  const origin = await getAppOrigin();
-
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider,
-    options: {
-      redirectTo: `${origin}/auth/callback?next=/dashboard`,
-      queryParams:
-        provider === 'google'
-          ? { access_type: 'offline', prompt: 'consent' }
-          : undefined,
-    },
-  });
-
-  if (error || !data?.url) {
-    redirect(`/auth/login?error=${encodeURIComponent(error?.message ?? 'oauth_failed')}`);
-  }
-  redirect(data.url);
-}
-
-export async function startGoogleOAuthAction()   { await startOAuth('google'); }
-export async function startAppleOAuthAction()    { await startOAuth('apple'); }
-export async function startLinkedInOAuthAction() { await startOAuth('linkedin_oidc'); }
+// OAuth-Flow läuft client-side (PKCE-Verifier muss im Browser-Cookie liegen).
+// Siehe src/components/ui/oauth-buttons.tsx
 
 // ═══════════════════════════════════════════════════════════════
 //  LOGOUT
