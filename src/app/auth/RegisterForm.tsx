@@ -6,7 +6,7 @@ import { ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
 import { PasswordField } from '@/components/ui/password-field';
-import { GoogleButton, AuthDivider } from '@/components/ui/google-button';
+import { OAuthButtons, AuthDivider } from '@/components/ui/oauth-buttons';
 import { registerAction } from './actions';
 import type { ActionResult } from './constants';
 
@@ -21,7 +21,7 @@ export function RegisterForm() {
 
   return (
     <div>
-      <GoogleButton label="Mit Google registrieren" />
+      <OAuthButtons mode="register" />
       <AuthDivider />
 
       <form action={action} className="space-y-5">

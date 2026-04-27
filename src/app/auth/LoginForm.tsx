@@ -6,7 +6,7 @@ import { ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
 import { PasswordField } from '@/components/ui/password-field';
-import { GoogleButton, AuthDivider } from '@/components/ui/google-button';
+import { OAuthButtons, AuthDivider } from '@/components/ui/oauth-buttons';
 import { loginAction } from './actions';
 import type { ActionResult } from './constants';
 
@@ -18,7 +18,7 @@ export function LoginForm() {
 
   return (
     <div>
-      <GoogleButton label="Mit Google anmelden" />
+      <OAuthButtons mode="login" />
       <AuthDivider />
 
       <form action={action} className="space-y-5">
