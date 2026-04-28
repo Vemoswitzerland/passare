@@ -1,18 +1,21 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import {
-  ArrowLeft, Building2, Calendar, FileLock2, Mail, MapPin,
-  Phone, Shield, TrendingUp, Users,
+  ArrowLeft, Calendar, CheckCircle2, Mail,
+  MapPin, MessageSquare, Phone, Shield, TrendingUp, Users,
 } from 'lucide-react';
 import { Container, Section } from '@/components/ui/container';
-import { Button } from '@/components/ui/button';
 import { Reveal } from '@/components/ui/reveal';
 import { branchenStockfoto } from '@/data/branchen-stockfotos';
 import { MOCK_LISTINGS, type MockListing } from '@/lib/listings-mock';
 import { SiteHeader, SiteFooter } from '../../page';
-import { ListingActions } from './ListingActions';
+import { InlineAnfrageForm } from './InlineAnfrageForm';
+import { LikeShareActions } from './LikeShareActions';
 
-type Params = { params: Promise<{ id: string }> };
+type Params = {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ anfrage?: string }>;
+};
 
 export async function generateMetadata({ params }: Params) {
   const { id } = await params;
@@ -25,18 +28,36 @@ export async function generateMetadata({ params }: Params) {
   };
 }
 
-export default async function InseratDetailPage({ params }: Params) {
+export default async function InseratDetailPage({ params, searchParams }: Params) {
   const { id } = await params;
+  const { anfrage } = await searchParams;
   const listing = MOCK_LISTINGS.find((l) => l.id === id);
   if (!listing) notFound();
 
   return (
     <main className="min-h-screen flex flex-col bg-cream">
       <SiteHeader />
+      {anfrage === 'ok' && <AnfrageErfolgBanner />}
       <DetailHero listing={listing} />
       <DetailBody listing={listing} />
       <SiteFooter />
     </main>
+  );
+}
+
+function AnfrageErfolgBanner() {
+  return (
+    <div className="bg-success/10 border-b border-success/30">
+      <Container>
+        <div className="py-3 flex items-center gap-3">
+          <CheckCircle2 className="w-5 h-5 text-success flex-shrink-0" strokeWidth={1.5} />
+          <p className="text-body-sm text-navy">
+            <span className="font-medium">Anfrage gesendet.</span>{' '}
+            Der Verkäufer wurde informiert — Ihr Käufer-Basic-Konto ist aktiv.
+          </p>
+        </div>
+      </Container>
+    </div>
   );
 }
 
@@ -202,7 +223,7 @@ function InfoTile({
   );
 }
 
-/* ════════════════════════ ContactPanel (anonym vs öffentlich) ════════════════════════ */
+/* ════════════════════════ ContactPanel (Anfrage-Form als Hauptaktion) ════════════════════════ */
 function ContactPanel({
   listing,
   inserent,
@@ -210,95 +231,82 @@ function ContactPanel({
   listing: MockListing;
   inserent: NonNullable<MockListing['inserent']>;
 }) {
-  const isAnonym = inserent.anonym;
+  const isOeffentlich = !inserent.anonym;
 
   return (
     <div className="bg-paper border border-stone rounded-card p-6 space-y-5">
       <div className="flex items-center gap-2">
-        <Building2 className="w-4 h-4 text-bronze" strokeWidth={1.5} />
+        <MessageSquare className="w-4 h-4 text-bronze" strokeWidth={1.5} />
         <h2 className="font-mono text-[11px] uppercase tracking-widest text-navy">
-          {isAnonym ? 'Verkäufer' : 'Kontakt'}
+          Anfrage stellen
         </h2>
       </div>
 
-      {isAnonym ? (
-        <AnonymBlock />
-      ) : (
-        <OffentlichBlock inserent={inserent} />
-      )}
+      <p className="text-body-sm text-muted leading-relaxed">
+        Schreiben Sie dem Verkäufer direkt — kein Konto nötig, nur E-Mail-Verifikation.
+      </p>
 
-      <ListingActions listing={listing} />
+      <InlineAnfrageForm listing={listing} />
 
-      {/* MAX-Hinweis */}
-      <div className="pt-5 border-t border-stone">
-        <p className="text-caption text-quiet leading-relaxed">
-          {isAnonym
-            ? 'Die Kontaktdaten des Verkäufers werden nach NDA-Signatur freigegeben. Mit Käufer MAX werden Anfragen bevorzugt behandelt.'
-            : 'Sie können den Verkäufer direkt kontaktieren oder eine offizielle Anfrage über passare stellen — wir leiten alle Unterlagen direkt weiter.'}
-        </p>
-      </div>
+      <LikeShareActions
+        listingId={listing.id}
+        titel={listing.titel}
+        branche={listing.branche}
+        kanton={listing.kanton}
+        umsatz={listing.umsatz}
+      />
+
+      {isOeffentlich && <DirektkontaktBox inserent={inserent} />}
     </div>
   );
 }
 
-function AnonymBlock() {
-  return (
-    <div className="flex items-center gap-4">
-      <div className="w-14 h-14 rounded-full bg-navy/10 flex items-center justify-center flex-shrink-0">
-        <Shield className="w-6 h-6 text-navy" strokeWidth={1.5} />
-      </div>
-      <div>
-        <p className="font-serif text-body text-navy">Anonymer Verkäufer</p>
-        <p className="text-caption text-muted leading-snug mt-0.5">
-          Kontakt erst nach NDA-Signatur sichtbar.
-        </p>
-      </div>
-    </div>
-  );
-}
+function DirektkontaktBox({ inserent }: { inserent: NonNullable<MockListing['inserent']> }) {
+  if (!inserent.email && !inserent.telefon) return null;
 
-function OffentlichBlock({ inserent }: { inserent: NonNullable<MockListing['inserent']> }) {
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-4">
+    <div className="pt-5 border-t border-stone">
+      <p className="font-mono text-[10px] uppercase tracking-widest text-quiet mb-3">
+        Lieber direkt? Verkäufer hat sein Profil öffentlich gestellt
+      </p>
+      <div className="flex items-center gap-3 mb-3">
         {inserent.foto ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={inserent.foto}
             alt={inserent.name ?? 'Verkäufer'}
-            className="w-14 h-14 rounded-full object-cover border border-stone"
+            className="w-10 h-10 rounded-full object-cover border border-stone"
           />
         ) : (
-          <div className="w-14 h-14 rounded-full bg-bronze/15 text-bronze-ink flex items-center justify-center flex-shrink-0 font-serif text-xl">
+          <div className="w-10 h-10 rounded-full bg-bronze/15 text-bronze-ink flex items-center justify-center flex-shrink-0 font-serif text-base">
             {(inserent.name ?? '?').slice(0, 1)}
           </div>
         )}
         <div className="min-w-0">
-          <p className="font-serif text-body text-navy truncate">{inserent.name}</p>
-          <p className="text-caption text-muted leading-snug truncate">
+          <p className="font-serif text-body-sm text-navy truncate leading-tight">{inserent.name}</p>
+          <p className="text-caption text-quiet leading-snug truncate">
             {inserent.rolle}
             {inserent.firma ? ` · ${inserent.firma}` : ''}
           </p>
         </div>
       </div>
-
-      <div className="space-y-2">
+      <div className="space-y-1.5">
         {inserent.email && (
           <a
             href={`mailto:${inserent.email}`}
-            className="flex items-center gap-3 text-body-sm text-ink hover:text-bronze transition-colors"
+            className="flex items-center gap-2.5 text-body-sm text-ink hover:text-bronze transition-colors"
           >
-            <Mail className="w-4 h-4 text-bronze flex-shrink-0" strokeWidth={1.5} />
-            <span className="truncate font-mono text-[13px]">{inserent.email}</span>
+            <Mail className="w-3.5 h-3.5 text-bronze flex-shrink-0" strokeWidth={1.5} />
+            <span className="truncate font-mono text-[12px]">{inserent.email}</span>
           </a>
         )}
         {inserent.telefon && (
           <a
             href={`tel:${inserent.telefon.replace(/\s/g, '')}`}
-            className="flex items-center gap-3 text-body-sm text-ink hover:text-bronze transition-colors"
+            className="flex items-center gap-2.5 text-body-sm text-ink hover:text-bronze transition-colors"
           >
-            <Phone className="w-4 h-4 text-bronze flex-shrink-0" strokeWidth={1.5} />
-            <span className="font-mono text-[13px]">{inserent.telefon}</span>
+            <Phone className="w-3.5 h-3.5 text-bronze flex-shrink-0" strokeWidth={1.5} />
+            <span className="font-mono text-[12px]">{inserent.telefon}</span>
           </a>
         )}
       </div>

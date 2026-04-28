@@ -381,10 +381,10 @@ function ListingCard({ listing }: { listing: typeof LISTINGS[number] }) {
 
   return (
     <article className="group relative bg-paper border border-stone rounded-card overflow-hidden hover:-translate-y-0.5 hover:shadow-lift hover:border-bronze/40 transition-all duration-300 flex flex-col cursor-pointer">
-      {/* Stretched-Link: ganze Karte klickbar — Buttons unten haben relative z-10 darüber */}
+      {/* Stretched-Link: liegt ÜBER dem Cover (das hat relative ohne z-index) — sonst fängt der Cover-Bereich die Klicks ab. Buttons unten überlagern den Link mit z-[2]. */}
       <Link
         href={`/inserat/${listing.id}`}
-        className="absolute inset-0 z-0"
+        className="absolute inset-0 z-[1]"
         aria-label={`Inserat ${listing.titel} ansehen`}
       />
 

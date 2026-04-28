@@ -75,9 +75,16 @@ export const UPDATES: Update[] = [
   {
     date: '2026-04-28',
     type: 'feature',
-    titel: 'Anfrage ohne Konto + ganze Inserat-Karte klickbar',
+    titel: 'Anfrage-Form direkt im Kontakt-Panel + Mail-Verifizierung',
     beschreibung:
-      'Ein Klick irgendwo auf eine Inserat-Karte öffnet nun direkt die Detail-Seite (nicht nur der «Details»-Knopf). Der «Anfrage stellen»-Knopf öffnet ein Schreib-Fenster von rechts: Name, E-Mail und Nachricht reichen — kein Konto nötig. Wer auf «Senden» drückt, bekommt einen Bestätigungs-Link an die E-Mail, klickt auf «E-Mail verifizieren» und kann gleich danach ein Passwort vergeben — und schon ist das Gratis-Käufer-Konto aktiv. Anschauen statt herumklicken: die Karte hebt sich beim Hover auch sichtbar.',
+      'Auf jeder Inserat-Detail-Seite steht das Anfrage-Formular jetzt direkt offen sichtbar rechts — Name, E-Mail, Nachricht und «Senden». Kein extra Knopf, kein Konto nötig. Nach dem Senden kommt ein kleines Pop-up «Wir haben Ihnen eine Bestätigungs-Mail geschickt», ein Klick auf den Verifizierungs-Link führt auf die Passwort-Seite, dort das Passwort vergeben — und der User landet wieder auf demselben Inserat mit grünem Banner «Anfrage gesendet, Käufer-Basic-Konto aktiv». Karten-Klick-Bug behoben: die ganze Karte (auch der Bild-Bereich) ist jetzt überall klickbar.',
+  },
+  {
+    date: '2026-04-28',
+    type: 'feature',
+    titel: 'Direktkontakt bei öffentlichen Inserenten',
+    beschreibung:
+      'Wenn ein Verkäufer sein Profil öffentlich gestellt hat, wird unter dem Anfrage-Formular zusätzlich eine kleine «Lieber direkt?»-Box mit Profilbild, Name, Rolle, E-Mail und Telefon angezeigt — der Käufer kann wählen, ob er über passare anfragt oder direkt anruft.',
   },
   {
     date: '2026-04-28',
