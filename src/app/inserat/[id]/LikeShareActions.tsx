@@ -2,13 +2,14 @@
 
 import { useState } from 'react';
 import { Check, Heart, Share2 } from 'lucide-react';
+import { LoginRequiredDialog } from '@/components/marketplace/LoginRequiredDialog';
+import { useAuthUser } from '@/components/marketplace/use-auth-user';
 
 /**
  * Merken (Like) + Teilen (Share) Buttons im ContactPanel der Detail-Seite.
  *
- * Like ist V1 nur lokal optisch (kein Backend) — sobald Käufer-Konto aktiv,
- * landet das Inserat in den Favoriten. Teilen nutzt navigator.share auf Mobile,
- * Clipboard-Copy als Fallback auf Desktop.
+ * Merken erfordert ein Konto — bei Klick als nicht-eingeloggter User öffnet
+ * sich der LoginRequiredDialog. Teilen bleibt immer offen.
  */
 
 type Props = {
@@ -22,10 +23,16 @@ type Props = {
 export function LikeShareActions({
   listingId, titel, branche, kanton, umsatz,
 }: Props) {
+  const { isLoggedIn } = useAuthUser();
   const [liked, setLiked] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [loginOpen, setLoginOpen] = useState(false);
 
   function toggleLike() {
+    if (!isLoggedIn) {
+      setLoginOpen(true);
+      return;
+    }
     setLiked((v) => !v);
   }
 
@@ -95,6 +102,12 @@ export function LikeShareActions({
           </>
         )}
       </button>
+
+      <LoginRequiredDialog
+        open={loginOpen}
+        onClose={() => setLoginOpen(false)}
+        intent="merken"
+      />
     </div>
   );
 }

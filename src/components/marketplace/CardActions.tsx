@@ -2,13 +2,14 @@
 
 import { useState } from 'react';
 import { Check, Heart, Share2 } from 'lucide-react';
+import { LoginRequiredDialog } from './LoginRequiredDialog';
+import { useAuthUser } from './use-auth-user';
 
 /**
  * Like + Teilen Buttons auf einer Marktplatz-Karte.
  *
- * Liken ist V1 nur lokal/optisch (kein Backend) — sobald Käufer-Konto vorhanden,
- * landet das Inserat in den Favoriten. Teilen nutzt navigator.share auf Mobile,
- * fällt zurück auf Clipboard-Copy auf Desktop.
+ * Liken erfordert ein Konto — bei Klick als nicht-eingeloggter User öffnet sich
+ * der LoginRequiredDialog (OAuth + Login/Register). Teilen ist immer offen.
  */
 
 type Props = {
@@ -20,12 +21,18 @@ type Props = {
 };
 
 export function CardActions({ listingId, titel, branche, kanton, umsatz }: Props) {
+  const { isLoggedIn } = useAuthUser();
   const [liked, setLiked] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [loginOpen, setLoginOpen] = useState(false);
 
   function toggleLike(e: React.MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
+    if (!isLoggedIn) {
+      setLoginOpen(true);
+      return;
+    }
     setLiked((v) => !v);
   }
 
@@ -92,6 +99,12 @@ export function CardActions({ listingId, titel, branche, kanton, umsatz }: Props
           <Share2 className="w-3.5 h-3.5" strokeWidth={1.5} />
         )}
       </button>
+
+      <LoginRequiredDialog
+        open={loginOpen}
+        onClose={() => setLoginOpen(false)}
+        intent="merken"
+      />
     </>
   );
 }

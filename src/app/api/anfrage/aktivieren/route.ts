@@ -15,7 +15,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { verifyAnfrageToken } from '@/lib/anfrage-token';
 import { sendEmail } from '@/lib/email';
-import { createAdminClient } from '@/lib/supabase/server';
+import { createAdminClient, createClient } from '@/lib/supabase/server';
 import { MOCK_LISTINGS } from '@/lib/listings-mock';
 
 export const runtime = 'nodejs';
@@ -67,6 +67,21 @@ export async function POST(req: NextRequest) {
     }
   } catch (err) {
     console.warn('[anfrage:aktivieren] admin client error:', err);
+  }
+
+  // Auto-Login: Session-Cookie für den Browser setzen, damit der User nach
+  // dem Redirect direkt eingeloggt ist (Header zeigt dann Konto statt «Anmelden»).
+  try {
+    const sb = await createClient();
+    const { error: signInError } = await sb.auth.signInWithPassword({
+      email: payload.e,
+      password: body.passwort,
+    });
+    if (signInError) {
+      console.warn('[anfrage:aktivieren] signInWithPassword:', signInError.message);
+    }
+  } catch (err) {
+    console.warn('[anfrage:aktivieren] signIn-Exception:', err);
   }
 
   // Anfrage-Mail an Sammel-Inbox (V1 ohne Verkäufer-DB)
