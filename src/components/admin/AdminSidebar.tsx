@@ -86,6 +86,7 @@ export function AdminSidebar({
                   <li key={item.href}>
                     <Link
                       href={item.href}
+                      prefetch={true}
                       onClick={onNavigate}
                       className={cn(
                         'group flex items-center gap-2 px-2.5 py-1.5 rounded-soft text-[13px] transition-colors relative',
