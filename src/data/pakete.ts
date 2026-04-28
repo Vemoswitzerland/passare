@@ -45,7 +45,7 @@ export const PAKETE: Record<PaketTier, Paket> = {
       'Anfragen-Inbox mit Käufer-Scoring',
       'NDA-Pipeline',
       'Datenraum mit Audit-Log',
-      '0 % Erfolgsprovision',
+      'Pauschalpreis · keine Folgekosten',
       'KMU-Rabatt automatisch erkannt',
     ],
   },
@@ -63,7 +63,7 @@ export const PAKETE: Record<PaketTier, Paket> = {
       'NDA-Pipeline mit Versionierung',
       'Datenraum + Käufer-Audit',
       'Mehrsprachiges Inserat (DE/EN/FR/IT)',
-      '0 % Erfolgsprovision',
+      'Pauschalpreis · keine Folgekosten',
     ],
     highlight: true,                             // ANCHOR / "Beliebtester"
   },

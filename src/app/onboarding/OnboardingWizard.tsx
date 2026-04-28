@@ -153,7 +153,7 @@ function StepRolle({
           subtitle="Mein Unternehmen anonym inserieren"
           bullets={[
             'Ab CHF 290, einmaliger Paketpreis',
-            'Keine Erfolgsprovision auf den Verkauf',
+            'Pauschalpreis — keine Folgekosten',
             'NDA-Gate vor Detailfreigabe',
           ]}
         />

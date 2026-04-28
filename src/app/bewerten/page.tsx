@@ -209,7 +209,7 @@ function CTA() {
           <Reveal delay={0.1}>
             <p className="text-body-lg text-cream/80 max-w-prose leading-relaxed mb-10">
               Wenn die Range stimmt: Markttest mit anonymem Inserat. Sie sehen, wer ernsthaft interessiert ist —
-              ohne Verträge, ohne Provisionen.
+              transparent und in Ihrem Tempo.
             </p>
           </Reveal>
           <Reveal delay={0.2}>

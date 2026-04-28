@@ -58,7 +58,7 @@ export default async function KaeuferTunnelPage() {
 
           {/* Trust-Badges */}
           <div className="grid grid-cols-3 gap-3 mb-8">
-            <TrustBadge icon={ShieldCheck} label="0 % Provision" />
+            <TrustBadge icon={ShieldCheck} label="Direkt zum Verkäufer" />
             <TrustBadge icon={Lock} label="Anonyme Teaser" />
             <TrustBadge icon={Zap} label="7 Tage Frühzugang (MAX)" />
           </div>

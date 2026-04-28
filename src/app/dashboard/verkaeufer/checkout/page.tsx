@@ -145,7 +145,7 @@ export default async function CheckoutPage({ searchParams }: Props) {
 
             <p className="text-caption text-quiet mt-6 leading-relaxed">
               Wir halten dein Inserat aktiv bis zum Verkauf. Keine automatische
-              Verlängerung, keine Erfolgsprovision.
+              Verlängerung — du entscheidest selbst.
             </p>
           </aside>
         </div>

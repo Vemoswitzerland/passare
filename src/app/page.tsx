@@ -138,7 +138,7 @@ export function SiteHeader({ activeSell = false }: { activeSell?: boolean } = {}
                 activeSell ? 'text-navy' : 'text-muted hover:text-ink'
               }`}
             >
-              Firma verkaufen
+              Firma inserieren
             </Link>
             <Link href="/preise" className="text-[0.8125rem] font-medium text-muted hover:text-ink">
               Preise
@@ -179,7 +179,7 @@ export function SiteFooter() {
             <p className="overline mb-4">Plattform</p>
             <ul className="space-y-3 text-body-sm text-muted">
               <li><Link className="hover:text-navy" href="/">Firmen entdecken</Link></li>
-              <li><Link className="hover:text-navy" href="/verkaufen">Firma verkaufen</Link></li>
+              <li><Link className="hover:text-navy" href="/verkaufen">Firma inserieren</Link></li>
               <li><Link className="hover:text-navy" href="/preise">Preise &amp; Käufer MAX</Link></li>
             </ul>
           </div>

@@ -19,7 +19,7 @@ ZWINGEND:
 - Hochdeutsch, aber mit Schweizer Bezug (Kanton, CHF, Schweizer Recht/Steuern, Handelsregister, etc.)
 - Praktisch, konkret, nicht akademisch. Beispiele aus der Schweizer KMU-Realität.
 - Keine Werbung für andere Plattformen, keine Empfehlung von Brokern.
-- passare positioniert sich als Self-Service-Plattform mit 0% Erfolgsprovision — wenn der Artikel das natürlich erwähnen kann (nicht aufdrängen).
+- passare positioniert sich als Self-Service-Plattform mit transparenten Pauschalpreisen — wenn der Artikel das natürlich erwähnen kann (nicht aufdrängen).
 - Markdown-Format. Verwende ## für Hauptabschnitte, ### für Unterabschnitte, **fett** für Schlüsselbegriffe, - für Listen.
 - Schreibe 800–1200 Wörter — keine Pseudo-Füllung.
 - Zahlen/Prozente: Schweizer Format (CHF 1'250'000, 12,5 %).

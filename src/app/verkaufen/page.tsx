@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowRight, ShieldCheck, Upload, FileLock2, MessageCircle, Handshake, Check, Clock, TrendingUp, Users } from 'lucide-react';
+import { ArrowRight, ShieldCheck, Upload, FileLock2, MessageCircle, Handshake, Check, Clock, TrendingUp, Users, Calculator, Sparkles } from 'lucide-react';
 import { Container, Section } from '@/components/ui/container';
 import { Button } from '@/components/ui/button';
 import { Divider } from '@/components/ui/divider';
@@ -9,7 +9,7 @@ import { DashboardMockup } from '@/components/sections/dashboard-mockup';
 export const metadata = {
   title: 'Firma inserieren — passare',
   description:
-    'Inserieren Sie Ihr KMU auf der Schweizer Plattform passare. Fester Paketpreis ab CHF 290, keine Erfolgsprovision, anonymes Profil, NDA-Gate. Sie behalten die Kontrolle.',
+    'Inserieren Sie Ihr KMU auf der Schweizer Plattform passare. Fester Paketpreis ab CHF 290, anonymes Profil, NDA-Gate. Sie behalten die Kontrolle.',
   robots: { index: false, follow: false },
 };
 
@@ -21,6 +21,7 @@ export default function VerkaufenPage() {
       <Benefits />
       <Packages />
       <Process />
+      <BewertungsKarte />
       <FAQ />
       <CTA />
       <Footer />
@@ -70,7 +71,7 @@ function Hero() {
               <div className="flex flex-wrap items-center gap-x-5 gap-y-2 font-mono text-[11px] uppercase tracking-widest text-quiet">
                 <SignalDot>Ab CHF 290</SignalDot>
                 <span className="w-px h-3 bg-stone" />
-                <SignalDot>0% Provision</SignalDot>
+                <SignalDot>Pauschalpreis</SignalDot>
                 <span className="w-px h-3 bg-stone" />
                 <SignalDot>Anonym</SignalDot>
                 <span className="w-px h-3 bg-stone" />
@@ -103,7 +104,7 @@ function Benefits() {
   const items = [
     { Icon: ShieldCheck, title: 'Anonym inserieren', body: 'Teaser öffentlich, Details nach NDA. Ihre Mitarbeitenden, Lieferanten und Kunden erfahren es nicht.' },
     { Icon: Clock, title: '10–15 Min. live', body: 'Zefix-Import, KI-Assistent, Foto-Upload. Ihr Inserat läuft noch heute.' },
-    { Icon: TrendingUp, title: 'Keine Provision', body: 'Ob Sie für CHF 500\'000 oder CHF 25 Mio verkaufen — wir verdienen keinen Rappen am Deal.' },
+    { Icon: TrendingUp, title: 'Pauschal-Preis', body: 'Sie zahlen einmalig für Ihr Inserat — egal ob Ihre Firma am Ende für CHF 500\'000 oder CHF 25 Mio den Besitzer wechselt.' },
     { Icon: Users, title: 'Verifizierte Käufer', body: 'Über 300 registrierte Käufer mit KYC und ernstem Interesse. Keine Schaulustigen.' },
   ];
 
@@ -193,7 +194,7 @@ function Packages() {
             </h2>
             <p className="text-body-lg text-muted leading-relaxed max-w-prose">
               Sie wählen ein Paket &mdash; Ihr Inserat läuft die ganze Laufzeit.
-              Keine automatische Verlängerung. Keine Provision auf Ihren Verkaufspreis.
+              Keine automatische Verlängerung. Sie zahlen einmal für die Plattform.
             </p>
           </div>
         </Reveal>
@@ -294,11 +295,112 @@ function Process() {
 }
 
 /* ───────────────────────────────── */
+function BewertungsKarte() {
+  return (
+    <Section>
+      <Container>
+        <Reveal>
+          <article className="relative overflow-hidden border border-stone bg-paper rounded-card p-8 md:p-12">
+            {/* dezenter Hintergrund-Akzent */}
+            <div className="absolute -top-24 -right-24 w-72 h-72 rounded-full bg-bronze/8 blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-24 -left-24 w-72 h-72 rounded-full bg-navy/5 blur-3xl pointer-events-none" />
+
+            <div className="relative grid md:grid-cols-[1fr_auto] gap-8 md:gap-12 items-end">
+              <div className="max-w-prose">
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-bronze bg-bronze/10 border border-bronze/30 rounded-full px-2.5 py-1">
+                    <Sparkles className="w-3 h-3" strokeWidth={1.5} />
+                    Alternativ-Weg
+                  </span>
+                  <span className="font-mono text-[10px] uppercase tracking-widest text-quiet">
+                    2 Min &middot; gratis &middot; ohne Konto
+                  </span>
+                </div>
+
+                <h2 className="font-serif text-display-sm md:text-display-md text-navy font-light mb-4 tracking-[-0.02em] leading-[1.1]">
+                  Erst bewerten<span className="text-bronze">.</span>{' '}
+                  <span className="text-muted italic">Dann inserieren.</span>
+                </h2>
+
+                <p className="text-body-lg text-muted leading-relaxed mb-6">
+                  Du weisst noch nicht, was deine Firma wert ist? Mit der
+                  Smart-Bewertung erhältst du eine indikative Marktwert-Range
+                  basierend auf Schweizer KMU-Multiples deiner Branche &mdash;
+                  und gehst direkt im Anschluss in den Inserat-Wizard.
+                </p>
+
+                <ul className="grid sm:grid-cols-3 gap-3 mb-8">
+                  <li className="flex items-start gap-2 text-body-sm">
+                    <Check className="w-4 h-4 text-bronze flex-shrink-0 mt-0.5" strokeWidth={2} />
+                    <span className="text-ink">Marktwert-Range in 2 Min</span>
+                  </li>
+                  <li className="flex items-start gap-2 text-body-sm">
+                    <Check className="w-4 h-4 text-bronze flex-shrink-0 mt-0.5" strokeWidth={2} />
+                    <span className="text-ink">EBITDA &amp; Umsatz-Multiples</span>
+                  </li>
+                  <li className="flex items-start gap-2 text-body-sm">
+                    <Check className="w-4 h-4 text-bronze flex-shrink-0 mt-0.5" strokeWidth={2} />
+                    <span className="text-ink">Direkt-Übergabe ans Inserat</span>
+                  </li>
+                </ul>
+
+                <div className="flex flex-col sm:flex-row gap-3 items-start">
+                  <Button href="/bewerten" size="lg">
+                    <Calculator className="w-4 h-4" strokeWidth={1.5} />
+                    Firma jetzt bewerten
+                  </Button>
+                  <Button href="/verkaufen/start" variant="ghost" size="lg">
+                    Direkt zum Inserat <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Visueller Anker rechts: indikative Range-Pillen */}
+              <div className="hidden md:block">
+                <div className="border border-stone rounded-soft bg-cream/60 p-5 w-[260px]">
+                  <p className="font-mono text-[10px] uppercase tracking-widest text-quiet mb-3">
+                    Beispiel-Bewertung
+                  </p>
+                  <p className="font-serif text-head-md text-navy mb-1">
+                    CHF 2.4 – 3.2M
+                  </p>
+                  <p className="font-mono text-[10px] uppercase tracking-wider text-bronze-ink mb-4">
+                    Bäckerei BE &middot; 18 MA &middot; 12.5%
+                  </p>
+
+                  {/* Range-Bar */}
+                  <div className="h-2 rounded-full bg-stone overflow-hidden mb-2 relative">
+                    <div className="absolute inset-y-0 left-[18%] right-[22%] bg-bronze rounded-full" />
+                  </div>
+                  <div className="flex justify-between font-mono text-[9px] text-quiet">
+                    <span>1.0M</span>
+                    <span>5.0M</span>
+                  </div>
+
+                  <div className="border-t border-stone mt-4 pt-3">
+                    <p className="font-mono text-[9px] uppercase tracking-widest text-quiet mb-1">
+                      EBITDA-Multiple
+                    </p>
+                    <p className="font-mono text-[11px] text-navy font-tabular font-medium">
+                      4.2 – 5.6 ×
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </article>
+        </Reveal>
+      </Container>
+    </Section>
+  );
+}
+
+/* ───────────────────────────────── */
 function FAQ() {
   const items = [
     { q: 'Muss ich meinen Firmennamen öffentlich angeben?', a: 'Nein. Im öffentlichen Teaser ist die Firma anonymisiert. Erst nach unterzeichnetem NDA und Ihrer expliziten Freigabe sieht ein Interessent den Firmennamen und Detailzahlen.' },
     { q: 'Wie funktioniert das NDA-Gate?', a: 'Interessenten signieren mit einem Klick eine vordefinierte Geheimhaltungserklärung (eSign, QES-konform). Die signierte PDF wird archiviert, Sie werden benachrichtigt und können den Zugriff auf das Dossier und den Datenraum individuell freigeben.' },
-    { q: 'Verdient passare an meinem Verkaufspreis?', a: 'Nein. Wir haben keine Erfolgsprovision. Sie zahlen einmal das Paket — ob Sie dann für CHF 500\'000 oder CHF 25 Mio verkaufen, wir verdienen keinen zusätzlichen Rappen.' },
+    { q: 'Verdient passare am Verkaufspreis mit?', a: 'Nein. passare ist eine Self-Service-Plattform. Sie zahlen einmal das Paket — ob Sie für CHF 500\'000 oder CHF 25 Mio verkaufen, am Plattform-Preis ändert sich nichts.' },
     { q: 'Was passiert, wenn mein Inserat nach der Laufzeit nicht verkauft ist?', a: 'Sie können das Inserat manuell verlängern (Light +CHF 190 / Pro +CHF 490 / Premium +CHF 990). Es gibt keine automatische Verlängerung — Sie entscheiden.' },
     { q: 'Kann ich mein Inserat pausieren oder löschen?', a: 'Jederzeit, aus dem Dashboard. Sie können auch einzelne Interessenten sperren oder freischalten.' },
     { q: 'Bietet passare auch persönliche Beratung?', a: 'Im Premium-Paket sind 2 Stunden Beratung mit unserem Netzwerk (Treuhänder, Fachanwalt) inklusive. Darüber hinaus vermitteln wir Experten zu marktüblichen Stundensätzen.' },
@@ -351,7 +453,7 @@ function CTA() {
                 Inserat erstellen <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
               </Button>
               <span className="font-mono text-[11px] uppercase tracking-widest text-cream/50 mt-3">
-                Ab CHF 290 &middot; keine Provision &middot; anonym
+                Ab CHF 290 &middot; Pauschalpreis &middot; anonym
               </span>
             </div>
           </Reveal>

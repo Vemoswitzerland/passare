@@ -76,8 +76,8 @@ const VARIANTS: Record<Variant, {
     eyebrow: 'Noch keine Inserate',
     headline: 'Sei der erste KMU-Verkäufer auf passare',
     beschreibung:
-      'Aktuell sind noch keine Firmen öffentlich gelistet. Stell dein Unternehmen vor — anonym, mit klarer Bewertung und ohne Erfolgsprovision.',
-    cta1: { label: 'Firma verkaufen', href: '/verkaufen' },
+      'Aktuell sind noch keine Firmen öffentlich gelistet. Stell dein Unternehmen vor — anonym, mit klarer Bewertung und transparenten Pauschalpreisen.',
+    cta1: { label: 'Firma inserieren', href: '/verkaufen' },
     cta2: { label: 'Suchprofil anlegen', href: '/auth/register?role=kaeufer' },
   },
   atlas: {
@@ -86,7 +86,7 @@ const VARIANTS: Record<Variant, {
     headline: 'Noch keine öffentlichen Inserate auf der Karte',
     beschreibung:
       'Sobald die ersten Verkäufer ihr Inserat freischalten, erscheinen sie hier nach Kanton gruppiert.',
-    cta1: { label: 'Firma verkaufen', href: '/verkaufen' },
+    cta1: { label: 'Firma inserieren', href: '/verkaufen' },
     cta2: { label: 'Marktplatz öffnen', href: '/' },
   },
   'kaeufer-digest': {

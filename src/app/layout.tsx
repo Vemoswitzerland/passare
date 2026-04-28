@@ -14,7 +14,7 @@ const fraunces = Fraunces({
 export const metadata: Metadata = {
   title: 'passare — Die Schweizer Plattform für KMU-Nachfolge',
   description:
-    'Firma selbst inserieren und Käufer direkt kontaktieren. Fester Paketpreis ab CHF 290, 0% Erfolgsprovision, anonymes Profil und NDA-Gate. Die Schweizer Self-Service-Plattform für KMU-Verkauf.',
+    'Firma selbst inserieren und Käufer direkt kontaktieren. Fester Paketpreis ab CHF 290, anonymes Profil und NDA-Gate. Die Schweizer Self-Service-Plattform für KMU-Nachfolge.',
   metadataBase: new URL('https://passare.ch'),
   openGraph: {
     title: 'passare',

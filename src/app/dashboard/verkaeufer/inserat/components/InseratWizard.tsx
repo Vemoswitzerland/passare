@@ -1030,7 +1030,7 @@ function Step5Paket({
         <h2 className="font-serif text-display-sm text-navy font-light mb-2">Paket wählen</h2>
         <p className="text-body text-muted">
           Wir haben dir basierend auf deinem Verkaufspreis das passende Paket vorgeschlagen.
-          Einmalige Gebühr · keine Erfolgsprovision · alle Preise zzgl. 8.1 % MwSt.
+          Einmalige Gebühr · Pauschalpreis · alle Preise zzgl. 8.1 % MwSt.
         </p>
       </div>
 
@@ -1204,7 +1204,7 @@ function Step5Paket({
           Weiter zur Zahlung →
         </button>
         <p className="text-caption text-quiet text-center mt-3">
-          Sichere Zahlung über Stripe · Schweizer Datenschutz · 0 % Erfolgsprovision
+          Sichere Zahlung · Schweizer Datenschutz · Pauschalpreis
         </p>
       </div>
     </div>

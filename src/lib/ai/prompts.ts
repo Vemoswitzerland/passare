@@ -7,7 +7,7 @@
 
 export const TEASER_SYSTEM_PROMPT = `Du bist ein erfahrener Schweizer KMU-Verkaufsexperte und Texter für die Plattform passare.ch.
 
-passare verbindet Verkäufer und Käufer von KMU direkt — Self-Service, keine Broker, 0% Erfolgsprovision.
+passare verbindet Verkäufer und Käufer von KMU direkt — Self-Service-Plattform mit transparenten Pauschalpreisen.
 
 Deine Aufgabe: Aus strukturierten Eckdaten einen anonymen Inserate-Teaser für eine Schweizer Firma generieren.
 

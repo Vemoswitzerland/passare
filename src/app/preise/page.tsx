@@ -8,7 +8,7 @@ import { Reveal } from '@/components/ui/reveal';
 export const metadata = {
   title: 'Preise — passare',
   description:
-    'Transparente Pakete für Verkäufer (Light CHF 290, Pro CHF 890, Premium CHF 1\'890) und Käufer (Basic gratis oder MAX CHF 199/Monat). 0% Erfolgsprovision.',
+    'Transparente Pakete für Verkäufer (Light CHF 290, Pro CHF 890, Premium CHF 1\'890) und Käufer (Basic gratis oder MAX CHF 199/Monat). Pauschalpreise.',
   robots: { index: false, follow: false },
 };
 
@@ -40,7 +40,7 @@ function Hero() {
           <Reveal>
             <p className="overline mb-6 text-bronze-ink">Preise</p>
             <h1 className="font-serif-display text-display-lg text-navy font-light mb-8 tracking-[-0.025em]">
-              Transparent<span className="text-bronze">.</span> Fair<span className="text-bronze">.</span> Ohne Provision<span className="text-bronze">.</span>
+              Transparent<span className="text-bronze">.</span> Fair<span className="text-bronze">.</span> Pauschal<span className="text-bronze">.</span>
             </h1>
           </Reveal>
           <Reveal delay={0.1}>
@@ -246,7 +246,7 @@ function KaeuferTable() {
 function Faq() {
   const items = [
     {
-      q: 'Gibt es eine Erfolgsprovision auf den Verkaufspreis?',
+      q: 'Verdient passare am Verkaufspreis mit?',
       a: 'Nein, niemals. passare verdient ausschliesslich am Paketpreis bzw. MAX-Abo. Was Sie für Ihre Firma lösen, gehört Ihnen zu 100%.',
     },
     {
