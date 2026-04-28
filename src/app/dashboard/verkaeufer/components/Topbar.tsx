@@ -83,48 +83,6 @@ export function VerkaeuferTopbar({
       </div>
 
       <div className="flex items-center gap-2 ml-auto">
-        {isAdmin && (
-          <div ref={viewRef} className="relative">
-            <button
-              type="button"
-              onClick={() => setViewMenuOpen(!viewMenuOpen)}
-              className="inline-flex items-center gap-2 px-3 py-2 rounded-soft border border-stone hover:border-navy/40 bg-paper text-navy text-caption font-medium transition-colors"
-              aria-haspopup="menu"
-              aria-expanded={viewMenuOpen}
-            >
-              <Eye className="w-4 h-4" strokeWidth={1.5} />
-              <span className="hidden sm:inline">Verkäufer-Ansicht</span>
-              <span className="inline sm:hidden">Ansicht</span>
-              <ChevronDown className={cn('w-3.5 h-3.5 transition-transform', viewMenuOpen && 'rotate-180')} strokeWidth={1.5} />
-            </button>
-
-            {viewMenuOpen && (
-              <div className="absolute right-0 top-full mt-2 w-72 bg-paper border border-stone rounded-card shadow-lift py-2 z-50 animate-fade-in">
-                <p className="px-4 py-2 overline text-quiet">Ansicht wechseln</p>
-                <ViewOption
-                  label="Admin-Ansicht"
-                  desc="Alle Verwaltungs-Funktionen"
-                  icon={ShieldCheck}
-                  onClick={() => switchView('admin')}
-                />
-                <ViewOption
-                  label="Als Verkäufer ansehen"
-                  desc="Plattform aus Verkäufer-Sicht"
-                  icon={Store}
-                  active
-                  onClick={() => switchView('verkaeufer')}
-                />
-                <ViewOption
-                  label="Als Käufer ansehen"
-                  desc="Plattform aus Käufer-Sicht"
-                  icon={Search}
-                  onClick={() => switchView('kaeufer')}
-                />
-              </div>
-            )}
-          </div>
-        )}
-
         <button
           type="button"
           className="hidden sm:flex relative w-9 h-9 items-center justify-center rounded-soft hover:bg-stone/40 transition-colors"
