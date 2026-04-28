@@ -630,7 +630,11 @@ function Step2Basis({ data, update }: { data: Inserat; update: (p: Partial<Inser
       )}
 
       <div className="grid sm:grid-cols-2 gap-6 items-end">
-        <FormField label="Kaufpreis (CHF)" required>
+        <FormField
+          label="Kaufpreis (CHF)"
+          required
+          hint={data.kaufpreis_chf ? 'Empfehlung — anpassbar' : undefined}
+        >
           <input
             type="number"
             value={data.kaufpreis_chf ?? ''}
