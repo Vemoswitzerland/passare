@@ -1,10 +1,12 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { Edit2, Eye, Pause, PlayCircle, Trash2, FileText, ArrowRight, AlertCircle, CheckCircle } from 'lucide-react';
+import { Edit2, Eye, FileText, ArrowRight, CheckCircle } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { hasTable } from '@/lib/db/has-table';
-import { setInseratStatus, submitForReview } from './actions';
+import { submitForReview } from './actions';
 import { formatCHFShort } from '@/lib/valuation';
+import { InseratStatusBanner } from '@/components/verkaeufer/InseratStatusBanner';
+import { InseratAuditThread } from '@/components/admin/InseratAuditThread';
 
 export const metadata = { title: 'Mein Inserat — passare Verkäufer' };
 
@@ -42,41 +44,26 @@ export default async function InseratIndexPage() {
           <StatusBadge status={inserat.status} />
         </div>
 
-        {/* Status-spezifische Notice */}
-        {inserat.status === 'entwurf' && !inserat.paid_at && (
-          <NoticeCard
-            tone="warn"
-            title="Inserat ist noch im Entwurf"
-            desc="Schliesse den Wizard ab und buche ein Paket, damit dein Inserat live geht."
-            cta="Inserat fertigstellen"
-            href={`/dashboard/verkaeufer/inserat/${inserat.id}/edit`}
+        {/* Status-Banner mit Antwort-Form bei Rückfrage */}
+        <div className="mb-6">
+          <InseratStatusBanner
+            inseratId={inserat.id}
+            status={inserat.status}
+            rejectionReason={inserat.rejection_reason ?? inserat.status_reason ?? null}
           />
-        )}
-        {inserat.status === 'zur_pruefung' && (
-          <NoticeCard
-            tone="info"
-            title="Inserat in Prüfung"
-            desc="Wir prüfen dein Inserat — meist innerhalb 24h. Du wirst per E-Mail benachrichtigt sobald es live ist."
-          />
-        )}
-        {inserat.status === 'live' && (
-          <NoticeCard
-            tone="success"
-            title="Dein Inserat ist live"
-            desc={`Sichtbar auf passare.ch · ${inserat.views ?? 0} Views insgesamt`}
-            cta="Auf passare.ch ansehen"
-            href={`/inserate/${inserat.slug ?? inserat.id}`}
-            ctaExternal
-          />
-        )}
-        {inserat.status === 'abgelehnt' && inserat.status_reason && (
-          <NoticeCard
-            tone="danger"
-            title="Inserat wurde abgelehnt"
-            desc={inserat.status_reason}
-            cta="Korrekturen vornehmen"
-            href={`/dashboard/verkaeufer/inserat/${inserat.id}/edit`}
-          />
+        </div>
+
+        {/* Konversations-Thread mit Admin */}
+        {(['rueckfrage', 'pending', 'zur_pruefung', 'abgelehnt'] as const).includes(inserat.status as 'rueckfrage' | 'pending' | 'zur_pruefung' | 'abgelehnt') && (
+          <section className="mb-6 bg-paper border border-stone rounded-soft p-4">
+            <h3 className="text-[11px] uppercase tracking-wide font-medium text-quiet mb-3">
+              Konversation mit dem passare-Team
+            </h3>
+            <InseratAuditThread
+              inseratId={inserat.id}
+              emptyHint="Noch keine Nachricht. Sobald das Team eine Rückfrage stellt, erscheint sie hier."
+            />
+          </section>
         )}
 
         {/* Inserat-Karte */}
@@ -141,28 +128,6 @@ export default async function InseratIndexPage() {
                 <Eye className="w-4 h-4" strokeWidth={1.5} />
                 Vorschau
               </Link>
-              {inserat.status === 'live' && (
-                <form action={async () => { 'use server'; await setInseratStatus(inserat.id, 'pausiert'); }}>
-                  <button
-                    type="submit"
-                    className="inline-flex items-center gap-2 px-4 py-2.5 border border-stone hover:border-warn/40 hover:bg-warn/5 text-warn rounded-soft text-body-sm font-medium transition-all"
-                  >
-                    <Pause className="w-4 h-4" strokeWidth={1.5} />
-                    Pausieren
-                  </button>
-                </form>
-              )}
-              {inserat.status === 'pausiert' && (
-                <form action={async () => { 'use server'; await setInseratStatus(inserat.id, 'live'); }}>
-                  <button
-                    type="submit"
-                    className="inline-flex items-center gap-2 px-4 py-2.5 border border-stone hover:border-success/40 hover:bg-success/5 text-success rounded-soft text-body-sm font-medium transition-all"
-                  >
-                    <PlayCircle className="w-4 h-4" strokeWidth={1.5} />
-                    Wieder live
-                  </button>
-                </form>
-              )}
             </div>
           </div>
         </div>
@@ -196,47 +161,6 @@ function StatusBadge({ status }: { status: string }) {
     <span className={`inline-flex items-center px-3 py-1 rounded-pill text-caption font-medium ${m.cls}`}>
       {m.label}
     </span>
-  );
-}
-
-function NoticeCard({
-  tone, title, desc, cta, href, ctaExternal,
-}: {
-  tone: 'warn' | 'info' | 'success' | 'danger';
-  title: string;
-  desc: string;
-  cta?: string;
-  href?: string;
-  ctaExternal?: boolean;
-}) {
-  const cls = {
-    warn: 'bg-warn/5 border-warn/30 text-warn',
-    info: 'bg-navy/5 border-navy/20 text-navy',
-    success: 'bg-success/5 border-success/30 text-success',
-    danger: 'bg-danger/5 border-danger/30 text-danger',
-  }[tone];
-
-  const Icon = tone === 'success' ? CheckCircle : AlertCircle;
-
-  return (
-    <div className={`mb-6 rounded-card border p-5 ${cls}`}>
-      <div className="flex items-start gap-3">
-        <Icon className="w-5 h-5 flex-shrink-0 mt-0.5" strokeWidth={1.5} />
-        <div className="flex-1">
-          <p className="font-medium text-body-sm">{title}</p>
-          <p className="text-caption mt-1 opacity-90">{desc}</p>
-          {cta && href && (
-            <Link
-              href={href}
-              {...(ctaExternal ? { target: '_blank' } : {})}
-              className="inline-flex items-center gap-1 mt-3 text-body-sm underline-offset-4 hover:underline font-medium"
-            >
-              {cta} <ArrowRight className="w-3.5 h-3.5" strokeWidth={1.5} />
-            </Link>
-          )}
-        </div>
-      </div>
-    </div>
   );
 }
 

@@ -123,6 +123,63 @@ export async function submitForReview(inseratId: string): Promise<ActionResult> 
   return { ok: true };
 }
 
+/**
+ * Verkäufer antwortet auf Admin-Rückfrage:
+ * - Schreibt Antwort in inserat_audit_messages (kind='antwort')
+ * - Setzt Inserat-Status zurück auf 'pending' (geht erneut ins Audit)
+ * - RLS sichert dass nur eigener Verkäufer schreiben kann
+ */
+export async function respondToRevisionAction(
+  inseratId: string,
+  message: string,
+): Promise<ActionResult> {
+  const supabase = await createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData.user) return { ok: false, error: 'Nicht angemeldet.' };
+
+  const trimmed = message.trim();
+  if (trimmed.length < 3) return { ok: false, error: 'Antwort zu kurz.' };
+  if (trimmed.length > 4000) return { ok: false, error: 'Antwort zu lang (max. 4000 Zeichen).' };
+
+  // Owner-Check + Status-Check
+  const { data: inserat } = await supabase
+    .from('inserate')
+    .select('id, verkaeufer_id, status')
+    .eq('id', inseratId)
+    .maybeSingle();
+
+  if (!inserat) return { ok: false, error: 'Inserat nicht gefunden.' };
+  if (inserat.verkaeufer_id !== userData.user.id) {
+    return { ok: false, error: 'Keine Berechtigung.' };
+  }
+  if (inserat.status !== 'rueckfrage') {
+    return { ok: false, error: 'Nur bei offenen Rückfragen möglich.' };
+  }
+
+  // Antwort posten (RLS lässt nur eigene durch)
+  const { error: msgErr } = await supabase.from('inserat_audit_messages').insert({
+    inserat_id: inseratId,
+    from_user: userData.user.id,
+    from_role: 'verkaeufer',
+    kind: 'antwort',
+    message: trimmed,
+  });
+  if (msgErr) return { ok: false, error: msgErr.message };
+
+  // Status zurück auf pending (geht erneut ins Admin-Audit)
+  const { error: statusErr } = await supabase
+    .from('inserate')
+    .update({ status: 'pending' })
+    .eq('id', inseratId);
+  if (statusErr) return { ok: false, error: statusErr.message };
+
+  revalidatePath('/dashboard/verkaeufer/inserat');
+  revalidatePath(`/dashboard/verkaeufer/inserat/${inseratId}/edit`);
+  revalidatePath(`/admin/inserate/${inseratId}`);
+  revalidatePath('/admin/inserate');
+  return { ok: true };
+}
+
 /** Mock-Stripe Checkout — markiert Inserat als bezahlt + setzt Paket. */
 export async function mockPaketKaufen(
   inseratId: string,

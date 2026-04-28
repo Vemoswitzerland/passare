@@ -15,7 +15,8 @@ import {
 } from 'lucide-react';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { StatusBadge } from '@/components/admin/StatusBadge';
-import { InseratActions } from '@/components/admin/InseratActions';
+import { InseratAuditPanel } from '@/components/admin/InseratAuditPanel';
+import { InseratAuditThread } from '@/components/admin/InseratAuditThread';
 import {
   type AdminInserat,
   type AdminAnfrage,
@@ -214,13 +215,22 @@ export default async function AdminInseratDetailPage({
               </ul>
             )}
           </section>
+
+          <section className="bg-paper border border-stone rounded-soft p-4">
+            <h3 className="text-[11px] uppercase tracking-wide font-medium text-quiet mb-3">
+              Audit-Konversation
+            </h3>
+            <InseratAuditThread
+              inseratId={listing.id}
+              emptyHint="Noch keine Konversation. Stelle eine Rückfrage oder gib das Inserat frei."
+            />
+          </section>
         </div>
 
         <aside className="space-y-6">
-          <InseratActions
+          <InseratAuditPanel
             id={listing.id}
             currentStatus={listing.status}
-            publicId={listing.public_id ?? null}
           />
 
           <section className="bg-paper border border-stone rounded-soft p-4">

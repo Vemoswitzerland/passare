@@ -2,7 +2,16 @@
  * Admin-Datentypen — geteilt zwischen Pages und Komponenten.
  */
 
-export type InseratStatus = 'entwurf' | 'pending' | 'live' | 'pausiert' | 'abgelaufen';
+export type InseratStatus =
+  | 'entwurf'
+  | 'pending'
+  | 'zur_pruefung'
+  | 'rueckfrage'
+  | 'live'
+  | 'pausiert'
+  | 'verkauft'
+  | 'abgelaufen'
+  | 'abgelehnt';
 export type InseratPaket = 'light' | 'pro' | 'premium';
 export type AnfrageStatus = 'offen' | 'in_bearbeitung' | 'akzeptiert' | 'abgelehnt';
 
@@ -53,10 +62,14 @@ export type AdminAuditLog = {
 
 export const STATUS_LABELS: Record<InseratStatus, string> = {
   entwurf: 'Entwurf',
-  pending: 'Pending',
+  pending: 'In Prüfung',
+  zur_pruefung: 'In Prüfung',
+  rueckfrage: 'Rückfrage offen',
   live: 'Live',
   pausiert: 'Pausiert',
+  verkauft: 'Verkauft',
   abgelaufen: 'Abgelaufen',
+  abgelehnt: 'Abgelehnt',
 };
 
 export const PAKET_LABELS: Record<InseratPaket, string> = {

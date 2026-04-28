@@ -21,10 +21,12 @@ export const metadata = {
 
 const STATUS_FILTERS: { value: InseratStatus | 'alle'; label: string }[] = [
   { value: 'alle', label: 'Alle' },
-  { value: 'pending', label: STATUS_LABELS.pending },
+  { value: 'pending', label: 'In Prüfung' },
+  { value: 'rueckfrage', label: STATUS_LABELS.rueckfrage },
   { value: 'live', label: STATUS_LABELS.live },
   { value: 'entwurf', label: STATUS_LABELS.entwurf },
   { value: 'pausiert', label: STATUS_LABELS.pausiert },
+  { value: 'abgelehnt', label: STATUS_LABELS.abgelehnt },
   { value: 'abgelaufen', label: STATUS_LABELS.abgelaufen },
 ];
 
@@ -40,7 +42,17 @@ export default async function AdminInseratePage({
   let q = supabase.from('inserate').select('*').order('created_at', { ascending: false });
   if (
     statusFilter !== 'alle' &&
-    ['entwurf', 'pending', 'live', 'pausiert', 'abgelaufen'].includes(statusFilter)
+    [
+      'entwurf',
+      'pending',
+      'zur_pruefung',
+      'rueckfrage',
+      'live',
+      'pausiert',
+      'verkauft',
+      'abgelaufen',
+      'abgelehnt',
+    ].includes(statusFilter)
   ) {
     q = q.eq('status', statusFilter);
   }

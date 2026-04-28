@@ -67,6 +67,13 @@ export const CURRENT_STEP = {
 export const UPDATES: Update[] = [
   {
     date: '2026-04-29',
+    type: 'feature',
+    titel: 'Inserat-Prüfung: Rückfragen statt sofortiger Ablehnung',
+    beschreibung:
+      'Bevor ein Inserat live geht, prüft das passare-Team es. Falls etwas unklar ist, kann das Team eine Rückfrage an den Verkäufer schicken — der sieht die Nachricht im Dashboard, kann das Inserat anpassen und direkt antworten. Beide Seiten sehen die ganze Konversation chronologisch. Vier Aktionen: Freigeben, Rückfrage stellen, Ablehnen mit Begründung, Pausieren — jeweils mit Audit-Log-Eintrag.',
+  },
+  {
+    date: '2026-04-29',
     type: 'milestone',
     titel: 'Plattform vollumfänglich verbunden — keine Beispiele mehr',
     beschreibung:
