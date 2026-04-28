@@ -54,21 +54,8 @@ const UEBERGABE_GRUENDE: Array<[string, string]> = [
   ['andere', 'Andere'],
 ];
 
-type Paket = {
-  id: 'light' | 'pro' | 'premium';
-  name: string;
-  price: number;
-  monate: number;
-  color: string;
-  popular?: boolean;
-  features: readonly string[];
-};
-
-const PAKETE: readonly Paket[] = [
-  { id: 'light', name: 'Light', price: 290, monate: 3, color: 'navy', features: ['5 Bilder', '2 PDFs', 'NDA-Gate', 'KI-Teaser', 'Basis-Statistik'] },
-  { id: 'pro', name: 'Pro', price: 890, monate: 6, popular: true, color: 'bronze', features: ['20 Bilder + Videos', 'Unbegrenzte PDFs', 'NDA-Gate', 'Käufer-Matching', 'KMU-Multiples-DB', 'Detail-Statistik'] },
-  { id: 'premium', name: 'Premium', price: 1890, monate: 12, color: 'navy', features: ['Unbegrenzte Bilder', 'Homepage-Feature 1×/Monat', 'Mehrsprachig FR/IT/EN', '2h persönliche Beratung', 'Priorisierter Support'] },
-];
+// Pakete + Powerups kommen aus src/data/pakete.ts (Single-Source)
+import { PAKETE_LIST as NEW_PAKETE, POWERUPS as NEW_POWERUPS, recommendPaket, getCompanymarketDifference } from '@/data/pakete';
 
 type Inserat = {
   id: string;
@@ -787,32 +774,27 @@ function Step4Strengths({
   );
 }
 
-/* ─── STEP 5: PAKET ─── */
+/* ─── STEP 5: PAKET — Smart-Auto-Tier + Powerups + Checkout ─── */
 function Step5Paket({
-  data, update, inseratId, onPaid,
+  data, inseratId,
 }: {
   data: Inserat;
   update: (p: Partial<Inserat>) => void;
   inseratId: string;
   onPaid: () => void;
 }) {
-  const [paying, setPaying] = useState<string | null>(null);
   const router = useRouter();
 
-  async function buyPaket(p: 'light' | 'pro' | 'premium') {
-    setPaying(p);
-    const res = await mockPaketKaufen(inseratId, p);
-    setPaying(null);
-    if (res.ok) {
-      update({ paket: p, paid_at: new Date().toISOString() });
-      // Auto-Submit zur Prüfung
-      await submitForReview(inseratId);
-      onPaid();
-      router.push('/dashboard/verkaeufer/inserat?paid=1');
-    } else {
-      alert(res.error);
-    }
-  }
+  // Smart-Auto-Empfehlung: aus dem Verkaufspreis bestimmen wir das Paket
+  const verkaufswert = (() => {
+    if (!data.kaufpreis_chf) return null;
+    const v = typeof data.kaufpreis_chf === 'string' ? parseFloat(data.kaufpreis_chf) : data.kaufpreis_chf;
+    return Number.isFinite(v) ? v : null;
+  })();
+  const empfohlenId = recommendPaket(verkaufswert);
+
+  const [selectedPaket, setSelectedPaket] = useState<string>(empfohlenId);
+  const [selectedPowerups, setSelectedPowerups] = useState<Set<string>>(new Set());
 
   if (data.paid_at) {
     return (
@@ -822,77 +804,224 @@ function Step5Paket({
         </div>
         <h2 className="font-serif text-head-md text-navy mb-2">Paket gebucht</h2>
         <p className="text-body text-muted mb-6">
-          Dein {data.paket?.toUpperCase()}-Paket ist aktiv. Wir prüfen dein Inserat — meist innerhalb 24h.
+          Dein <strong className="text-navy uppercase">{data.paket}</strong>-Paket ist aktiv. Wir prüfen dein Inserat — meist innerhalb 24h.
         </p>
       </div>
     );
   }
 
+  const togglePowerup = (id: string) => {
+    setSelectedPowerups((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  function goToCheckout() {
+    const params = new URLSearchParams({
+      inserat: inseratId,
+      paket: selectedPaket,
+    });
+    if (selectedPowerups.size > 0) {
+      params.set('powerups', Array.from(selectedPowerups).join(','));
+    }
+    router.push(`/dashboard/verkaeufer/checkout?${params.toString()}`);
+  }
+
+  // Total berechnen
+  const paket = NEW_PAKETE.find((p) => p.id === selectedPaket) ?? NEW_PAKETE[1];
+  const powerupsSum = NEW_POWERUPS
+    .filter((p) => selectedPowerups.has(p.id))
+    .reduce((s, p) => s + p.preis, 0);
+  const subtotal = paket.preis + powerupsSum;
+  const mwst = Math.round(subtotal * 0.081 * 100) / 100;
+  const total = Math.round((subtotal + mwst) * 100) / 100;
+
   return (
-    <div className="space-y-8 animate-fade-up">
+    <div className="space-y-10 animate-fade-up">
       <div>
         <h2 className="font-serif text-display-sm text-navy font-light mb-2">Paket wählen</h2>
-        <p className="text-body text-muted">Einmalige Gebühr · keine Erfolgsprovision · alle Preise zzgl. 8.1 % MwSt.</p>
+        <p className="text-body text-muted">
+          Wir haben dir basierend auf deinem Verkaufspreis das passende Paket vorgeschlagen.
+          Einmalige Gebühr · keine Erfolgsprovision · alle Preise zzgl. 8.1 % MwSt.
+        </p>
       </div>
 
-      <div className="grid md:grid-cols-3 gap-4">
-        {PAKETE.map((p) => {
-          const isPaying = paying === p.id;
+      {/* Smart-Empfehlung Hint */}
+      {verkaufswert && (
+        <div className="rounded-card bg-bronze/5 border border-bronze/30 p-4 flex items-start gap-3">
+          <Sparkles className="w-5 h-5 text-bronze flex-shrink-0 mt-0.5" strokeWidth={1.5} />
+          <p className="text-body-sm text-navy">
+            <strong>Empfehlung für dich:</strong> Bei einem Verkaufswert von ca.{' '}
+            <span className="font-mono">CHF {(verkaufswert / 1000).toFixed(0)}K</span>{' '}
+            passt das <strong className="text-bronze-ink">{paket.label}-Paket</strong> am besten.
+          </p>
+        </div>
+      )}
+
+      {/* Paket-Cards */}
+      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {NEW_PAKETE.map((p) => {
+          const isSelected = selectedPaket === p.id;
+          const isRecommended = empfohlenId === p.id;
+          const cmDiff = getCompanymarketDifference(p.preis, p.preisRefCompanymarket);
           return (
-            <div
+            <button
               key={p.id}
+              type="button"
+              onClick={() => setSelectedPaket(p.id)}
               className={cn(
-                'rounded-card border p-6 flex flex-col relative',
-                p.popular ? 'border-bronze shadow-lift bg-paper' : 'border-stone bg-paper',
+                'text-left rounded-card border-2 p-5 flex flex-col relative transition-all',
+                isSelected
+                  ? 'border-bronze shadow-lift bg-paper'
+                  : 'border-stone bg-paper hover:border-bronze/40',
               )}
             >
-              {p.popular && (
-                <span className="absolute -top-3 left-1/2 -translate-x-1/2 inline-flex items-center px-3 py-1 rounded-pill bg-bronze text-cream text-caption font-medium">
+              {isRecommended && (
+                <span className="absolute -top-3 left-4 inline-flex items-center px-2.5 py-0.5 rounded-pill bg-bronze text-cream text-caption font-medium">
+                  Empfohlen
+                </span>
+              )}
+              {p.highlight && !isRecommended && (
+                <span className="absolute -top-3 left-4 inline-flex items-center px-2.5 py-0.5 rounded-pill bg-navy text-cream text-caption font-medium">
                   Beliebt
                 </span>
               )}
-              <p className="overline text-quiet mb-2">Inserat {p.name}</p>
-              <p className="font-serif text-[2.5rem] text-navy font-light font-tabular leading-none mb-1">
-                CHF {p.price}
+              <p className="overline text-quiet mb-1">Inserat {p.label}</p>
+              <p className="font-serif text-[2rem] text-navy font-light font-tabular leading-none mb-1">
+                CHF {p.preis}
               </p>
-              <p className="text-caption text-quiet font-mono mb-6">{p.monate} Monate</p>
-              <ul className="space-y-2 mb-6 flex-1">
-                {p.features.map((f) => (
-                  <li key={f} className="text-body-sm text-muted flex items-start gap-2">
-                    <Check className="w-3.5 h-3.5 text-bronze flex-shrink-0 mt-0.5" strokeWidth={2} />
+              <p className="text-caption text-quiet font-mono mb-1">
+                {p.laufzeitMonate ? `${p.laufzeitMonate} Monate` : 'Bis Verkauf'}
+              </p>
+              {cmDiff && (
+                <p className="text-caption text-success leading-tight mb-4">
+                  {cmDiff}
+                </p>
+              )}
+              {!cmDiff && <div className="mb-4" />}
+              <ul className="space-y-1.5 mb-2 flex-1">
+                {p.features.slice(0, 5).map((f) => (
+                  <li key={f} className="text-caption text-muted flex items-start gap-1.5 leading-snug">
+                    <Check className="w-3 h-3 text-bronze flex-shrink-0 mt-1" strokeWidth={2} />
                     {f}
                   </li>
                 ))}
+                {p.features.length > 5 && (
+                  <li className="text-caption text-quiet italic ml-4">
+                    + {p.features.length - 5} weitere
+                  </li>
+                )}
               </ul>
-              <button
-                type="button"
-                onClick={() => buyPaket(p.id as any)}
-                disabled={Boolean(paying)}
-                className={cn(
-                  'w-full px-4 py-3 rounded-soft text-body-sm font-medium transition-all',
-                  p.popular
-                    ? 'bg-bronze text-cream hover:bg-bronze-ink shadow-card'
-                    : 'bg-navy text-cream hover:bg-ink',
-                  paying && 'opacity-60 cursor-not-allowed',
-                )}
-              >
-                {isPaying ? (
-                  <span className="inline-flex items-center gap-2">
-                    <Loader2 className="w-4 h-4 animate-spin" strokeWidth={1.5} />
-                    Verarbeite …
-                  </span>
-                ) : (
-                  `${p.name} buchen`
-                )}
-              </button>
+              {isSelected && (
+                <div className="mt-3 inline-flex items-center gap-1.5 text-caption text-bronze-ink font-medium">
+                  <Check className="w-3.5 h-3.5" strokeWidth={2} />
+                  Ausgewählt
+                </div>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Powerups-Marketplace */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="font-serif text-head-sm text-navy font-light">
+            Powerups dazubuchen <span className="text-quiet font-sans text-body-sm">(optional)</span>
+          </h3>
+          {selectedPowerups.size > 0 && (
+            <span className="text-caption text-bronze-ink font-mono">
+              {selectedPowerups.size} ausgewählt
+            </span>
+          )}
+        </div>
+
+        {(['sichtbarkeit', 'reichweite', 'tools', 'service'] as const).map((kat) => {
+          const items = NEW_POWERUPS.filter((p) => p.kategorie === kat);
+          if (!items.length) return null;
+          const titel = {
+            sichtbarkeit: '🚀 Sichtbarkeit',
+            reichweite: '📡 Reichweite',
+            tools: '🛠 Tools (KI-generiert)',
+            service: '🤝 Service',
+          }[kat];
+          return (
+            <div key={kat}>
+              <p className="overline text-bronze-ink mb-2">{titel}</p>
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-2">
+                {items.map((pu) => {
+                  const isSelected = selectedPowerups.has(pu.id);
+                  const cmDiff = getCompanymarketDifference(pu.preis, pu.preisRefCompanymarket);
+                  return (
+                    <button
+                      key={pu.id}
+                      type="button"
+                      onClick={() => togglePowerup(pu.id)}
+                      className={cn(
+                        'text-left p-3.5 rounded-soft border transition-all',
+                        isSelected
+                          ? 'border-bronze bg-bronze/5'
+                          : 'border-stone bg-paper hover:border-bronze/40',
+                      )}
+                    >
+                      <div className="flex items-start justify-between gap-2 mb-1">
+                        <p className="text-body-sm text-navy font-medium">{pu.label}</p>
+                        <p className="text-body-sm font-mono text-ink whitespace-nowrap">
+                          CHF {pu.preis}
+                        </p>
+                      </div>
+                      <p className="text-caption text-quiet leading-snug mb-1">{pu.beschreibung}</p>
+                      <div className="flex items-center justify-between">
+                        <span className="text-caption text-quiet font-mono">{pu.einheit}</span>
+                        {cmDiff && (
+                          <span className="text-caption text-success">
+                            {cmDiff.replace('Bei Companymarket CHF ', '↓ CM ')}
+                          </span>
+                        )}
+                      </div>
+                      {isSelected && (
+                        <div className="mt-2 inline-flex items-center gap-1 text-caption text-bronze-ink">
+                          <Check className="w-3 h-3" strokeWidth={2} />
+                          Hinzugefügt
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           );
         })}
       </div>
 
-      <p className="text-caption text-quiet text-center">
-        Stripe-Integration im Test-Mode · keine echten Zahlungen werden ausgeführt
-      </p>
+      {/* Sticky Order-Summary + Checkout-Button */}
+      <div className="rounded-card bg-paper border border-stone p-5 md:p-6">
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+          <div>
+            <p className="text-body-sm text-muted">
+              <strong className="text-navy">{paket.label}-Paket</strong>
+              {selectedPowerups.size > 0 && ` + ${selectedPowerups.size} Powerup${selectedPowerups.size === 1 ? '' : 's'}`}
+            </p>
+            <p className="text-caption text-quiet">inkl. 8.1 % MwSt.</p>
+          </div>
+          <p className="font-serif text-[2rem] text-navy font-light font-tabular leading-none">
+            CHF {total.toFixed(2).replace(/\.00$/, '')}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={goToCheckout}
+          className="w-full inline-flex items-center justify-center gap-2 px-6 py-4 rounded-soft text-body font-medium bg-navy text-cream hover:bg-ink shadow-card hover:shadow-lift hover:-translate-y-px transition-all"
+        >
+          Weiter zur Zahlung →
+        </button>
+        <p className="text-caption text-quiet text-center mt-3">
+          Sichere Zahlung über Stripe · Schweizer Datenschutz · 0 % Erfolgsprovision
+        </p>
+      </div>
     </div>
   );
 }
