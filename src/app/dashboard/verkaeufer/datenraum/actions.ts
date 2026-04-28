@@ -9,7 +9,7 @@ export async function deleteDatenraumFile(fileId: string): Promise<ActionResult>
   const supabase = await createClient();
   const { data: file } = await supabase
     .from('datenraum_files')
-    .select('storage_path, inserat_id, inserate!inner(owner_id)')
+    .select('storage_path, inserat_id, inserate!inner(verkaeufer_id)')
     .eq('id', fileId)
     .maybeSingle();
   if (!file) return { ok: false, error: 'not found' };

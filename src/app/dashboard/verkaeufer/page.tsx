@@ -24,7 +24,7 @@ export default async function VerkaeuferDashboard() {
     const { data } = await supabase
       .from('inserate')
       .select('*')
-      .eq('owner_id', userData.user.id)
+      .eq('verkaeufer_id', userData.user.id)
       .order('updated_at', { ascending: false })
       .limit(1)
       .maybeSingle();

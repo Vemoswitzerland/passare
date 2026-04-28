@@ -20,7 +20,7 @@ export default async function InseratIndexPage() {
   const { data: inserat } = await supabase
     .from('inserate')
     .select('*, branchen(label_de)')
-    .eq('owner_id', userData.user.id)
+    .eq('verkaeufer_id', userData.user.id)
     .order('updated_at', { ascending: false })
     .limit(1)
     .maybeSingle();

@@ -17,16 +17,54 @@ export default async function EditInseratPage({ params, searchParams }: Props) {
   const { data: userData } = await supabase.auth.getUser();
   if (!userData.user) notFound();
 
-  const { data: inserat } = await supabase
+  const { data: row } = await supabase
     .from('inserate')
     .select('*')
     .eq('id', id)
     .maybeSingle();
 
-  if (!inserat) notFound();
-  if (inserat.owner_id !== userData.user.id) notFound();
+  if (!row) notFound();
+  if (row.verkaeufer_id !== userData.user.id) notFound();
 
-  // Step aus Query oder default 2 (wenn Pre-Reg übernommen → Step 2)
+  // DB-Spaltennamen → Wizard-Type (Frontend nutzt branche_id/jahr/uebergabe_grund,
+  // DB hat branche/gruendungsjahr/grund)
+  const inserat = {
+    id: row.id,
+    status: row.status,
+    zefix_uid: row.zefix_uid ?? null,
+    firma_name: row.firma_name ?? null,
+    firma_rechtsform: row.firma_rechtsform ?? null,
+    titel: row.titel,
+    teaser: row.teaser ?? null,
+    beschreibung: row.beschreibung ?? null,
+    branche_id: row.branche ?? null,
+    kanton: row.kanton,
+    jahr: row.gruendungsjahr,
+    mitarbeitende: row.mitarbeitende,
+    umsatz_chf: row.umsatz_chf,
+    ebitda_chf: row.ebitda_chf,
+    kaufpreis_chf: row.kaufpreis_chf,
+    kaufpreis_vhb: row.kaufpreis_vhb ?? false,
+    kaufpreis_min_chf: row.kaufpreis_min_chf,
+    kaufpreis_max_chf: row.kaufpreis_max_chf,
+    eigenkapital_chf: row.eigenkapital_chf,
+    uebergabe_grund: row.grund,
+    uebergabe_zeitpunkt: row.uebergabe_zeitpunkt ?? null,
+    art: row.art ?? 'angebot',
+    kategorie: row.kategorie ?? 'm_a',
+    immobilien: row.immobilien,
+    finanzierung: row.finanzierung,
+    wir_anteil_moeglich: row.wir_anteil_moeglich ?? false,
+    rechtsform_typ: row.rechtsform_typ,
+    cover_url: row.cover_url ?? null,
+    cover_source: row.cover_source ?? null,
+    sales_points: row.sales_points ?? [],
+    website_url: row.website_url ?? null,
+    linkedin_url: row.linkedin_url ?? null,
+    paket: row.paket,
+    paid_at: row.paid_at ?? null,
+  };
+
   const initialStep = sp.step ? Number(sp.step) : sp.from === 'pre-reg' ? 2 : 1;
 
   return (

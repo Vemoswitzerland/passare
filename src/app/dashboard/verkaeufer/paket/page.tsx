@@ -23,7 +23,7 @@ export default async function PaketPage() {
   const { data: inserat } = await supabase
     .from('inserate')
     .select('id, paket, paid_at, expires_at, stripe_session_id, status')
-    .eq('owner_id', userData.user.id)
+    .eq('verkaeufer_id', userData.user.id)
     .order('updated_at', { ascending: false })
     .limit(1)
     .maybeSingle();

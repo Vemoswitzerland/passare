@@ -60,25 +60,43 @@ import { PAKETE_LIST as NEW_PAKETE, POWERUPS as NEW_POWERUPS, recommendPaket, ge
 type Inserat = {
   id: string;
   status: string;
+  // Firma (aus Pre-Reg)
   zefix_uid: string | null;
   firma_name: string | null;
   firma_rechtsform: string | null;
+  // Inhalt
   titel: string | null;
   teaser: string | null;
   beschreibung: string | null;
-  branche_id: string | null;
+  // Eckdaten — DB-Spalten heissen: branche (nicht branche_id), gruendungsjahr (nicht jahr), grund (nicht uebergabe_grund)
+  branche_id: string | null;       // mapped zu Spalte 'branche'
   kanton: string | null;
-  jahr: number | null;
+  jahr: number | null;             // mapped zu Spalte 'gruendungsjahr'
   mitarbeitende: number | null;
   umsatz_chf: string | number | null;
   ebitda_chf: string | number | null;
   kaufpreis_chf: string | number | null;
   kaufpreis_vhb: boolean;
-  uebergabe_grund: string | null;
+  kaufpreis_min_chf: string | number | null;
+  kaufpreis_max_chf: string | number | null;
+  eigenkapital_chf: string | number | null;
+  uebergabe_grund: string | null;  // mapped zu Spalte 'grund'
   uebergabe_zeitpunkt: string | null;
+  // Neu: Kategorisierung + Konditionen
+  art: 'angebot' | 'gesuch' | null;
+  kategorie: 'm_a' | 'kapital' | 'teilnahme' | 'franchise' | 'handelsvertretung' | 'shareit' | null;
+  immobilien: 'keine' | 'eigentum' | 'miete' | 'auf_anfrage' | null;
+  finanzierung: 'selbst' | 'abzahlung' | 'verhandlungsfaehig' | null;
+  wir_anteil_moeglich: boolean;
+  rechtsform_typ: string | null;
+  // Bilder + Story
   cover_url: string | null;
   cover_source: string | null;
   sales_points: string[];
+  // Soziale Links
+  website_url: string | null;
+  linkedin_url: string | null;
+  // Paket
   paket: string | null;
   paid_at: string | null;
 };
@@ -232,19 +250,26 @@ function buildStepPayload(step: number, d: Inserat): Record<string, unknown> {
       titel: d.titel,
       teaser: d.teaser,
       beschreibung: d.beschreibung,
-      branche_id: d.branche_id,
+      branche_id: d.branche_id,             // server mapped → 'branche'
       kanton: d.kanton,
-      jahr: d.jahr?.toString(),
+      jahr: d.jahr?.toString(),             // server mapped → 'gruendungsjahr'
       mitarbeitende: d.mitarbeitende?.toString(),
-      mitarbeitende_bucket: maBucket(d.mitarbeitende),
       umsatz_chf: d.umsatz_chf?.toString(),
-      umsatz_bucket: umsatzBucket(Number(d.umsatz_chf)),
       ebitda_chf: d.ebitda_chf?.toString(),
       kaufpreis_chf: d.kaufpreis_chf?.toString(),
-      kaufpreis_bucket: umsatzBucket(Number(d.kaufpreis_chf)),
       kaufpreis_vhb: d.kaufpreis_vhb ? 'true' : 'false',
-      uebergabe_grund: d.uebergabe_grund,
+      kaufpreis_min_chf: d.kaufpreis_min_chf?.toString(),
+      kaufpreis_max_chf: d.kaufpreis_max_chf?.toString(),
+      eigenkapital_chf: d.eigenkapital_chf?.toString(),
+      uebergabe_grund: d.uebergabe_grund,   // server mapped → 'grund'
       uebergabe_zeitpunkt: d.uebergabe_zeitpunkt,
+      // Neue Felder (Kategorie/Art/Immobilien/Finanzierung/WIR)
+      art: d.art ?? 'angebot',
+      kategorie: d.kategorie ?? 'm_a',
+      immobilien: d.immobilien,
+      finanzierung: d.finanzierung,
+      wir_anteil_moeglich: d.wir_anteil_moeglich ? 'true' : 'false',
+      rechtsform_typ: d.rechtsform_typ,
     };
   }
   if (step === 3) {
@@ -376,6 +401,56 @@ function Step2Basis({ data, update }: { data: Inserat; update: (p: Partial<Inser
         </div>
       )}
 
+      {/* ── Kategorie + Art (NEU) ───────────────────────────────── */}
+      <div>
+        <p className="overline text-bronze-ink mb-3">Was du verkaufst</p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4">
+          {([
+            ['m_a', '💼 Komplette Firma', 'Verkauf der Anteile (M&A)'],
+            ['kapital', '💰 Beteiligung', 'Kapital-Investition'],
+            ['teilnahme', '🤝 Stille Teilnahme', 'Beteiligung ohne Mitsprache'],
+            ['franchise', '🏪 Franchise', 'Franchise-System'],
+            ['handelsvertretung', '📦 Handelsvertretung', 'Vertretung'],
+            ['shareit', '🔗 ShareIt', 'Cap-Table-Anteil'],
+          ] as const).map(([id, label, desc]) => {
+            const sel = (data.kategorie ?? 'm_a') === id;
+            return (
+              <button
+                key={id}
+                type="button"
+                onClick={() => update({ kategorie: id })}
+                className={cn(
+                  'text-left p-3 rounded-soft border-2 transition-all',
+                  sel ? 'border-bronze bg-bronze/5' : 'border-stone bg-paper hover:border-bronze/40',
+                )}
+              >
+                <p className="text-body-sm text-navy font-medium">{label}</p>
+                <p className="text-caption text-quiet leading-snug mt-0.5">{desc}</p>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="inline-flex bg-stone/40 rounded-soft p-0.5">
+          {(['angebot', 'gesuch'] as const).map((opt) => {
+            const sel = (data.art ?? 'angebot') === opt;
+            return (
+              <button
+                key={opt}
+                type="button"
+                onClick={() => update({ art: opt })}
+                className={cn(
+                  'px-4 py-1.5 rounded-soft text-caption transition-colors',
+                  sel ? 'bg-paper text-navy shadow-subtle font-medium' : 'text-quiet',
+                )}
+              >
+                {opt === 'angebot' ? '🟢 Ich verkaufe' : '🔵 Ich suche zu kaufen'}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       <FormField label="Titel" hint={`${data.titel?.length ?? 0} / 80 Zeichen`}>
         <input
           type="text"
@@ -501,6 +576,44 @@ function Step2Basis({ data, update }: { data: Inserat; update: (p: Partial<Inser
         </label>
       </div>
 
+      {/* Optional: Preis-Range (Min/Max) */}
+      <details className="group">
+        <summary className="cursor-pointer text-caption text-bronze-ink hover:text-bronze list-none flex items-center gap-1.5">
+          <Plus className="w-3.5 h-3.5 group-open:rotate-45 transition-transform" strokeWidth={1.5} />
+          Stattdessen Preis-Range angeben (Min/Max)
+        </summary>
+        <div className="grid sm:grid-cols-2 gap-4 mt-3">
+          <FormField label="Mindestens (CHF)">
+            <input
+              type="number"
+              value={data.kaufpreis_min_chf ?? ''}
+              onChange={(e) => update({ kaufpreis_min_chf: Number(e.target.value) })}
+              placeholder="2000000"
+              className="w-full px-4 py-3 bg-paper border border-stone rounded-soft text-body font-mono focus:outline-none focus:border-bronze focus:shadow-focus transition-all"
+            />
+          </FormField>
+          <FormField label="Höchstens (CHF)">
+            <input
+              type="number"
+              value={data.kaufpreis_max_chf ?? ''}
+              onChange={(e) => update({ kaufpreis_max_chf: Number(e.target.value) })}
+              placeholder="3000000"
+              className="w-full px-4 py-3 bg-paper border border-stone rounded-soft text-body font-mono focus:outline-none focus:border-bronze focus:shadow-focus transition-all"
+            />
+          </FormField>
+        </div>
+      </details>
+
+      <FormField label="Erforderliches Eigenkapital für den Käufer (optional)" hint="meist 20-30 % vom Kaufpreis">
+        <input
+          type="number"
+          value={data.eigenkapital_chf ?? ''}
+          onChange={(e) => update({ eigenkapital_chf: Number(e.target.value) })}
+          placeholder="500000"
+          className="w-full px-4 py-3 bg-paper border border-stone rounded-soft text-body font-mono focus:outline-none focus:border-bronze focus:shadow-focus transition-all"
+        />
+      </FormField>
+
       <div className="grid sm:grid-cols-2 gap-6">
         <FormField label="Übergabe-Grund">
           <select
@@ -528,6 +641,78 @@ function Step2Basis({ data, update }: { data: Inserat; update: (p: Partial<Inser
             <option value="offen">Offen</option>
           </select>
         </FormField>
+      </div>
+
+      {/* ── Konditionen (NEU) ──────────────────────────────────── */}
+      <div className="rounded-card bg-cream/50 border border-stone p-5 space-y-5">
+        <p className="overline text-bronze-ink">Konditionen</p>
+
+        <FormField label="Finanzierung — bist du offen für Verkäufer-Darlehen?">
+          <div className="grid sm:grid-cols-3 gap-2">
+            {([
+              ['selbst', '🔒 Nur Selbst-Finanzierung', 'Käufer braucht volles Kapital'],
+              ['abzahlung', '💸 Abzahlung möglich', 'Verkäufer-Darlehen verhandelbar'],
+              ['verhandlungsfaehig', '🤝 Voll verhandelbar', 'Alles offen — wir sprechen drüber'],
+            ] as const).map(([id, label, desc]) => {
+              const sel = data.finanzierung === id;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => update({ finanzierung: id })}
+                  className={cn(
+                    'text-left p-3 rounded-soft border-2 transition-all',
+                    sel ? 'border-bronze bg-bronze/10' : 'border-stone bg-paper hover:border-bronze/40',
+                  )}
+                >
+                  <p className="text-body-sm text-navy font-medium">{label}</p>
+                  <p className="text-caption text-quiet leading-snug mt-0.5">{desc}</p>
+                </button>
+              );
+            })}
+          </div>
+        </FormField>
+
+        <FormField label="Immobilien — sind welche dabei?">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-2">
+            {([
+              ['keine', '🚫 Keine'],
+              ['eigentum', '🏠 Eigentum inkl.'],
+              ['miete', '📜 Miete übernehmbar'],
+              ['auf_anfrage', '❓ Auf Anfrage'],
+            ] as const).map(([id, label]) => {
+              const sel = data.immobilien === id;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => update({ immobilien: id })}
+                  className={cn(
+                    'p-2.5 rounded-soft border-2 text-body-sm transition-all',
+                    sel ? 'border-bronze bg-bronze/10 text-navy font-medium' : 'border-stone bg-paper text-ink hover:border-bronze/40',
+                  )}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        </FormField>
+
+        <label className="flex items-start gap-3 cursor-pointer p-3 rounded-soft hover:bg-paper/60 transition-colors">
+          <input
+            type="checkbox"
+            checked={data.wir_anteil_moeglich}
+            onChange={(e) => update({ wir_anteil_moeglich: e.target.checked })}
+            className="h-4 w-4 accent-bronze mt-0.5"
+          />
+          <div className="flex-1">
+            <p className="text-body-sm text-navy font-medium">WIR-Anteil möglich</p>
+            <p className="text-caption text-quiet leading-snug">
+              Käufer kann einen Teil des Kaufpreises in Schweizer WIR bezahlen — ein Schweizer Trust-Signal.
+            </p>
+          </div>
+        </label>
       </div>
     </div>
   );

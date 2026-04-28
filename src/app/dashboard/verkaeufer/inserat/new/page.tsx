@@ -19,7 +19,7 @@ export default async function NewInseratPage() {
   const { data: existing } = await supabase
     .from('inserate')
     .select('id, status')
-    .eq('owner_id', userData.user.id)
+    .eq('verkaeufer_id', userData.user.id)
     .order('updated_at', { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -31,7 +31,7 @@ export default async function NewInseratPage() {
   // 3. Neuen Entwurf erstellen
   const { data: created, error } = await supabase
     .from('inserate')
-    .insert({ owner_id: userData.user.id, status: 'entwurf' })
+    .insert({ verkaeufer_id: userData.user.id, status: 'entwurf' })
     .select('id')
     .single();
 

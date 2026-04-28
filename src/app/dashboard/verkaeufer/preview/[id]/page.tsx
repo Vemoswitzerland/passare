@@ -19,7 +19,7 @@ export default async function PreviewPage({ params }: Props) {
     .select('*, branchen(label_de)')
     .eq('id', id)
     .maybeSingle();
-  if (!inserat || inserat.owner_id !== userData.user.id) notFound();
+  if (!inserat || inserat.verkaeufer_id !== userData.user.id) notFound();
 
   // Anonymitäts-Check
   const warnings: string[] = [];

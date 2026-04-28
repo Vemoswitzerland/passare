@@ -37,7 +37,7 @@ export default async function VerkaeuferLayout({ children }: { children: React.R
     const { data: inserat } = await supabase
       .from('inserate')
       .select('id, status, paket')
-      .eq('owner_id', userData.user.id)
+      .eq('verkaeufer_id', userData.user.id)
       .order('updated_at', { ascending: false })
       .limit(1)
       .maybeSingle();

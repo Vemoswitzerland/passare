@@ -31,7 +31,7 @@ export async function takeOverPreRegDraft(): Promise<string | null> {
   const { data: existing } = await supabase
     .from('inserate')
     .select('id, zefix_uid')
-    .eq('owner_id', userData.user.id)
+    .eq('verkaeufer_id', userData.user.id)
     .eq('status', 'entwurf')
     .order('updated_at', { ascending: false })
     .limit(1)
