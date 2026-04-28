@@ -67,6 +67,13 @@ export const CURRENT_STEP = {
 export const UPDATES: Update[] = [
   {
     date: '2026-04-28',
+    type: 'feature',
+    titel: 'Auto-Login + Google/LinkedIn-Anmeldung beim Anfrage-Flow',
+    beschreibung:
+      'Nach der Konto-Aktivierung ist der Käufer sofort eingeloggt — der Header zeigt direkt das Konto statt «Anmelden». Auf der Passwort-Seite kann zwischen klassischem Passwort und Google- oder LinkedIn-Anmeldung gewählt werden. Wer auf «Merken» klickt ohne eingeloggt zu sein, sieht ein zentriertes Pop-up mit denselben Optionen — schnell anmelden, Inserat merken, weiter shoppen. Mails kommen jetzt zuverlässig von noreply@passare.ch (vorher landeten sie bei einigen Inboxen unter dem alten Vemo-Absender).',
+  },
+  {
+    date: '2026-04-28',
     type: 'design',
     titel: 'Admin-Bereich: aufgeräumt und kompakt',
     beschreibung:
