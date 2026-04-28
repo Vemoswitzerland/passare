@@ -69,16 +69,24 @@ export async function POST(req: NextRequest) {
     console.warn('[anfrage:aktivieren] admin client error:', err);
   }
 
-  // Auto-Login: Session-Cookie für den Browser setzen, damit der User nach
-  // dem Redirect direkt eingeloggt ist (Header zeigt dann Konto statt «Anmelden»).
+  // Auto-Login: Session-Tokens generieren UND zusätzlich an den Client zurückgeben,
+  // damit dieser via supabase.auth.setSession() die Cookies sicher im Browser setzt.
+  // (Die SSR-cookies()-API setzt zwar im Route-Handler — das war aber nicht zuverlässig
+  // genug, weil der Hard-Redirect die fresh gesetzten Cookies nicht immer mitnimmt.)
+  let session: { access_token: string; refresh_token: string } | null = null;
   try {
     const sb = await createClient();
-    const { error: signInError } = await sb.auth.signInWithPassword({
+    const { data, error: signInError } = await sb.auth.signInWithPassword({
       email: payload.e,
       password: body.passwort,
     });
     if (signInError) {
       console.warn('[anfrage:aktivieren] signInWithPassword:', signInError.message);
+    } else if (data.session) {
+      session = {
+        access_token: data.session.access_token,
+        refresh_token: data.session.refresh_token,
+      };
     }
   } catch (err) {
     console.warn('[anfrage:aktivieren] signIn-Exception:', err);
@@ -111,5 +119,5 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  return NextResponse.json({ ok: true, listing_id: payload.l });
+  return NextResponse.json({ ok: true, listing_id: payload.l, session });
 }

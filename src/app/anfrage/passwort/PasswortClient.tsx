@@ -1,25 +1,29 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
-  AlertCircle, CheckCircle2, KeyRound, Lock, Shield,
+  AlertCircle, CheckCircle2, Eye, EyeOff, KeyRound, Shield,
 } from 'lucide-react';
 import { Container, Section } from '@/components/ui/container';
 import { Reveal } from '@/components/ui/reveal';
 import { OAuthButtons, AuthDivider } from '@/components/ui/oauth-buttons';
+import { createClient } from '@/lib/supabase/client';
 
 /**
  * Passwort-Setzen-Schritt nach E-Mail-Verifizierung.
  *
- * Empfängt vom Server-Wrapper page.tsx das bereits validierte Token-Payload
- * (name + email + listing). Bei Submit ruft die Komponente
- * /api/anfrage/aktivieren auf — dort wird das Token nochmals validiert,
- * der User in Supabase Auth angelegt UND die Browser-Session gesetzt
- * (Auto-Login), und die Anfrage versendet.
+ * Flow:
+ *   1. POST /api/anfrage/aktivieren mit {token, passwort} → Server legt Konto
+ *      an, sendet Mails, gibt Session-Tokens zurück.
+ *   2. Client setzt die Session via supabase.auth.setSession() — das schreibt
+ *      die Auth-Cookies zuverlässig im Browser (Server-side cookies() ist im
+ *      Route Handler nicht 100% zuverlässig).
+ *   3. Hard-Redirect aufs Inserat → Header zeigt Käufer-Konto statt «Anmelden».
  *
- * Alternative: OAuth via Google/LinkedIn (statt Passwort).
+ * Plus: Passwort-Stärke-Indikator (Bar + Hinweise).
+ * Plus: OAuth (Google/LinkedIn) als Alternative zum Passwort.
  */
 
 type Props = {
@@ -31,12 +35,56 @@ type Props = {
   };
 };
 
+type StrengthLevel = 0 | 1 | 2 | 3 | 4;
+
+function calcStrength(pw: string): StrengthLevel {
+  if (!pw) return 0;
+  let score = 0;
+  if (pw.length >= 8) score++;
+  if (pw.length >= 12) score++;
+  if (/[a-z]/.test(pw) && /[A-Z]/.test(pw)) score++;
+  if (/\d/.test(pw)) score++;
+  if (/[^A-Za-z0-9]/.test(pw)) score++;
+  // Score (0-5) → Level (0-4)
+  if (score <= 1) return 1;
+  if (score === 2) return 2;
+  if (score === 3) return 3;
+  return 4;
+}
+
+const STRENGTH_LABELS: Record<StrengthLevel, string> = {
+  0: '',
+  1: 'Sehr schwach',
+  2: 'Schwach',
+  3: 'Solide',
+  4: 'Stark',
+};
+
+const STRENGTH_COLORS: Record<StrengthLevel, string> = {
+  0: 'bg-stone',
+  1: 'bg-danger',
+  2: 'bg-bronze',
+  3: 'bg-bronze-ink',
+  4: 'bg-success',
+};
+
+const STRENGTH_TEXT_COLORS: Record<StrengthLevel, string> = {
+  0: 'text-quiet',
+  1: 'text-danger',
+  2: 'text-bronze-ink',
+  3: 'text-bronze-ink',
+  4: 'text-success',
+};
+
 export function PasswortClient({ token, payload }: Props) {
   const router = useRouter();
   const [passwort, setPasswort] = useState('');
   const [passwortRepeat, setPasswortRepeat] = useState('');
+  const [showPw, setShowPw] = useState(false);
   const [fehler, setFehler] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  const strength = useMemo(() => calcStrength(passwort), [passwort]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -56,12 +104,25 @@ export function PasswortClient({ token, payload }: Props) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token, passwort }),
       });
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
         throw new Error(data?.error ?? 'Aktivierung fehlgeschlagen.');
       }
-      // Hard-Redirect, damit der Header die neue Session-Cookie liest
-      // und «Anmelden» durch das Käufer-Konto ersetzt.
+
+      // Session im Browser setzen — Tokens vom Server, setSession schreibt Cookies.
+      if (data?.session?.access_token && data?.session?.refresh_token) {
+        try {
+          const supabase = createClient();
+          await supabase.auth.setSession({
+            access_token: data.session.access_token,
+            refresh_token: data.session.refresh_token,
+          });
+        } catch (err) {
+          console.warn('setSession failed:', err);
+        }
+      }
+
+      // Hard-Redirect, damit der Server-Header die neue Session-Cookie liest.
       window.location.assign(`/inserat/${payload.listingId}?anfrage=ok`);
     } catch (err) {
       setFehler(err instanceof Error ? err.message : 'Aktivierung fehlgeschlagen.');
@@ -99,20 +160,32 @@ export function PasswortClient({ token, payload }: Props) {
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <Field label="Passwort" required>
-                  <input
-                    type="password"
-                    required
-                    minLength={8}
-                    value={passwort}
-                    onChange={(e) => setPasswort(e.target.value)}
-                    placeholder="Mindestens 8 Zeichen"
-                    className="w-full bg-cream border border-stone rounded-soft px-3 py-2.5 text-body-sm placeholder:text-quiet focus:outline-none focus:border-bronze"
-                  />
+                  <div className="relative">
+                    <input
+                      type={showPw ? 'text' : 'password'}
+                      required
+                      minLength={8}
+                      value={passwort}
+                      onChange={(e) => setPasswort(e.target.value)}
+                      placeholder="Mindestens 8 Zeichen"
+                      className="w-full bg-cream border border-stone rounded-soft pl-3 pr-10 py-2.5 text-body-sm placeholder:text-quiet focus:outline-none focus:border-bronze"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPw((v) => !v)}
+                      aria-label={showPw ? 'Passwort verbergen' : 'Passwort anzeigen'}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-quiet hover:text-bronze transition-colors"
+                    >
+                      {showPw ? <EyeOff className="w-4 h-4" strokeWidth={1.5} /> : <Eye className="w-4 h-4" strokeWidth={1.5} />}
+                    </button>
+                  </div>
+                  {/* Stärke-Indikator */}
+                  <StrengthMeter passwort={passwort} strength={strength} />
                 </Field>
 
                 <Field label="Passwort wiederholen" required>
                   <input
-                    type="password"
+                    type={showPw ? 'text' : 'password'}
                     required
                     minLength={8}
                     value={passwortRepeat}
@@ -120,6 +193,11 @@ export function PasswortClient({ token, payload }: Props) {
                     placeholder="Mindestens 8 Zeichen"
                     className="w-full bg-cream border border-stone rounded-soft px-3 py-2.5 text-body-sm placeholder:text-quiet focus:outline-none focus:border-bronze"
                   />
+                  {passwortRepeat && passwortRepeat !== passwort && (
+                    <p className="font-mono text-[10px] text-danger mt-1.5 leading-snug">
+                      Passwörter stimmen nicht überein.
+                    </p>
+                  )}
                 </Field>
 
                 {fehler && (
@@ -167,6 +245,44 @@ export function PasswortClient({ token, payload }: Props) {
         </div>
       </Container>
     </Section>
+  );
+}
+
+function StrengthMeter({ passwort, strength }: { passwort: string; strength: StrengthLevel }) {
+  if (!passwort) return null;
+
+  const tips: string[] = [];
+  if (passwort.length < 8) tips.push('Min. 8 Zeichen');
+  else if (passwort.length < 12) tips.push('12+ Zeichen für stärker');
+  if (!(/[a-z]/.test(passwort) && /[A-Z]/.test(passwort))) tips.push('Gross + Kleinbuchstaben');
+  if (!/\d/.test(passwort)) tips.push('Mindestens eine Zahl');
+  if (!/[^A-Za-z0-9]/.test(passwort)) tips.push('Sonderzeichen wie ! ? %');
+
+  return (
+    <div className="mt-2 space-y-1.5">
+      <div className="flex gap-1">
+        {[1, 2, 3, 4].map((i) => (
+          <span
+            key={i}
+            className={`h-1 flex-1 rounded-full transition-colors duration-300 ${
+              i <= strength ? STRENGTH_COLORS[strength] : 'bg-stone'
+            }`}
+          />
+        ))}
+      </div>
+      <div className="flex items-baseline justify-between gap-3">
+        <span
+          className={`font-mono text-[10px] uppercase tracking-widest ${STRENGTH_TEXT_COLORS[strength]}`}
+        >
+          {STRENGTH_LABELS[strength]}
+        </span>
+        {tips.length > 0 && (
+          <span className="text-[10px] text-quiet leading-snug text-right">
+            {tips.slice(0, 2).join(' · ')}
+          </span>
+        )}
+      </div>
+    </div>
   );
 }
 
