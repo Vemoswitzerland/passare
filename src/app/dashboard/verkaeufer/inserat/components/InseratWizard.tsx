@@ -387,10 +387,23 @@ function Step2Basis({ data, update }: { data: Inserat; update: (p: Partial<Inser
     return null;
   })();
 
+  // EBITDA-Validation: Marge darf nicht > 100% sein (= EBITDA > Umsatz)
+  const umsatzNum = data.umsatz_chf ? Number(data.umsatz_chf) : 0;
+  const ebitdaNum = data.ebitda_chf ? Number(data.ebitda_chf) : 0;
+  const ebitdaWarning = umsatzNum > 0 && ebitdaNum > umsatzNum
+    ? 'EBITDA kann nicht höher sein als der Umsatz. Bitte korrigieren.'
+    : null;
+
+  // Pre-Reg-Daten kompakt zeigen, falls schon erfasst (Branche/Kanton/Jahr/MA/Umsatz/EBITDA)
+  const preRegDataComplete = Boolean(
+    data.branche_id && data.kanton &&
+    data.umsatz_chf != null && data.ebitda_chf != null,
+  );
+
   return (
     <div className="space-y-8 animate-fade-up">
       <div>
-        <h2 className="font-serif text-display-sm text-navy font-light mb-2">Basis-Daten</h2>
+        <h2 className="font-serif text-display-sm text-navy font-light mb-2">Inserat-Inhalt</h2>
         <p className="text-body text-muted">Diese Angaben sehen Käufer im Marktplatz — anonymisiert.</p>
       </div>
 
@@ -401,17 +414,68 @@ function Step2Basis({ data, update }: { data: Inserat; update: (p: Partial<Inser
         </div>
       )}
 
-      {/* ── Kategorie + Art (NEU) ───────────────────────────────── */}
-      <div>
-        <p className="overline text-bronze-ink mb-3">Was du verkaufst</p>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4">
+      {/* ── Bereits erfasste Daten (kompakte Read-Only-Card) ─────── */}
+      {preRegDataComplete && (
+        <div className="rounded-card bg-bronze/5 border border-bronze/30 p-4">
+          <div className="flex items-center justify-between mb-3">
+            <p className="overline text-bronze-ink">Aus deinem Pre-Onboarding übernommen</p>
+            <button
+              type="button"
+              onClick={() => alert('Bereits-erfasste-Felder kannst du im Dashboard unter Einstellungen anpassen.')}
+              className="text-caption text-bronze-ink hover:text-bronze underline-offset-4 hover:underline"
+            >
+              Anpassen →
+            </button>
+          </div>
+          <dl className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-caption">
+            <div>
+              <dt className="text-quiet">Branche</dt>
+              <dd className="text-ink font-medium">
+                {BRANCHEN_LIST.find((b) => b.id === data.branche_id)?.label ?? '—'}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-quiet">Kanton</dt>
+              <dd className="text-ink font-medium">{data.kanton}</dd>
+            </div>
+            {data.jahr && (
+              <div>
+                <dt className="text-quiet">Gegründet</dt>
+                <dd className="text-ink font-medium font-mono">{data.jahr}</dd>
+              </div>
+            )}
+            {data.mitarbeitende && (
+              <div>
+                <dt className="text-quiet">Mitarbeitende</dt>
+                <dd className="text-ink font-medium font-mono">{data.mitarbeitende}</dd>
+              </div>
+            )}
+            <div>
+              <dt className="text-quiet">Umsatz</dt>
+              <dd className="text-ink font-medium font-mono">
+                CHF {Number(data.umsatz_chf).toLocaleString('de-CH').replace(/,/g, "'")}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-quiet">EBITDA</dt>
+              <dd className="text-ink font-medium font-mono">
+                CHF {Number(data.ebitda_chf).toLocaleString('de-CH').replace(/,/g, "'")}
+              </dd>
+            </div>
+          </dl>
+        </div>
+      )}
+
+      {/* ── Kategorie (ohne Emojis, ohne Art-Toggle) ─────────────── */}
+      <FormField label="Kategorie" required>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
           {([
-            ['m_a', '💼 Komplette Firma', 'Verkauf der Anteile (M&A)'],
-            ['kapital', '💰 Beteiligung', 'Kapital-Investition'],
-            ['teilnahme', '🤝 Stille Teilnahme', 'Beteiligung ohne Mitsprache'],
-            ['franchise', '🏪 Franchise', 'Franchise-System'],
-            ['handelsvertretung', '📦 Handelsvertretung', 'Vertretung'],
-            ['shareit', '🔗 ShareIt', 'Cap-Table-Anteil'],
+            ['m_a', 'Komplette Firma', 'Verkauf der Anteile (M&A)'],
+            ['kapital', 'Beteiligung', 'Kapital-Investition'],
+            ['teilnahme', 'Stille Teilnahme', 'Ohne Mitsprache'],
+            ['franchise', 'Franchise', 'Franchise-System'],
+            ['handelsvertretung', 'Handelsvertretung', 'Vertretung'],
+            ['shareit', 'ShareIt', 'Cap-Table-Anteil'],
           ] as const).map(([id, label, desc]) => {
             const sel = (data.kategorie ?? 'm_a') === id;
             return (
@@ -430,28 +494,9 @@ function Step2Basis({ data, update }: { data: Inserat; update: (p: Partial<Inser
             );
           })}
         </div>
+      </FormField>
 
-        <div className="inline-flex bg-stone/40 rounded-soft p-0.5">
-          {(['angebot', 'gesuch'] as const).map((opt) => {
-            const sel = (data.art ?? 'angebot') === opt;
-            return (
-              <button
-                key={opt}
-                type="button"
-                onClick={() => update({ art: opt })}
-                className={cn(
-                  'px-4 py-1.5 rounded-soft text-caption transition-colors',
-                  sel ? 'bg-paper text-navy shadow-subtle font-medium' : 'text-quiet',
-                )}
-              >
-                {opt === 'angebot' ? '🟢 Ich verkaufe' : '🔵 Ich suche zu kaufen'}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      <FormField label="Titel" hint={`${data.titel?.length ?? 0} / 80 Zeichen`}>
+      <FormField label="Titel" required hint={`${data.titel?.length ?? 0} / 80 Zeichen`}>
         <input
           type="text"
           value={data.titel ?? ''}
@@ -462,18 +507,18 @@ function Step2Basis({ data, update }: { data: Inserat; update: (p: Partial<Inser
         />
       </FormField>
 
-      <FormField label="Teaser" hint={`${data.teaser?.length ?? 0} / 280`}>
+      <FormField label="Teaser" hint={`${data.teaser?.length ?? 0} / 280 · optional`}>
         <textarea
           value={data.teaser ?? ''}
           onChange={(e) => update({ teaser: e.target.value })}
           maxLength={280}
           rows={3}
-          placeholder="Ein kurzer Marketingtext — die ersten Sätze die Käufer sehen."
+          placeholder="Kurzer Marketingtext — die ersten Sätze die Käufer sehen."
           className="w-full px-4 py-3 bg-paper border border-stone rounded-soft text-body focus:outline-none focus:border-bronze focus:shadow-focus transition-all resize-none"
         />
       </FormField>
 
-      <FormField label="Beschreibung" hint={`${data.beschreibung?.length ?? 0} / 2000`}>
+      <FormField label="Beschreibung" required hint={`${data.beschreibung?.length ?? 0} / 2000`}>
         <textarea
           value={data.beschreibung ?? ''}
           onChange={(e) => update({ beschreibung: e.target.value })}
@@ -484,78 +529,108 @@ function Step2Basis({ data, update }: { data: Inserat; update: (p: Partial<Inser
         />
       </FormField>
 
-      <div className="grid sm:grid-cols-2 gap-6">
-        <FormField label="Branche">
-          <select
-            value={data.branche_id ?? ''}
-            onChange={(e) => update({ branche_id: e.target.value })}
-            className="w-full px-4 py-3 bg-paper border border-stone rounded-soft text-body focus:outline-none focus:border-bronze focus:shadow-focus transition-all"
-          >
-            <option value="">Wähle …</option>
-            {BRANCHEN_LIST.map((b) => (
-              <option key={b.id} value={b.id}>{b.label}</option>
-            ))}
-          </select>
-        </FormField>
-        <FormField label="Kanton">
-          <select
-            value={data.kanton ?? ''}
-            onChange={(e) => update({ kanton: e.target.value })}
-            className="w-full px-4 py-3 bg-paper border border-stone rounded-soft text-body focus:outline-none focus:border-bronze focus:shadow-focus transition-all"
-          >
-            <option value="">Wähle …</option>
-            {KANTONE.map(([code, label]) => (
-              <option key={code} value={code}>{label} ({code})</option>
-            ))}
-          </select>
-        </FormField>
-      </div>
+      {/* Branche/Kanton nur anzeigen, falls noch nicht aus Pre-Reg da */}
+      {!preRegDataComplete && (
+        <div className="grid sm:grid-cols-2 gap-6">
+          <FormField label="Branche" required>
+            <select
+              value={data.branche_id ?? ''}
+              onChange={(e) => update({ branche_id: e.target.value })}
+              className="w-full px-4 py-3 bg-paper border border-stone rounded-soft text-body focus:outline-none focus:border-bronze focus:shadow-focus transition-all"
+            >
+              <option value="">Wähle …</option>
+              {BRANCHEN_LIST.map((b) => (
+                <option key={b.id} value={b.id}>{b.label}</option>
+              ))}
+            </select>
+          </FormField>
+          <FormField label="Kanton" required>
+            <select
+              value={data.kanton ?? ''}
+              onChange={(e) => update({ kanton: e.target.value })}
+              className="w-full px-4 py-3 bg-paper border border-stone rounded-soft text-body focus:outline-none focus:border-bronze focus:shadow-focus transition-all"
+            >
+              <option value="">Wähle …</option>
+              {KANTONE.map(([code, label]) => (
+                <option key={code} value={code}>{label} ({code})</option>
+              ))}
+            </select>
+          </FormField>
+        </div>
+      )}
 
-      <div className="grid sm:grid-cols-2 gap-6">
-        <FormField label="Gründungsjahr">
-          <input
-            type="number"
-            value={data.jahr ?? ''}
-            onChange={(e) => update({ jahr: Number(e.target.value) })}
-            min={1800}
-            max={new Date().getFullYear()}
-            className="w-full px-4 py-3 bg-paper border border-stone rounded-soft text-body font-mono focus:outline-none focus:border-bronze focus:shadow-focus transition-all"
-          />
-        </FormField>
-        <FormField label="Mitarbeitende">
-          <input
-            type="number"
-            value={data.mitarbeitende ?? ''}
-            onChange={(e) => update({ mitarbeitende: Number(e.target.value) })}
-            min={1}
-            className="w-full px-4 py-3 bg-paper border border-stone rounded-soft text-body font-mono focus:outline-none focus:border-bronze focus:shadow-focus transition-all"
-          />
-        </FormField>
-      </div>
+      {/* Gründungsjahr und Mitarbeitende sind optional, falls nicht aus Pre-Reg */}
+      {!preRegDataComplete && (
+        <div className="grid sm:grid-cols-2 gap-6">
+          <FormField label="Gründungsjahr">
+            <input
+              type="number"
+              value={data.jahr ?? ''}
+              onChange={(e) => update({ jahr: Number(e.target.value) })}
+              min={1800}
+              max={new Date().getFullYear()}
+              className="w-full px-4 py-3 bg-paper border border-stone rounded-soft text-body font-mono focus:outline-none focus:border-bronze focus:shadow-focus transition-all"
+            />
+          </FormField>
+          <FormField label="Mitarbeitende">
+            <input
+              type="number"
+              value={data.mitarbeitende ?? ''}
+              onChange={(e) => update({ mitarbeitende: Number(e.target.value) })}
+              min={1}
+              className="w-full px-4 py-3 bg-paper border border-stone rounded-soft text-body font-mono focus:outline-none focus:border-bronze focus:shadow-focus transition-all"
+            />
+          </FormField>
+        </div>
+      )}
 
-      <div className="grid sm:grid-cols-2 gap-6">
-        <FormField label="Jahresumsatz (CHF)">
-          <input
-            type="number"
-            value={data.umsatz_chf ?? ''}
-            onChange={(e) => update({ umsatz_chf: Number(e.target.value) })}
-            placeholder="2000000"
-            className="w-full px-4 py-3 bg-paper border border-stone rounded-soft text-body font-mono focus:outline-none focus:border-bronze focus:shadow-focus transition-all"
-          />
-        </FormField>
-        <FormField label="EBITDA (CHF)">
-          <input
-            type="number"
-            value={data.ebitda_chf ?? ''}
-            onChange={(e) => update({ ebitda_chf: Number(e.target.value) })}
-            placeholder="350000"
-            className="w-full px-4 py-3 bg-paper border border-stone rounded-soft text-body font-mono focus:outline-none focus:border-bronze focus:shadow-focus transition-all"
-          />
-        </FormField>
-      </div>
+      {/* Jahresumsatz/EBITDA nur anzeigen, falls noch nicht aus Pre-Reg da */}
+      {!preRegDataComplete && (
+        <>
+          <div className="grid sm:grid-cols-2 gap-6">
+            <FormField label="Jahresumsatz (CHF)" required>
+              <input
+                type="number"
+                value={data.umsatz_chf ?? ''}
+                onChange={(e) => update({ umsatz_chf: Number(e.target.value) })}
+                placeholder="2000000"
+                className="w-full px-4 py-3 bg-paper border border-stone rounded-soft text-body font-mono focus:outline-none focus:border-bronze focus:shadow-focus transition-all"
+              />
+            </FormField>
+            <FormField
+              label="EBITDA (CHF)"
+              required
+              hint={ebitdaWarning ? undefined : 'darf höchstens dem Umsatz entsprechen'}
+            >
+              <input
+                type="number"
+                value={data.ebitda_chf ?? ''}
+                onChange={(e) => {
+                  const v = Number(e.target.value);
+                  // Cap auf Umsatz: EBITDA-Marge max 100%
+                  if (umsatzNum > 0 && v > umsatzNum) {
+                    update({ ebitda_chf: umsatzNum });
+                  } else {
+                    update({ ebitda_chf: v });
+                  }
+                }}
+                max={umsatzNum > 0 ? umsatzNum : undefined}
+                placeholder="350000"
+                className={cn(
+                  'w-full px-4 py-3 bg-paper border rounded-soft text-body font-mono focus:outline-none focus:shadow-focus transition-all',
+                  ebitdaWarning ? 'border-warn focus:border-warn' : 'border-stone focus:border-bronze',
+                )}
+              />
+              {ebitdaWarning && (
+                <p className="mt-1.5 text-caption text-warn">{ebitdaWarning}</p>
+              )}
+            </FormField>
+          </div>
+        </>
+      )}
 
       <div className="grid sm:grid-cols-2 gap-6 items-end">
-        <FormField label="Kaufpreis (CHF)">
+        <FormField label="Kaufpreis (CHF)" required>
           <input
             type="number"
             value={data.kaufpreis_chf ?? ''}
@@ -615,7 +690,7 @@ function Step2Basis({ data, update }: { data: Inserat; update: (p: Partial<Inser
       </FormField>
 
       <div className="grid sm:grid-cols-2 gap-6">
-        <FormField label="Übergabe-Grund">
+        <FormField label="Übergabe-Grund" required>
           <select
             value={data.uebergabe_grund ?? ''}
             onChange={(e) => update({ uebergabe_grund: e.target.value })}
@@ -627,7 +702,7 @@ function Step2Basis({ data, update }: { data: Inserat; update: (p: Partial<Inser
             ))}
           </select>
         </FormField>
-        <FormField label="Übergabe-Zeitpunkt">
+        <FormField label="Übergabe-Zeitpunkt" required>
           <select
             value={data.uebergabe_zeitpunkt ?? ''}
             onChange={(e) => update({ uebergabe_zeitpunkt: e.target.value })}
@@ -650,9 +725,9 @@ function Step2Basis({ data, update }: { data: Inserat; update: (p: Partial<Inser
         <FormField label="Finanzierung — bist du offen für Verkäufer-Darlehen?">
           <div className="grid sm:grid-cols-3 gap-2">
             {([
-              ['selbst', '🔒 Nur Selbst-Finanzierung', 'Käufer braucht volles Kapital'],
-              ['abzahlung', '💸 Abzahlung möglich', 'Verkäufer-Darlehen verhandelbar'],
-              ['verhandlungsfaehig', '🤝 Voll verhandelbar', 'Alles offen — wir sprechen drüber'],
+              ['selbst', 'Nur Selbst-Finanzierung', 'Käufer braucht volles Kapital'],
+              ['abzahlung', 'Abzahlung möglich', 'Verkäufer-Darlehen verhandelbar'],
+              ['verhandlungsfaehig', 'Voll verhandelbar', 'Alles offen — wir sprechen drüber'],
             ] as const).map(([id, label, desc]) => {
               const sel = data.finanzierung === id;
               return (
@@ -676,10 +751,10 @@ function Step2Basis({ data, update }: { data: Inserat; update: (p: Partial<Inser
         <FormField label="Immobilien — sind welche dabei?">
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-2">
             {([
-              ['keine', '🚫 Keine'],
-              ['eigentum', '🏠 Eigentum inkl.'],
-              ['miete', '📜 Miete übernehmbar'],
-              ['auf_anfrage', '❓ Auf Anfrage'],
+              ['keine', 'Keine'],
+              ['eigentum', 'Eigentum inkl.'],
+              ['miete', 'Miete übernehmbar'],
+              ['auf_anfrage', 'Auf Anfrage'],
             ] as const).map(([id, label]) => {
               const sel = data.immobilien === id;
               return (
@@ -1213,12 +1288,15 @@ function Step5Paket({
 
 /* ─── HELPERS ─── */
 function FormField({
-  label, hint, children,
-}: { label: string; hint?: string; children: React.ReactNode }) {
+  label, hint, required, children,
+}: { label: string; hint?: string; required?: boolean; children: React.ReactNode }) {
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
-        <label className="overline text-bronze-ink">{label}</label>
+        <label className="overline text-bronze-ink inline-flex items-center gap-1">
+          {label}
+          {required && <span className="text-warn">*</span>}
+        </label>
         {hint && <span className="text-caption font-mono text-quiet">{hint}</span>}
       </div>
       {children}
