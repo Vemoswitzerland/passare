@@ -7,7 +7,6 @@ import {
   setAdminNotesAction,
   setQualitaetsScoreAction,
   setTagsAction,
-  setVerificationAction,
 } from '@/app/admin/actions';
 
 type Props = {
@@ -15,8 +14,6 @@ type Props = {
   initialScore: number | null;
   initialNotes: string | null;
   initialTags: string[];
-  verifiedPhone: boolean;
-  verifiedKyc: boolean;
 };
 
 type Status = { kind: 'idle' } | { kind: 'ok'; msg: string } | { kind: 'err'; msg: string };
@@ -26,13 +23,13 @@ function StatusBox({ status }: { status: Status }) {
   const isOk = status.kind === 'ok';
   return (
     <div
-      className={`mt-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-soft text-caption border ${
+      className={`mt-3 inline-flex items-center gap-2 px-2.5 py-1 rounded-soft text-[11px] border ${
         isOk
           ? 'text-success bg-success/10 border-success/30'
           : 'text-danger bg-danger/10 border-danger/30'
       }`}
     >
-      {isOk ? <CheckCircle2 className="w-3.5 h-3.5" strokeWidth={2} /> : <AlertCircle className="w-3.5 h-3.5" strokeWidth={2} />}
+      {isOk ? <CheckCircle2 className="w-3 h-3" strokeWidth={2} /> : <AlertCircle className="w-3 h-3" strokeWidth={2} />}
       {status.msg}
     </div>
   );
@@ -43,25 +40,19 @@ export function UserDetailForm({
   initialScore,
   initialNotes,
   initialTags,
-  verifiedPhone,
-  verifiedKyc,
 }: Props) {
   const [score, setScore] = useState<string>(initialScore?.toString() ?? '');
   const [notes, setNotes] = useState(initialNotes ?? '');
   const [tags, setTags] = useState<string[]>(initialTags);
   const [newTag, setNewTag] = useState('');
-  const [phone, setPhone] = useState(verifiedPhone);
-  const [kyc, setKyc] = useState(verifiedKyc);
 
   const [scoreStatus, setScoreStatus] = useState<Status>({ kind: 'idle' });
   const [notesStatus, setNotesStatus] = useState<Status>({ kind: 'idle' });
   const [tagsStatus, setTagsStatus] = useState<Status>({ kind: 'idle' });
-  const [verifyStatus, setVerifyStatus] = useState<Status>({ kind: 'idle' });
 
   const [pendingScore, startScoreTx] = useTransition();
   const [pendingNotes, startNotesTx] = useTransition();
   const [pendingTags, startTagsTx] = useTransition();
-  const [pendingVerify, startVerifyTx] = useTransition();
 
   const saveScore = () => {
     setScoreStatus({ kind: 'idle' });
@@ -104,50 +95,16 @@ export function UserDetailForm({
     });
   };
 
-  const toggleVerify = (field: 'verified_phone' | 'verified_kyc', value: boolean) => {
-    setVerifyStatus({ kind: 'idle' });
-    if (field === 'verified_phone') setPhone(value);
-    else setKyc(value);
-
-    startVerifyTx(async () => {
-      const res = await setVerificationAction({ user_id: userId, field, value });
-      if (!res.ok) {
-        setVerifyStatus({ kind: 'err', msg: res.error ?? 'Fehler.' });
-        if (field === 'verified_phone') setPhone(!value);
-        else setKyc(!value);
-      } else {
-        setVerifyStatus({ kind: 'ok', msg: 'Aktualisiert.' });
-      }
-    });
-  };
-
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <section className="bg-paper border border-stone rounded-soft p-4">
-        <h3 className="text-caption uppercase tracking-wide font-medium text-quiet mb-3">Verifizierung</h3>
-        <div className="grid sm:grid-cols-2 gap-3">
-          <ToggleRow
-            label="Telefon verifiziert"
-            checked={phone}
-            disabled={pendingVerify}
-            onChange={(v) => toggleVerify('verified_phone', v)}
-          />
-          <ToggleRow
-            label="KYC abgeschlossen"
-            checked={kyc}
-            disabled={pendingVerify}
-            onChange={(v) => toggleVerify('verified_kyc', v)}
-          />
-        </div>
-        <StatusBox status={verifyStatus} />
-      </section>
-
-      <section className="bg-paper border border-stone rounded-soft p-4">
-        <h3 className="text-caption uppercase tracking-wide font-medium text-quiet mb-2">Qualitäts-Score</h3>
-        <p className="text-caption text-quiet mb-4">
-          Wert zwischen 0 und 100. Leer lassen = nicht bewertet.
+        <h3 className="text-[11px] uppercase tracking-wide font-medium text-quiet mb-2">
+          Qualitäts-Score
+        </h3>
+        <p className="text-[12px] text-quiet mb-3">
+          Wert zwischen 0 und 100. Leer = nicht bewertet.
         </p>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <input
             type="number"
             min={0}
@@ -156,10 +113,10 @@ export function UserDetailForm({
             value={score}
             onChange={(e) => setScore(e.target.value)}
             placeholder="—"
-            className="w-32 px-3 py-2 bg-cream border border-stone rounded-soft font-mono text-body-sm focus:outline-none focus:border-bronze"
+            className="w-28 px-2.5 py-1.5 bg-cream border border-stone rounded-soft font-mono text-[13px] focus:outline-none focus:border-bronze"
           />
           <Button size="sm" variant="primary" onClick={saveScore} disabled={pendingScore}>
-            <Save className="w-3.5 h-3.5" strokeWidth={1.5} />
+            <Save className="w-3 h-3" strokeWidth={1.5} />
             {pendingScore ? 'Speichere …' : 'Speichern'}
           </Button>
         </div>
@@ -167,16 +124,18 @@ export function UserDetailForm({
       </section>
 
       <section className="bg-paper border border-stone rounded-soft p-4">
-        <h3 className="text-caption uppercase tracking-wide font-medium text-quiet mb-2">Tags</h3>
-        <p className="text-caption text-quiet mb-4">
-          Frei definierbare Tags zur Segmentierung (max. 20). Beispiel: «vip», «high-touch», «strategisch».
+        <h3 className="text-[11px] uppercase tracking-wide font-medium text-quiet mb-2">Tags</h3>
+        <p className="text-[12px] text-quiet mb-3">
+          Frei definierbare Tags zur Segmentierung (max. 20).
         </p>
-        <div className="flex flex-wrap gap-2 mb-3 min-h-[2rem]">
-          {tags.length === 0 && <span className="text-caption text-quiet italic">Keine Tags.</span>}
+        <div className="flex flex-wrap gap-1.5 mb-2 min-h-[1.5rem]">
+          {tags.length === 0 && (
+            <span className="text-[12px] text-quiet italic">Keine Tags.</span>
+          )}
           {tags.map((t) => (
             <span
               key={t}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-pill bg-bronze-soft text-bronze-ink text-caption font-medium"
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-soft bg-bronze-soft text-bronze-ink text-[11px] font-medium"
             >
               {t}
               <button
@@ -185,12 +144,12 @@ export function UserDetailForm({
                 className="hover:text-danger transition-colors"
                 aria-label={`Tag ${t} entfernen`}
               >
-                <X className="w-3 h-3" strokeWidth={2} />
+                <X className="w-2.5 h-2.5" strokeWidth={2} />
               </button>
             </span>
           ))}
         </div>
-        <div className="flex items-center gap-2 mb-3">
+        <div className="flex items-center gap-2 mb-2">
           <input
             type="text"
             value={newTag}
@@ -202,76 +161,44 @@ export function UserDetailForm({
               }
             }}
             placeholder="Neuer Tag …"
-            className="flex-1 px-3 py-2 bg-cream border border-stone rounded-soft text-body-sm focus:outline-none focus:border-bronze"
+            className="flex-1 px-2.5 py-1.5 bg-cream border border-stone rounded-soft text-[13px] focus:outline-none focus:border-bronze"
           />
           <button
             type="button"
             onClick={addTag}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-soft border border-stone bg-paper text-navy text-caption hover:border-navy/40 transition-colors"
+            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-soft border border-stone bg-paper text-navy text-[12px] hover:border-navy/40 transition-colors"
           >
-            <Plus className="w-3.5 h-3.5" strokeWidth={1.5} />
-            Hinzufügen
+            <Plus className="w-3 h-3" strokeWidth={1.5} />
+            Add
           </button>
         </div>
         <Button size="sm" variant="primary" onClick={saveTags} disabled={pendingTags}>
-          <Save className="w-3.5 h-3.5" strokeWidth={1.5} />
+          <Save className="w-3 h-3" strokeWidth={1.5} />
           {pendingTags ? 'Speichere …' : 'Tags speichern'}
         </Button>
         <StatusBox status={tagsStatus} />
       </section>
 
       <section className="bg-paper border border-stone rounded-soft p-4">
-        <h3 className="text-caption uppercase tracking-wide font-medium text-quiet mb-2">Admin-Notizen</h3>
-        <p className="text-caption text-quiet mb-4">
-          Interne Notizen zu diesem User. Nur für Admins sichtbar.
+        <h3 className="text-[11px] uppercase tracking-wide font-medium text-quiet mb-2">
+          Admin-Notizen
+        </h3>
+        <p className="text-[12px] text-quiet mb-3">
+          Interne Notizen. Nur für Admins sichtbar.
         </p>
         <textarea
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
-          rows={6}
-          placeholder="z. B. Kontaktverlauf, Hinweise, Eigenheiten …"
-          className="w-full px-3 py-2 bg-cream border border-stone rounded-soft text-body-sm focus:outline-none focus:border-bronze resize-y mb-3"
+          rows={5}
+          placeholder="z. B. Kontaktverlauf, Hinweise …"
+          className="w-full px-2.5 py-2 bg-cream border border-stone rounded-soft text-[13px] focus:outline-none focus:border-bronze resize-y mb-2"
         />
         <Button size="sm" variant="primary" onClick={saveNotes} disabled={pendingNotes}>
-          <Save className="w-3.5 h-3.5" strokeWidth={1.5} />
+          <Save className="w-3 h-3" strokeWidth={1.5} />
           {pendingNotes ? 'Speichere …' : 'Notizen speichern'}
         </Button>
         <StatusBox status={notesStatus} />
       </section>
     </div>
-  );
-}
-
-function ToggleRow({
-  label,
-  checked,
-  onChange,
-  disabled,
-}: {
-  label: string;
-  checked: boolean;
-  onChange: (v: boolean) => void;
-  disabled?: boolean;
-}) {
-  return (
-    <label className="flex items-center justify-between p-3 bg-cream border border-stone rounded-soft cursor-pointer hover:border-bronze/40 transition-colors">
-      <span className="text-body-sm text-ink">{label}</span>
-      <button
-        type="button"
-        role="switch"
-        aria-checked={checked}
-        disabled={disabled}
-        onClick={() => onChange(!checked)}
-        className={`relative w-10 h-6 rounded-full transition-colors ${
-          checked ? 'bg-success' : 'bg-stone'
-        } disabled:opacity-50`}
-      >
-        <span
-          className={`absolute top-0.5 left-0.5 w-5 h-5 bg-paper rounded-full shadow-sm transition-transform ${
-            checked ? 'translate-x-4' : 'translate-x-0'
-          }`}
-        />
-      </button>
-    </label>
   );
 }

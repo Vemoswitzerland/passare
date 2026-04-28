@@ -224,7 +224,7 @@ export default async function AdminInseratDetailPage({
           />
 
           <section className="bg-paper border border-stone rounded-soft p-4">
-            <h3 className="font-serif text-lg text-navy mb-3">Verkäufer</h3>
+            <h3 className="text-[11px] uppercase tracking-wide font-medium text-quiet mb-3">Verkäufer</h3>
             {verkaeufer ? (
               <Link
                 href={`/admin/users/${verkaeufer.id}`}
@@ -245,7 +245,7 @@ export default async function AdminInseratDetailPage({
           </section>
 
           <section className="bg-paper border border-stone rounded-soft p-4">
-            <h3 className="font-serif text-lg text-navy mb-3">Laufzeit</h3>
+            <h3 className="text-[11px] uppercase tracking-wide font-medium text-quiet mb-3">Laufzeit</h3>
             <ul className="space-y-2 text-caption">
               <DetailRow icon={Calendar} label="Erstellt" value={formatDate(listing.created_at)} />
               {listing.published_at && (
@@ -276,7 +276,7 @@ function Detail({
 }) {
   return (
     <div>
-      <dt className="overline text-quiet mb-1 flex items-center gap-1.5">
+      <dt className="text-[11px] uppercase tracking-wide font-medium text-quiet mb-0.5 flex items-center gap-1.5">
         {Icon && <Icon className="w-3 h-3" strokeWidth={1.5} />}
         {label}
       </dt>
