@@ -5,13 +5,11 @@ import { Save, X, Plus, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   setAdminNotesAction,
-  setQualitaetsScoreAction,
   setTagsAction,
 } from '@/app/admin/actions';
 
 type Props = {
   userId: string;
-  initialScore: number | null;
   initialNotes: string | null;
   initialTags: string[];
 };
@@ -37,35 +35,18 @@ function StatusBox({ status }: { status: Status }) {
 
 export function UserDetailForm({
   userId,
-  initialScore,
   initialNotes,
   initialTags,
 }: Props) {
-  const [score, setScore] = useState<string>(initialScore?.toString() ?? '');
   const [notes, setNotes] = useState(initialNotes ?? '');
   const [tags, setTags] = useState<string[]>(initialTags);
   const [newTag, setNewTag] = useState('');
 
-  const [scoreStatus, setScoreStatus] = useState<Status>({ kind: 'idle' });
   const [notesStatus, setNotesStatus] = useState<Status>({ kind: 'idle' });
   const [tagsStatus, setTagsStatus] = useState<Status>({ kind: 'idle' });
 
-  const [pendingScore, startScoreTx] = useTransition();
   const [pendingNotes, startNotesTx] = useTransition();
   const [pendingTags, startTagsTx] = useTransition();
-
-  const saveScore = () => {
-    setScoreStatus({ kind: 'idle' });
-    const parsed = score === '' ? null : Number(score);
-    if (parsed !== null && (isNaN(parsed) || parsed < 0 || parsed > 100)) {
-      setScoreStatus({ kind: 'err', msg: 'Score 0–100 oder leer.' });
-      return;
-    }
-    startScoreTx(async () => {
-      const res = await setQualitaetsScoreAction({ user_id: userId, score: parsed });
-      setScoreStatus(res.ok ? { kind: 'ok', msg: 'Gespeichert.' } : { kind: 'err', msg: res.error ?? 'Fehler.' });
-    });
-  };
 
   const saveNotes = () => {
     setNotesStatus({ kind: 'idle' });
@@ -97,32 +78,6 @@ export function UserDetailForm({
 
   return (
     <div className="space-y-4">
-      <section className="bg-paper border border-stone rounded-soft p-4">
-        <h3 className="text-[11px] uppercase tracking-wide font-medium text-quiet mb-2">
-          Qualitäts-Score
-        </h3>
-        <p className="text-[12px] text-quiet mb-3">
-          Wert zwischen 0 und 100. Leer = nicht bewertet.
-        </p>
-        <div className="flex items-center gap-2">
-          <input
-            type="number"
-            min={0}
-            max={100}
-            step={1}
-            value={score}
-            onChange={(e) => setScore(e.target.value)}
-            placeholder="—"
-            className="w-28 px-2.5 py-1.5 bg-cream border border-stone rounded-soft font-mono text-[13px] focus:outline-none focus:border-bronze"
-          />
-          <Button size="sm" variant="primary" onClick={saveScore} disabled={pendingScore}>
-            <Save className="w-3 h-3" strokeWidth={1.5} />
-            {pendingScore ? 'Speichere …' : 'Speichern'}
-          </Button>
-        </div>
-        <StatusBox status={scoreStatus} />
-      </section>
-
       <section className="bg-paper border border-stone rounded-soft p-4">
         <h3 className="text-[11px] uppercase tracking-wide font-medium text-quiet mb-2">Tags</h3>
         <p className="text-[12px] text-quiet mb-3">

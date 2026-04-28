@@ -8,10 +8,12 @@ import {
   Languages,
   Calendar,
   Activity,
+  Crown,
 } from 'lucide-react';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
-import { Badge } from '@/components/ui/badge';
 import { UserDetailForm } from '@/components/admin/UserDetailForm';
+import { UserDeleteSection } from '@/components/admin/UserDeleteSection';
+import { ProfileCompletenessRing } from '@/components/admin/ProfileCompletenessRing';
 import { formatDateTime } from '@/lib/admin/types';
 
 export const metadata = {
@@ -19,16 +21,16 @@ export const metadata = {
   robots: { index: false, follow: false },
 };
 
-const ROLLE_LABEL: Record<string, string> = {
-  admin: 'Admin',
-  verkaeufer: 'Verkäufer',
-  kaeufer: 'Käufer',
+/** Subtile Rolle-Anzeige (kleines Mono-Label statt Badge). */
+const ROLLE_DISPLAY: Record<string, { label: string; color: string }> = {
+  admin: { label: 'admin', color: 'text-navy' },
+  verkaeufer: { label: 'verkäufer', color: 'text-bronze-ink' },
+  kaeufer: { label: 'käufer', color: 'text-quiet' },
 };
 
-const roleVariant = (rolle: string | null): 'navy' | 'bronze' | 'neutral' => {
-  if (rolle === 'admin') return 'navy';
-  if (rolle === 'verkaeufer') return 'bronze';
-  return 'neutral';
+const ABO_DISPLAY: Record<string, { label: string; color: string }> = {
+  basic: { label: 'Basic', color: 'text-quiet' },
+  max: { label: 'MAX', color: 'text-bronze-ink font-medium' },
 };
 
 type ProfileRow = {
@@ -38,7 +40,7 @@ type ProfileRow = {
   phone: string | null;
   kanton: string | null;
   sprache: string | null;
-  qualitaets_score: number | null;
+  subscription_tier: 'basic' | 'max' | null;
   tags: unknown;
   admin_notes: string | null;
   created_at: string;
@@ -60,6 +62,14 @@ export default async function AdminUserDetailPage({
     .maybeSingle<ProfileRow>();
 
   if (!profile) notFound();
+
+  // Profil-Vollständigkeits-Score (0-100) via RPC
+  const { data: completenessData } = await supabase.rpc('profile_completeness', { p_user_id: id });
+  const completeness = typeof completenessData === 'number' ? completenessData : 0;
+
+  // Eigene User-ID prüfen — Delete-Button nicht für sich selbst
+  const { data: meData } = await supabase.auth.getUser();
+  const isSelf = meData.user?.id === id;
 
   let email: string | null = null;
   let lastSignIn: string | null = null;
@@ -109,14 +119,22 @@ export default async function AdminUserDetailPage({
           {initials}
         </div>
         <div className="flex-1 min-w-0">
-          <div className="flex flex-wrap items-center gap-2 mb-1">
+          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 mb-1">
             <h1 className="text-base text-navy font-semibold leading-tight">
               {profile.full_name ?? 'Ohne Namen'}
             </h1>
             {profile.rolle ? (
-              <Badge variant={roleVariant(profile.rolle)}>{ROLLE_LABEL[profile.rolle]}</Badge>
+              <span className={`font-mono text-[11px] tracking-wide ${ROLLE_DISPLAY[profile.rolle].color}`}>
+                {ROLLE_DISPLAY[profile.rolle].label}
+              </span>
             ) : (
-              <Badge variant="neutral">Rolle offen</Badge>
+              <span className="font-mono text-[11px] text-quiet italic">rolle offen</span>
+            )}
+            {profile.rolle === 'kaeufer' && profile.subscription_tier && (
+              <span className={`inline-flex items-center gap-1 font-mono text-[11px] ${ABO_DISPLAY[profile.subscription_tier].color}`}>
+                {profile.subscription_tier === 'max' && <Crown className="w-3 h-3" strokeWidth={1.5} />}
+                {ABO_DISPLAY[profile.subscription_tier].label}
+              </span>
             )}
           </div>
           <div className="grid sm:grid-cols-2 gap-x-6 gap-y-1 text-[12px] mt-2">
@@ -131,20 +149,27 @@ export default async function AdminUserDetailPage({
             <InfoRow icon={Activity} value={`Letzter Login: ${formatDateTime(lastSignIn)}`} />
           </div>
         </div>
-        <div className="flex flex-col gap-1 items-end flex-shrink-0">
-          <span className="text-[11px] text-quiet uppercase tracking-wide font-medium">Konto-ID</span>
-          <code className="font-mono text-[11px] text-ink break-all max-w-[200px]">{profile.id}</code>
+        <div className="flex flex-col gap-2 items-end flex-shrink-0">
+          <ProfileCompletenessRing value={completeness} />
+          <code className="font-mono text-[10px] text-quiet break-all max-w-[200px]">
+            ID: {profile.id.slice(0, 8)}…
+          </code>
         </div>
       </header>
 
       <div className="grid lg:grid-cols-[1fr_300px] gap-4">
-        <div>
+        <div className="space-y-4">
           <UserDetailForm
             userId={profile.id}
-            initialScore={profile.qualitaets_score}
             initialNotes={profile.admin_notes}
             initialTags={initialTags}
           />
+          {!isSelf && (
+            <UserDeleteSection
+              userId={profile.id}
+              userName={profile.full_name ?? email ?? profile.id.slice(0, 8)}
+            />
+          )}
         </div>
 
         <aside>

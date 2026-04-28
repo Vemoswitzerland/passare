@@ -128,3 +128,51 @@ export async function setTagsAction(input: { user_id: string; tags: string[] }) 
   revalidatePath(`/admin/users/${parsed.user_id}`);
   return { ok: true };
 }
+
+const DeleteSchema = z.object({
+  user_id: z.string().uuid(),
+});
+
+/**
+ * Hard-Delete: User wird komplett aus auth.users + allen FK-cascadenden Tabellen gelöscht.
+ * Eigenes Konto kann Admin nicht löschen (RPC-Check).
+ */
+export async function deleteUserAction(input: { user_id: string }) {
+  await assertAdmin();
+  const parsed = DeleteSchema.parse(input);
+
+  const supabase = await createClient();
+  const { data: meData } = await supabase.auth.getUser();
+  if (meData.user?.id === parsed.user_id) {
+    return { ok: false, error: 'Du kannst dein eigenes Konto nicht löschen.' };
+  }
+
+  // RPC ruft cascade-delete im definer-context (bypasst RLS)
+  const { error: rpcError } = await supabase.rpc('admin_delete_user', {
+    p_user_id: parsed.user_id,
+  });
+
+  if (rpcError) {
+    // Fallback: direkt via Service-Role
+    const admin = createAdminClient();
+    try {
+      // Manuelle Cascade-Cleanups
+      await admin.from('inserate').delete().eq('verkaeufer_id', parsed.user_id);
+      await admin.from('anfragen').delete().eq('kaeufer_id', parsed.user_id);
+      const { error: authErr } = await admin.auth.admin.deleteUser(parsed.user_id);
+      if (authErr) return { ok: false, error: authErr.message };
+    } catch (e) {
+      return { ok: false, error: e instanceof Error ? e.message : 'Unbekannter Fehler' };
+    }
+  }
+
+  await logAuditEvent({
+    type: 'admin_action',
+    user_id: parsed.user_id,
+    beschreibung: 'User komplett gelöscht (Hard-Delete)',
+    metadata: { deleted_user_id: parsed.user_id },
+  });
+
+  revalidatePath('/admin/users');
+  return { ok: true };
+}

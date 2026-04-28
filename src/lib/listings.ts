@@ -35,7 +35,9 @@ export { formatEbitda, formatKaufpreis, formatMitarbeitende, formatUmsatz };
  */
 export type InseratPublic = {
   id: string;
+  /** Public-ID oder slug für URL */
   slug: string | null;
+  public_id?: string;
   titel: string;
   teaser: string | null;
   branche_id: string | null;
@@ -205,27 +207,31 @@ export async function countListings(filters: ListingFilters = {}): Promise<numbe
 }
 
 /**
- * Lädt ein einzelnes Inserat per ID oder slug.
+ * Lädt ein einzelnes Inserat per ID oder public_id.
  * Liefert null wenn nicht gefunden ODER nicht live (RLS verbirgt entwurf etc.).
+ *
+ * Reality-aware: Live-DB hat `verkaeufer_id` (nicht owner_id),
+ * `branche` (text, nicht branche_id), `gruendungsjahr` (nicht jahr),
+ * `grund` (text, nicht uebergabe_grund-Enum), `ebitda_pct` (nicht ebitda_marge_pct).
+ * Wir mappen das hier auf den UI-Type `InseratDetail`.
  */
 export const getListingById = cache(async (idOrSlug: string): Promise<InseratDetail | null> => {
   const supabase = await createClient();
 
-  // UUID-Format? → per id, sonst per slug
   const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idOrSlug);
-  const filter = isUuid ? { id: idOrSlug } : { slug: idOrSlug };
+  const filter = isUuid ? { id: idOrSlug } : { public_id: idOrSlug };
 
   const { data, error } = await supabase
     .from('inserate')
     .select(
-      `id, slug, titel, teaser, beschreibung, branche_id, kanton, region, jahr,
-       mitarbeitende, mitarbeitende_bucket, umsatz_chf, umsatz_bucket,
-       ebitda_chf, ebitda_marge_pct, kaufpreis_chf, kaufpreis_bucket, kaufpreis_vhb,
+      `id, public_id, titel, teaser, beschreibung, branche, kanton, gruendungsjahr,
+       mitarbeitende, umsatz_chf, ebitda_chf, ebitda_pct,
+       kaufpreis_chf, kaufpreis_label, kaufpreis_vhb,
        kaufpreis_min_chf, kaufpreis_max_chf, eigenkapital_chf,
-       uebergabe_grund, uebergabe_zeitpunkt, cover_url, sales_points, paket,
+       grund, uebergabe_zeitpunkt, cover_url, sales_points, paket,
        featured_until, published_at, views, art, kategorie, immobilien, finanzierung,
        wir_anteil_moeglich, rechtsform_typ, firma_name,
-       website_url, linkedin_url, twitter_url, facebook_url, owner_id, status`,
+       website_url, linkedin_url, twitter_url, facebook_url, verkaeufer_id, status`,
     )
     .match(filter)
     .eq('status', 'live')
@@ -236,9 +242,53 @@ export const getListingById = cache(async (idOrSlug: string): Promise<InseratDet
     return null;
   }
   if (!data) return null;
-  // Strip status für UI-Type
-  const { status: _status, ...rest } = data as InseratDetail & { status: string };
-  return rest as InseratDetail;
+
+  // DB-Row → InseratDetail mappen
+  const row = data as Record<string, unknown>;
+  return {
+    id: row.id as string,
+    slug: row.public_id as string | null,
+    public_id: row.public_id as string,
+    titel: row.titel as string,
+    teaser: row.teaser as string | null,
+    branche_id: row.branche as string | null,
+    kanton: row.kanton as string | null,
+    region: null,
+    jahr: row.gruendungsjahr as number | null,
+    mitarbeitende_bucket: null,
+    umsatz_bucket: null,
+    ebitda_marge_pct: row.ebitda_pct as number | null,
+    kaufpreis_bucket: row.kaufpreis_label as string | null,
+    kaufpreis_vhb: Boolean(row.kaufpreis_vhb),
+    uebergabe_grund: row.grund as string | null,
+    cover_url: row.cover_url as string | null,
+    sales_points: (row.sales_points as string[] | null) ?? [],
+    paket: row.paket as string | null,
+    featured_until: row.featured_until as string | null,
+    published_at: row.published_at as string,
+    views: (row.views as number) ?? 0,
+    beschreibung: row.beschreibung as string | null,
+    mitarbeitende: row.mitarbeitende as number | null,
+    umsatz_chf: row.umsatz_chf as number | null,
+    ebitda_chf: row.ebitda_chf as number | null,
+    kaufpreis_chf: row.kaufpreis_chf as number | null,
+    kaufpreis_min_chf: row.kaufpreis_min_chf as number | null,
+    kaufpreis_max_chf: row.kaufpreis_max_chf as number | null,
+    eigenkapital_chf: row.eigenkapital_chf as number | null,
+    uebergabe_zeitpunkt: row.uebergabe_zeitpunkt as string | null,
+    art: (row.art as string) ?? 'angebot',
+    kategorie: (row.kategorie as string) ?? 'm_a',
+    immobilien: row.immobilien as string | null,
+    finanzierung: row.finanzierung as string | null,
+    wir_anteil_moeglich: Boolean(row.wir_anteil_moeglich),
+    rechtsform_typ: row.rechtsform_typ as string | null,
+    firma_name: row.firma_name as string | null,
+    website_url: row.website_url as string | null,
+    linkedin_url: row.linkedin_url as string | null,
+    twitter_url: row.twitter_url as string | null,
+    facebook_url: row.facebook_url as string | null,
+    owner_id: row.verkaeufer_id as string,
+  };
 });
 
 /**
