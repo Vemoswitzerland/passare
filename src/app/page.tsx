@@ -1,12 +1,13 @@
 import Link from 'next/link';
 import {
   ArrowRight, Search, TrendingUp,
-  FileLock2, Filter, Heart,
+  FileLock2, Filter, Eye,
 } from 'lucide-react';
 import { Container, Section } from '@/components/ui/container';
 import { Button } from '@/components/ui/button';
 import { Divider } from '@/components/ui/divider';
 import { Reveal } from '@/components/ui/reveal';
+import { CardActions } from '@/components/marketplace/CardActions';
 import { branchenStockfoto } from '@/data/branchen-stockfotos';
 import { renderKeyFacts } from '@/lib/key-facts';
 
@@ -438,22 +439,22 @@ function ListingCard({ listing }: { listing: typeof LISTINGS[number] }) {
           {listing.grund}
         </p>
 
-        <div className="mt-auto flex items-center gap-3">
+        <div className="mt-auto flex items-center gap-2">
           <Button
-            href={`/auth/register?role=kaeufer&next=${encodeURIComponent(`/onboarding/kaeufer/tunnel?listing=${listing.id}`)}`}
+            href={`/inserat/${listing.id}`}
             size="sm"
             className="flex-1 justify-center"
           >
-            <FileLock2 className="w-3.5 h-3.5" strokeWidth={1.5} />
-            Dossier anfragen
+            <Eye className="w-3.5 h-3.5" strokeWidth={1.5} />
+            Details
           </Button>
-          <button
-            type="button"
-            className="px-3 py-2 border border-stone rounded-soft text-muted hover:border-bronze hover:text-bronze transition-colors"
-            aria-label="Favorit"
-          >
-            <Heart className="w-3.5 h-3.5" strokeWidth={1.5} />
-          </button>
+          <CardActions
+            listingId={listing.id}
+            titel={listing.titel}
+            branche={listing.branche}
+            kanton={listing.kanton}
+            umsatz={listing.umsatz}
+          />
         </div>
       </div>
     </article>
