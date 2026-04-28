@@ -196,17 +196,22 @@ function VerifyPopup({
             onClick={onClose}
             className="fixed inset-0 z-40 bg-ink/50 backdrop-blur-sm"
           />
-          <motion.div
-            key="verify-popup"
-            initial={{ opacity: 0, y: 20, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 20, scale: 0.96 }}
-            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="verify-titel"
-            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[92vw] max-w-md bg-cream rounded-card shadow-2xl flex flex-col overflow-hidden"
+          {/* Positioning-Wrapper bleibt statisch in viewport-Mitte, damit Framer-Motions
+              inline-transform den Tailwind -translate-1/2 nicht überschreibt. */}
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none p-4"
           >
+            <motion.div
+              key="verify-popup"
+              initial={{ opacity: 0, y: 20, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 20, scale: 0.96 }}
+              transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="verify-titel"
+              className="pointer-events-auto w-full max-w-md bg-cream rounded-card shadow-2xl flex flex-col overflow-hidden"
+            >
             <header className="flex items-center justify-between px-6 py-4 border-b border-stone bg-paper">
               <div className="flex items-center gap-2 min-w-0">
                 <MessageSquare className="w-4 h-4 text-bronze flex-shrink-0" strokeWidth={1.5} />
@@ -270,7 +275,8 @@ function VerifyPopup({
                 </button>
               </div>
             </div>
-          </motion.div>
+            </motion.div>
+          </div>
         </>
       )}
     </AnimatePresence>,
