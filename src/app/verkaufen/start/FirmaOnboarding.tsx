@@ -216,66 +216,71 @@ function ProgressBar({ step }: { step: number }) {
 
 /* ─────────── STEP 1: FIRMA ─────────── */
 function Step1Firma({ draft, update }: { draft: Draft; update: (p: Partial<Draft>) => void }) {
-  const [loading, setLoading] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
+  const [enriching, setEnriching] = useState(false);
   const [manual, setManual] = useState(false);
 
-  async function selectByHit(hit: { uid: string | null; name: string | null; ort: string | null; kanton: string | null }) {
-    // Sofort-UX: Basisdaten aus Search-Hit übernehmen, dann im
-    // Hintergrund Detail-Lookup laden (mit 202-Retry).
-    if (hit.uid) {
-      update({
-        zefix_uid: hit.uid,
-        firma_name: hit.name,
-        firma_sitz_gemeinde: hit.ort,
-        kanton: hit.kanton,
-      });
-    }
+  /**
+   * UX-Flow:
+   * 1. Click auf Search-Hit → SOFORT alle Basisdaten in den Draft
+   *    (uid, name, ort, kanton). Card erscheint, "Weiter" wird aktiv.
+   * 2. Detail-Lookup läuft im HINTERGRUND — KEINE blockierende UI.
+   *    User kann jederzeit "Weiter" klicken; falls Lookup-Daten
+   *    bis dahin da sind, werden sie automatisch genutzt.
+   * 3. Wenn Lookup mit Branche/Rechtsform/Jahr zurückkommt: silent
+   *    merge in Draft. Ein dezenter "✨ noch mehr Details geladen"-
+   *    Hinweis wird kurz angezeigt.
+   */
+  function selectByHit(hit: { uid: string | null; name: string | null; ort: string | null; kanton: string | null }) {
+    update({
+      zefix_uid: hit.uid,
+      firma_name: hit.name,
+      firma_sitz_gemeinde: hit.ort,
+      kanton: hit.kanton,
+    });
+
     if (!hit.uid) return;
 
-    setLoading(true);
-    setErr(null);
+    // Hintergrund-Enrichment — OHNE await, blockiert nichts
+    setEnriching(true);
+    void fetchAndMergeDetails(hit.uid).finally(() => setEnriching(false));
+  }
+
+  async function fetchAndMergeDetails(uid: string) {
     try {
-      const company = await fetchLookupWithRetry(hit.uid);
-      if (!company) {
-        // Lookup-Service nicht verfügbar — Basisdaten reichen für Onboarding
-        return;
-      }
+      // Erste Anfrage — wenn 200 mit company → fertig.
+      // Wenn 202/pending → wir warten EINMAL kurz und versuchen es nochmal.
+      // Mehr nicht — User soll nicht 36s warten.
+      const company = await tryLookup(uid);
+      if (!company) return;
+
       const matchedBranche = matchBrancheFromPurpose(company.branche ?? company.zweck);
       update({
-        zefix_uid: company.uid ?? hit.uid,
-        firma_name: company.name ?? hit.name,
-        firma_rechtsform: company.rechtsform,
-        firma_sitz_gemeinde: company.gemeinde ?? company.adresse?.ort ?? hit.ort,
+        firma_rechtsform: company.rechtsform ?? null,
+        firma_sitz_gemeinde: company.gemeinde ?? company.adresse?.ort ?? undefined,
         branche_id: matchedBranche,
-        kanton: company.kanton ?? hit.kanton,
-        jahr: company.gruendungsjahr,
+        kanton: company.kanton ?? undefined,
+        jahr: company.gruendungsjahr ?? null,
       });
     } catch {
-      // Basisdaten sind bereits gesetzt — kein blockierender Fehler
-    } finally {
-      setLoading(false);
+      // Silent fail — Basisdaten reichen
     }
   }
 
-  async function fetchLookupWithRetry(uid: string, attempts = 3): Promise<any | null> {
-    for (let i = 0; i < attempts; i++) {
-      const res = await fetch(`/api/zefix/lookup?uid=${encodeURIComponent(uid)}`);
-      if (res.ok) {
-        const data = await res.json();
-        if (data.company) return data.company;
-        if (data.status === 'pending') {
-          const wait = Math.min(15, Number(data.retry_after_seconds) || 12);
-          await new Promise((r) => setTimeout(r, wait * 1000));
-          continue;
+  async function tryLookup(uid: string): Promise<any | null> {
+    // Erster Versuch
+    const res1 = await fetch(`/api/zefix/lookup?uid=${encodeURIComponent(uid)}`);
+    if (res1.ok) {
+      const data = await res1.json();
+      if (data.company) return data.company;
+      if (data.status === 'pending') {
+        // EIN Retry nach 8s — länger nicht, sonst frustrierend
+        await new Promise((r) => setTimeout(r, 8000));
+        const res2 = await fetch(`/api/zefix/lookup?uid=${encodeURIComponent(uid)}`);
+        if (res2.ok) {
+          const data2 = await res2.json();
+          if (data2.company) return data2.company;
         }
-        return null;
       }
-      if (res.status === 202) {
-        await new Promise((r) => setTimeout(r, 12_000));
-        continue;
-      }
-      return null;
     }
     return null;
   }
@@ -295,12 +300,6 @@ function Step1Firma({ draft, update }: { draft: Draft; update: (p: Partial<Draft
       {!manual ? (
         <>
           <FirmenSuche onSelect={selectByHit} />
-          {loading && <LookupProgress />}
-          {err && (
-            <div className="rounded-soft bg-warn/10 border border-warn/30 px-4 py-3 text-body-sm text-warn">
-              {err}
-            </div>
-          )}
           <div className="text-center">
             <button
               type="button"
@@ -359,8 +358,14 @@ function Step1Firma({ draft, update }: { draft: Draft; update: (p: Partial<Draft
                 )}
               </p>
               <p className="text-caption text-success mt-2 inline-flex items-center gap-1">
-                <Check className="w-3 h-3" strokeWidth={2.5} /> Daten übernommen
+                <Check className="w-3 h-3" strokeWidth={2.5} /> Daten übernommen — du kannst weiter
               </p>
+              {enriching && (
+                <p className="text-caption text-quiet mt-1.5 inline-flex items-center gap-1.5">
+                  <Loader2 className="w-3 h-3 animate-spin text-bronze" strokeWidth={1.5} />
+                  Wir holen im Hintergrund noch Branche & Gründungsjahr …
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -660,95 +665,6 @@ function Step5Account({
       <Loader2 className="w-12 h-12 mx-auto text-bronze animate-spin mb-6" strokeWidth={1.5} />
       <h2 className="font-serif text-head-md text-navy mb-2">Wir bringen dich zur Registrierung …</h2>
       <p className="text-body text-muted">Deine Daten sind gespeichert und werden nach dem Login automatisch übernommen.</p>
-    </div>
-  );
-}
-
-/* ─────────── LOOKUP-PROGRESS ─────────── */
-/**
- * Zeigt Schritt-für-Schritt was beim Handelsregister-Lookup gerade passiert.
- * Wir wissen nicht genau wann der Lookup zurück kommt (LINDAS kann 12–35s
- * brauchen), also zählen wir die Phasen mit ungefährer Dauer hoch und
- * zeigen einen unbestimmten Fortschritt.
- */
-function LookupProgress() {
-  const PHASES = [
-    { label: 'Verbindung zum Handelsregister …', icon: '🔌', ms: 1500 },
-    { label: 'UID-Daten werden abgerufen …', icon: '📋', ms: 6000 },
-    { label: 'Adresse & Rechtsform analysieren …', icon: '🏢', ms: 6000 },
-    { label: 'Branche aus Zweck-Eintrag erkennen …', icon: '🧭', ms: 6000 },
-    { label: 'Daten in Bewertungs-Engine laden …', icon: '✨', ms: 99999 },
-  ];
-
-  const [phase, setPhase] = useState(0);
-  const [elapsed, setElapsed] = useState(0);
-
-  useEffect(() => {
-    let t1: number | null = null;
-    if (phase < PHASES.length - 1) {
-      t1 = window.setTimeout(() => setPhase((p) => p + 1), PHASES[phase].ms);
-    }
-    const t2 = window.setInterval(() => setElapsed((e) => e + 1), 1000);
-    return () => {
-      if (t1 != null) window.clearTimeout(t1);
-      window.clearInterval(t2);
-    };
-  }, [phase]);
-
-  return (
-    <div className="rounded-card bg-paper border border-stone p-6 max-w-xl mx-auto">
-      <div className="flex items-start gap-4">
-        <div className="w-10 h-10 rounded-soft bg-bronze/10 flex items-center justify-center flex-shrink-0">
-          <Loader2 className="w-5 h-5 text-bronze animate-spin" strokeWidth={1.5} />
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-body text-navy font-medium">Wir holen deine Firmendaten</p>
-          <p className="text-caption text-muted mt-0.5">
-            Live aus dem Schweizer Handelsregister · {elapsed}s
-          </p>
-
-          {/* Step-Liste */}
-          <ul className="mt-4 space-y-2">
-            {PHASES.map((p, i) => {
-              const done = i < phase;
-              const active = i === phase;
-              return (
-                <li
-                  key={i}
-                  className={cn(
-                    'flex items-center gap-3 text-body-sm transition-all',
-                    done && 'text-quiet',
-                    active && 'text-navy font-medium',
-                    !done && !active && 'text-quiet/60',
-                  )}
-                >
-                  <span
-                    className={cn(
-                      'w-5 h-5 rounded-full flex items-center justify-center text-caption flex-shrink-0 transition-all',
-                      done && 'bg-success/15 text-success',
-                      active && 'bg-bronze/15 text-bronze-ink animate-pulse',
-                      !done && !active && 'bg-stone text-quiet',
-                    )}
-                  >
-                    {done ? <Check className="w-3 h-3" strokeWidth={2.5} /> : i + 1}
-                  </span>
-                  <span className="flex-1 truncate">{p.label}</span>
-                </li>
-              );
-            })}
-          </ul>
-
-          {/* Indeterminate Progress-Bar (smooth slide) */}
-          <div className="mt-4 h-1 bg-stone rounded-pill overflow-hidden">
-            <div className="h-full w-1/3 bg-gradient-to-r from-transparent via-bronze to-transparent animate-progress-slide" />
-          </div>
-          {elapsed > 12 && (
-            <p className="text-caption text-quiet mt-3 italic">
-              Das Handelsregister braucht heute etwas länger als üblich — bleib dran ✨
-            </p>
-          )}
-        </div>
-      </div>
     </div>
   );
 }
