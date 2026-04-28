@@ -67,6 +67,13 @@ export const CURRENT_STEP = {
 export const UPDATES: Update[] = [
   {
     date: '2026-04-29',
+    type: 'fix',
+    titel: 'Marktplatz zeigt jetzt alle Inserat-Daten',
+    beschreibung:
+      'Die Inserat-Karten auf dem Marktplatz waren leer (Umsatz/EBITDA/Preis zeigten nur «—»), obwohl die Verkäufer alles eingegeben hatten. Grund: ein falsches Mapping zwischen Eingabe und Anzeige. Jetzt erscheinen Umsatz in CHF, EBITDA-Marge in Prozent, Kaufpreis und Mitarbeitende direkt aus der eingegebenen Verkäufer-Information — auf der Übersicht, in den Karten und auf der Detail-Seite.',
+  },
+  {
+    date: '2026-04-29',
     type: 'feature',
     titel: 'Inserat-Prüfung: Rückfragen statt sofortiger Ablehnung',
     beschreibung:
