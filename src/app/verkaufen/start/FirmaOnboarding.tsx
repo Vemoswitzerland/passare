@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect, useTransition } from 'react';
+import { useState, useEffect, useRef, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Building2, Check, ArrowRight, ArrowLeft, Sparkles,
   TrendingUp, Users, Calendar, MapPin, Briefcase, Loader2,
+  Info,
 } from 'lucide-react';
 import { FirmenSuche } from '@/components/zefix/FirmenSuche';
 import { SmartPriceEstimate } from '@/components/valuation/SmartPriceEstimate';
@@ -294,12 +295,7 @@ function Step1Firma({ draft, update }: { draft: Draft; update: (p: Partial<Draft
       {!manual ? (
         <>
           <FirmenSuche onSelect={selectByHit} />
-          {loading && (
-            <div className="flex items-center gap-2 justify-center text-body-sm text-quiet">
-              <Loader2 className="w-4 h-4 animate-spin" strokeWidth={1.5} />
-              Daten werden geladen …
-            </div>
-          )}
+          {loading && <LookupProgress />}
           {err && (
             <div className="rounded-soft bg-warn/10 border border-warn/30 px-4 py-3 text-body-sm text-warn">
               {err}
@@ -476,19 +472,36 @@ function Step3Finanzen({ draft, update }: { draft: Draft; update: (p: Partial<Dr
             onChange={(e) => update({ umsatz: Number(e.target.value) })}
             className="w-full accent-bronze"
           />
-          <input
-            type="number"
-            value={draft.umsatz ?? ''}
-            onChange={(e) => update({ umsatz: Number(e.target.value) })}
+          <CurrencyInput
+            value={draft.umsatz}
+            onChange={(v) => update({ umsatz: v })}
             placeholder="2'000'000"
-            className="w-full mt-2 px-4 py-3 bg-paper border border-stone rounded-soft text-body font-mono focus:outline-none focus:border-bronze focus:shadow-focus transition-all"
+            className="mt-2"
           />
+          <p className="mt-2 text-caption text-quiet">
+            Brutto-Erlöse aus dem letzten abgeschlossenen Geschäftsjahr.
+          </p>
         </Field>
 
         <Field
           label={
             <span className="flex items-center justify-between">
-              <span>EBITDA</span>
+              <span className="inline-flex items-center gap-1.5">
+                EBITDA
+                <InfoPop>
+                  <strong className="block text-navy mb-1">EBITDA</strong>
+                  <span className="block text-muted">
+                    «Earnings Before Interest, Taxes, Depreciation & Amortization» — der
+                    operative Gewinn <strong>vor</strong> Zinsen, Steuern und Abschreibungen.
+                  </span>
+                  <span className="block mt-2 text-quiet">
+                    Faustformel: Reingewinn + Zinsaufwand + Steuern + Abschreibungen.
+                  </span>
+                  <span className="block mt-2 text-quiet italic">
+                    Käufer bewerten KMU primär als Vielfaches des EBITDA.
+                  </span>
+                </InfoPop>
+              </span>
               <span className="inline-flex bg-stone/40 rounded-soft p-0.5">
                 <button
                   type="button"
@@ -520,12 +533,10 @@ function Step3Finanzen({ draft, update }: { draft: Draft; update: (p: Partial<Dr
           }
         >
           {margeMode === 'chf' ? (
-            <input
-              type="number"
-              value={draft.ebitda ?? ''}
-              onChange={(e) => update({ ebitda: Number(e.target.value) })}
+            <CurrencyInput
+              value={draft.ebitda}
+              onChange={(v) => update({ ebitda: v })}
               placeholder="350'000"
-              className="w-full px-4 py-3 bg-paper border border-stone rounded-soft text-body font-mono focus:outline-none focus:border-bronze focus:shadow-focus transition-all"
             />
           ) : (
             <input
@@ -568,9 +579,13 @@ function Step3Finanzen({ draft, update }: { draft: Draft; update: (p: Partial<Dr
             })}
           </div>
           <input
-            type="number"
+            type="text"
+            inputMode="numeric"
             value={draft.mitarbeitende ?? ''}
-            onChange={(e) => update({ mitarbeitende: Number(e.target.value) })}
+            onChange={(e) => {
+              const v = e.target.value.replace(/[^0-9]/g, '');
+              update({ mitarbeitende: v ? Number(v) : null });
+            }}
             placeholder="20"
             className="w-full px-4 py-3 bg-paper border border-stone rounded-soft text-body font-mono focus:outline-none focus:border-bronze focus:shadow-focus transition-all"
           />
@@ -578,12 +593,14 @@ function Step3Finanzen({ draft, update }: { draft: Draft; update: (p: Partial<Dr
 
         <Field label="Gründungsjahr">
           <input
-            type="number"
+            type="text"
+            inputMode="numeric"
             value={draft.jahr ?? ''}
-            onChange={(e) => update({ jahr: Number(e.target.value) })}
+            onChange={(e) => {
+              const v = e.target.value.replace(/[^0-9]/g, '').slice(0, 4);
+              update({ jahr: v ? Number(v) : null });
+            }}
             placeholder="1987"
-            min={1800}
-            max={new Date().getFullYear()}
             className="w-full px-4 py-3 bg-paper border border-stone rounded-soft text-body font-mono focus:outline-none focus:border-bronze focus:shadow-focus transition-all"
           />
         </Field>
@@ -647,6 +664,95 @@ function Step5Account({
   );
 }
 
+/* ─────────── LOOKUP-PROGRESS ─────────── */
+/**
+ * Zeigt Schritt-für-Schritt was beim Handelsregister-Lookup gerade passiert.
+ * Wir wissen nicht genau wann der Lookup zurück kommt (LINDAS kann 12–35s
+ * brauchen), also zählen wir die Phasen mit ungefährer Dauer hoch und
+ * zeigen einen unbestimmten Fortschritt.
+ */
+function LookupProgress() {
+  const PHASES = [
+    { label: 'Verbindung zum Handelsregister …', icon: '🔌', ms: 1500 },
+    { label: 'UID-Daten werden abgerufen …', icon: '📋', ms: 6000 },
+    { label: 'Adresse & Rechtsform analysieren …', icon: '🏢', ms: 6000 },
+    { label: 'Branche aus Zweck-Eintrag erkennen …', icon: '🧭', ms: 6000 },
+    { label: 'Daten in Bewertungs-Engine laden …', icon: '✨', ms: 99999 },
+  ];
+
+  const [phase, setPhase] = useState(0);
+  const [elapsed, setElapsed] = useState(0);
+
+  useEffect(() => {
+    let t1: number | null = null;
+    if (phase < PHASES.length - 1) {
+      t1 = window.setTimeout(() => setPhase((p) => p + 1), PHASES[phase].ms);
+    }
+    const t2 = window.setInterval(() => setElapsed((e) => e + 1), 1000);
+    return () => {
+      if (t1 != null) window.clearTimeout(t1);
+      window.clearInterval(t2);
+    };
+  }, [phase]);
+
+  return (
+    <div className="rounded-card bg-paper border border-stone p-6 max-w-xl mx-auto">
+      <div className="flex items-start gap-4">
+        <div className="w-10 h-10 rounded-soft bg-bronze/10 flex items-center justify-center flex-shrink-0">
+          <Loader2 className="w-5 h-5 text-bronze animate-spin" strokeWidth={1.5} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-body text-navy font-medium">Wir holen deine Firmendaten</p>
+          <p className="text-caption text-muted mt-0.5">
+            Live aus dem Schweizer Handelsregister · {elapsed}s
+          </p>
+
+          {/* Step-Liste */}
+          <ul className="mt-4 space-y-2">
+            {PHASES.map((p, i) => {
+              const done = i < phase;
+              const active = i === phase;
+              return (
+                <li
+                  key={i}
+                  className={cn(
+                    'flex items-center gap-3 text-body-sm transition-all',
+                    done && 'text-quiet',
+                    active && 'text-navy font-medium',
+                    !done && !active && 'text-quiet/60',
+                  )}
+                >
+                  <span
+                    className={cn(
+                      'w-5 h-5 rounded-full flex items-center justify-center text-caption flex-shrink-0 transition-all',
+                      done && 'bg-success/15 text-success',
+                      active && 'bg-bronze/15 text-bronze-ink animate-pulse',
+                      !done && !active && 'bg-stone text-quiet',
+                    )}
+                  >
+                    {done ? <Check className="w-3 h-3" strokeWidth={2.5} /> : i + 1}
+                  </span>
+                  <span className="flex-1 truncate">{p.label}</span>
+                </li>
+              );
+            })}
+          </ul>
+
+          {/* Indeterminate Progress-Bar (smooth slide) */}
+          <div className="mt-4 h-1 bg-stone rounded-pill overflow-hidden">
+            <div className="h-full w-1/3 bg-gradient-to-r from-transparent via-bronze to-transparent animate-progress-slide" />
+          </div>
+          {elapsed > 12 && (
+            <p className="text-caption text-quiet mt-3 italic">
+              Das Handelsregister braucht heute etwas länger als üblich — bleib dran ✨
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ─────────── HELPERS ─────────── */
 function Field({
   label, optional, hint, children,
@@ -667,5 +773,105 @@ function Field({
       </label>
       {children}
     </div>
+  );
+}
+
+/* ─────────── CURRENCY-INPUT (Schweizer Trennstriche '1'000'000') ─────────── */
+function CurrencyInput({
+  value, onChange, placeholder, className,
+}: {
+  value: number | null;
+  onChange: (v: number | null) => void;
+  placeholder?: string;
+  className?: string;
+}) {
+  const [focused, setFocused] = useState(false);
+  const [raw, setRaw] = useState<string>(value != null ? String(value) : '');
+
+  // Wenn parent-value sich extern ändert (z.B. via Range-Slider) → sync
+  useEffect(() => {
+    if (!focused) setRaw(value != null ? String(value) : '');
+  }, [value, focused]);
+
+  const formatted = (() => {
+    if (focused) return raw;
+    if (value == null) return '';
+    return formatCHSwiss(value);
+  })();
+
+  return (
+    <div className={cn('relative', className)}>
+      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-quiet font-mono text-body-sm pointer-events-none">
+        CHF
+      </span>
+      <input
+        type="text"
+        inputMode="numeric"
+        value={formatted}
+        onChange={(e) => {
+          const cleaned = e.target.value.replace(/[^0-9]/g, '');
+          setRaw(cleaned);
+          onChange(cleaned ? Number(cleaned) : null);
+        }}
+        onFocus={() => {
+          setFocused(true);
+          setRaw(value != null ? String(value) : '');
+        }}
+        onBlur={() => setFocused(false)}
+        placeholder={placeholder}
+        className="w-full pl-14 pr-4 py-3 bg-paper border border-stone rounded-soft text-body font-mono tabular-nums focus:outline-none focus:border-bronze focus:shadow-focus transition-all"
+      />
+    </div>
+  );
+}
+
+function formatCHSwiss(n: number): string {
+  // Schweizer Trennzeichen: Apostroph (1'000'000)
+  if (!Number.isFinite(n)) return '';
+  return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, "'");
+}
+
+/* ─────────── INFO-POP (kleines i-Icon mit Click-Tooltip) ─────────── */
+function InfoPop({ children }: { children: React.ReactNode }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('mousedown', handler);
+    document.addEventListener('keydown', esc);
+    return () => {
+      document.removeEventListener('mousedown', handler);
+      document.removeEventListener('keydown', esc);
+    };
+  }, [open]);
+
+  return (
+    <span ref={ref} className="relative inline-flex">
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        aria-label="Info"
+        aria-expanded={open}
+        className="inline-flex items-center justify-center w-4 h-4 rounded-full text-quiet hover:text-bronze-ink transition-colors"
+      >
+        <Info className="w-3.5 h-3.5" strokeWidth={1.75} />
+      </button>
+      {open && (
+        <span
+          role="tooltip"
+          className="absolute left-1/2 -translate-x-1/2 top-full mt-2 z-50 w-72 px-4 py-3 bg-paper border border-stone rounded-card shadow-lift text-body-sm text-ink leading-relaxed normal-case tracking-normal animate-fade-up"
+          style={{ animationDuration: '200ms' }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <span className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-paper border-l border-t border-stone rotate-45" />
+          <span className="relative block">{children}</span>
+        </span>
+      )}
+    </span>
   );
 }

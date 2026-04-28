@@ -125,10 +125,15 @@ export function FirmenSuche({ onSelect, placeholder = 'Firma suchen (Name oder U
           autoComplete="off"
         />
         {loading && (
-          <Loader2
-            className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-bronze animate-spin"
-            strokeWidth={1.5}
-          />
+          <span
+            className="absolute right-4 top-1/2 -translate-y-1/2 inline-flex"
+            aria-hidden="true"
+          >
+            <Loader2
+              className="w-4 h-4 text-bronze animate-spin"
+              strokeWidth={1.5}
+            />
+          </span>
         )}
       </div>
 

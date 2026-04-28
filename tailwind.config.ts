@@ -115,6 +115,7 @@ const config: Config = {
         'fade-up': 'fadeUp 700ms cubic-bezier(0.16, 1, 0.3, 1) both',
         'fade-up-slow': 'fadeUp 1000ms cubic-bezier(0.16, 1, 0.3, 1) both',
         'pulse-dot': 'pulseDot 2.2s ease-in-out infinite',
+        'progress-slide': 'progressSlide 1.6s cubic-bezier(0.65, 0, 0.35, 1) infinite',
       },
 
       keyframes: {
@@ -129,6 +130,10 @@ const config: Config = {
         pulseDot: {
           '0%, 100%': { opacity: '1', transform: 'scale(1)' },
           '50%': { opacity: '0.4', transform: 'scale(0.85)' },
+        },
+        progressSlide: {
+          '0%': { transform: 'translateX(-150%)' },
+          '100%': { transform: 'translateX(450%)' },
         },
       },
     },

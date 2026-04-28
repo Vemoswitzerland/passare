@@ -66,6 +66,13 @@ export const CURRENT_STEP = {
  */
 export const UPDATES: Update[] = [
   {
+    date: '2026-04-28',
+    type: 'fix',
+    titel: 'Pre-Onboarding poliert: Trennstriche, EBITDA-Erklärung, Ladestatus',
+    beschreibung:
+      'Während die Firmendaten geladen werden, sieht man jetzt klar was passiert (Verbindung → UID → Adresse → Branche) und ein Lade-Balken läuft sauber. Beträge wie Umsatz und Gewinn werden in Schweizer Schreibweise angezeigt (1\'000\'000) und ein Info-Knopf erklärt was EBITDA bedeutet. Die automatische Branchen-Erkennung verwechselt nicht mehr «automatisch» mit «Automotive».',
+  },
+  {
     date: '2026-04-27',
     type: 'feature',
     titel: 'Handelsregister-Lookup + KI-Teaser sind live',

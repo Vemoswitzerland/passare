@@ -90,7 +90,7 @@ export const BRANCHEN_MULTIPLES: Record<string, BrancheMultiple> = {
     label: 'Automotive',
     ebitda: 5.0,
     umsatz: 0.5,
-    nogaKeywords: ['auto', 'garage', 'carrosserie', 'fahrzeug', 'motorsport'],
+    nogaKeywords: ['automobil', 'autohaus', 'garage', 'carrosserie', 'karosserie', 'fahrzeug', 'motorsport', 'autoreparatur', 'autohandel'],
   },
   handel_ecommerce: {
     id: 'handel_ecommerce',
@@ -150,6 +150,9 @@ export const BRANCHEN_LIST = Object.values(BRANCHEN_MULTIPLES).sort((a, b) =>
 /**
  * Heuristisches Matching: Zefix `purpose`-String → beste Branche
  * Returns null wenn kein Match gefunden.
+ *
+ * Word-boundary-Matching (\b) damit z.B. "auto" nicht in "automatisch"
+ * oder "Automaten" matched.
  */
 export function matchBrancheFromPurpose(purpose: string | null | undefined): string | null {
   if (!purpose) return null;
@@ -158,14 +161,21 @@ export function matchBrancheFromPurpose(purpose: string | null | undefined): str
   let bestScore = 0;
 
   for (const branche of BRANCHEN_LIST) {
-    const score = branche.nogaKeywords.reduce(
-      (acc, kw) => acc + (lower.includes(kw) ? 1 : 0),
-      0,
-    );
+    const score = branche.nogaKeywords.reduce((acc, kw) => {
+      // Word-boundary-Match (mit Bindestrich-Toleranz). \b matched auch
+      // an Bindestrichen, deshalb explizit auf Wortzeichen begrenzen.
+      const re = new RegExp(`(?:^|[^a-zäöü])${escapeRegex(kw)}(?:[^a-zäöü]|$)`, 'i');
+      return acc + (re.test(lower) ? 1 : 0);
+    }, 0);
     if (score > bestScore) {
       bestScore = score;
       bestId = branche.id;
     }
   }
-  return bestId;
+  // Mindestens 1 echter Match — sonst lieber null und User wählt selbst
+  return bestScore > 0 ? bestId : null;
+}
+
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
