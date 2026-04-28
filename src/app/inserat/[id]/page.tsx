@@ -242,10 +242,6 @@ function ContactPanel({
         </h2>
       </div>
 
-      <p className="text-body-sm text-muted leading-relaxed">
-        Schreiben Sie dem Verkäufer direkt — kein Konto nötig, nur E-Mail-Verifikation.
-      </p>
-
       <InlineAnfrageForm listing={listing} />
 
       <LikeShareActions

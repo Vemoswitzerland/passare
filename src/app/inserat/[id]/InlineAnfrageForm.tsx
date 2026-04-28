@@ -3,22 +3,19 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  CheckCircle2, Mail, MessageSquare, Send, Shield, X,
+  AlertCircle, CheckCircle2, Mail, MessageSquare, Send, X,
 } from 'lucide-react';
 import type { MockListing } from '@/lib/listings-mock';
 
 /**
  * Inline-Anfrage-Formular im ContactPanel der Inserat-Detail-Seite.
  *
- * Cyrills Flow (2026-04-28):
- *   1. User füllt direkt im Kontakt-Panel rechts: Name, E-Mail, Nachricht
- *   2. Submit → Pop-up «Wir haben Ihnen eine Bestätigungs-Mail geschickt»
- *      mit Klick-Link «E-Mail verifizieren» (Mock — echte Mail kommt später).
- *   3. Klick auf Verifizieren → /anfrage/passwort?listing=…&email=…&name=…
- *   4. Dort Passwort setzen → Redirect zurück auf das Inserat.
- *
- * V1: Kein Backend angeschlossen. Etappe 2+ verdrahtet Resend für die Mail
- * und Supabase Auth für die Konto-Anlage.
+ * Echter Flow (kein Demo):
+ *   1. User füllt Name, E-Mail, Nachricht
+ *   2. POST /api/anfrage → Server signiert Token, schickt Mail via Resend
+ *   3. Mittiges Pop-up: «Bestätigungs-Mail geschickt — bitte Postfach prüfen»
+ *   4. User klickt im Mail auf den Link → /anfrage/passwort?token=…
+ *   5. Dort Passwort setzen → Käufer-Basic-Konto aktiv → Redirect aufs Inserat
  */
 
 export function InlineAnfrageForm({ listing }: { listing: MockListing }) {
@@ -27,13 +24,58 @@ export function InlineAnfrageForm({ listing }: { listing: MockListing }) {
   const [nachricht, setNachricht] = useState('');
   const [busy, setBusy] = useState(false);
   const [popOpen, setPopOpen] = useState(false);
+  const [fehler, setFehler] = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setFehler(null);
     setBusy(true);
-    await new Promise((r) => setTimeout(r, 600));
-    setBusy(false);
-    setPopOpen(true);
+    try {
+      const res = await fetch('/api/anfrage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: name.trim(),
+          email: email.trim(),
+          nachricht: nachricht.trim(),
+          listing_id: listing.id,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data?.error ?? 'Anfrage konnte nicht gesendet werden.');
+      }
+      setPopOpen(true);
+    } catch (err) {
+      setFehler(err instanceof Error ? err.message : 'Anfrage konnte nicht gesendet werden.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function resendMail() {
+    setFehler(null);
+    setBusy(true);
+    try {
+      const res = await fetch('/api/anfrage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: name.trim(),
+          email: email.trim(),
+          nachricht: nachricht.trim(),
+          listing_id: listing.id,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data?.error ?? 'Erneuter Versand fehlgeschlagen.');
+      }
+    } catch (err) {
+      setFehler(err instanceof Error ? err.message : 'Erneuter Versand fehlgeschlagen.');
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -64,6 +106,7 @@ export function InlineAnfrageForm({ listing }: { listing: MockListing }) {
         <Field label="Ihre Nachricht" required>
           <textarea
             required
+            minLength={5}
             value={nachricht}
             onChange={(e) => setNachricht(e.target.value)}
             placeholder="Was möchten Sie wissen? Zeithorizont, Finanzierung, Hintergrund …"
@@ -72,6 +115,13 @@ export function InlineAnfrageForm({ listing }: { listing: MockListing }) {
           />
         </Field>
 
+        {fehler && (
+          <p className="text-caption text-bronze-ink bg-bronze/10 rounded-soft px-3 py-2 flex items-start gap-2">
+            <AlertCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" strokeWidth={1.5} />
+            {fehler}
+          </p>
+        )}
+
         <button
           type="submit"
           disabled={busy}
@@ -79,36 +129,31 @@ export function InlineAnfrageForm({ listing }: { listing: MockListing }) {
         >
           {busy ? <>Sende …</> : <><Send className="w-4 h-4" strokeWidth={1.5} /> Anfrage senden</>}
         </button>
-
-        <p className="text-caption text-quiet leading-relaxed">
-          Kein Konto nötig. Wir verifizieren nur Ihre E-Mail.
-        </p>
       </form>
 
       <VerifyPopup
         open={popOpen}
         onClose={() => setPopOpen(false)}
-        listing={listing}
-        name={name}
         email={email}
-        nachricht={nachricht}
+        busy={busy}
+        onResend={resendMail}
+        fehler={fehler}
       />
     </>
   );
 }
 
-/* ════════════════════════ Verify-Popup ════════════════════════ */
+/* ════════════════════════ Verify-Popup (mittig auf Display) ════════════════════════ */
 function VerifyPopup({
-  open, onClose, listing, name, email, nachricht,
+  open, onClose, email, busy, onResend, fehler,
 }: {
   open: boolean;
   onClose: () => void;
-  listing: MockListing;
-  name: string;
   email: string;
-  nachricht: string;
+  busy: boolean;
+  onResend: () => void;
+  fehler: string | null;
 }) {
-  // ESC schliesst
   useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => {
@@ -118,7 +163,6 @@ function VerifyPopup({
     return () => window.removeEventListener('keydown', handler);
   }, [open, onClose]);
 
-  // Body-Scroll sperren
   useEffect(() => {
     if (!open) return;
     const prev = document.body.style.overflow;
@@ -127,12 +171,6 @@ function VerifyPopup({
       document.body.style.overflow = prev;
     };
   }, [open]);
-
-  const verifyHref =
-    `/anfrage/passwort?listing=${encodeURIComponent(listing.id)}` +
-    `&email=${encodeURIComponent(email)}` +
-    `&name=${encodeURIComponent(name)}` +
-    `&msg=${encodeURIComponent(nachricht.slice(0, 200))}`;
 
   return (
     <AnimatePresence>
@@ -183,29 +221,43 @@ function VerifyPopup({
                 <Mail className="w-7 h-7" strokeWidth={1.5} />
               </div>
               <h3 className="font-serif text-head-md text-navy font-normal mb-3">
-                Bestätigungs-Mail gesendet<span className="text-bronze">.</span>
+                Bestätigungs-Mail geschickt<span className="text-bronze">.</span>
               </h3>
-              <p className="text-body-sm text-muted leading-relaxed mb-2">
+              <p className="text-body-sm text-muted leading-relaxed mb-1">
                 Wir haben einen Verifizierungs-Link an
               </p>
-              <p className="font-mono text-body-sm text-navy mb-4 break-all">{email}</p>
+              <p className="font-mono text-body-sm text-navy mb-5 break-all">{email}</p>
               <p className="text-caption text-quiet leading-relaxed mb-6">
-                geschickt. Bitte öffnen Sie Ihr Postfach und klicken Sie auf
-                «E-Mail verifizieren» — danach geht die Anfrage raus und Ihr
-                Käufer-Basic-Konto ist sofort aktiv.
+                gesendet. Bitte öffnen Sie Ihr Postfach und klicken Sie auf
+                «E-Mail bestätigen» — danach geht die Anfrage an den Verkäufer und
+                Ihr Käufer-Basic-Konto wird aktiviert.
               </p>
 
-              <a
-                href={verifyHref}
-                className="block w-full bg-navy text-cream rounded-soft px-6 py-3 text-body-sm font-medium hover:bg-ink transition-colors inline-flex items-center justify-center gap-2"
-              >
-                <CheckCircle2 className="w-4 h-4" strokeWidth={1.5} />
-                Demo: Verifizierungs-Link öffnen
-              </a>
-              <p className="text-caption text-quiet mt-3 leading-relaxed">
-                <Shield className="inline w-3 h-3 mr-1 text-bronze" strokeWidth={1.5} />
-                In der Live-Version klicken Sie nur auf den Link in der Mail.
-              </p>
+              {fehler && (
+                <p className="text-caption text-bronze-ink bg-bronze/10 rounded-soft px-3 py-2 mb-3 text-left">
+                  <AlertCircle className="inline w-3 h-3 mr-1" strokeWidth={1.5} />
+                  {fehler}
+                </p>
+              )}
+
+              <div className="space-y-2">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="w-full bg-navy text-cream rounded-soft px-6 py-3 text-body-sm font-medium hover:bg-ink transition-colors inline-flex items-center justify-center gap-2"
+                >
+                  <CheckCircle2 className="w-4 h-4" strokeWidth={1.5} />
+                  Verstanden — Postfach prüfen
+                </button>
+                <button
+                  type="button"
+                  onClick={onResend}
+                  disabled={busy}
+                  className="w-full bg-transparent text-quiet border border-stone rounded-soft px-6 py-2.5 text-caption font-medium hover:border-bronze hover:text-bronze transition-colors disabled:opacity-60"
+                >
+                  {busy ? 'Sende erneut …' : 'Mail nicht angekommen? Erneut senden'}
+                </button>
+              </div>
             </div>
           </motion.div>
         </>

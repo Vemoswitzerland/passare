@@ -75,9 +75,9 @@ export const UPDATES: Update[] = [
   {
     date: '2026-04-28',
     type: 'feature',
-    titel: 'Anfrage-Form direkt im Kontakt-Panel + Mail-Verifizierung',
+    titel: 'Anfrage-Flow läuft echt durch — mit echter Bestätigungs-Mail',
     beschreibung:
-      'Auf jeder Inserat-Detail-Seite steht das Anfrage-Formular jetzt direkt offen sichtbar rechts — Name, E-Mail, Nachricht und «Senden». Kein extra Knopf, kein Konto nötig. Nach dem Senden kommt ein kleines Pop-up «Wir haben Ihnen eine Bestätigungs-Mail geschickt», ein Klick auf den Verifizierungs-Link führt auf die Passwort-Seite, dort das Passwort vergeben — und der User landet wieder auf demselben Inserat mit grünem Banner «Anfrage gesendet, Käufer-Basic-Konto aktiv». Karten-Klick-Bug behoben: die ganze Karte (auch der Bild-Bereich) ist jetzt überall klickbar.',
+      'Das Anfrage-Formular im Inserat verschickt jetzt eine echte Bestätigungs-Mail (kein Demo mehr). Sichtbar bekommt der User ein zentral eingeblendetes Pop-up «Bestätigungs-Mail geschickt» mit der Möglichkeit «erneut senden» falls die Mail nicht ankommt. Nach Klick auf den Link in der Mail landet der User auf einer Passwort-Seite, vergibt sein Passwort, und das Käufer-Basic-Konto wird sofort aktiviert. Gleichzeitig geht eine Mail an info@passare.ch mit allen Anfrage-Details. Sicherheits-Token sind 24 Stunden gültig und HMAC-signiert.',
   },
   {
     date: '2026-04-28',

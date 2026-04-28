@@ -1,23 +1,13 @@
 import { Suspense } from 'react';
 import { SiteHeader, SiteFooter } from '../../page';
-import { PasswortClient } from './PasswortClient';
+import { verifyAnfrageToken } from '@/lib/anfrage-token';
+import { InvalidTokenScreen, PasswortClient } from './PasswortClient';
 
 /**
- * /anfrage/passwort — landet hier nach Klick auf Verifizierungs-Link aus der Mail.
+ * /anfrage/passwort?token=… — letzter Schritt im Anfrage-Flow.
  *
- * Header/Footer werden hier (Server Component) gerendert. PasswortClient liefert
- * den interaktiven Mittelteil — sonst würde der Import von SiteHeader die ganze
- * Homepage-Datei in den Client-Bundle ziehen und ihren `metadata`-Export brechen.
- *
- * URL-Params (im PasswortClient via useSearchParams gelesen):
- *   listing   — Inserat-ID, für Redirect zurück
- *   email     — verifizierte E-Mail
- *   name      — Name aus dem Anfrage-Form
- *   msg       — Nachricht aus dem Anfrage-Form (max 200 Zeichen)
- *
- * Cyrills Flow (2026-04-28):
- *   User setzt Passwort → Käufer-Basic-Konto wird aktiviert → Redirect auf /inserat/[id]
- *   mit `?anfrage=ok` für Bestätigungs-Banner.
+ * Server-Component validiert den signierten Token, übergibt das Payload an
+ * den Client (Form). Bei ungültigem/abgelaufenem Token: InvalidTokenScreen.
  */
 
 export const metadata = {
@@ -26,12 +16,30 @@ export const metadata = {
   robots: { index: false, follow: false },
 };
 
-export default function AnfragePasswortPage() {
+type Params = {
+  searchParams: Promise<{ token?: string }>;
+};
+
+export default async function AnfragePasswortPage({ searchParams }: Params) {
+  const { token } = await searchParams;
+  const payload = token ? verifyAnfrageToken(token) : null;
+
   return (
     <main className="min-h-screen flex flex-col bg-cream">
       <SiteHeader />
       <Suspense fallback={null}>
-        <PasswortClient />
+        {payload && token ? (
+          <PasswortClient
+            token={token}
+            payload={{
+              name: payload.n,
+              email: payload.e,
+              listingId: payload.l,
+            }}
+          />
+        ) : (
+          <InvalidTokenScreen />
+        )}
       </Suspense>
       <SiteFooter />
     </main>
