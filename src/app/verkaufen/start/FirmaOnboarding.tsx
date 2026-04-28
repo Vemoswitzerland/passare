@@ -125,14 +125,24 @@ export function FirmaOnboarding() {
       return Boolean(draft.zefix_uid || draft.firma_name);
     }
     if (draft.step === 2) return Boolean(draft.branche_id && draft.kanton);
-    if (draft.step === 3)
+    if (draft.step === 3) {
+      // Pflicht: Umsatz + EBITDA — diese braucht die Bewertungsformel.
+      // Mitarbeitende und Gründungsjahr sind nice-to-have und können
+      // später ergänzt werden — wir setzen sinnvolle Defaults für die
+      // Bewertung wenn leer.
       return draft.umsatz != null && draft.umsatz > 0
-        && draft.ebitda != null
-        && draft.mitarbeitende != null && draft.mitarbeitende > 0
-        && draft.jahr != null;
+        && draft.ebitda != null;
+    }
     if (draft.step === 4) return Boolean(draft.valuation);
     return true;
   })();
+
+  // Welche Felder fehlen noch in Step 3? — für UI-Tooltip am Weiter-Button
+  const step3Missing: string[] = [];
+  if (draft.step === 3) {
+    if (!draft.umsatz || draft.umsatz <= 0) step3Missing.push('Jahresumsatz');
+    if (draft.ebitda == null) step3Missing.push('EBITDA');
+  }
 
   return (
     <div className="space-y-10">
@@ -179,20 +189,27 @@ export function FirmaOnboarding() {
             Zurück
           </button>
 
-          <button
-            type="button"
-            onClick={next}
-            disabled={!canNext}
-            className={cn(
-              'inline-flex items-center gap-2 px-6 py-3 rounded-soft text-body-sm font-medium transition-all',
-              canNext
-                ? 'bg-navy text-cream hover:bg-ink shadow-card hover:shadow-lift hover:-translate-y-px'
-                : 'bg-stone text-quiet cursor-not-allowed',
+          <div className="flex flex-col items-end gap-2">
+            <button
+              type="button"
+              onClick={next}
+              disabled={!canNext}
+              className={cn(
+                'inline-flex items-center gap-2 px-6 py-3 rounded-soft text-body-sm font-medium transition-all',
+                canNext
+                  ? 'bg-navy text-cream hover:bg-ink shadow-card hover:shadow-lift hover:-translate-y-px'
+                  : 'bg-stone text-quiet cursor-not-allowed',
+              )}
+            >
+              {draft.step === 4 ? 'Account erstellen' : 'Weiter'}
+              <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
+            </button>
+            {!canNext && step3Missing.length > 0 && (
+              <p className="text-caption text-warn">
+                Noch fehlt: {step3Missing.join(', ')}
+              </p>
             )}
-          >
-            {draft.step === 4 ? 'Account erstellen' : 'Weiter'}
-            <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
-          </button>
+          </div>
         </div>
       )}
     </div>
@@ -683,7 +700,7 @@ function Step3Finanzen({ draft, update }: { draft: Draft; update: (p: Partial<Dr
           )}
         </Field>
 
-        <Field label="Mitarbeitende (FTE)" hint={draft.mitarbeitende ? `${draft.mitarbeitende} Personen` : undefined}>
+        <Field label="Mitarbeitende (FTE)" optional hint={draft.mitarbeitende ? `${draft.mitarbeitende} Personen` : undefined}>
           <div className="flex flex-wrap gap-2 mb-2">
             {MA_BUCKETS.map((b) => {
               const selected =
@@ -720,7 +737,7 @@ function Step3Finanzen({ draft, update }: { draft: Draft; update: (p: Partial<Dr
           />
         </Field>
 
-        <Field label="Gründungsjahr">
+        <Field label="Gründungsjahr" optional>
           <input
             type="text"
             inputMode="numeric"
