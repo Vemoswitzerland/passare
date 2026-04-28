@@ -30,6 +30,16 @@ function OAuthBtn({
   async function handleClick() {
     setError(null);
     setPending(true);
+
+    // Google läuft über unsere eigene OAuth-Route → Google-Consent zeigt
+    // "passare.ch" statt der Supabase-Subdomain. Token-Exchange + Session-
+    // Anlage passieren in /api/auth/google/callback via signInWithIdToken.
+    if (provider === 'google') {
+      window.location.assign('/api/auth/google/start?next=/dashboard');
+      return;
+    }
+
+    // LinkedIn (und andere) bleiben beim direkten Supabase-OAuth.
     try {
       const supabase = createClient();
       const origin = window.location.origin;
@@ -37,10 +47,6 @@ function OAuthBtn({
         provider,
         options: {
           redirectTo: `${origin}/auth/callback?next=/dashboard`,
-          queryParams:
-            provider === 'google'
-              ? { access_type: 'offline', prompt: 'consent' }
-              : undefined,
         },
       });
       if (error) throw error;

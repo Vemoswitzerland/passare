@@ -1,6 +1,6 @@
 import Link from 'next/link';
-import { ChevronRight, AlertTriangle, Users as UsersIcon, Crown } from 'lucide-react';
-import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { ChevronRight, Users as UsersIcon, Crown } from 'lucide-react';
+import { createClient } from '@/lib/supabase/server';
 import { DataTable, Td, Tr } from '@/components/admin/DataTable';
 import { UsersFilterBar } from '@/components/admin/UsersFilterBar';
 import { PageHeader, EmptyState } from '@/components/admin/PageHeader';
@@ -24,6 +24,7 @@ type UserRow = {
   kanton: string | null;
   sprache: string | null;
   subscription_tier: 'basic' | 'max' | null;
+  email: string | null;
   created_at: string;
   onboarding_completed_at: string | null;
 };
@@ -51,10 +52,12 @@ export default async function AdminUsersPage({
 
   const supabase = await createClient();
 
+  // PERF: profiles + counts in 2 parallelen Roundtrips. Email kommt aus
+  // denormalisierter `profiles.email`-Spalte (kein listUsers()-Call mehr).
   let q = supabase
     .from('profiles')
     .select(
-      'id, full_name, rolle, kanton, sprache, subscription_tier, created_at, onboarding_completed_at',
+      'id, full_name, rolle, kanton, sprache, subscription_tier, email, created_at, onboarding_completed_at',
     )
     .order('created_at', { ascending: false });
 
@@ -62,47 +65,20 @@ export default async function AdminUsersPage({
     q = q.eq('rolle', rolleFilter);
   }
 
-  const { data: profilesData } = await q;
+  const [{ data: profilesData }, counts] = await Promise.all([q, getCounts(supabase)]);
   let profiles: UserRow[] = (profilesData ?? []) as UserRow[];
 
-  let emails: Map<string, string> = new Map();
-  let serviceRoleAvailable = true;
-  try {
-    const adminClient = createAdminClient();
-    const { data, error } = await adminClient.auth.admin.listUsers();
-    if (error || !data) throw new Error(error?.message ?? 'No data');
-    type AdminAuthUser = { id: string; email?: string | null };
-    const usersList = (data as { users?: AdminAuthUser[] }).users ?? [];
-    emails = new Map(usersList.map((u) => [u.id, u.email ?? '—']));
-  } catch {
-    serviceRoleAvailable = false;
-  }
-
   if (query) {
-    profiles = profiles.filter((p) => {
-      const email = emails.get(p.id) ?? '';
-      return (
-        (p.full_name ?? '').toLowerCase().includes(query) ||
-        email.toLowerCase().includes(query) ||
-        (p.kanton ?? '').toLowerCase().includes(query)
-      );
-    });
+    profiles = profiles.filter((p) =>
+      (p.full_name ?? '').toLowerCase().includes(query) ||
+      (p.email ?? '').toLowerCase().includes(query) ||
+      (p.kanton ?? '').toLowerCase().includes(query),
+    );
   }
-
-  const counts = await getCounts(supabase);
 
   return (
     <div className="max-w-6xl">
       <PageHeader overline="Verwaltung" title="User" />
-
-      {!serviceRoleAvailable && (
-        <div className="bg-warn/10 border border-warn/30 rounded-soft px-3 py-2 mb-4 flex items-start gap-2">
-          <AlertTriangle className="w-3.5 h-3.5 text-warn flex-shrink-0 mt-0.5" strokeWidth={1.5} />
-          <p className="text-[13px] text-navy">
-            <strong>Service-Role-Key fehlt</strong> — E-Mail-Adressen sind nicht abrufbar.
-          </p>
-        </div>
-      )}
 
       <UsersFilterBar counts={counts} initialQuery={query} />
 
@@ -137,7 +113,7 @@ export default async function AdminUsersPage({
           {profiles.map((u) => {
             const rolle = u.rolle ? ROLLE_DISPLAY[u.rolle] : null;
             const abo = u.subscription_tier ? ABO_DISPLAY[u.subscription_tier] : null;
-            const displayName = u.full_name || emails.get(u.id) || 'Ohne Namen';
+            const displayName = u.full_name || u.email || 'Ohne Namen';
             return (
               <Tr key={u.id} className="cursor-pointer">
                 <Td className="text-ink">
@@ -146,7 +122,7 @@ export default async function AdminUsersPage({
                   </Link>
                 </Td>
                 <Td className="font-mono text-[12px] text-ink">
-                  {emails.get(u.id) ?? <span className="text-quiet">—</span>}
+                  {u.email ?? <span className="text-quiet">—</span>}
                 </Td>
                 <Td>
                   {rolle ? (

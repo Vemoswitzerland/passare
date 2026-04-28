@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Search as SearchIcon, FileText, Users, MessageSquare, Newspaper } from 'lucide-react';
-import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 import { Badge } from '@/components/ui/badge';
 import { PageHeader, EmptyState } from '@/components/admin/PageHeader';
 
@@ -41,69 +41,43 @@ export default async function AdminSearchPage({
   const like = `%${query}%`;
   const supabase = await createClient();
 
-  // Inserate
-  const { data: inserateData } = await supabase
-    .from('inserate')
-    .select('id, public_id, titel, branche, kanton, status')
-    .or(`titel.ilike.${like},branche.ilike.${like},kanton.ilike.${like},public_id.ilike.${like}`)
-    .limit(20);
+  // PERF: alle 4 Queries parallel — Email matched jetzt direkt via profiles.email
+  // (denormalisiert), kein listUsers()-Call mehr.
+  const [
+    { data: inserateData },
+    { data: anfragenData },
+    { data: blogData },
+    { data: profilesData },
+  ] = await Promise.all([
+    supabase
+      .from('inserate')
+      .select('id, public_id, titel, branche, kanton, status')
+      .or(`titel.ilike.${like},branche.ilike.${like},kanton.ilike.${like},public_id.ilike.${like}`)
+      .limit(20),
+    supabase
+      .from('anfragen')
+      .select('id, public_id, status, nachricht')
+      .or(`public_id.ilike.${like},nachricht.ilike.${like}`)
+      .limit(20),
+    supabase
+      .from('blog_posts')
+      .select('id, slug, titel, kategorie, status')
+      .or(`titel.ilike.${like},slug.ilike.${like},excerpt.ilike.${like}`)
+      .limit(20),
+    supabase
+      .from('profiles')
+      .select('id, full_name, rolle, kanton, email')
+      .or(`full_name.ilike.${like},kanton.ilike.${like},email.ilike.${like}`)
+      .limit(50),
+  ]);
 
-  // Anfragen
-  const { data: anfragenData } = await supabase
-    .from('anfragen')
-    .select('id, public_id, status, nachricht')
-    .or(`public_id.ilike.${like},nachricht.ilike.${like}`)
-    .limit(20);
-
-  // Blog
-  const { data: blogData } = await supabase
-    .from('blog_posts')
-    .select('id, slug, titel, kategorie, status')
-    .or(`titel.ilike.${like},slug.ilike.${like},excerpt.ilike.${like}`)
-    .limit(20);
-
-  // Profile + Email
-  const { data: profilesData } = await supabase
-    .from('profiles')
-    .select('id, full_name, rolle, kanton')
-    .or(`full_name.ilike.${like},kanton.ilike.${like}`)
-    .limit(50);
-
-  let users = (profilesData ?? []).map((p) => ({
+  const users = (profilesData ?? []).map((p) => ({
     id: p.id as string,
     full_name: (p.full_name as string | null) ?? null,
     rolle: (p.rolle as string | null) ?? null,
     kanton: (p.kanton as string | null) ?? null,
-    email: undefined as string | undefined,
+    email: (p.email as string | null) ?? undefined,
   }));
-
-  // Email match: braucht Service-Role
-  try {
-    const adminClient = createAdminClient();
-    const { data } = await adminClient.auth.admin.listUsers();
-    type AdminAuthUser = { id: string; email?: string | null };
-    const list = (data as { users?: AdminAuthUser[] }).users ?? [];
-    const emailMap = new Map(list.map((u) => [u.id, u.email ?? '']));
-    users = users.map((u) => ({ ...u, email: emailMap.get(u.id) }));
-    // Plus alle die per Email matchen aber Profil-Felder nicht treffen
-    const lq = query.toLowerCase();
-    const emailMatches = list.filter((u) => (u.email ?? '').toLowerCase().includes(lq));
-    const existing = new Set(users.map((u) => u.id));
-    for (const u of emailMatches) {
-      if (existing.has(u.id)) continue;
-      // Profil holen
-      const { data: p } = await supabase.from('profiles').select('full_name, rolle, kanton').eq('id', u.id).maybeSingle();
-      users.push({
-        id: u.id,
-        full_name: (p?.full_name as string | null) ?? null,
-        rolle: (p?.rolle as string | null) ?? null,
-        kanton: (p?.kanton as string | null) ?? null,
-        email: u.email ?? undefined,
-      });
-    }
-  } catch {
-    /* SR-Key fehlt */
-  }
 
   const total =
     users.length + (inserateData?.length ?? 0) + (anfragenData?.length ?? 0) + (blogData?.length ?? 0);

@@ -10,7 +10,7 @@ import {
   Activity,
   Crown,
 } from 'lucide-react';
-import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 import { UserDetailForm } from '@/components/admin/UserDetailForm';
 import { UserDeleteSection } from '@/components/admin/UserDeleteSection';
 import { ProfileCompletenessRing } from '@/components/admin/ProfileCompletenessRing';
@@ -41,6 +41,9 @@ type ProfileRow = {
   kanton: string | null;
   sprache: string | null;
   subscription_tier: 'basic' | 'max' | null;
+  email: string | null;
+  last_sign_in_at: string | null;
+  auth_created_at: string | null;
   tags: unknown;
   admin_notes: string | null;
   created_at: string;
@@ -55,36 +58,28 @@ export default async function AdminUserDetailPage({
   const { id } = await params;
 
   const supabase = await createClient();
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', id)
-    .maybeSingle<ProfileRow>();
+
+  // PERF: alle 4 Queries parallel statt sequenziell. Email kommt aus
+  // profiles.email (denormalisiert) — kein getUserById()-Call mehr.
+  const [
+    { data: profile },
+    { data: completenessData },
+    { data: meData },
+    { data: activityData },
+  ] = await Promise.all([
+    supabase.from('profiles').select('*').eq('id', id).maybeSingle<ProfileRow>(),
+    supabase.rpc('profile_completeness', { p_user_id: id }),
+    supabase.auth.getUser(),
+    supabase.from('audit_log').select('id, type, beschreibung, created_at').eq('user_id', id).order('created_at', { ascending: false }).limit(5),
+  ]);
 
   if (!profile) notFound();
 
-  // Profil-Vollständigkeits-Score (0-100) via RPC
-  const { data: completenessData } = await supabase.rpc('profile_completeness', { p_user_id: id });
   const completeness = typeof completenessData === 'number' ? completenessData : 0;
-
-  // Eigene User-ID prüfen — Delete-Button nicht für sich selbst
-  const { data: meData } = await supabase.auth.getUser();
   const isSelf = meData.user?.id === id;
-
-  let email: string | null = null;
-  let lastSignIn: string | null = null;
-  let createdInAuth: string | null = null;
-  try {
-    const admin = createAdminClient();
-    const { data } = await admin.auth.admin.getUserById(id);
-    type AuthUserShape = { email?: string | null; last_sign_in_at?: string | null; created_at?: string | null };
-    const u = (data as { user?: AuthUserShape } | null)?.user;
-    email = u?.email ?? null;
-    lastSignIn = u?.last_sign_in_at ?? null;
-    createdInAuth = u?.created_at ?? null;
-  } catch {
-    /* Service-Role-Key fehlt */
-  }
+  const email = profile.email;
+  const lastSignIn = profile.last_sign_in_at;
+  const createdInAuth = profile.auth_created_at;
 
   const initialTags: string[] = Array.isArray(profile.tags) ? (profile.tags as string[]) : [];
 
@@ -96,12 +91,6 @@ export default async function AdminUserDetailPage({
     .join('')
     .toUpperCase();
 
-  const { data: activityData } = await supabase
-    .from('audit_log')
-    .select('id, type, beschreibung, created_at')
-    .eq('user_id', profile.id)
-    .order('created_at', { ascending: false })
-    .limit(5);
   const userActivity = (activityData ?? []) as Array<{ id: string; type: string; beschreibung: string; created_at: string }>;
 
   return (
