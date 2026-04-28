@@ -380,7 +380,14 @@ function ListingCard({ listing }: { listing: typeof LISTINGS[number] }) {
   const facts = renderKeyFacts(listing);
 
   return (
-    <article className="group bg-paper border border-stone rounded-card overflow-hidden hover:-translate-y-0.5 hover:shadow-lift transition-all duration-300 flex flex-col">
+    <article className="group relative bg-paper border border-stone rounded-card overflow-hidden hover:-translate-y-0.5 hover:shadow-lift hover:border-bronze/40 transition-all duration-300 flex flex-col cursor-pointer">
+      {/* Stretched-Link: ganze Karte klickbar — Buttons unten haben relative z-10 darüber */}
+      <Link
+        href={`/inserat/${listing.id}`}
+        className="absolute inset-0 z-0"
+        aria-label={`Inserat ${listing.titel} ansehen`}
+      />
+
       {/* ─── Cover ─── */}
       <div className="relative h-44 md:h-48 overflow-hidden">
         <div
@@ -415,7 +422,7 @@ function ListingCard({ listing }: { listing: typeof LISTINGS[number] }) {
 
       {/* ─── Body ─── */}
       <div className="p-6 flex flex-col flex-1">
-        <h3 className="font-serif text-head-md text-navy leading-tight font-normal mb-5 min-h-[3.9rem]">
+        <h3 className="font-serif text-head-md text-navy leading-tight font-normal mb-5 min-h-[3.9rem] group-hover:text-bronze-ink transition-colors">
           {listing.titel}<span className="text-bronze">.</span>
         </h3>
 
@@ -439,7 +446,7 @@ function ListingCard({ listing }: { listing: typeof LISTINGS[number] }) {
           {listing.grund}
         </p>
 
-        <div className="mt-auto flex items-center gap-2">
+        <div className="mt-auto flex items-center gap-2 relative z-10">
           <Button
             href={`/inserat/${listing.id}`}
             size="sm"

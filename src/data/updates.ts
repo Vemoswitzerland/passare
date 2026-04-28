@@ -68,6 +68,13 @@ export const UPDATES: Update[] = [
   {
     date: '2026-04-28',
     type: 'feature',
+    titel: 'Anfrage ohne Konto + ganze Inserat-Karte klickbar',
+    beschreibung:
+      'Ein Klick irgendwo auf eine Inserat-Karte öffnet nun direkt die Detail-Seite (nicht nur der «Details»-Knopf). Der «Anfrage stellen»-Knopf öffnet ein Schreib-Fenster von rechts: Name, E-Mail und Nachricht reichen — kein Konto nötig. Wer auf «Senden» drückt, bekommt einen Bestätigungs-Link an die E-Mail, klickt auf «E-Mail verifizieren» und kann gleich danach ein Passwort vergeben — und schon ist das Gratis-Käufer-Konto aktiv. Anschauen statt herumklicken: die Karte hebt sich beim Hover auch sichtbar.',
+  },
+  {
+    date: '2026-04-28',
+    type: 'feature',
     titel: 'Marktplatz: Detail-Seite, Merken & Teilen pro Inserat',
     beschreibung:
       'Auf der Börse heisst der Hauptknopf jetzt «Details» (vorher «Dossier anfragen»). Ein Klick öffnet die volle Inserat-Seite: grosses Branchen-Bild oben, ausführliche Beschreibung links, Verkäufer-Kontakt rechts. Hat der Verkäufer sein Profil öffentlich gestellt, sieht man Name, Rolle, E-Mail und Telefon direkt — sonst nur «Anonymer Verkäufer» mit Anfrage-Knopf. Auf jeder Inserat-Karte gibt es jetzt zwei kleine Knöpfe: ein Herz zum Merken und ein Teilen-Knopf, der den Link kopiert oder das System-Teilen-Menü öffnet.',
