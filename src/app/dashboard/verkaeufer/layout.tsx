@@ -24,23 +24,28 @@ export default async function VerkaeuferLayout({ children }: { children: React.R
   // Profile-Reparatur statt Redirect-Loop: wer auf /dashboard/verkaeufer
   // landet, ist eindeutig Verkäufer. Profile direkt setzen wenn nicht
   // sauber — verhindert Onboarding-Loop endgültig.
+  // Defensiv mit try/catch — selbst wenn DB/RLS hickt, Seite rendert.
   if (!profile || !profile.onboarding_completed_at || (profile.rolle !== 'verkaeufer' && profile.rolle !== 'admin')) {
-    const { data: fixed } = await supabase
-      .from('profiles')
-      .upsert({
-        id: userData.user.id,
-        rolle: profile?.rolle === 'admin' ? 'admin' : 'verkaeufer',
-        full_name: profile?.full_name ?? userData.user.user_metadata?.full_name ?? '',
-        sprache: (profile as any)?.sprache ?? userData.user.user_metadata?.sprache ?? 'de',
-        onboarding_completed_at: new Date().toISOString(),
-      }, { onConflict: 'id' })
-      .select('full_name, rolle, onboarding_completed_at')
-      .maybeSingle();
+    try {
+      const { data: fixed, error: fixErr } = await supabase
+        .from('profiles')
+        .upsert({
+          id: userData.user.id,
+          rolle: profile?.rolle === 'admin' ? 'admin' : 'verkaeufer',
+          full_name: profile?.full_name ?? userData.user.user_metadata?.full_name ?? '',
+          sprache: (profile as any)?.sprache ?? userData.user.user_metadata?.sprache ?? 'de',
+          onboarding_completed_at: new Date().toISOString(),
+        }, { onConflict: 'id' })
+        .select('full_name, rolle, onboarding_completed_at')
+        .maybeSingle();
 
-    // Käufer landen hier nicht — wir hätten sie via Smart-Redirect
-    // im /dashboard zu /dashboard/kaeufer geschickt
-    if (fixed) {
-      Object.assign(profile ?? {}, fixed);
+      if (fixErr) {
+        console.warn('[verkaeufer-layout] profile-upsert failed:', fixErr.message);
+      } else if (fixed) {
+        Object.assign(profile ?? {}, fixed);
+      }
+    } catch (e) {
+      console.warn('[verkaeufer-layout] profile-upsert exception:', e);
     }
   }
 

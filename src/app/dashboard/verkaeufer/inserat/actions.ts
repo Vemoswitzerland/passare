@@ -38,7 +38,9 @@ export async function takeOverPreRegDraft(): Promise<string | null> {
     .maybeSingle();
 
   if (existing && existing.zefix_uid && existing.zefix_uid === draft.zefix_uid) {
-    cookieStore.set('pre_reg_draft', '', { maxAge: 0, path: '/' });
+    // Cookie löschen versuchen (nur wenn wir in Server-Action-Kontext sind —
+    // sonst silently ignore, das Cookie expired in 30 Min eh)
+    try { cookieStore.set('pre_reg_draft', '', { maxAge: 0, path: '/' }); } catch { /* render-mode */ }
     return existing.id;
   }
 
@@ -58,8 +60,11 @@ export async function takeOverPreRegDraft(): Promise<string | null> {
     },
   });
 
-  // Cookie löschen nach erfolgreichem Übertrag
-  cookieStore.set('pre_reg_draft', '', { maxAge: 0, path: '/' });
+  // Cookie löschen nach erfolgreichem Übertrag — silently fail wenn
+  // wir aus einer Server-Component aufgerufen werden (Next 16
+  // verbietet Cookie-Set ausserhalb Server-Action / Route-Handler).
+  // Das Cookie hat 30 Min TTL und expired sowieso.
+  try { cookieStore.set('pre_reg_draft', '', { maxAge: 0, path: '/' }); } catch { /* render-mode */ }
 
   if (error) {
     console.error('[pre-reg-takeover]', error);
