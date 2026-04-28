@@ -14,16 +14,29 @@ type Props = {
   className?: string;
 };
 
-const easeOutExpo = (t: number) => (t === 1 ? 1 : 1 - Math.pow(2, -10 * t));
+// easeOutQuart — smoother + ruhiger als easeOutExpo, fühlt sich
+// professioneller an (kein "Ploppen" am Ende). Premium-Easing.
+const easeOutQuart = (t: number) => 1 - Math.pow(1 - t, 4);
+
+// Granularität für die Anzeige: bei grossen Beträgen runden wir auf
+// nächste 1'000 / 10'000 — sonst wirkt der Counter "jittery" und
+// hyperaktiv. Bei kleineren Werten 100er-Schritte.
+function snap(value: number, target: number): number {
+  if (target >= 1_000_000) return Math.round(value / 10_000) * 10_000;
+  if (target >= 100_000) return Math.round(value / 1_000) * 1_000;
+  if (target >= 10_000) return Math.round(value / 100) * 100;
+  return Math.round(value);
+}
 
 const defaultFormat = (n: number): string =>
   `CHF ${Math.round(n).toLocaleString('de-CH').replace(/,/g, "'")}`;
 
 /**
- * Animierter Zahlen-Counter mit easeOutExpo.
- * Zählt von 0 hoch zum Zielwert. Trigger via Mount.
+ * Animierter Zahlen-Counter mit easeOutQuart.
+ * Zählt von 0 hoch zum Zielwert mit smooth-snapping (gerundete Steps).
+ * Default-Dauer: 2200ms — institutionell ruhig, nicht hyperaktiv.
  */
-export function NumberCounter({ to, duration = 1500, delay = 0, format, className }: Props) {
+export function NumberCounter({ to, duration = 2200, delay = 0, format, className }: Props) {
   const [value, setValue] = useState(0);
   const startedRef = useRef(false);
 
@@ -36,8 +49,8 @@ export function NumberCounter({ to, duration = 1500, delay = 0, format, classNam
 
       const tick = (now: number) => {
         const elapsed = Math.min(1, (now - start) / duration);
-        const eased = easeOutExpo(elapsed);
-        setValue(eased * to);
+        const eased = easeOutQuart(elapsed);
+        setValue(snap(eased * to, to));
         if (elapsed < 1) {
           frame = requestAnimationFrame(tick);
         } else {
