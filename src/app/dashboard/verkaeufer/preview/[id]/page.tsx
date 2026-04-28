@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { Eye, X, AlertTriangle, MapPin, Calendar, Users, TrendingUp, Building2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { formatCHFShort } from '@/lib/valuation';
+import { BRANCHEN_LIST } from '@/data/branchen-multiples';
 
 export const metadata = { title: 'Vorschau — passare', robots: { index: false, follow: false } };
 
@@ -16,10 +17,15 @@ export default async function PreviewPage({ params }: Props) {
 
   const { data: inserat } = await supabase
     .from('inserate')
-    .select('*, branchen(label_de)')
+    .select('*')
     .eq('id', id)
     .maybeSingle();
   if (!inserat || inserat.verkaeufer_id !== userData.user.id) notFound();
+
+  const brancheLabel = BRANCHEN_LIST.find((b) => b.id === inserat.branche)?.label ?? 'KMU';
+  const ebitdaMarge = inserat.umsatz_chf && inserat.ebitda_chf
+    ? Math.round((Number(inserat.ebitda_chf) / Number(inserat.umsatz_chf)) * 100)
+    : null;
 
   // Anonymitäts-Check
   const warnings: string[] = [];
@@ -79,7 +85,7 @@ export default async function PreviewPage({ params }: Props) {
         <div className="grid lg:grid-cols-[1fr_320px] gap-12">
           <div>
             <p className="overline text-bronze-ink mb-3">
-              {inserat.branchen?.label_de ?? 'KMU'} · {inserat.kanton ?? '—'}
+              {brancheLabel} · {inserat.kanton ?? '—'}
             </p>
             <h1 className="font-serif text-display-sm text-navy font-light tracking-tight mb-4">
               {inserat.titel ?? '(Titel fehlt)'}
@@ -118,12 +124,12 @@ export default async function PreviewPage({ params }: Props) {
             <div className="rounded-card bg-paper border border-stone p-6">
               <p className="overline text-bronze-ink mb-3">Eckdaten</p>
               <dl className="space-y-3">
-                <FactRow icon={Building2} label="Branche" value={inserat.branchen?.label_de ?? '—'} />
+                <FactRow icon={Building2} label="Branche" value={brancheLabel} />
                 <FactRow icon={MapPin} label="Kanton" value={inserat.kanton ?? '—'} />
-                <FactRow icon={Calendar} label="Gegründet" value={inserat.jahr?.toString() ?? '—'} />
+                <FactRow icon={Calendar} label="Gegründet" value={inserat.gruendungsjahr?.toString() ?? '—'} />
                 <FactRow icon={Users} label="Mitarbeitende" value={inserat.mitarbeitende?.toString() ?? '—'} />
                 {inserat.umsatz_chf && <FactRow icon={TrendingUp} label="Umsatz" value={formatCHFShort(Number(inserat.umsatz_chf))} mono />}
-                {inserat.ebitda_marge_pct && <FactRow icon={TrendingUp} label="EBITDA-Marge" value={`${inserat.ebitda_marge_pct}%`} mono />}
+                {ebitdaMarge != null && <FactRow icon={TrendingUp} label="EBITDA-Marge" value={`${ebitdaMarge}%`} mono />}
               </dl>
             </div>
 
@@ -136,9 +142,9 @@ export default async function PreviewPage({ params }: Props) {
               ) : (
                 <p className="text-body text-quiet">Auf Anfrage</p>
               )}
-              {inserat.uebergabe_grund && (
+              {inserat.grund && (
                 <p className="mt-3 text-caption text-muted">
-                  Übergabe-Grund: {inserat.uebergabe_grund.replace(/_/g, ' ')}
+                  Übergabe-Grund: {inserat.grund.replace(/_/g, ' ')}
                 </p>
               )}
             </div>

@@ -64,13 +64,30 @@ export default async function VerkaeuferLayout({ children }: { children: React.R
   let counts = { anfragenNeu: 0, ndaPending: 0, datenraumFiles: 0 };
 
   if (await hasTable('inserate')) {
-    const { data: inserat } = await supabase
+    // Tunnel-Mode-Entscheidung soll auf das AKTIV bearbeitete Inserat
+    // schauen, nicht auf das neueste insgesamt. Falls der User mehrere
+    // Inserate hat (z.B. eines bezahlt + ein neuer Entwurf), ist nur
+    // der neue Entwurf "im Tunnel".
+    //
+    // Strategie: erst nach unbezahltem Entwurf suchen, sonst neuestes
+    // bezahltes (für Sidebar-Counts).
+    const { data: draftInserat } = await supabase
+      .from('inserate')
+      .select('id, status, paket, paid_at')
+      .eq('verkaeufer_id', userData.user.id)
+      .eq('status', 'entwurf')
+      .is('paid_at', null)
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const inserat = draftInserat ?? (await supabase
       .from('inserate')
       .select('id, status, paket, paid_at')
       .eq('verkaeufer_id', userData.user.id)
       .order('updated_at', { ascending: false })
       .limit(1)
-      .maybeSingle();
+      .maybeSingle()).data;
 
     if (inserat) {
       inseratId = inserat.id;

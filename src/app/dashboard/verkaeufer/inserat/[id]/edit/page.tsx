@@ -42,6 +42,8 @@ export default async function EditInseratPage({ params, searchParams }: Props) {
     ebitda: row.ebitda_chf ? Number(row.ebitda_chf) : null,
     estimated_value_mid: row.estimated_value_mid ? Number(row.estimated_value_mid) : null,
     firma_rechtsform: row.firma_rechtsform,
+    // Seed für deterministische Variation der Smart-Templates
+    seed: row.id,
   };
 
   const smartPatch = applySmartDefaults(

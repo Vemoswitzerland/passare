@@ -103,7 +103,7 @@ export function VerkaeuferSidebar({
               href={item.href}
               onClick={onClose}
               className={cn(
-                'flex items-center gap-3 px-3 py-2.5 rounded-soft text-body-sm transition-all',
+                'flex items-center gap-3 px-3 py-2 rounded-soft text-body-sm transition-all',
                 isActive
                   ? 'bg-bronze/10 text-navy font-medium'
                   : 'text-muted hover:bg-stone/40 hover:text-navy',
@@ -112,13 +112,13 @@ export function VerkaeuferSidebar({
               <item.icon className={cn('w-4 h-4 flex-shrink-0', isActive && 'text-bronze-ink')} strokeWidth={1.5} />
               <span className="flex-1">{item.label}</span>
               {item.counter !== undefined && (
-                <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-pill bg-bronze text-cream text-caption font-mono font-medium">
+                <span className="inline-flex items-center justify-center min-w-[18px] h-4 px-1 rounded-pill bg-bronze text-cream text-[10px] font-mono font-medium">
                   {item.counter}
                 </span>
               )}
               {item.badge && (
                 <span className={cn(
-                  'inline-flex items-center px-2 py-0.5 rounded-pill text-caption font-medium',
+                  'inline-flex items-center px-1.5 py-0.5 rounded-pill text-[10px] font-medium uppercase tracking-wide',
                   item.badgeVariant === 'success' && 'bg-success/15 text-success',
                   item.badgeVariant === 'warn' && 'bg-warn/15 text-warn',
                   item.badgeVariant === 'neutral' && 'bg-stone text-quiet',
