@@ -67,6 +67,13 @@ export const CURRENT_STEP = {
 export const UPDATES: Update[] = [
   {
     date: '2026-04-28',
+    type: 'design',
+    titel: 'Admin-Bereich: aufgeräumt und kompakt',
+    beschreibung:
+      'Der Admin-Bereich wurde von Marketing-Optik auf Werkzeug-Look umgebaut: kleinere Kennzahl-Kacheln, dichtere Tabellen und Filter, weniger grosse Schrift, weniger farbige Pillen. Das Tool ist jetzt deutlich übersichtlicher und gibt mehr Information pro Bildschirmansicht — gemacht zum Arbeiten, nicht zum Anschauen.',
+  },
+  {
+    date: '2026-04-28',
     type: 'feature',
     titel: 'Anfrage ohne Konto + ganze Inserat-Karte klickbar',
     beschreibung:

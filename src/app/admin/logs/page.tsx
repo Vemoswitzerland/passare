@@ -39,11 +39,7 @@ export default async function AdminLogsPage() {
 
   return (
     <div className="max-w-6xl">
-      <PageHeader
-        overline="System"
-        title="Audit-Log"
-        description="Alle wichtigen Plattform-Events. Login, Profil-Änderungen, Inserate-Status, AGB-Zustimmungen."
-      />
+      <PageHeader overline="System" title="Audit-Log" />
 
       {allLogs.length === 0 ? (
         <EmptyState

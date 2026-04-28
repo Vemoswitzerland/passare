@@ -456,8 +456,8 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="bg-paper border border-stone rounded-card p-5">
-      <h3 className="font-serif text-lg text-navy mb-1">{title}</h3>
+    <section className="bg-paper border border-stone rounded-soft p-4">
+      <h3 className="text-caption uppercase tracking-wide font-medium text-quiet mb-1">{title}</h3>
       {hint && <p className="text-caption text-quiet mb-3">{hint}</p>}
       {!hint && <div className="mb-3" />}
       <div className="space-y-3">{children}</div>

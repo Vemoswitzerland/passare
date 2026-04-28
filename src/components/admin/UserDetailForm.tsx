@@ -123,8 +123,8 @@ export function UserDetailForm({
 
   return (
     <div className="space-y-6">
-      <section className="bg-paper border border-stone rounded-card p-6">
-        <h3 className="font-serif text-xl text-navy mb-4">Verifizierung</h3>
+      <section className="bg-paper border border-stone rounded-soft p-4">
+        <h3 className="text-caption uppercase tracking-wide font-medium text-quiet mb-3">Verifizierung</h3>
         <div className="grid sm:grid-cols-2 gap-3">
           <ToggleRow
             label="Telefon verifiziert"
@@ -142,8 +142,8 @@ export function UserDetailForm({
         <StatusBox status={verifyStatus} />
       </section>
 
-      <section className="bg-paper border border-stone rounded-card p-6">
-        <h3 className="font-serif text-xl text-navy mb-2">Qualitäts-Score</h3>
+      <section className="bg-paper border border-stone rounded-soft p-4">
+        <h3 className="text-caption uppercase tracking-wide font-medium text-quiet mb-2">Qualitäts-Score</h3>
         <p className="text-caption text-quiet mb-4">
           Wert zwischen 0 und 100. Leer lassen = nicht bewertet.
         </p>
@@ -166,8 +166,8 @@ export function UserDetailForm({
         <StatusBox status={scoreStatus} />
       </section>
 
-      <section className="bg-paper border border-stone rounded-card p-6">
-        <h3 className="font-serif text-xl text-navy mb-2">Tags</h3>
+      <section className="bg-paper border border-stone rounded-soft p-4">
+        <h3 className="text-caption uppercase tracking-wide font-medium text-quiet mb-2">Tags</h3>
         <p className="text-caption text-quiet mb-4">
           Frei definierbare Tags zur Segmentierung (max. 20). Beispiel: «vip», «high-touch», «strategisch».
         </p>
@@ -220,8 +220,8 @@ export function UserDetailForm({
         <StatusBox status={tagsStatus} />
       </section>
 
-      <section className="bg-paper border border-stone rounded-card p-6">
-        <h3 className="font-serif text-xl text-navy mb-2">Admin-Notizen</h3>
+      <section className="bg-paper border border-stone rounded-soft p-4">
+        <h3 className="text-caption uppercase tracking-wide font-medium text-quiet mb-2">Admin-Notizen</h3>
         <p className="text-caption text-quiet mb-4">
           Interne Notizen zu diesem User. Nur für Admins sichtbar.
         </p>

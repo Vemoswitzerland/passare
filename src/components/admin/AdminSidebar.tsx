@@ -111,8 +111,7 @@ export function AdminSidebar({
 
       <div className="mt-8 pt-6 border-t border-stone px-3">
         <p className="text-caption text-quiet leading-relaxed">
-          Admin-Bereich V1 — Demo-Daten für Inserate, Anfragen und Logs.
-          Echte DB-Anbindung folgt schrittweise.
+          Live-Daten direkt aus der Datenbank. Audit-Log erfasst jede Aktion.
         </p>
       </div>
     </nav>

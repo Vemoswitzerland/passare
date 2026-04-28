@@ -101,11 +101,7 @@ export default async function AdminUsersPage({
 
   return (
     <div className="max-w-6xl">
-      <PageHeader
-        overline="Verwaltung"
-        title="User"
-        description="Alle registrierten Verkäufer, Käufer und Admins. Klick auf einen User öffnet das Detail mit Notizen, Tags, Score und Verifikation."
-      />
+      <PageHeader overline="Verwaltung" title="User" />
 
       {!serviceRoleAvailable && (
         <div className="bg-warn/10 border border-warn/30 rounded-card px-4 py-3 mb-6 flex items-start gap-3">

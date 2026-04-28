@@ -48,8 +48,8 @@ export function InseratActions({
   };
 
   return (
-    <section className="bg-paper border border-stone rounded-card p-5">
-      <h3 className="font-serif text-lg text-navy mb-3">Aktionen</h3>
+    <section className="bg-paper border border-stone rounded-soft p-4">
+      <h3 className="text-caption uppercase tracking-wide font-medium text-quiet mb-3">Aktionen</h3>
       <div className="space-y-2">
         {currentStatus === 'pending' && (
           <Button

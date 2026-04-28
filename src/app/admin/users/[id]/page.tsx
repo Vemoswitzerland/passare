@@ -112,13 +112,13 @@ export default async function AdminUserDetailPage({
         Zurück zur User-Liste
       </Link>
 
-      <header className="bg-paper border border-stone rounded-card p-6 mb-6 flex flex-col sm:flex-row gap-5 items-start">
+      <header className="bg-paper border border-stone rounded-soft p-4 mb-6 flex flex-col sm:flex-row gap-5 items-start">
         <div className="w-16 h-16 rounded-full bg-navy text-cream flex items-center justify-center font-mono text-xl font-medium flex-shrink-0">
           {initials}
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-3 mb-1">
-            <h1 className="font-serif text-3xl text-navy">{profile.full_name ?? 'Ohne Namen'}</h1>
+            <h1 className="text-2xl text-navy font-semibold">{profile.full_name ?? 'Ohne Namen'}</h1>
             {profile.rolle ? (
               <Badge variant={roleVariant(profile.rolle)}>{ROLLE_LABEL[profile.rolle]}</Badge>
             ) : (
@@ -144,7 +144,7 @@ export default async function AdminUserDetailPage({
           </div>
         </div>
         <div className="flex flex-col gap-2 items-end flex-shrink-0">
-          <span className="overline text-quiet">Konto-ID</span>
+          <span className="text-caption uppercase tracking-wide font-medium text-quiet">Konto-ID</span>
           <code className="font-mono text-caption text-ink break-all max-w-[200px]">{profile.id}</code>
         </div>
       </header>
@@ -162,8 +162,8 @@ export default async function AdminUserDetailPage({
         </div>
 
         <aside className="space-y-6">
-          <section className="bg-paper border border-stone rounded-card p-5">
-            <h3 className="font-serif text-lg text-navy mb-3">Sicherheit</h3>
+          <section className="bg-paper border border-stone rounded-soft p-4">
+            <h3 className="text-caption uppercase tracking-wide font-medium text-quiet mb-3">Sicherheit</h3>
             <ul className="space-y-2 text-caption">
               <SecurityRow
                 ok={!!profile.mfa_enrolled}
@@ -175,8 +175,8 @@ export default async function AdminUserDetailPage({
             </ul>
           </section>
 
-          <section className="bg-paper border border-stone rounded-card p-5">
-            <h3 className="font-serif text-lg text-navy mb-3 flex items-center gap-2">
+          <section className="bg-paper border border-stone rounded-soft p-4">
+            <h3 className="text-caption uppercase tracking-wide font-medium text-quiet mb-3 flex items-center gap-2">
               <Crown className="w-4 h-4 text-bronze" strokeWidth={1.5} />
               Abo-Status
             </h3>
@@ -196,8 +196,8 @@ export default async function AdminUserDetailPage({
           </section>
 
           {userActivity.length > 0 && (
-            <section className="bg-paper border border-stone rounded-card p-5">
-              <h3 className="font-serif text-lg text-navy mb-3">Letzte Aktivitäten</h3>
+            <section className="bg-paper border border-stone rounded-soft p-4">
+              <h3 className="text-caption uppercase tracking-wide font-medium text-quiet mb-3">Letzte Aktivitäten</h3>
               <ul className="space-y-3">
                 {userActivity.map((log) => (
                   <li key={log.id} className="text-caption">

@@ -88,7 +88,7 @@ export default async function AdminInseratDetailPage({
         Zurück zur Inserate-Liste
       </Link>
 
-      <header className="bg-paper border border-stone rounded-card p-6 mb-6">
+      <header className="bg-paper border border-stone rounded-soft p-4 mb-6">
         <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
           <div className="flex flex-wrap items-center gap-3">
             <StatusBadge status={listing.status} />
@@ -118,8 +118,8 @@ export default async function AdminInseratDetailPage({
           )}
         </div>
 
-        <h1 className="font-serif text-3xl text-navy leading-tight mb-2">{listing.titel}</h1>
-        <p className="text-body text-muted">
+        <h1 className="text-2xl text-navy font-semibold leading-tight mb-1">{listing.titel}</h1>
+        <p className="text-body-sm text-muted">
           {[listing.branche, listing.kanton, listing.gruendungsjahr ? `gegründet ${listing.gruendungsjahr}` : null]
             .filter(Boolean)
             .join(' · ') || 'Keine Eckdaten erfasst.'}
@@ -128,8 +128,8 @@ export default async function AdminInseratDetailPage({
 
       <div className="grid lg:grid-cols-[1fr_320px] gap-6">
         <div className="space-y-6">
-          <section className="bg-paper border border-stone rounded-card p-6">
-            <h3 className="font-serif text-xl text-navy mb-4">Eckdaten</h3>
+          <section className="bg-paper border border-stone rounded-soft p-4">
+            <h3 className="text-caption uppercase tracking-wide font-medium text-quiet mb-3">Eckdaten</h3>
             <dl className="grid sm:grid-cols-2 gap-4">
               <Detail icon={Building2} label="Branche" value={listing.branche ?? '—'} />
               <Detail icon={MapPin} label="Kanton" value={listing.kanton ?? '—'} mono />
@@ -167,9 +167,9 @@ export default async function AdminInseratDetailPage({
             </dl>
           </section>
 
-          <section className="bg-paper border border-stone rounded-card p-6">
+          <section className="bg-paper border border-stone rounded-soft p-4">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-serif text-xl text-navy">Anfragen ({anfragen.length})</h3>
+              <h3 className="text-caption uppercase tracking-wide font-medium text-quiet">Anfragen ({anfragen.length})</h3>
               {anfragen.length > 0 && (
                 <Link
                   href={`/admin/anfragen?inserat=${listing.id}`}
@@ -223,7 +223,7 @@ export default async function AdminInseratDetailPage({
             publicId={listing.public_id ?? null}
           />
 
-          <section className="bg-paper border border-stone rounded-card p-5">
+          <section className="bg-paper border border-stone rounded-soft p-4">
             <h3 className="font-serif text-lg text-navy mb-3">Verkäufer</h3>
             {verkaeufer ? (
               <Link
@@ -244,7 +244,7 @@ export default async function AdminInseratDetailPage({
             )}
           </section>
 
-          <section className="bg-paper border border-stone rounded-card p-5">
+          <section className="bg-paper border border-stone rounded-soft p-4">
             <h3 className="font-serif text-lg text-navy mb-3">Laufzeit</h3>
             <ul className="space-y-2 text-caption">
               <DetailRow icon={Calendar} label="Erstellt" value={formatDate(listing.created_at)} />

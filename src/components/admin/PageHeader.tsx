@@ -13,17 +13,19 @@ export function PageHeader({ overline, title, description, actions, className }:
   return (
     <header
       className={cn(
-        'mb-8 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between',
+        'mb-6 pb-4 border-b border-stone flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between',
         className,
       )}
     >
       <div className="min-w-0">
-        {overline && <p className="overline text-bronze mb-2">{overline}</p>}
-        <h1 className="font-serif text-3xl md:text-display-sm text-navy font-light leading-tight">
-          {title}
-        </h1>
+        {overline && (
+          <p className="text-caption text-quiet uppercase tracking-wide font-medium mb-1">
+            {overline}
+          </p>
+        )}
+        <h1 className="text-xl md:text-2xl text-navy font-semibold leading-tight">{title}</h1>
         {description && (
-          <p className="text-body text-muted mt-2 max-w-prose">{description}</p>
+          <p className="text-body-sm text-muted mt-1 max-w-prose">{description}</p>
         )}
       </div>
       {actions && <div className="flex flex-wrap gap-2 flex-shrink-0">{actions}</div>}
@@ -43,15 +45,15 @@ export function EmptyState({
   action?: React.ReactNode;
 }) {
   return (
-    <div className="bg-paper border border-stone rounded-card p-12 text-center">
+    <div className="bg-paper border border-stone rounded-soft p-10 text-center">
       {Icon && (
-        <div className="w-12 h-12 rounded-soft bg-stone/50 flex items-center justify-center mx-auto mb-4">
-          <Icon className="w-5 h-5 text-quiet" strokeWidth={1.5} />
+        <div className="w-10 h-10 rounded-soft bg-stone/50 flex items-center justify-center mx-auto mb-3">
+          <Icon className="w-4 h-4 text-quiet" strokeWidth={1.5} />
         </div>
       )}
-      <p className="font-serif text-xl text-navy mb-2">{title}</p>
+      <p className="text-base text-navy font-semibold mb-1">{title}</p>
       {description && (
-        <p className="text-body-sm text-muted max-w-md mx-auto mb-6">{description}</p>
+        <p className="text-body-sm text-muted max-w-md mx-auto mb-4">{description}</p>
       )}
       {action && <div className="inline-flex">{action}</div>}
     </div>

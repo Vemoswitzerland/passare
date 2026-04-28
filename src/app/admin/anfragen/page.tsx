@@ -105,14 +105,10 @@ export default async function AdminAnfragenPage({
 
   return (
     <div className="max-w-6xl">
-      <PageHeader
-        overline="Verwaltung"
-        title="Anfragen"
-        description="Käufer-Anfragen auf Inserate. NDA-Status, Bearbeitungs-Stand und Konversation."
-      />
+      <PageHeader overline="Verwaltung" title="Anfragen" />
 
-      <div className="flex items-center gap-2 flex-wrap mb-5">
-        <Filter className="w-4 h-4 text-quiet" strokeWidth={1.5} />
+      <div className="flex items-center gap-1 flex-wrap mb-4">
+        <Filter className="w-3.5 h-3.5 text-quiet mr-1" strokeWidth={1.5} />
         {STATUS_FILTERS.map((f) => {
           const active = statusFilter === f.value;
           const c = counts[f.value] ?? 0;
@@ -121,14 +117,12 @@ export default async function AdminAnfragenPage({
               key={f.value}
               href={buildHref(f.value)}
               className={cn(
-                'px-3 py-1.5 rounded-pill text-caption font-medium transition-colors',
-                active
-                  ? 'bg-navy text-cream'
-                  : 'bg-paper text-quiet border border-stone hover:border-navy/40 hover:text-navy',
+                'px-2.5 py-1 rounded-soft text-caption font-medium transition-colors inline-flex items-center gap-1.5',
+                active ? 'bg-navy text-cream' : 'text-quiet hover:text-navy hover:bg-stone/40',
               )}
             >
               {f.label}
-              <span className={cn('ml-1.5 font-mono', active ? 'opacity-80' : 'opacity-60')}>
+              <span className={cn('font-mono tabular-nums', active ? 'opacity-80' : 'opacity-50')}>
                 {c}
               </span>
             </Link>

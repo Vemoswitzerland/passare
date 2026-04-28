@@ -32,11 +32,7 @@ export default async function AdminSearchPage({
   if (!query) {
     return (
       <div className="max-w-3xl">
-        <PageHeader
-          overline="Admin"
-          title="Globale Suche"
-          description="Durchsucht User, Inserate, Anfragen und Blog-Artikel gleichzeitig."
-        />
+        <PageHeader overline="Admin" title="Globale Suche" />
         <SearchForm />
       </div>
     );
@@ -240,19 +236,19 @@ function ResultSection({
   if (count === 0) return null;
   return (
     <section>
-      <h2 className="font-serif text-xl text-navy mb-3 flex items-center gap-2">
+      <h2 className="text-caption uppercase tracking-wide font-medium text-quiet mb-2 flex items-center gap-2">
         <Icon className="w-4 h-4 text-quiet" strokeWidth={1.5} />
         {title}
         <span className="font-mono text-caption text-quiet font-normal">({count})</span>
       </h2>
-      <div className="bg-paper border border-stone rounded-card p-2">{children}</div>
+      <div className="bg-paper border border-stone rounded-soft p-2">{children}</div>
     </section>
   );
 }
 
 function SearchForm({ initial = '' }: { initial?: string }) {
   return (
-    <form className="bg-paper border border-stone rounded-card p-4" action="/admin/search">
+    <form className="bg-paper border border-stone rounded-soft p-3" action="/admin/search">
       <div className="relative">
         <SearchIcon
           className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-quiet"

@@ -5,11 +5,10 @@ import {
   MessageSquare,
   Newspaper,
   CheckCircle2,
-  UserPlus,
   ArrowRight,
-  Activity,
   Sparkles,
-  Plus,
+  Database,
+  Activity,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { StatCard } from '@/components/admin/StatCard';
@@ -82,6 +81,7 @@ export default async function AdminDashboardPage() {
   const offenAnfr = anfragenOffen.count ?? 0;
   const blogPub = blogPublished.count ?? 0;
   const blogDr = blogDraft.count ?? 0;
+  const blogAll = blogTotal.count ?? 0;
 
   const profiles = latestProfiles.data ?? [];
   const logs = latestLogs.data ?? [];
@@ -91,7 +91,7 @@ export default async function AdminDashboardPage() {
       id: `prof-${p.id}`,
       kind: 'register' as const,
       label: p.full_name ?? 'Neuer User',
-      desc: `Neue ${p.rolle ?? '—'}-Registrierung`,
+      desc: `Neue ${ROLLE_LABEL[p.rolle ?? ''] ?? '—'}-Registrierung`,
       ts: p.created_at as string,
     })),
     ...logs.map((l) => ({
@@ -106,26 +106,22 @@ export default async function AdminDashboardPage() {
     .slice(0, 8);
 
   return (
-    <div className="max-w-6xl">
-      <PageHeader
-        overline="Admin"
-        title="Übersicht"
-        description="Alle Kennzahlen der Plattform auf einen Blick. Klick auf eine Kachel öffnet den Bereich."
-      />
+    <div className="max-w-7xl">
+      <PageHeader overline="Admin" title="Übersicht" />
 
-      {/* KPIs */}
-      <section className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-10">
+      {/* KPIs — kompakte Tool-Kacheln */}
+      <section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 mb-6">
         <StatCard
           icon={FileText}
           value={aktivCount}
           label="Aktive Inserate"
-          trend={pendingCount > 0 ? { direction: 'up', text: `${pendingCount} pending` } : undefined}
+          hint={pendingCount > 0 ? `${pendingCount} pending` : undefined}
         />
         <StatCard
           icon={Users}
           value={userCount}
-          label="User total"
-          trend={{ direction: 'up', text: `${verkCount} V · ${kaufCount} K · ${adminCount} A` }}
+          label="User"
+          hint={`${verkCount} Verk · ${kaufCount} Käuf · ${adminCount} Admin`}
         />
         <StatCard
           icon={MessageSquare}
@@ -135,72 +131,48 @@ export default async function AdminDashboardPage() {
         <StatCard
           icon={Newspaper}
           value={blogPub}
-          label="Blog veröff."
-          trend={blogDr > 0 ? { direction: 'up', text: `${blogDr} Entwürfe` } : undefined}
+          label="Blog publ."
+          hint={blogDr > 0 ? `${blogDr} Entwürfe` : undefined}
         />
         <StatCard
-          icon={Activity}
-          value={(blogTotal.count ?? 0) + userCount + aktivCount + offenAnfr}
-          label="Datensätze gesamt"
+          icon={Database}
+          value={userCount + aktivCount + offenAnfr + blogAll}
+          label="Datensätze"
         />
       </section>
 
-      {/* Quick-Actions */}
-      <section className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-10">
+      {/* Quick-Actions — schmaler Action-Strip */}
+      <section className="grid sm:grid-cols-2 lg:grid-cols-4 gap-2 mb-8">
         <QuickAction
           href="/admin/inserate?status=pending"
           icon={CheckCircle2}
           label="Inserate freigeben"
           count={pendingCount}
-          countLabel="pending"
         />
-        <QuickAction
-          href="/admin/users"
-          icon={UserPlus}
-          label="User verwalten"
-          count={userCount}
-          countLabel="registriert"
-        />
+        <QuickAction href="/admin/users" icon={Users} label="User verwalten" count={userCount} />
         <QuickAction
           href="/admin/anfragen?status=offen"
           icon={MessageSquare}
           label="Anfragen prüfen"
           count={offenAnfr}
-          countLabel="offen"
         />
-        <QuickAction
-          href="/admin/blog"
-          icon={Sparkles}
-          label="Blog generieren"
-          count={blogDr}
-          countLabel="Entwürfe"
-        />
+        <QuickAction href="/admin/blog" icon={Sparkles} label="Blog generieren" count={blogDr} />
       </section>
 
       {/* Activity + Latest Users */}
-      <section className="grid lg:grid-cols-3 gap-6">
+      <section className="grid lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-serif text-xl text-navy">Letzte Aktivitäten</h2>
-            <Link
-              href="/admin/logs"
-              className="text-caption text-quiet hover:text-navy transition-colors inline-flex items-center gap-1"
-            >
-              Alle anzeigen <ArrowRight className="w-3 h-3" strokeWidth={1.5} />
-            </Link>
-          </div>
+          <SectionHeader title="Letzte Aktivitäten" href="/admin/logs" />
 
           {latestActivity.length === 0 ? (
-            <div className="bg-paper border border-stone rounded-card p-10 text-center text-caption text-quiet">
+            <div className="bg-paper border border-stone rounded-soft px-4 py-8 text-center text-caption text-quiet">
               Noch keine Aktivität.
             </div>
           ) : (
-            <ul className="bg-paper border border-stone rounded-card divide-y divide-stone/60 overflow-hidden">
+            <ul className="bg-paper border border-stone rounded-soft divide-y divide-stone/60 overflow-hidden">
               {latestActivity.map((entry) => (
-                <li key={entry.id} className="px-5 py-3 flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-soft bg-stone/50 flex items-center justify-center flex-shrink-0">
-                    <Activity className="w-3.5 h-3.5 text-quiet" strokeWidth={1.5} />
-                  </div>
+                <li key={entry.id} className="px-4 py-2.5 flex items-center gap-3">
+                  <Activity className="w-3.5 h-3.5 text-quiet flex-shrink-0" strokeWidth={1.5} />
                   <div className="min-w-0 flex-1">
                     <p className="text-body-sm text-ink truncate">{entry.desc}</p>
                     <p className="text-caption text-quiet truncate">{entry.label}</p>
@@ -215,36 +187,28 @@ export default async function AdminDashboardPage() {
         </div>
 
         <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-serif text-xl text-navy">Letzte User</h2>
-            <Link
-              href="/admin/users"
-              className="text-caption text-quiet hover:text-navy transition-colors inline-flex items-center gap-1"
-            >
-              Alle <ArrowRight className="w-3 h-3" strokeWidth={1.5} />
-            </Link>
-          </div>
+          <SectionHeader title="Letzte User" href="/admin/users" />
 
           {profiles.length === 0 ? (
-            <div className="bg-paper border border-stone rounded-card p-10 text-center text-caption text-quiet">
+            <div className="bg-paper border border-stone rounded-soft px-4 py-8 text-center text-caption text-quiet">
               Noch keine Registrierung.
             </div>
           ) : (
-            <ul className="bg-paper border border-stone rounded-card divide-y divide-stone/60 overflow-hidden">
+            <ul className="bg-paper border border-stone rounded-soft divide-y divide-stone/60 overflow-hidden">
               {profiles.slice(0, 6).map((p) => (
                 <li key={p.id}>
                   <Link
                     href={`/admin/users/${p.id}`}
-                    className="px-4 py-3 flex items-center gap-3 hover:bg-cream/50 transition-colors"
+                    className="px-3 py-2.5 flex items-center gap-2.5 hover:bg-cream/60 transition-colors"
                   >
-                    <div className="w-8 h-8 rounded-full bg-navy text-cream flex items-center justify-center font-mono text-caption flex-shrink-0">
+                    <div className="w-7 h-7 rounded-full bg-navy text-cream flex items-center justify-center font-mono text-[11px] flex-shrink-0">
                       {(p.full_name ?? '?').slice(0, 2).toUpperCase()}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-body-sm text-ink truncate">
+                      <p className="text-body-sm text-ink truncate leading-tight">
                         {p.full_name ?? <em className="text-quiet">— ohne Namen</em>}
                       </p>
-                      <p className="text-caption text-quiet font-mono">
+                      <p className="text-caption text-quiet font-mono leading-tight">
                         {formatRelative(p.created_at as string)}
                       </p>
                     </div>
@@ -260,35 +224,41 @@ export default async function AdminDashboardPage() {
   );
 }
 
+function SectionHeader({ title, href }: { title: string; href: string }) {
+  return (
+    <div className="flex items-center justify-between mb-2">
+      <h2 className="text-caption uppercase tracking-wide font-medium text-quiet">{title}</h2>
+      <Link
+        href={href}
+        className="text-caption text-quiet hover:text-navy transition-colors inline-flex items-center gap-1"
+      >
+        Alle <ArrowRight className="w-3 h-3" strokeWidth={1.5} />
+      </Link>
+    </div>
+  );
+}
+
 function QuickAction({
   href,
   icon: Icon,
   label,
   count,
-  countLabel,
 }: {
   href: string;
   icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
   label: string;
   count: number;
-  countLabel: string;
 }) {
   return (
     <Link
       href={href}
-      className="group bg-paper border border-stone rounded-card p-4 flex items-center gap-3 hover:border-bronze/50 hover:shadow-card transition-all"
+      className="group bg-paper border border-stone rounded-soft px-3 py-2.5 flex items-center gap-2.5 hover:border-bronze/50 transition-colors"
     >
-      <div className="w-10 h-10 rounded-soft bg-bronze-soft flex items-center justify-center flex-shrink-0">
-        <Icon className="w-4 h-4 text-bronze-ink" strokeWidth={1.5} />
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-body-sm text-ink font-medium truncate">{label}</p>
-        <p className="text-caption text-quiet">
-          <span className="font-mono">{count}</span> {countLabel}
-        </p>
-      </div>
+      <Icon className="w-4 h-4 text-quiet group-hover:text-bronze transition-colors flex-shrink-0" strokeWidth={1.5} />
+      <p className="text-body-sm text-ink flex-1 truncate">{label}</p>
+      <span className="text-caption text-navy font-mono font-semibold tabular-nums">{count}</span>
       <ArrowRight
-        className="w-4 h-4 text-quiet group-hover:text-bronze group-hover:translate-x-0.5 transition-all flex-shrink-0"
+        className="w-3.5 h-3.5 text-quiet group-hover:text-navy transition-colors flex-shrink-0"
         strokeWidth={1.5}
       />
     </Link>

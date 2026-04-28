@@ -80,7 +80,7 @@ export default async function AdminAnfrageDetailPage({
         Zurück zu Anfragen
       </Link>
 
-      <header className="bg-paper border border-stone rounded-card p-6 mb-6">
+      <header className="bg-paper border border-stone rounded-soft p-4 mb-6">
         <div className="flex flex-wrap items-center gap-3 mb-3">
           <code className="font-mono text-caption text-quiet">
             {anfrage.public_id ?? anfrage.id.slice(0, 8)}
@@ -106,7 +106,7 @@ export default async function AdminAnfrageDetailPage({
             </Badge>
           )}
         </div>
-        <h1 className="font-serif text-2xl text-navy mb-2">
+        <h1 className="text-xl text-navy font-semibold mb-1">
           Anfrage von {kaeufer?.full_name ?? '— Anonym'}
         </h1>
         <p className="text-caption text-quiet">
@@ -118,17 +118,17 @@ export default async function AdminAnfrageDetailPage({
       <div className="grid lg:grid-cols-[1fr_280px] gap-6">
         <div className="space-y-6">
           {anfrage.nachricht && (
-            <section className="bg-paper border border-stone rounded-card p-6">
-              <h3 className="font-serif text-xl text-navy mb-4">Nachricht</h3>
-              <div className="bg-cream border border-stone rounded-card p-4 whitespace-pre-wrap text-body-sm text-ink leading-relaxed">
+            <section className="bg-paper border border-stone rounded-soft p-4">
+              <h3 className="text-caption uppercase tracking-wide font-medium text-quiet mb-3">Nachricht</h3>
+              <div className="bg-cream border border-stone rounded-soft p-3 whitespace-pre-wrap text-body-sm text-ink leading-relaxed">
                 {anfrage.nachricht}
               </div>
             </section>
           )}
 
           {anfrage.admin_notes && (
-            <section className="bg-paper border border-stone rounded-card p-6">
-              <h3 className="font-serif text-xl text-navy mb-4">Admin-Notizen</h3>
+            <section className="bg-paper border border-stone rounded-soft p-4">
+              <h3 className="text-caption uppercase tracking-wide font-medium text-quiet mb-3">Admin-Notizen</h3>
               <p className="text-body-sm text-ink whitespace-pre-wrap">{anfrage.admin_notes}</p>
             </section>
           )}
@@ -141,8 +141,8 @@ export default async function AdminAnfrageDetailPage({
         </div>
 
         <aside className="space-y-6">
-          <section className="bg-paper border border-stone rounded-card p-5">
-            <h3 className="font-serif text-lg text-navy mb-3 flex items-center gap-2">
+          <section className="bg-paper border border-stone rounded-soft p-4">
+            <h3 className="text-caption uppercase tracking-wide font-medium text-quiet mb-3 flex items-center gap-2">
               <FileText className="w-4 h-4 text-quiet" strokeWidth={1.5} />
               Inserat
             </h3>
@@ -162,8 +162,8 @@ export default async function AdminAnfrageDetailPage({
             )}
           </section>
 
-          <section className="bg-paper border border-stone rounded-card p-5">
-            <h3 className="font-serif text-lg text-navy mb-3">Käufer</h3>
+          <section className="bg-paper border border-stone rounded-soft p-4">
+            <h3 className="text-caption uppercase tracking-wide font-medium text-quiet mb-3">Käufer</h3>
             {kaeufer ? (
               <Link
                 href={`/admin/users/${kaeufer.id}`}
@@ -183,8 +183,8 @@ export default async function AdminAnfrageDetailPage({
             )}
           </section>
 
-          <section className="bg-paper border border-stone rounded-card p-5">
-            <h3 className="font-serif text-lg text-navy mb-3">Status-Verlauf</h3>
+          <section className="bg-paper border border-stone rounded-soft p-4">
+            <h3 className="text-caption uppercase tracking-wide font-medium text-quiet mb-3">Status-Verlauf</h3>
             <ul className="space-y-2 text-caption">
               <li className="flex items-center justify-between">
                 <span className="text-quiet">Eingegangen</span>

@@ -82,7 +82,6 @@ export default async function AdminBlogPage({
       <PageHeader
         overline="Inhalt"
         title="Blog"
-        description={`${totalCount ?? 0} Beiträge · ${draftCount ?? 0} Entwürfe · ${publishedCount ?? 0} veröffentlicht. Spezialisiert auf KMU-Nachfolge, Verkauf, Bewertung, Recht, Steuern.`}
         actions={
           <Button href="/admin/blog/neu" variant="primary" size="sm">
             <Plus className="w-3.5 h-3.5" strokeWidth={1.5} />
@@ -91,33 +90,30 @@ export default async function AdminBlogPage({
         }
       />
 
-      {/* Auto-Generator-Banner */}
-      <section className="bg-gradient-to-br from-bronze-soft/40 to-paper border border-bronze/40 rounded-card p-6 mb-6 relative overflow-hidden">
-        <div className="absolute right-4 top-4 opacity-20">
-          <Sparkles className="w-12 h-12 text-bronze" strokeWidth={1.5} />
-        </div>
-        <div className="flex items-start gap-3 mb-4">
-          <div className="w-10 h-10 rounded-soft bg-bronze flex items-center justify-center flex-shrink-0">
-            <Sparkles className="w-5 h-5 text-cream" strokeWidth={1.5} />
-          </div>
-          <div className="flex-1">
-            <h2 className="font-serif text-xl text-navy mb-1">KI-Generator</h2>
-            <p className="text-body-sm text-muted leading-relaxed">
-              Claude schreibt einen Blog-Artikel passgenau für die Schweizer
-              KMU-Nachfolge. Wähle ein Thema oder lass die KI eines aus dem
-              passare-Themen-Katalog vorschlagen. Der Artikel landet als
-              Entwurf — du prüfst und veröffentlichst.
-            </p>
-          </div>
-        </div>
+      {/* Counts-Strip */}
+      <div className="flex items-center gap-3 text-caption text-quiet font-mono mb-4">
+        <span>{totalCount ?? 0} Beiträge</span>
+        <span className="text-stone">·</span>
+        <span>{draftCount ?? 0} Entwürfe</span>
+        <span className="text-stone">·</span>
+        <span>{publishedCount ?? 0} veröffentlicht</span>
+      </div>
 
+      {/* KI-Generator-Strip — kompakt */}
+      <section className="bg-paper border border-stone rounded-soft p-3 mb-5 flex items-center gap-3 flex-wrap">
+        <Sparkles className="w-4 h-4 text-bronze flex-shrink-0" strokeWidth={1.5} />
+        <div className="flex-1 min-w-0">
+          <p className="text-body-sm text-navy font-medium leading-tight">KI-Generator</p>
+          <p className="text-caption text-quiet leading-tight">
+            Artikel zu Schweizer KMU-Nachfolge generieren. Landet als Entwurf.
+          </p>
+        </div>
         {aiKeyConfigured ? (
           <BlogGenerateButton />
         ) : (
-          <div className="bg-warn/10 border border-warn/30 rounded-soft px-4 py-3 text-body-sm text-navy">
-            <strong>ANTHROPIC_API_KEY fehlt</strong> in Vercel-ENV.
-            Trage den Schlüssel ein, dann ist der Generator aktiv.
-          </div>
+          <span className="text-caption text-warn font-medium">
+            ANTHROPIC_API_KEY in ENV setzen
+          </span>
         )}
       </section>
 

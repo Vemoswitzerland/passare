@@ -56,8 +56,8 @@ export function AnfrageActions({
   };
 
   return (
-    <section className="bg-paper border border-stone rounded-card p-6">
-      <h3 className="font-serif text-xl text-navy mb-4">Aktionen</h3>
+    <section className="bg-paper border border-stone rounded-soft p-4">
+      <h3 className="text-caption uppercase tracking-wide font-medium text-quiet mb-3">Aktionen</h3>
 
       <div className="grid sm:grid-cols-2 gap-2 mb-4">
         {TARGETS.filter((t) => t.value !== currentStatus).map((t) => (

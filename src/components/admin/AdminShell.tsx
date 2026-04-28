@@ -32,7 +32,7 @@ export function AdminShell({ email, fullName, badges, children }: Props) {
           <AdminSidebar badges={badges} />
         </aside>
 
-        <main className="min-w-0 p-6 md:p-10">{children}</main>
+        <main className="min-w-0 p-4 md:p-6">{children}</main>
       </div>
 
       {/* Mobile Drawer */}
