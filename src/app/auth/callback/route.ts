@@ -53,10 +53,14 @@ export async function GET(req: NextRequest) {
   const intendedRole = u.user?.user_metadata?.intended_role;
   const preRegRaw = req.cookies.get('pre_reg_draft')?.value;
 
-  // Pre-Reg-Verkäufer: auch wenn keine pre_reg_draft Cookie mehr da ist
-  // (z.B. cookies clear) — wenn intended_role=verkaeufer, dann mindestens
-  // Profile als verkaeufer markieren + onboarding_completed_at setzen.
-  if (u.user && intendedRole === 'verkaeufer') {
+  // Pre-Reg-Verkäufer-Erkennung:
+  //  - via user_metadata.intended_role (gesetzt im klassischen
+  //    /auth/register signUp), ODER
+  //  - via pre_reg_draft Cookie (wird auch bei OAuth-Sign-Up gehalten,
+  //    da Browser-Cookies unabhängig vom Auth-Provider sind)
+  // Cookie hat Vorrang weil es das Pre-Reg-Onboarding eindeutig belegt.
+  const isPreRegVerkaeufer = u.user && (intendedRole === 'verkaeufer' || !!preRegRaw);
+  if (isPreRegVerkaeufer) {
     let preReg: any = null;
     if (preRegRaw) {
       try { preReg = JSON.parse(preRegRaw); } catch { /* invalid */ }

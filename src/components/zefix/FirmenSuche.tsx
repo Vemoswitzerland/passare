@@ -70,6 +70,20 @@ export function FirmenSuche({ onSelect, placeholder = 'Firma suchen (Name oder U
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
+  // Pre-Fetch: sobald User über einen Treffer hovert, starten wir
+  // den Detail-Lookup im Hintergrund. Browser-Cache hält das Ergebnis,
+  // damit es beim Click sofort da ist (statt 12-30s LINDAS-Wartezeit).
+  const prefetchedRef = useRef<Set<string>>(new Set());
+  function prefetchUid(uid: string | null) {
+    if (!uid) return;
+    if (prefetchedRef.current.has(uid)) return;
+    prefetchedRef.current.add(uid);
+    // Fire-and-forget — kein await, kein State
+    fetch(`/api/zefix/lookup?uid=${encodeURIComponent(uid)}`, {
+      cache: 'force-cache',
+    }).catch(() => {});
+  }
+
   const search = useCallback(async (q: string) => {
     if (q.trim().length < 3) {
       setHits([]);
