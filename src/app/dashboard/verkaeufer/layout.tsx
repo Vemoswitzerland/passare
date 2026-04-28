@@ -21,13 +21,35 @@ export default async function VerkaeuferLayout({ children }: { children: React.R
     .eq('id', userData.user.id)
     .maybeSingle();
 
-  if (!profile) redirect('/auth/login');
-  if (!profile.onboarding_completed_at) redirect('/onboarding');
+  // Profile-Reparatur statt Redirect-Loop: wer auf /dashboard/verkaeufer
+  // landet, ist eindeutig Verkäufer. Profile direkt setzen wenn nicht
+  // sauber — verhindert Onboarding-Loop endgültig.
+  if (!profile || !profile.onboarding_completed_at || (profile.rolle !== 'verkaeufer' && profile.rolle !== 'admin')) {
+    const { data: fixed } = await supabase
+      .from('profiles')
+      .upsert({
+        id: userData.user.id,
+        rolle: profile?.rolle === 'admin' ? 'admin' : 'verkaeufer',
+        full_name: profile?.full_name ?? userData.user.user_metadata?.full_name ?? '',
+        sprache: (profile as any)?.sprache ?? userData.user.user_metadata?.sprache ?? 'de',
+        onboarding_completed_at: new Date().toISOString(),
+      }, { onConflict: 'id' })
+      .select('full_name, rolle, onboarding_completed_at')
+      .maybeSingle();
 
-  const isAdmin = profile.rolle === 'admin';
-  if (profile.rolle !== 'verkaeufer' && !isAdmin) {
-    redirect('/dashboard');
+    // Käufer landen hier nicht — wir hätten sie via Smart-Redirect
+    // im /dashboard zu /dashboard/kaeufer geschickt
+    if (fixed) {
+      Object.assign(profile ?? {}, fixed);
+    }
   }
+
+  const finalProfile = profile ?? {
+    full_name: userData.user.user_metadata?.full_name ?? null,
+    rolle: 'verkaeufer',
+    onboarding_completed_at: new Date().toISOString(),
+  };
+  const isAdmin = finalProfile.rolle === 'admin';
 
   // Inserat & Counts laden — defensiv (Tabellen existieren ggf. noch nicht in DB)
   let inseratId: string | null = null;
@@ -93,7 +115,7 @@ export default async function VerkaeuferLayout({ children }: { children: React.R
 
   if (showTunnelShell) {
     return (
-      <TunnelShell email={userData.user.email ?? ''} fullName={profile.full_name}>
+      <TunnelShell email={userData.user.email ?? ''} fullName={finalProfile.full_name}>
         {children}
       </TunnelShell>
     );
@@ -102,7 +124,7 @@ export default async function VerkaeuferLayout({ children }: { children: React.R
   return (
     <VerkaeuferShell
       email={userData.user.email ?? ''}
-      fullName={profile.full_name}
+      fullName={finalProfile.full_name}
       isAdmin={isAdmin}
       inseratId={inseratId}
       inseratStatus={inseratStatus}

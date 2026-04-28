@@ -1,9 +1,20 @@
+// ════════════════════════════════════════════════════════════════════
+// /onboarding — KEIN WIZARD mehr.
+// ────────────────────────────────────────────────────────────────────
+// Der 3-Step "Verkaufst-du-oder-kaufst-du?"-Wizard ist abgeschafft.
+// Diese Page tut jetzt nur noch eines: Profile-Defaults setzen und
+// User zum richtigen Bereich weiterleiten.
+//
+// Logik:
+//   - Käufer-Indikatoren (intended_role=kaeufer ODER schon rolle=kaeufer)
+//     → Käufer-Tunnel /onboarding/kaeufer/tunnel
+//   - Verkäufer-Indikatoren (intended_role=verkaeufer ODER pre-reg-Cookies
+//     ODER schon rolle=verkaeufer ODER GAR NICHTS — Default)
+//     → Profile auf verkaeufer setzen + redirect zu /dashboard/verkaeufer/inserat/new
+// ════════════════════════════════════════════════════════════════════
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
-import { AuthShell } from '../auth/AuthShell';
-import { OnboardingWizard } from './OnboardingWizard';
 import { createClient } from '@/lib/supabase/server';
-import { KANTONE } from '../auth/constants';
 
 export const metadata = {
   title: 'Konto einrichten — passare',
@@ -17,65 +28,51 @@ export default async function OnboardingPage() {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('full_name, sprache, rolle, onboarding_completed_at')
+    .select('rolle, onboarding_completed_at')
     .eq('id', u.user.id)
     .maybeSingle();
 
-  if (profile?.onboarding_completed_at) redirect('/dashboard');
+  // Schon onboarded → smart-redirect je nach Rolle
+  if (profile?.onboarding_completed_at) {
+    if (profile.rolle === 'admin') redirect('/admin');
+    if (profile.rolle === 'kaeufer') redirect('/dashboard/kaeufer');
+    redirect('/dashboard/verkaeufer');
+  }
 
-  // ── Last-Resort-Fallback ────────────────────────────────────────
-  // Falls der User VOM Pre-Reg-Funnel kommt (Cookie noch da) ABER der
-  // Auth-Callback aus irgendeinem Grund nicht gegriffen hat, fangen
-  // wir das hier ab. So landet niemand mehr im 3-Step "Verkaufst du
-  // oder kaufst du?"-Wizard wenn er aus dem Verkaufs-Tunnel kommt.
   const cookieStore = await cookies();
   const hasPreRegCookie = !!cookieStore.get('pre_reg_draft')?.value;
   const hasIntentCookie = cookieStore.get('passare_intent_verkaeufer')?.value === '1';
-  if (hasPreRegCookie || hasIntentCookie) {
-    // Profile direkt auf verkaeufer setzen + onboarding fertig markieren
-    const fullName = u.user.user_metadata?.full_name ?? '';
-    await supabase
-      .from('profiles')
-      .upsert({
-        id: u.user.id,
-        rolle: 'verkaeufer',
-        full_name: fullName,
-        sprache: u.user.user_metadata?.sprache ?? 'de',
-        onboarding_completed_at: new Date().toISOString(),
-      }, { onConflict: 'id' });
-    redirect('/dashboard/verkaeufer/inserat/new?from=pre-reg');
-  }
-
-  // Käufer-Tunnel überspringt den 3-Step-Wizard und nutzt Konversations-Onboarding
   const intended = u.user.user_metadata?.intended_role;
-  if (intended === 'kaeufer' || profile?.rolle === 'kaeufer') {
+  const fullName = u.user.user_metadata?.full_name ?? '';
+  const sprache = u.user.user_metadata?.sprache ?? 'de';
+
+  // Käufer-Erkennung
+  const isKaeufer = intended === 'kaeufer' || profile?.rolle === 'kaeufer';
+
+  if (isKaeufer) {
+    // Profile als kaeufer markieren falls noch nicht — onboarding bleibt offen,
+    // weil der Käufer-Tunnel das setzt.
+    if (!profile) {
+      await supabase.from('profiles').upsert({
+        id: u.user.id, rolle: 'kaeufer', full_name: fullName, sprache,
+      }, { onConflict: 'id' });
+    }
     redirect('/onboarding/kaeufer/tunnel');
   }
-  if (intended === 'verkaeufer' || profile?.rolle === 'verkaeufer') {
-    // Verkäufer mit metadata aber ohne Cookie → Profile-Default + direkt zum Wizard
-    await supabase
-      .from('profiles')
-      .upsert({
-        id: u.user.id,
-        rolle: 'verkaeufer',
-        full_name: u.user.user_metadata?.full_name ?? '',
-        sprache: u.user.user_metadata?.sprache ?? 'de',
-        onboarding_completed_at: new Date().toISOString(),
-      }, { onConflict: 'id' });
-    redirect('/dashboard/verkaeufer/inserat/new');
-  }
 
-  return (
-    <AuthShell
-      overline="Schritt für Schritt"
-      title="Lass uns dein Konto einrichten."
-      intro="Drei kurze Schritte: Rolle wählen, Basis-Profil ausfüllen, bestätigen."
-    >
-      <OnboardingWizard
-        defaultName={profile?.full_name ?? ''}
-        defaultSprache={(profile?.sprache as 'de' | 'fr' | 'it' | 'en') ?? 'de'}
-        kantone={KANTONE}
-      />
-    </AuthShell>
-  );
+  // Default = Verkäufer (alle anderen Fälle: explicit verkaeufer ODER
+  // Pre-Reg-Cookies ODER nichts gesetzt)
+  await supabase.from('profiles').upsert({
+    id: u.user.id,
+    rolle: 'verkaeufer',
+    full_name: fullName,
+    sprache,
+    onboarding_completed_at: new Date().toISOString(),
+  }, { onConflict: 'id' });
+
+  // Wenn Pre-Reg-Cookies da → mit ?from=pre-reg (nutzt Cookie-Daten),
+  // sonst leeres Inserat
+  redirect(hasPreRegCookie || hasIntentCookie
+    ? '/dashboard/verkaeufer/inserat/new?from=pre-reg'
+    : '/dashboard/verkaeufer/inserat/new');
 }
