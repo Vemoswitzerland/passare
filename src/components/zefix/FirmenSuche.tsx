@@ -83,23 +83,35 @@ export function FirmenSuche({ onSelect, placeholder = 'Firma suchen (Name oder U
 
     setLoading(true);
     try {
-      const res = await fetch(`/api/zefix/search?q=${encodeURIComponent(q)}&limit=8`, {
+      const res = await fetch(`/api/zefix/search?q=${encodeURIComponent(q)}&limit=12`, {
         signal: ctrl.signal,
       });
+      // Wenn dieser Request abgebrochen wurde (User hat weitergetippt),
+      // KEIN State-Update — sonst überschreibt diese stale Antwort die
+      // gerade laufende neue Suche und User sieht "Keine Treffer" obwohl
+      // gerade neu gesucht wird.
+      if (ctrl.signal.aborted) return;
+
       if (!res.ok) {
         setHits([]);
+        setLoading(false);
         return;
       }
       const data = await res.json();
+      if (ctrl.signal.aborted) return;
       setHits(Array.isArray(data?.hits) ? data.hits : []);
       setActive(0);
-    } catch (err) {
-      if (!(err instanceof DOMException && err.name === 'AbortError')) {
-        console.error(err);
-        setHits([]);
-      }
-    } finally {
       setLoading(false);
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        // Stale request — NICHT loading auf false setzen
+        return;
+      }
+      console.error(err);
+      if (!ctrl.signal.aborted) {
+        setHits([]);
+        setLoading(false);
+      }
     }
   }, []);
 

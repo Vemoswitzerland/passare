@@ -226,11 +226,12 @@ async function searchViaLindas(names: string[], maxResults: number): Promise<Zef
   });
   const filterExpr = filterParts.join(' || ');
 
-  // Wir holen mehr als angefragt (max 60), damit Client-side-Score-Sort
+  // Wir holen mehr als angefragt (max 250), damit Client-side-Score-Sort
   // den besten Treffer auch finden kann wenn die generische Variant
-  // ("Vemo") sehr viele Hits hat. Ohne Höhung würde z.B. "Vemo Group GmbH"
-  // im LINDAS-Output abgeschnitten werden.
-  const fetchLimit = Math.min(60, Math.max(maxResults * 3, 40));
+  // ("Vemo", "Immobilien") sehr viele Hits hat. Ohne Höhung würde z.B.
+  // "Vemo Group GmbH" oder "Stratmore Immobilien GmbH" im LINDAS-Output
+  // abgeschnitten werden, weil viele Firmen das Token enthalten.
+  const fetchLimit = Math.min(250, Math.max(maxResults * 5, 60));
   const query = `
     PREFIX schema: <http://schema.org/>
     PREFIX locn: <http://www.w3.org/ns/locn#>
@@ -649,8 +650,6 @@ export async function searchByName(query: string, maxResults = 20): Promise<Zefi
     try {
       const restHits = await searchViaRest(variant, maxResults);
       if (restHits.length > 0) {
-        // Auch REST-Hits nach Match-Quality sortieren — REST liefert oft
-        // alphabetisch, was die exakte Firma in den Hintergrund schiebt.
         return restHits
           .map((h) => ({ ...h, _score: scoreHit(h.name, q, variants) }))
           .sort((a, b) => b._score - a._score)
@@ -662,14 +661,14 @@ export async function searchByName(query: string, maxResults = 20): Promise<Zefi
     }
   }
 
-  // 2. LINDAS in EINER Query mit OR-Filter über alle Variants
+  // 2. LINDAS — sequentiell um zu verhindern dass generische Token
+  // (z.B. "Immobilien") die spezifische Suche verdrängen.
+  // Phase A: Volle Query als CONTAINS — die Firma wird gefunden wenn
+  //          sie genau so im Handelsregister steht.
   try {
-    const lindasHits = await searchViaLindas(variants, maxResults);
-    if (lindasHits.length > 0) {
-      // Score-Sort: exakte/präfix-Matches kommen zuerst, "vemo group gmbh"
-      // schlägt damit z.B. "Vemo SA, administration..." obwohl beides
-      // den Substring "vemo" enthält.
-      return lindasHits
+    const exactHits = await searchViaLindas([q], Math.min(maxResults, 15));
+    if (exactHits.length > 0) {
+      return exactHits
         .map((h) => ({ ...h, _score: scoreHit(h.name, q, variants) }))
         .sort((a, b) => b._score - a._score)
         .slice(0, maxResults)
@@ -677,6 +676,45 @@ export async function searchByName(query: string, maxResults = 20): Promise<Zefi
     }
   } catch {
     // ignore
+  }
+
+  // Phase B: Variant ohne Rechtsform (zweite Variant = ohne GmbH/AG/etc.)
+  if (variants.length > 1) {
+    try {
+      const v2 = variants[1];
+      if (v2 && v2.toLowerCase() !== q.toLowerCase()) {
+        const stripHits = await searchViaLindas([v2], Math.min(maxResults, 15));
+        if (stripHits.length > 0) {
+          return stripHits
+            .map((h) => ({ ...h, _score: scoreHit(h.name, q, variants) }))
+            .sort((a, b) => b._score - a._score)
+            .slice(0, maxResults)
+            .map(({ _score, ...rest }) => rest);
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  // Phase C: Token-Fallback — alle Wörter in OR. Nur wenn vorherige
+  // Phasen 0 hits hatten. Hier hilft das hohe Limit von 200, damit der
+  // Score-Sort echte Matches finden kann auch wenn das Token-Wort
+  // (z.B. "Immobilien") sehr generisch ist.
+  if (variants.length > 1) {
+    try {
+      const tokenVariants = variants.slice(1); // ohne volle Query (schon in Phase A)
+      const tokenHits = await searchViaLindas(tokenVariants, 200);
+      if (tokenHits.length > 0) {
+        return tokenHits
+          .map((h) => ({ ...h, _score: scoreHit(h.name, q, variants) }))
+          .sort((a, b) => b._score - a._score)
+          .slice(0, maxResults)
+          .map(({ _score, ...rest }) => rest);
+      }
+    } catch {
+      // ignore
+    }
   }
   return [];
 }

@@ -56,6 +56,8 @@ export function FirmaOnboarding() {
   const [, startTransition] = useTransition();
   const [draft, setDraft] = useState<Draft>(EMPTY);
   const [valuationLoading, setValuationLoading] = useState(false);
+  const [enriching, setEnriching] = useState(false);
+  const [enrichStartedAt, setEnrichStartedAt] = useState<number | null>(null);
 
   // Resume aus Cookie
   useEffect(() => {
@@ -107,9 +109,21 @@ export function FirmaOnboarding() {
       .finally(() => setValuationLoading(false));
   }, [draft.step, draft.valuation, draft.branche_id, draft.umsatz, draft.ebitda, draft.mitarbeitende, draft.jahr]);
 
+  // Auto-Timeout für enriching: nach 12s erlauben wir Weiter trotzdem
+  useEffect(() => {
+    if (!enriching || !enrichStartedAt) return;
+    const remaining = Math.max(0, 12_000 - (Date.now() - enrichStartedAt));
+    const t = window.setTimeout(() => setEnriching(false), remaining);
+    return () => window.clearTimeout(t);
+  }, [enriching, enrichStartedAt]);
+
   // Step-Validation
   const canNext = (() => {
-    if (draft.step === 1) return Boolean(draft.zefix_uid || draft.firma_name);
+    if (draft.step === 1) {
+      // Wenn enriching noch läuft → erst warten (User wollte das so)
+      if (enriching) return false;
+      return Boolean(draft.zefix_uid || draft.firma_name);
+    }
     if (draft.step === 2) return Boolean(draft.branche_id && draft.kanton);
     if (draft.step === 3)
       return draft.umsatz != null && draft.umsatz > 0
@@ -125,7 +139,17 @@ export function FirmaOnboarding() {
       <ProgressBar step={draft.step} />
 
       <div>
-        {draft.step === 1 && <Step1Firma draft={draft} update={update} />}
+        {draft.step === 1 && (
+          <Step1Firma
+            draft={draft}
+            update={update}
+            enriching={enriching}
+            setEnriching={(v) => {
+              setEnriching(v);
+              if (v) setEnrichStartedAt(Date.now());
+            }}
+          />
+        )}
         {draft.step === 2 && <Step2Branche draft={draft} update={update} />}
         {draft.step === 3 && <Step3Finanzen draft={draft} update={update} />}
         {draft.step === 4 && (
@@ -215,8 +239,14 @@ function ProgressBar({ step }: { step: number }) {
 }
 
 /* ─────────── STEP 1: FIRMA ─────────── */
-function Step1Firma({ draft, update }: { draft: Draft; update: (p: Partial<Draft>) => void }) {
-  const [enriching, setEnriching] = useState(false);
+function Step1Firma({
+  draft, update, enriching, setEnriching,
+}: {
+  draft: Draft;
+  update: (p: Partial<Draft>) => void;
+  enriching: boolean;
+  setEnriching: (v: boolean) => void;
+}) {
   const [manual, setManual] = useState(false);
 
   /**
@@ -358,13 +388,44 @@ function Step1Firma({ draft, update }: { draft: Draft; update: (p: Partial<Draft
                 )}
               </p>
               <p className="text-caption text-success mt-2 inline-flex items-center gap-1">
-                <Check className="w-3 h-3" strokeWidth={2.5} /> Daten übernommen — du kannst weiter
+                <Check className="w-3 h-3" strokeWidth={2.5} />
+                {enriching ? 'Basisdaten übernommen' : 'Daten vollständig — du kannst weiter'}
               </p>
               {enriching && (
-                <p className="text-caption text-quiet mt-1.5 inline-flex items-center gap-1.5">
+                <p className="text-caption text-bronze-ink mt-1.5 inline-flex items-center gap-1.5">
                   <Loader2 className="w-3 h-3 animate-spin text-bronze" strokeWidth={1.5} />
-                  Wir holen im Hintergrund noch Branche & Gründungsjahr …
+                  Wir holen noch Branche & Gründungsjahr aus dem Handelsregister …
                 </p>
+              )}
+              {enriching === false && (draft.firma_rechtsform || draft.jahr || draft.branche_id) && (
+                <ul className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-caption">
+                  {draft.firma_rechtsform && (
+                    <li className="text-muted">
+                      <span className="text-quiet">Rechtsform:</span>{' '}
+                      <span className="text-ink font-medium">{draft.firma_rechtsform}</span>
+                    </li>
+                  )}
+                  {draft.jahr && (
+                    <li className="text-muted">
+                      <span className="text-quiet">Gegründet:</span>{' '}
+                      <span className="text-ink font-medium font-mono">{draft.jahr}</span>
+                    </li>
+                  )}
+                  {draft.kanton && (
+                    <li className="text-muted">
+                      <span className="text-quiet">Kanton:</span>{' '}
+                      <span className="text-ink font-medium">{draft.kanton}</span>
+                    </li>
+                  )}
+                  {draft.branche_id && (
+                    <li className="text-muted">
+                      <span className="text-quiet">Branche:</span>{' '}
+                      <span className="text-ink font-medium">
+                        {BRANCHEN_LIST.find((b) => b.id === draft.branche_id)?.label ?? '—'}
+                      </span>
+                    </li>
+                  )}
+                </ul>
               )}
             </div>
           </div>
@@ -387,6 +448,52 @@ function Step2Branche({ draft, update }: { draft: Draft; update: (p: Partial<Dra
           Wir haben Vorschläge aus deinen Firmendaten — du kannst alles anpassen.
         </p>
       </div>
+
+      {/* Zusammenfassung der bisher übernommenen Daten */}
+      {draft.firma_name && (
+        <div className="rounded-card bg-bronze/5 border border-bronze/30 p-5 max-w-xl mx-auto">
+          <div className="flex items-start gap-3 mb-3">
+            <div className="w-9 h-9 rounded-soft bg-bronze/15 flex items-center justify-center flex-shrink-0">
+              <Building2 className="w-4 h-4 text-bronze-ink" strokeWidth={1.5} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-body-sm text-navy font-medium truncate">{draft.firma_name}</p>
+              <p className="text-caption text-quiet font-mono mt-0.5">
+                {draft.zefix_uid && `${draft.zefix_uid}`}
+                {draft.firma_rechtsform && ` · ${draft.firma_rechtsform}`}
+              </p>
+            </div>
+          </div>
+          <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-caption pt-3 border-t border-bronze/20">
+            {draft.firma_sitz_gemeinde && (
+              <div>
+                <dt className="text-quiet">Sitz</dt>
+                <dd className="text-ink font-medium">{draft.firma_sitz_gemeinde}</dd>
+              </div>
+            )}
+            {draft.kanton && (
+              <div>
+                <dt className="text-quiet">Kanton</dt>
+                <dd className="text-ink font-medium">{draft.kanton}</dd>
+              </div>
+            )}
+            {draft.jahr && (
+              <div>
+                <dt className="text-quiet">Gegründet</dt>
+                <dd className="text-ink font-medium font-mono">{draft.jahr}</dd>
+              </div>
+            )}
+            {draft.branche_id && (
+              <div>
+                <dt className="text-quiet">Branche (Vorschlag)</dt>
+                <dd className="text-ink font-medium">
+                  {BRANCHEN_LIST.find((b) => b.id === draft.branche_id)?.label ?? '—'}
+                </dd>
+              </div>
+            )}
+          </dl>
+        </div>
+      )}
 
       <div className="space-y-8 max-w-xl mx-auto">
         <Field label="Branche">
@@ -492,18 +599,24 @@ function Step3Finanzen({ draft, update }: { draft: Draft; update: (p: Partial<Dr
           label={
             <span className="flex items-center justify-between">
               <span className="inline-flex items-center gap-1.5">
-                EBITDA
+                Jährlicher Gewinn (EBITDA)
                 <InfoPop>
-                  <strong className="block text-navy mb-1">EBITDA</strong>
-                  <span className="block text-muted">
-                    «Earnings Before Interest, Taxes, Depreciation & Amortization» — der
-                    operative Gewinn <strong>vor</strong> Zinsen, Steuern und Abschreibungen.
+                  <strong className="block text-navy mb-1.5">Was ist EBITDA?</strong>
+                  <span className="block text-ink">
+                    Das ist der jährliche Gewinn deiner Firma <strong>vor</strong> Steuern
+                    und Abschreibungen.
                   </span>
-                  <span className="block mt-2 text-quiet">
-                    Faustformel: Reingewinn + Zinsaufwand + Steuern + Abschreibungen.
+                  <span className="block mt-2.5 text-muted">
+                    Beispiel: Umsatz CHF 5 Mio. − alle Kosten (Löhne, Material, Miete, etc.)
+                    CHF 4.25 Mio. = <strong className="text-navy">EBITDA CHF 750'000</strong>.
+                  </span>
+                  <span className="block mt-2.5 text-quiet">
+                    💡 Diese Zahl bestimmt rund 90 % des Verkaufspreises — Käufer rechnen
+                    typisch mit dem 4- bis 7-fachen.
                   </span>
                   <span className="block mt-2 text-quiet italic">
-                    Käufer bewerten KMU primär als Vielfaches des EBITDA.
+                    Schau in deine Erfolgsrechnung: Reingewinn + Zinsen + Steuern +
+                    Abschreibungen = EBITDA.
                   </span>
                 </InfoPop>
               </span>
