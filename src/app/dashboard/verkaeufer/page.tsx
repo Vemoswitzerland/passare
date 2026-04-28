@@ -1,4 +1,6 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
+import { cookies } from 'next/headers';
 import { Eye, MessageSquare, FileSignature, ArrowRight, Sparkles, FileText, Building2, Check, Plus } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { hasTable } from '@/lib/db/has-table';
@@ -6,10 +8,42 @@ import { formatCHFShort } from '@/lib/valuation';
 
 export const metadata = { title: 'Übersicht — passare Verkäufer' };
 
-export default async function VerkaeuferDashboard() {
+type Props = { searchParams: Promise<{ paid?: string; tab?: string }> };
+
+export default async function VerkaeuferDashboard({ searchParams }: Props) {
   const supabase = await createClient();
   const { data: userData } = await supabase.auth.getUser();
   if (!userData.user) return null;
+  const sp = await searchParams;
+
+  // Smart-Routing: wenn der User vom Pre-Reg-Funnel kommt (Cookie noch da
+  // ODER bereits ein nicht-bezahltes Entwurf-Inserat existiert), schicken
+  // wir ihn direkt weiter zum Inserat-Wizard. Vermeidet das "Ich komme
+  // aufs Dashboard und weiss nicht was zu tun ist"-Problem.
+  // ?tab=overview lässt User explizit das Dashboard sehen.
+  if (sp.tab !== 'overview' && sp.paid !== '1') {
+    const cookieStore = await cookies();
+    const hasPreRegCookie = !!cookieStore.get('pre_reg_draft')?.value;
+
+    if (hasPreRegCookie) {
+      redirect('/dashboard/verkaeufer/inserat/new?from=pre-reg');
+    }
+
+    if (await hasTable('inserate')) {
+      const { data: existing } = await supabase
+        .from('inserate')
+        .select('id, status, paid_at, titel')
+        .eq('verkaeufer_id', userData.user.id)
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      // Falls Entwurf existiert und noch nicht bezahlt → zum Edit
+      if (existing && existing.status === 'entwurf' && !existing.paid_at) {
+        redirect(`/dashboard/verkaeufer/inserat/${existing.id}/edit`);
+      }
+    }
+  }
 
   let inserat: any = null;
   let viewsLast30Days = 0;
