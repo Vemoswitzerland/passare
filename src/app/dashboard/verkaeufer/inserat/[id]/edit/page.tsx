@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { InseratWizard } from '../../components/InseratWizard';
+import { applySmartDefaults } from '@/lib/inserat-smart-defaults';
 
 export const metadata = { title: 'Inserat bearbeiten — passare' };
 
@@ -25,6 +26,62 @@ export default async function EditInseratPage({ params, searchParams }: Props) {
 
   if (!row) notFound();
   if (row.verkaeufer_id !== userData.user.id) notFound();
+
+  // ── SMART DEFAULTS ──────────────────────────────────────────────
+  // Wenn der User aus dem Pre-Reg-Funnel kommt und Felder noch leer
+  // sind, schlagen wir aus Branche/Kanton/Eckdaten/Bewertung intelligente
+  // Vorschläge vor — Titel, Teaser, Beschreibung, Sales-Points, Kaufpreis
+  // werden ausgefüllt und in der DB persistiert. User kann jederzeit
+  // editieren oder überschreiben.
+  const ctx = {
+    branche: row.branche,
+    kanton: row.kanton,
+    gruendungsjahr: row.gruendungsjahr,
+    mitarbeitende: row.mitarbeitende,
+    umsatz: row.umsatz_chf ? Number(row.umsatz_chf) : null,
+    ebitda: row.ebitda_chf ? Number(row.ebitda_chf) : null,
+    estimated_value_mid: row.estimated_value_mid ? Number(row.estimated_value_mid) : null,
+    firma_rechtsform: row.firma_rechtsform,
+  };
+
+  const smartPatch = applySmartDefaults(
+    {
+      titel: row.titel,
+      teaser: row.teaser,
+      beschreibung: row.beschreibung,
+      sales_points: row.sales_points,
+      kaufpreis_chf: row.kaufpreis_chf,
+      kaufpreis_min_chf: row.kaufpreis_min_chf,
+      uebergabe_grund: row.grund,
+      uebergabe_zeitpunkt: row.uebergabe_zeitpunkt,
+      finanzierung: row.finanzierung,
+      immobilien: row.immobilien,
+    },
+    ctx,
+  );
+
+  // Patch in DB persistieren (mit echten Spaltennamen)
+  if (Object.keys(smartPatch).length > 0) {
+    const dbPatch: Record<string, any> = {};
+    if ('titel' in smartPatch) dbPatch.titel = smartPatch.titel;
+    if ('teaser' in smartPatch) dbPatch.teaser = smartPatch.teaser;
+    if ('beschreibung' in smartPatch) dbPatch.beschreibung = smartPatch.beschreibung;
+    if ('sales_points' in smartPatch) dbPatch.sales_points = smartPatch.sales_points;
+    if ('kaufpreis_chf' in smartPatch) dbPatch.kaufpreis_chf = smartPatch.kaufpreis_chf;
+    if ('uebergabe_grund' in smartPatch) dbPatch.grund = smartPatch.uebergabe_grund;
+    if ('uebergabe_zeitpunkt' in smartPatch) dbPatch.uebergabe_zeitpunkt = smartPatch.uebergabe_zeitpunkt;
+    if ('finanzierung' in smartPatch) dbPatch.finanzierung = smartPatch.finanzierung;
+    if ('immobilien' in smartPatch) dbPatch.immobilien = smartPatch.immobilien;
+
+    try {
+      await supabase.from('inserate').update(dbPatch).eq('id', row.id);
+      Object.assign(row, dbPatch);
+      // Spaltennamen-Mapping: 'grund' in row → uebergabe_grund im UI
+      if (dbPatch.grund) row.grund = dbPatch.grund;
+    } catch (e) {
+      console.warn('[smart-defaults] update failed:', e);
+    }
+  }
 
   // DB-Spaltennamen → Wizard-Type (Frontend nutzt branche_id/jahr/uebergabe_grund,
   // DB hat branche/gruendungsjahr/grund)

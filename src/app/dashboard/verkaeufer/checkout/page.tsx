@@ -1,16 +1,10 @@
 // ════════════════════════════════════════════════════════════════════
-// Fake-Stripe-Checkout-Seite (DEMO MODE)
+// Demo-Checkout-Seite (DEMO MODE)
 // ────────────────────────────────────────────────────────────────────
-// Zeigt eine UI die wie Stripe Checkout aussieht, ist aber explizit
-// als DEMO markiert. Nach Klick "Bezahlen" wird das gewählte Paket +
-// Powerups als bezahlt markiert und der User landet auf dem
-// Inserat-Confirmation-Screen.
-//
-// Wenn STRIPE_SECRET_KEY in ENV gesetzt ist, würden wir hier eine
-// echte Checkout-Session erstellen. V1 = Mock.
+// Vereinfacht: kein Form, kein doppelter Header. User sieht
+// klar was er kauft, klickt einmal Bezahlen, fertig.
 // ════════════════════════════════════════════════════════════════════
 import { redirect } from 'next/navigation';
-import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { Container } from '@/components/ui/container';
 import { CheckoutForm } from './CheckoutForm';
@@ -25,7 +19,7 @@ type Props = {
   searchParams: Promise<{
     inserat?: string;
     paket?: string;
-    powerups?: string; // CSV von powerup_ids
+    powerups?: string;
   }>;
 };
 
@@ -51,105 +45,73 @@ export default async function CheckoutPage({ searchParams }: Props) {
   const total = Math.round((subtotal + mwst) * 100) / 100;
 
   return (
-    <main className="min-h-screen bg-cream">
-      {/* DEMO-Banner */}
-      <div className="bg-warn/10 border-b border-warn/30">
-        <Container>
-          <p className="text-center text-caption text-warn py-2 font-mono uppercase tracking-widest">
-            ⚠ Demo-Modus · keine echte Zahlung · alles wird sofort als bezahlt markiert
-          </p>
-        </Container>
-      </div>
+    <Container>
+      <div className="max-w-2xl mx-auto py-12 md:py-20">
+        <p className="overline text-bronze-ink mb-3 text-center">Bezahlung</p>
+        <h1 className="font-serif text-display-md text-navy font-light text-center tracking-tight mb-2">
+          CHF {total.toFixed(2).replace(/\.00$/, '').replace(/,/g, "'")}
+        </h1>
+        <p className="text-body text-muted text-center mb-12">
+          Einmalig · {paket.label}-Paket {selectedPowerups.length > 0 && `+ ${selectedPowerups.length} Powerup${selectedPowerups.length === 1 ? '' : 's'}`}
+        </p>
 
-      <header className="border-b border-stone bg-paper">
-        <Container>
-          <div className="flex items-center justify-between h-16">
-            <Link href="/" className="font-serif text-2xl text-navy tracking-tight">
-              passare<span className="text-bronze">.</span>
-            </Link>
-            <span className="font-mono text-caption text-quiet uppercase tracking-widest">
-              Sichere Zahlung
-            </span>
-          </div>
-        </Container>
-      </header>
-
-      <Container>
-        <div className="grid md:grid-cols-[1fr_400px] gap-8 lg:gap-12 py-10 md:py-14">
-          {/* ── Linke Spalte: Stripe-Style-Formular ── */}
-          <div>
-            <p className="overline text-bronze-ink mb-3">Inserat-Paket</p>
-            <h1 className="font-serif text-display-sm text-navy font-light mb-2">
-              CHF {total.toFixed(2).replace(/,/g, "'")}
-            </h1>
-            <p className="text-body text-muted mb-8">
-              Einmalige Zahlung · {paket.label}-Paket
-            </p>
-
-            <CheckoutForm
-              inseratId={inseratId}
-              paketId={paket.id}
-              powerupIds={powerupIds}
-              total={total}
-            />
-          </div>
-
-          {/* ── Rechte Spalte: Order-Summary ── */}
-          <aside className="bg-paper border border-stone rounded-card p-6 h-fit md:sticky md:top-8">
-            <p className="overline text-bronze-ink mb-4">Bestellübersicht</p>
-
-            <div className="flex items-start justify-between mb-4 pb-4 border-b border-stone">
-              <div>
-                <p className="text-body-sm text-navy font-medium">Inserat {paket.label}</p>
-                <p className="text-caption text-quiet mt-0.5">
-                  {paket.laufzeitMonate ? `${paket.laufzeitMonate} Monate` : 'Bis zum Verkauf'}
-                </p>
-              </div>
-              <p className="text-body-sm font-mono text-ink">
-                CHF {paket.preis}
+        {/* ── Bestellübersicht (sauber, nicht gequetscht) ── */}
+        <div className="bg-paper border border-stone rounded-card p-6 md:p-8 mb-8">
+          <div className="flex items-start justify-between pb-5 border-b border-stone">
+            <div>
+              <p className="text-body text-navy font-medium">Inserat {paket.label}</p>
+              <p className="text-caption text-quiet mt-1">
+                {paket.laufzeitMonate ? `${paket.laufzeitMonate} Monate` : 'Aktiv bis zum Verkauf'}
               </p>
             </div>
-
-            {selectedPowerups.length > 0 && (
-              <>
-                <p className="text-caption text-quiet mb-3 mt-4">Powerups</p>
-                {selectedPowerups.map((pu) => (
-                  <div key={pu.id} className="flex items-start justify-between mb-2.5">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-body-sm text-ink truncate">{pu.label}</p>
-                      <p className="text-caption text-quiet">{pu.einheit}</p>
-                    </div>
-                    <p className="text-body-sm font-mono text-ink ml-4">
-                      CHF {pu.preis}
-                    </p>
-                  </div>
-                ))}
-                <div className="border-t border-stone mt-4 pt-3" />
-              </>
-            )}
-
-            <div className="space-y-1.5">
-              <div className="flex justify-between text-body-sm text-muted">
-                <span>Zwischensumme</span>
-                <span className="font-mono">CHF {subtotal.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between text-body-sm text-muted">
-                <span>MwSt 8.1 %</span>
-                <span className="font-mono">CHF {mwst.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between text-body text-navy font-medium pt-2 border-t border-stone mt-2">
-                <span>Gesamt</span>
-                <span className="font-mono">CHF {total.toFixed(2)}</span>
-              </div>
-            </div>
-
-            <p className="text-caption text-quiet mt-6 leading-relaxed">
-              Wir halten dein Inserat aktiv bis zum Verkauf. Keine automatische
-              Verlängerung — du entscheidest selbst.
+            <p className="text-body font-mono text-ink">
+              CHF {paket.preis}
             </p>
-          </aside>
+          </div>
+
+          {selectedPowerups.length > 0 && (
+            <div className="py-5 border-b border-stone space-y-3">
+              {selectedPowerups.map((pu) => (
+                <div key={pu.id} className="flex items-start justify-between">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-body-sm text-ink">{pu.label}</p>
+                    <p className="text-caption text-quiet">{pu.einheit}</p>
+                  </div>
+                  <p className="text-body-sm font-mono text-ink ml-4">
+                    CHF {pu.preis}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="pt-5 space-y-2">
+            <div className="flex justify-between text-body-sm text-muted">
+              <span>Zwischensumme</span>
+              <span className="font-mono">CHF {subtotal.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between text-body-sm text-muted">
+              <span>MwSt 8.1 %</span>
+              <span className="font-mono">CHF {mwst.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between text-body-lg text-navy font-medium pt-3 border-t border-stone mt-3">
+              <span>Gesamt</span>
+              <span className="font-mono">CHF {total.toFixed(2).replace(/,/g, "'")}</span>
+            </div>
+          </div>
         </div>
-      </Container>
-    </main>
+
+        <CheckoutForm
+          inseratId={inseratId}
+          paketId={paket.id}
+          powerupIds={powerupIds}
+          total={total}
+        />
+
+        <p className="text-caption text-quiet text-center mt-6 leading-relaxed">
+          Inserat bleibt aktiv bis zum Verkauf · 0 % Erfolgsprovision · Schweizer Datenschutz
+        </p>
+      </div>
+    </Container>
   );
 }

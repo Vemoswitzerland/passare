@@ -837,8 +837,8 @@ function Step3Cover({
   return (
     <div className="space-y-8 animate-fade-up">
       <div>
-        <h2 className="font-serif text-display-sm text-navy font-light mb-2">Cover-Bild</h2>
-        <p className="text-body text-muted">Wähle ein Stockfoto zur Branche oder lade ein eigenes Bild hoch.</p>
+        <h2 className="font-serif text-display-sm text-navy font-light mb-2">Titelbild wählen</h2>
+        <p className="text-body text-muted">Wähle ein passendes Bild zur Branche oder lade ein eigenes hoch.</p>
       </div>
 
       <div className="inline-flex bg-stone/40 rounded-soft p-1">
@@ -851,7 +851,7 @@ function Step3Cover({
           )}
         >
           <ImageIcon className="w-4 h-4 inline mr-2" strokeWidth={1.5} />
-          Stockfoto wählen
+          Aus Auswahl wählen
         </button>
         <button
           type="button"
@@ -1099,189 +1099,266 @@ function Step5Paket({
   const mwst = Math.round(subtotal * 0.081 * 100) / 100;
   const total = Math.round((subtotal + mwst) * 100) / 100;
 
+  // Apple-Funnel: 3 Sub-Frames
+  // 1 = Paket wählen · 2 = Powerups · 3 = Zusammenfassung
+  const [subFrame, setSubFrame] = useState<1 | 2 | 3>(1);
+
   return (
-    <div className="space-y-10 animate-fade-up">
-      <div>
-        <h2 className="font-serif text-display-sm text-navy font-light mb-2">Paket wählen</h2>
-        <p className="text-body text-muted">
-          Wir haben dir basierend auf deinem Verkaufspreis das passende Paket vorgeschlagen.
-          Einmalige Gebühr · Pauschalpreis · alle Preise zzgl. 8.1 % MwSt.
-        </p>
+    <div className="animate-fade-up">
+      {/* Sub-Frame Indicator (Apple-style 3 dots) */}
+      <div className="flex items-center justify-center gap-2 mb-10">
+        {[1, 2, 3].map((n) => (
+          <div
+            key={n}
+            className={cn(
+              'h-1.5 rounded-pill transition-all',
+              subFrame === n ? 'w-8 bg-bronze' : subFrame > n ? 'w-1.5 bg-bronze/60' : 'w-1.5 bg-stone',
+            )}
+          />
+        ))}
       </div>
 
-      {/* Smart-Empfehlung Hint */}
-      {verkaufswert && (
-        <div className="rounded-card bg-bronze/5 border border-bronze/30 p-4 flex items-start gap-3">
-          <Sparkles className="w-5 h-5 text-bronze flex-shrink-0 mt-0.5" strokeWidth={1.5} />
-          <p className="text-body-sm text-navy">
-            <strong>Empfehlung für dich:</strong> Bei einem Verkaufswert von ca.{' '}
-            <span className="font-mono">CHF {(verkaufswert / 1000).toFixed(0)}K</span>{' '}
-            passt das <strong className="text-bronze-ink">{paket.label}-Paket</strong> am besten.
-          </p>
+      {/* ── FRAME 1: Paket wählen ──────────────────────────────── */}
+      {subFrame === 1 && (
+        <div className="space-y-10 animate-fade-up">
+          <div className="text-center">
+            <p className="overline text-bronze-ink mb-3">Schritt 1 von 3</p>
+            <h2 className="font-serif text-display-md text-navy font-light tracking-tight mb-3">
+              Welches Paket passt zu dir?
+            </h2>
+            <p className="text-body-lg text-muted max-w-prose mx-auto">
+              {verkaufswert
+                ? <>Bei einem Verkaufswert von <span className="font-mono text-navy">CHF {(verkaufswert / 1000).toFixed(0)}K</span> empfehlen wir das <strong className="text-bronze-ink">{NEW_PAKETE.find(p => p.id === empfohlenId)?.label}-Paket</strong>.</>
+                : 'Wir haben für jeden Verkaufswert das passende Paket — pauschal, ohne Folgekosten.'}
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5 max-w-6xl mx-auto">
+            {NEW_PAKETE.map((p) => {
+              const isSelected = selectedPaket === p.id;
+              const isRecommended = empfohlenId === p.id;
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => setSelectedPaket(p.id)}
+                  className={cn(
+                    'text-left rounded-card border-2 p-6 flex flex-col relative transition-all',
+                    isSelected
+                      ? 'border-bronze shadow-lift bg-paper -translate-y-1'
+                      : 'border-stone bg-paper hover:border-bronze/40 hover:-translate-y-0.5',
+                  )}
+                >
+                  {isRecommended && (
+                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 inline-flex items-center px-3 py-0.5 rounded-pill bg-bronze text-cream text-caption font-medium whitespace-nowrap">
+                      Für dich empfohlen
+                    </span>
+                  )}
+                  {p.highlight && !isRecommended && (
+                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 inline-flex items-center px-3 py-0.5 rounded-pill bg-navy text-cream text-caption font-medium">
+                      Beliebt
+                    </span>
+                  )}
+                  <p className="overline text-quiet mb-2">{p.label}</p>
+                  <p className="font-serif text-[2.5rem] text-navy font-light font-tabular leading-none mb-1">
+                    CHF {p.preis}
+                  </p>
+                  <p className="text-caption text-quiet mb-5">
+                    Pauschalpreis · {p.laufzeitMonate ? `${p.laufzeitMonate} Monate` : 'aktiv bis Verkauf'}
+                  </p>
+                  <ul className="space-y-2 mb-5 flex-1">
+                    {p.features.map((f) => (
+                      <li key={f} className="text-body-sm text-muted flex items-start gap-2 leading-snug">
+                        <Check className="w-3.5 h-3.5 text-bronze flex-shrink-0 mt-1" strokeWidth={2} />
+                        {f}
+                      </li>
+                    ))}
+                  </ul>
+                  {isSelected && (
+                    <div className="inline-flex items-center gap-1.5 text-caption text-bronze-ink font-medium">
+                      <Check className="w-3.5 h-3.5" strokeWidth={2.5} />
+                      Ausgewählt
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="flex justify-center pt-4">
+            <button
+              type="button"
+              onClick={() => setSubFrame(2)}
+              className="inline-flex items-center gap-2 px-8 py-4 rounded-soft text-body font-medium bg-navy text-cream hover:bg-ink shadow-card hover:shadow-lift hover:-translate-y-px transition-all"
+            >
+              Weiter zu den Powerups →
+            </button>
+          </div>
         </div>
       )}
 
-      {/* Paket-Cards */}
-      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {NEW_PAKETE.map((p) => {
-          const isSelected = selectedPaket === p.id;
-          const isRecommended = empfohlenId === p.id;
-          const cmDiff = getCompanymarketDifference(p.preis, p.preisRefCompanymarket);
-          return (
-            <button
-              key={p.id}
-              type="button"
-              onClick={() => setSelectedPaket(p.id)}
-              className={cn(
-                'text-left rounded-card border-2 p-5 flex flex-col relative transition-all',
-                isSelected
-                  ? 'border-bronze shadow-lift bg-paper'
-                  : 'border-stone bg-paper hover:border-bronze/40',
-              )}
-            >
-              {isRecommended && (
-                <span className="absolute -top-3 left-4 inline-flex items-center px-2.5 py-0.5 rounded-pill bg-bronze text-cream text-caption font-medium">
-                  Empfohlen
-                </span>
-              )}
-              {p.highlight && !isRecommended && (
-                <span className="absolute -top-3 left-4 inline-flex items-center px-2.5 py-0.5 rounded-pill bg-navy text-cream text-caption font-medium">
-                  Beliebt
-                </span>
-              )}
-              <p className="overline text-quiet mb-1">Inserat {p.label}</p>
-              <p className="font-serif text-[2rem] text-navy font-light font-tabular leading-none mb-1">
-                CHF {p.preis}
-              </p>
-              <p className="text-caption text-quiet font-mono mb-1">
-                {p.laufzeitMonate ? `${p.laufzeitMonate} Monate` : 'Bis Verkauf'}
-              </p>
-              {cmDiff && (
-                <p className="text-caption text-success leading-tight mb-4">
-                  {cmDiff}
-                </p>
-              )}
-              {!cmDiff && <div className="mb-4" />}
-              <ul className="space-y-1.5 mb-2 flex-1">
-                {p.features.slice(0, 5).map((f) => (
-                  <li key={f} className="text-caption text-muted flex items-start gap-1.5 leading-snug">
-                    <Check className="w-3 h-3 text-bronze flex-shrink-0 mt-1" strokeWidth={2} />
-                    {f}
-                  </li>
-                ))}
-                {p.features.length > 5 && (
-                  <li className="text-caption text-quiet italic ml-4">
-                    + {p.features.length - 5} weitere
-                  </li>
-                )}
-              </ul>
-              {isSelected && (
-                <div className="mt-3 inline-flex items-center gap-1.5 text-caption text-bronze-ink font-medium">
-                  <Check className="w-3.5 h-3.5" strokeWidth={2} />
-                  Ausgewählt
-                </div>
-              )}
-            </button>
-          );
-        })}
-      </div>
+      {/* ── FRAME 2: Powerups dazubuchen ───────────────────────── */}
+      {subFrame === 2 && (
+        <div className="space-y-10 animate-fade-up">
+          <div className="text-center">
+            <p className="overline text-bronze-ink mb-3">Schritt 2 von 3</p>
+            <h2 className="font-serif text-display-md text-navy font-light tracking-tight mb-3">
+              Mehr Reichweite gefällig?
+            </h2>
+            <p className="text-body-lg text-muted max-w-prose mx-auto">
+              Optional: einzeln dazubuchbar. Du kannst Powerups auch später jederzeit hinzufügen.
+            </p>
+          </div>
 
-      {/* Powerups-Marketplace */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="font-serif text-head-sm text-navy font-light">
-            Powerups dazubuchen <span className="text-quiet font-sans text-body-sm">(optional)</span>
-          </h3>
-          {selectedPowerups.size > 0 && (
-            <span className="text-caption text-bronze-ink font-mono">
-              {selectedPowerups.size} ausgewählt
-            </span>
-          )}
-        </div>
-
-        {(['sichtbarkeit', 'reichweite', 'tools', 'service'] as const).map((kat) => {
-          const items = NEW_POWERUPS.filter((p) => p.kategorie === kat);
-          if (!items.length) return null;
-          const titel = {
-            sichtbarkeit: '🚀 Sichtbarkeit',
-            reichweite: '📡 Reichweite',
-            tools: '🛠 Tools (KI-generiert)',
-            service: '🤝 Service',
-          }[kat];
-          return (
-            <div key={kat}>
-              <p className="overline text-bronze-ink mb-2">{titel}</p>
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-2">
-                {items.map((pu) => {
-                  const isSelected = selectedPowerups.has(pu.id);
-                  const cmDiff = getCompanymarketDifference(pu.preis, pu.preisRefCompanymarket);
-                  return (
-                    <button
-                      key={pu.id}
-                      type="button"
-                      onClick={() => togglePowerup(pu.id)}
-                      className={cn(
-                        'text-left p-3.5 rounded-soft border transition-all',
-                        isSelected
-                          ? 'border-bronze bg-bronze/5'
-                          : 'border-stone bg-paper hover:border-bronze/40',
-                      )}
-                    >
-                      <div className="flex items-start justify-between gap-2 mb-1">
-                        <p className="text-body-sm text-navy font-medium">{pu.label}</p>
-                        <p className="text-body-sm font-mono text-ink whitespace-nowrap">
-                          CHF {pu.preis}
-                        </p>
-                      </div>
-                      <p className="text-caption text-quiet leading-snug mb-1">{pu.beschreibung}</p>
-                      <div className="flex items-center justify-between">
-                        <span className="text-caption text-quiet font-mono">{pu.einheit}</span>
-                        {cmDiff && (
-                          <span className="text-caption text-success">
-                            {cmDiff.replace('Bei Companymarket CHF ', '↓ CM ')}
-                          </span>
+          {(['sichtbarkeit', 'reichweite', 'tools', 'service'] as const).map((kat) => {
+            const items = NEW_POWERUPS.filter((p) => p.kategorie === kat);
+            if (!items.length) return null;
+            const titel = {
+              sichtbarkeit: 'Sichtbarkeit',
+              reichweite: 'Reichweite',
+              tools: 'Tools',
+              service: 'Service',
+            }[kat];
+            return (
+              <div key={kat} className="max-w-5xl mx-auto">
+                <h3 className="font-serif text-head-md text-navy font-light mb-4">{titel}</h3>
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {items.map((pu) => {
+                    const isSelected = selectedPowerups.has(pu.id);
+                    return (
+                      <button
+                        key={pu.id}
+                        type="button"
+                        onClick={() => togglePowerup(pu.id)}
+                        className={cn(
+                          'text-left p-5 rounded-card border-2 transition-all',
+                          isSelected
+                            ? 'border-bronze bg-bronze/5 shadow-subtle'
+                            : 'border-stone bg-paper hover:border-bronze/40',
                         )}
-                      </div>
-                      {isSelected && (
-                        <div className="mt-2 inline-flex items-center gap-1 text-caption text-bronze-ink">
-                          <Check className="w-3 h-3" strokeWidth={2} />
-                          Hinzugefügt
+                      >
+                        <div className="flex items-start justify-between gap-3 mb-2">
+                          <p className="text-body text-navy font-medium leading-tight">{pu.label}</p>
+                          <p className="text-body font-mono text-navy whitespace-nowrap">
+                            CHF {pu.preis}
+                          </p>
                         </div>
-                      )}
-                    </button>
-                  );
-                })}
+                        <p className="text-body-sm text-muted leading-relaxed mb-2">{pu.beschreibung}</p>
+                        <p className="text-caption text-quiet">{pu.einheit}</p>
+                        {isSelected && (
+                          <div className="mt-3 inline-flex items-center gap-1.5 text-caption text-bronze-ink font-medium">
+                            <Check className="w-3 h-3" strokeWidth={2.5} />
+                            Hinzugefügt
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+
+          <div className="flex items-center justify-between max-w-5xl mx-auto pt-6">
+            <button
+              type="button"
+              onClick={() => setSubFrame(1)}
+              className="text-body-sm text-muted hover:text-navy transition-colors"
+            >
+              ← Zurück
+            </button>
+            <button
+              type="button"
+              onClick={() => setSubFrame(3)}
+              className="inline-flex items-center gap-2 px-8 py-4 rounded-soft text-body font-medium bg-navy text-cream hover:bg-ink shadow-card hover:shadow-lift hover:-translate-y-px transition-all"
+            >
+              {selectedPowerups.size > 0 ? `Mit ${selectedPowerups.size} Powerup${selectedPowerups.size === 1 ? '' : 's'} weiter` : 'Ohne Powerups weiter'} →
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── FRAME 3: Zusammenfassung ───────────────────────────── */}
+      {subFrame === 3 && (
+        <div className="space-y-8 animate-fade-up max-w-2xl mx-auto">
+          <div className="text-center">
+            <p className="overline text-bronze-ink mb-3">Schritt 3 von 3</p>
+            <h2 className="font-serif text-display-md text-navy font-light tracking-tight mb-3">
+              Alles bereit?
+            </h2>
+            <p className="text-body-lg text-muted">Das ist deine Bestellung — kurzer Check, dann zur Zahlung.</p>
+          </div>
+
+          <div className="bg-paper border border-stone rounded-card p-6 md:p-8">
+            {/* Paket-Block */}
+            <div className="flex items-start justify-between pb-5 border-b border-stone">
+              <div>
+                <p className="text-caption text-quiet mb-1">Paket</p>
+                <p className="text-body-lg text-navy font-medium">Inserat {paket.label}</p>
+                <p className="text-caption text-quiet mt-1">
+                  {paket.laufzeitMonate ? `${paket.laufzeitMonate} Monate` : 'Aktiv bis zum Verkauf'}
+                </p>
+              </div>
+              <p className="text-body-lg font-mono text-navy">CHF {paket.preis}</p>
+            </div>
+
+            {/* Powerups-Block */}
+            {selectedPowerups.size > 0 && (
+              <div className="py-5 border-b border-stone space-y-3">
+                <p className="text-caption text-quiet">Powerups</p>
+                {NEW_POWERUPS.filter((pu) => selectedPowerups.has(pu.id)).map((pu) => (
+                  <div key={pu.id} className="flex items-start justify-between">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-body text-ink">{pu.label}</p>
+                      <p className="text-caption text-quiet">{pu.einheit}</p>
+                    </div>
+                    <p className="text-body font-mono text-ink ml-4">CHF {pu.preis}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Total */}
+            <div className="pt-5 space-y-2">
+              <div className="flex justify-between text-body-sm text-muted">
+                <span>Zwischensumme</span>
+                <span className="font-mono">CHF {subtotal.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-body-sm text-muted">
+                <span>MwSt 8.1 %</span>
+                <span className="font-mono">CHF {mwst.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between items-baseline pt-3 border-t border-stone mt-3">
+                <span className="text-body text-navy font-medium">Gesamt</span>
+                <span className="font-serif text-[2rem] text-navy font-light font-tabular">
+                  CHF {total.toFixed(2).replace(/\.00$/, '').replace(/,/g, "'")}
+                </span>
               </div>
             </div>
-          );
-        })}
-      </div>
-
-      {/* Sticky Order-Summary + Checkout-Button */}
-      <div className="rounded-card bg-paper border border-stone p-5 md:p-6">
-        <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
-          <div>
-            <p className="text-body-sm text-muted">
-              <strong className="text-navy">{paket.label}-Paket</strong>
-              {selectedPowerups.size > 0 && ` + ${selectedPowerups.size} Powerup${selectedPowerups.size === 1 ? '' : 's'}`}
-            </p>
-            <p className="text-caption text-quiet">inkl. 8.1 % MwSt.</p>
           </div>
-          <p className="font-serif text-[2rem] text-navy font-light font-tabular leading-none">
-            CHF {total.toFixed(2).replace(/\.00$/, '')}
+
+          <div className="flex flex-col items-center gap-4 pt-2">
+            <button
+              type="button"
+              onClick={goToCheckout}
+              className="w-full inline-flex items-center justify-center gap-2 px-8 py-4 rounded-soft text-body font-medium bg-navy text-cream hover:bg-ink shadow-card hover:shadow-lift hover:-translate-y-px transition-all"
+            >
+              Weiter zur Zahlung →
+            </button>
+            <button
+              type="button"
+              onClick={() => setSubFrame(2)}
+              className="text-body-sm text-muted hover:text-navy transition-colors"
+            >
+              ← Powerups anpassen
+            </button>
+          </div>
+
+          <p className="text-caption text-quiet text-center pt-2">
+            Pauschalpreis · 0 % Erfolgsprovision · Schweizer Datenschutz
           </p>
         </div>
-        <button
-          type="button"
-          onClick={goToCheckout}
-          className="w-full inline-flex items-center justify-center gap-2 px-6 py-4 rounded-soft text-body font-medium bg-navy text-cream hover:bg-ink shadow-card hover:shadow-lift hover:-translate-y-px transition-all"
-        >
-          Weiter zur Zahlung →
-        </button>
-        <p className="text-caption text-quiet text-center mt-3">
-          Sichere Zahlung · Schweizer Datenschutz · Pauschalpreis
-        </p>
-      </div>
+      )}
     </div>
   );
 }
