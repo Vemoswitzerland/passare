@@ -184,17 +184,6 @@ export function FirmenSuche({ onSelect, placeholder = 'Firma suchen (Name oder U
           aria-expanded={open}
           autoComplete="off"
         />
-        {loading && (
-          <span
-            className="absolute right-4 top-1/2 -translate-y-1/2 inline-flex"
-            aria-hidden="true"
-          >
-            <Loader2
-              className="w-4 h-4 text-bronze animate-spin"
-              strokeWidth={1.5}
-            />
-          </span>
-        )}
       </div>
 
       {/* Dropdown via Portal — umgeht alle Stacking-Contexts der Parents
@@ -263,14 +252,11 @@ export function FirmenSuche({ onSelect, placeholder = 'Firma suchen (Name oder U
               {loading && (
                 <div className="flex items-center gap-2 px-4 py-2.5 border-t border-stone/60 bg-cream/60">
                   <Loader2 className="w-3.5 h-3.5 text-bronze animate-spin" strokeWidth={1.5} />
-                  <span className="text-caption text-muted">Wir suchen weiter im Handelsregister …</span>
+                  <span className="text-caption text-muted">Wir suchen weiter …</span>
                 </div>
               )}
             </>
           )}
-          <div className="px-4 py-2 bg-cream border-t border-stone text-caption text-quiet">
-            Daten aus dem Schweizer Handelsregister (Zefix)
-          </div>
         </div>,
         document.body,
       )}

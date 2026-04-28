@@ -143,10 +143,12 @@ async function lookupViaLindas(uidCompact: string): Promise<ZefixCompany | null>
   if (!companyUri) return null;
 
   // 2. Alle Properties des Unternehmens und der Adresse holen
+  // PLUS: SOGC-Publikationen (Eintragsdatum als Fallback für Gründungsjahr)
   const detailQuery = `
     PREFIX schema: <http://schema.org/>
     PREFIX locn: <http://www.w3.org/ns/locn#>
-    SELECT ?name ?nameLang ?description ?strasse ?hausnummer ?plz ?ort ?kanton ?gruendung ?status ?legalFormName ?legalFormLang
+    PREFIX zefix: <https://schema.ld.admin.ch/>
+    SELECT ?name ?nameLang ?description ?strasse ?hausnummer ?plz ?ort ?kanton ?gruendung ?status ?legalFormName ?legalFormLang ?sogcDate ?firstEntry
     WHERE {
       <${companyUri}> schema:name ?name .
       BIND(LANG(?name) AS ?nameLang)
@@ -160,6 +162,8 @@ async function lookupViaLindas(uidCompact: string): Promise<ZefixCompany | null>
         OPTIONAL { ?addr schema:addressRegion ?kanton }
       }
       OPTIONAL { <${companyUri}> schema:foundingDate ?gruendung }
+      OPTIONAL { <${companyUri}> schema:dateCreated ?firstEntry }
+      OPTIONAL { <${companyUri}> zefix:sogcDate ?sogcDate }
       OPTIONAL { <${companyUri}> schema:status ?status }
       OPTIONAL {
         <${companyUri}> <https://schema.ld.admin.ch/legalForm> ?lf .
@@ -181,13 +185,22 @@ async function lookupViaLindas(uidCompact: string): Promise<ZefixCompany | null>
   const ort = rows.find((r) => r.ort)?.ort.value ?? null;
   const kanton = rows.find((r) => r.kanton)?.kanton.value ?? null;
   const gruendung = rows.find((r) => r.gruendung)?.gruendung.value ?? null;
+  const firstEntry = rows.find((r) => r.firstEntry)?.firstEntry.value ?? null;
+  const sogcDate = rows.find((r) => r.sogcDate)?.sogcDate.value ?? null;
   const status = rows.find((r) => r.status)?.status.value ?? null;
   const legalFormName = pickByLang(rows, 'legalFormName', 'de');
 
+  // Gründungsjahr: bevorzugt foundingDate (echtes Datum), fallback
+  // dateCreated (HR-Eintrag) oder älteste sogcDate (oft = Erstpublikation).
+  // Bei Schweizer KMU ist foundingDate selten, dateCreated/sogcDate dafür
+  // fast immer vorhanden — User braucht das Jahr für Bewertungs-Engine.
   const year = (() => {
-    if (!gruendung) return null;
-    const m = gruendung.match(/^(\d{4})/);
-    return m ? parseInt(m[1], 10) : null;
+    for (const candidate of [gruendung, firstEntry, sogcDate]) {
+      if (!candidate) continue;
+      const m = candidate.match(/^(\d{4})/);
+      if (m) return parseInt(m[1], 10);
+    }
+    return null;
   })();
 
   return {
@@ -453,7 +466,8 @@ export async function primeLookupCache(uid: string): Promise<void> {
       const detailQuery = `
         PREFIX schema: <http://schema.org/>
         PREFIX locn: <http://www.w3.org/ns/locn#>
-        SELECT ?name ?nameLang ?description ?strasse ?hausnummer ?plz ?ort ?kanton ?gruendung ?status ?legalFormName ?legalFormLang
+        PREFIX zefix: <https://schema.ld.admin.ch/>
+        SELECT ?name ?nameLang ?description ?strasse ?hausnummer ?plz ?ort ?kanton ?gruendung ?status ?legalFormName ?legalFormLang ?sogcDate ?firstEntry
         WHERE {
           <${companyUri}> schema:name ?name .
           BIND(LANG(?name) AS ?nameLang)
@@ -467,6 +481,8 @@ export async function primeLookupCache(uid: string): Promise<void> {
             OPTIONAL { ?addr schema:addressRegion ?kanton }
           }
           OPTIONAL { <${companyUri}> schema:foundingDate ?gruendung }
+          OPTIONAL { <${companyUri}> schema:dateCreated ?firstEntry }
+          OPTIONAL { <${companyUri}> zefix:sogcDate ?sogcDate }
           OPTIONAL { <${companyUri}> schema:status ?status }
           OPTIONAL {
             <${companyUri}> <https://schema.ld.admin.ch/legalForm> ?lf .
@@ -487,12 +503,17 @@ export async function primeLookupCache(uid: string): Promise<void> {
       const ort = rows.find((r) => r.ort)?.ort.value ?? null;
       const kanton = rows.find((r) => r.kanton)?.kanton.value ?? null;
       const gruendung = rows.find((r) => r.gruendung)?.gruendung.value ?? null;
+      const firstEntry = rows.find((r) => r.firstEntry)?.firstEntry.value ?? null;
+      const sogcDate = rows.find((r) => r.sogcDate)?.sogcDate.value ?? null;
       const status = rows.find((r) => r.status)?.status.value ?? null;
       const legalFormName = pickByLang(rows, 'legalFormName', 'de');
       const year = (() => {
-        if (!gruendung) return null;
-        const m = gruendung.match(/^(\d{4})/);
-        return m ? parseInt(m[1], 10) : null;
+        for (const candidate of [gruendung, firstEntry, sogcDate]) {
+          if (!candidate) continue;
+          const m = candidate.match(/^(\d{4})/);
+          if (m) return parseInt(m[1], 10);
+        }
+        return null;
       })();
 
       company = {

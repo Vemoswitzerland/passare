@@ -143,6 +143,15 @@ export function FirmaOnboarding() {
           <Step1Firma
             draft={draft}
             update={update}
+            mergeIfEmpty={(patch) => setDraft((d) => {
+              const next = { ...d };
+              for (const k of Object.keys(patch) as Array<keyof Draft>) {
+                if (next[k] == null || next[k] === '') {
+                  (next as any)[k] = patch[k];
+                }
+              }
+              return next;
+            })}
             enriching={enriching}
             setEnriching={(v) => {
               setEnriching(v);
@@ -240,10 +249,11 @@ function ProgressBar({ step }: { step: number }) {
 
 /* ─────────── STEP 1: FIRMA ─────────── */
 function Step1Firma({
-  draft, update, enriching, setEnriching,
+  draft, update, mergeIfEmpty, enriching, setEnriching,
 }: {
   draft: Draft;
   update: (p: Partial<Draft>) => void;
+  mergeIfEmpty: (patch: Partial<Draft>) => void;
   enriching: boolean;
   setEnriching: (v: boolean) => void;
 }) {
@@ -277,18 +287,18 @@ function Step1Firma({
 
   async function fetchAndMergeDetails(uid: string) {
     try {
-      // Erste Anfrage — wenn 200 mit company → fertig.
-      // Wenn 202/pending → wir warten EINMAL kurz und versuchen es nochmal.
-      // Mehr nicht — User soll nicht 36s warten.
       const company = await tryLookup(uid);
       if (!company) return;
 
       const matchedBranche = matchBrancheFromPurpose(company.branche ?? company.zweck);
-      update({
+      // SMART MERGE: nur Felder überschreiben die im Draft noch leer sind.
+      // Verhindert Race-Conditions wenn der User schon Step 2/3 erreicht
+      // und manuell andere Werte gewählt hat.
+      mergeIfEmpty({
         firma_rechtsform: company.rechtsform ?? null,
-        firma_sitz_gemeinde: company.gemeinde ?? company.adresse?.ort ?? undefined,
+        firma_sitz_gemeinde: company.gemeinde ?? company.adresse?.ort ?? null,
         branche_id: matchedBranche,
-        kanton: company.kanton ?? undefined,
+        kanton: company.kanton ?? null,
         jahr: company.gruendungsjahr ?? null,
       });
     } catch {
@@ -297,19 +307,20 @@ function Step1Firma({
   }
 
   async function tryLookup(uid: string): Promise<any | null> {
-    // Erster Versuch
-    const res1 = await fetch(`/api/zefix/lookup?uid=${encodeURIComponent(uid)}`);
-    if (res1.ok) {
-      const data = await res1.json();
-      if (data.company) return data.company;
-      if (data.status === 'pending') {
-        // EIN Retry nach 8s — länger nicht, sonst frustrierend
-        await new Promise((r) => setTimeout(r, 8000));
-        const res2 = await fetch(`/api/zefix/lookup?uid=${encodeURIComponent(uid)}`);
-        if (res2.ok) {
-          const data2 = await res2.json();
-          if (data2.company) return data2.company;
+    // Bis zu 3 Versuche mit kürzer werdenden Wartezeiten — gesamt max ~16s.
+    // Erste Antwort kommt meist nach 1. oder 2. Versuch.
+    const waits = [0, 6000, 5000];
+    for (let i = 0; i < waits.length; i++) {
+      if (waits[i] > 0) await new Promise((r) => setTimeout(r, waits[i]));
+      try {
+        const res = await fetch(`/api/zefix/lookup?uid=${encodeURIComponent(uid)}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.company) return data.company;
+          if (data.status !== 'pending') return null;
         }
+      } catch {
+        // network blip → retry
       }
     }
     return null;
