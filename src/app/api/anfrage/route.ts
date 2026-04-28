@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
 
   // Verifikations-Mail (fire-and-forget — sendEmail wirft nie)
   await sendEmail({
-    template: 'EmailVerifizierung',
+    template: 'verifizierung',
     to: body.email,
     vars: {
       name: body.name,

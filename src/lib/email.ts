@@ -9,16 +9,17 @@
  * eigentliche User-Action NICHT.
  */
 
+// Template-Namen wie in supabase/functions/_shared/render.ts (snake_case).
 export type EmailTemplate =
-  | 'EmailWelcome'
-  | 'EmailVerifizierung'
-  | 'EmailPasswortReset'
-  | 'EmailAlertNeuesInserat'
-  | 'EmailNDASigniert'
-  | 'EmailZahlungBestaetigung'
-  | 'EmailAnfrageEingegangen'
-  | 'EmailAnfrageBeantwortet'
-  | 'EmailInseratBaldAbgelaufen';
+  | 'welcome'
+  | 'verifizierung'
+  | 'passwort_reset'
+  | 'alert_neues_inserat'
+  | 'nda_signiert'
+  | 'zahlung_bestaetigung'
+  | 'anfrage_eingegangen'
+  | 'anfrage_beantwortet'
+  | 'inserat_bald_abgelaufen';
 
 type SendEmailParams = {
   template: EmailTemplate;

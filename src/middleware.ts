@@ -19,7 +19,10 @@ const BETA_PUBLIC_PATHS = new Set([
   '/sitemap.xml',
 ]);
 
-const BETA_PUBLIC_PREFIXES = ['/_next', '/assets', '/images'];
+// Diese Prefixe bleiben auch hinter dem Beta-Gate erreichbar.
+// /api/anfrage muss public sein, weil die Verifikations-Mail-Links externe
+// Browser-Sessions öffnen (frischer Cookie-Container, kein Beta-Cookie).
+const BETA_PUBLIC_PREFIXES = ['/_next', '/assets', '/images', '/api/anfrage'];
 
 const AUTH_PROTECTED_PREFIXES = ['/dashboard', '/admin', '/onboarding'];
 const AUTH_PUBLIC_PREFIXES = ['/auth'];

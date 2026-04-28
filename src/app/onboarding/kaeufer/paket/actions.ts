@@ -20,7 +20,7 @@ export async function continueWithBasicAction() {
   // Bestätigungs-Email für Basic-Aktivierung
   if (u.user.email) {
     void sendEmail({
-      template: 'EmailWelcome',
+      template: 'welcome',
       to: u.user.email,
       vars: { rolle: 'kaeufer', tier: 'basic' },
       user_id: u.user.id,

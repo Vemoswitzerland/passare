@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
             const { data: authUser } = await admin.auth.admin.getUserById(userId);
             if (authUser?.user?.email) {
               void sendEmail({
-                template: 'EmailWelcome',
+                template: 'welcome',
                 to: authUser.user.email,
                 vars: { rolle: 'kaeufer', tier: 'max' },
                 user_id: userId,

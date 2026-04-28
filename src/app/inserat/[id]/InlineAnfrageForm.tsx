@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   AlertCircle, CheckCircle2, Mail, MessageSquare, Send, X,
@@ -143,7 +144,7 @@ export function InlineAnfrageForm({ listing }: { listing: MockListing }) {
   );
 }
 
-/* ════════════════════════ Verify-Popup (mittig auf Display) ════════════════════════ */
+/* ════════════════════════ Verify-Popup (mittig auf Display via Portal) ════════════════════════ */
 function VerifyPopup({
   open, onClose, email, busy, onResend, fehler,
 }: {
@@ -154,6 +155,12 @@ function VerifyPopup({
   onResend: () => void;
   fehler: string | null;
 }) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => {
@@ -172,7 +179,11 @@ function VerifyPopup({
     };
   }, [open]);
 
-  return (
+  // Wichtig: via Portal auf document.body rendern, sonst hängt das `position: fixed`
+  // an einem transform-Parent (motion.div / Reveal) und wird unten-rechts gerendert.
+  if (!mounted) return null;
+
+  return createPortal(
     <AnimatePresence>
       {open && (
         <>
@@ -262,7 +273,8 @@ function VerifyPopup({
           </motion.div>
         </>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   );
 }
 

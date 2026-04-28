@@ -150,7 +150,7 @@ export async function submitKaeuferTunnelAction(
   // 4) Welcome-Email (fire-and-forget)
   if (u.user.email) {
     void sendEmail({
-      template: 'EmailWelcome',
+      template: 'welcome',
       to: u.user.email,
       vars: { rolle: 'kaeufer', branchen: parsed.data.branchen },
       user_id: u.user.id,
@@ -176,7 +176,7 @@ export async function skipKaeuferTunnelAction() {
   // Welcome-Email auch beim Skip
   if (u.user.email) {
     void sendEmail({
-      template: 'EmailWelcome',
+      template: 'welcome',
       to: u.user.email,
       vars: { rolle: 'kaeufer', skipped: true },
       user_id: u.user.id,

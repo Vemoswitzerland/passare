@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
 
   // Anfrage-Mail an Sammel-Inbox (V1 ohne Verkäufer-DB)
   await sendEmail({
-    template: 'EmailAnfrageEingegangen',
+    template: 'anfrage_eingegangen',
     to: 'info@passare.ch',
     vars: {
       verkaeuferName: 'Vermittlung passare',
@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
   // Welcome-Mail an Käufer (Konto-Bestätigung)
   if (createdUser) {
     await sendEmail({
-      template: 'EmailWelcome',
+      template: 'welcome',
       to: payload.e,
       vars: {
         name: payload.n,
