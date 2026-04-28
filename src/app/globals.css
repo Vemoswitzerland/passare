@@ -52,6 +52,19 @@ h1, h2, h3, h4, h5 {
   font-variation-settings: 'opsz' 144, 'SOFT' 50, 'WONK' 0;
 }
 
+/* Admin-Scope: Headlines werden in Sans gesetzt — Tool-Look statt Marketing */
+.admin-scope h1,
+.admin-scope h2,
+.admin-scope h3,
+.admin-scope h4,
+.admin-scope h5 {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  font-variation-settings: normal;
+  color: #0B1F3A;
+}
+
 /* UI: Gewichte-Scale für Geist */
 .font-ui {
   font-family: var(--font-sans);

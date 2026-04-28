@@ -18,7 +18,7 @@ export function AdminShell({ email, fullName, badges, children }: Props) {
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   return (
-    <div className="min-h-screen flex flex-col bg-cream">
+    <div className="admin-scope min-h-screen flex flex-col bg-cream">
       <AdminHeader
         email={email}
         fullName={fullName}
