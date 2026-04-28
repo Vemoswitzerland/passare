@@ -45,12 +45,19 @@ const STAGE_LABELS: Record<string, { label: string; color: string }> = {
  * komplett auf numerische DB-Felder.
  */
 function toMatchInserat(l: InseratPublic, brancheLabel?: string): Inserat {
+  let margePct = l.ebitda_marge_pct;
+  if (margePct == null && l.ebitda_chf && l.umsatz_chf && l.umsatz_chf > 0) {
+    margePct = (Number(l.ebitda_chf) / Number(l.umsatz_chf)) * 100;
+  }
   return {
     branche: brancheLabel ?? l.branche_id ?? '',
     kanton: l.kanton ?? '',
-    umsatz: formatUmsatz({ umsatz_bucket: l.umsatz_bucket }),
-    ebitda: formatEbitda(l.ebitda_marge_pct),
+    umsatz: formatUmsatz({ umsatz_chf: l.umsatz_chf, umsatz_bucket: l.umsatz_bucket }),
+    ebitda: formatEbitda(margePct),
     kaufpreis: formatKaufpreis({
+      kaufpreis_chf: l.kaufpreis_chf,
+      kaufpreis_min_chf: l.kaufpreis_min_chf,
+      kaufpreis_max_chf: l.kaufpreis_max_chf,
       kaufpreis_bucket: l.kaufpreis_bucket,
       kaufpreis_vhb: l.kaufpreis_vhb,
     }),
@@ -70,9 +77,22 @@ export function ListingCardMini({
   const idForUI = String(listing.slug ?? listing.id);
   const brancheDisplay = branche_label ?? listing.branche_id ?? '—';
   const kantonDisplay = listing.kanton ?? '—';
-  const umsatzDisplay = formatUmsatz({ umsatz_bucket: listing.umsatz_bucket });
-  const ebitdaDisplay = formatEbitda(listing.ebitda_marge_pct);
+
+  // EBITDA-Marge ableiten falls null aber chf-Werte vorhanden
+  let margePct = listing.ebitda_marge_pct;
+  if (margePct == null && listing.ebitda_chf && listing.umsatz_chf && listing.umsatz_chf > 0) {
+    margePct = (Number(listing.ebitda_chf) / Number(listing.umsatz_chf)) * 100;
+  }
+
+  const umsatzDisplay = formatUmsatz({
+    umsatz_chf: listing.umsatz_chf,
+    umsatz_bucket: listing.umsatz_bucket,
+  });
+  const ebitdaDisplay = formatEbitda(margePct);
   const kaufpreisDisplay = formatKaufpreis({
+    kaufpreis_chf: listing.kaufpreis_chf,
+    kaufpreis_min_chf: listing.kaufpreis_min_chf,
+    kaufpreis_max_chf: listing.kaufpreis_max_chf,
     kaufpreis_bucket: listing.kaufpreis_bucket,
     kaufpreis_vhb: listing.kaufpreis_vhb,
   });
@@ -82,7 +102,7 @@ export function ListingCardMini({
   const cover = branchenStockfoto(listing.branche_id ?? brancheDisplay, idForUI);
   const facts = renderKeyFacts({
     jahr: jahrDisplay,
-    mitarbeitende: 0,
+    mitarbeitende: listing.mitarbeitende ?? 0,
     umsatz: umsatzDisplay,
     ebitda: ebitdaDisplay,
   });

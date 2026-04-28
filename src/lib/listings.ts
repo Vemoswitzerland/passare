@@ -44,9 +44,20 @@ export type InseratPublic = {
   kanton: string | null;
   region: string | null;
   jahr: number | null;
+  /** Echter Wert (Mitarbeitende-Anzahl). Bevorzugt vor Bucket. */
+  mitarbeitende: number | null;
   mitarbeitende_bucket: string | null;
+  /** Echter Wert (CHF). Bevorzugt vor Bucket. */
+  umsatz_chf: number | null;
   umsatz_bucket: string | null;
+  /** EBITDA in CHF (absolut) */
+  ebitda_chf: number | null;
+  /** EBITDA-Marge in % (kann null sein, dann aus chf/umsatz berechnen) */
   ebitda_marge_pct: number | null;
+  /** Kaufpreis als einzelner Wert oder Range. */
+  kaufpreis_chf: number | null;
+  kaufpreis_min_chf: number | null;
+  kaufpreis_max_chf: number | null;
   kaufpreis_bucket: string | null;
   kaufpreis_vhb: boolean;
   uebergabe_grund: string | null;
@@ -397,6 +408,11 @@ export async function getFavoritenListings(kaeuferId: string): Promise<{
  */
 export function toDisplayListing(l: InseratPublic | InseratDetail) {
   const detail = l as Partial<InseratDetail>;
+  // EBITDA-Marge ableiten falls null aber chf-Werte vorhanden
+  let margePct = l.ebitda_marge_pct;
+  if (margePct == null && l.ebitda_chf && l.umsatz_chf && l.umsatz_chf > 0) {
+    margePct = (Number(l.ebitda_chf) / Number(l.umsatz_chf)) * 100;
+  }
   return {
     id: l.id,
     titel: l.titel,
@@ -404,13 +420,17 @@ export function toDisplayListing(l: InseratPublic | InseratDetail) {
     kanton: l.kanton ?? '—',
     jahr: l.jahr ?? new Date().getFullYear(),
     mitarbeitende:
-      typeof detail.mitarbeitende === 'number' ? detail.mitarbeitende : 0,
-    umsatz: formatUmsatz({ umsatz_chf: detail.umsatz_chf, umsatz_bucket: l.umsatz_bucket }),
-    ebitda: formatEbitda(l.ebitda_marge_pct),
+      typeof l.mitarbeitende === 'number'
+        ? l.mitarbeitende
+        : typeof detail.mitarbeitende === 'number'
+          ? detail.mitarbeitende
+          : 0,
+    umsatz: formatUmsatz({ umsatz_chf: l.umsatz_chf ?? detail.umsatz_chf, umsatz_bucket: l.umsatz_bucket }),
+    ebitda: formatEbitda(margePct),
     kaufpreis: formatKaufpreis({
-      kaufpreis_chf: detail.kaufpreis_chf,
-      kaufpreis_min_chf: detail.kaufpreis_min_chf,
-      kaufpreis_max_chf: detail.kaufpreis_max_chf,
+      kaufpreis_chf: l.kaufpreis_chf ?? detail.kaufpreis_chf,
+      kaufpreis_min_chf: l.kaufpreis_min_chf ?? detail.kaufpreis_min_chf,
+      kaufpreis_max_chf: l.kaufpreis_max_chf ?? detail.kaufpreis_max_chf,
       kaufpreis_bucket: l.kaufpreis_bucket,
       kaufpreis_vhb: l.kaufpreis_vhb,
     }),

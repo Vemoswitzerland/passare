@@ -504,16 +504,28 @@ function ListingCard({ listing, branchen }: { listing: InseratPublic; branchen: 
 
   const cover = branchenStockfoto(listing.branche_id ?? brancheLabel, listing.id);
 
-  // KeyFacts arbeiten mit Display-Strings
-  const umsatzStr = formatUmsatz({ umsatz_bucket: listing.umsatz_bucket });
-  const ebitdaStr = formatEbitda(listing.ebitda_marge_pct);
+  // EBITDA-Marge ableiten falls null aber chf-Werte vorhanden
+  let margePct = listing.ebitda_marge_pct;
+  if (margePct == null && listing.ebitda_chf && listing.umsatz_chf && listing.umsatz_chf > 0) {
+    margePct = (Number(listing.ebitda_chf) / Number(listing.umsatz_chf)) * 100;
+  }
+
+  // KeyFacts arbeiten mit Display-Strings — echte Werte bevorzugen
+  const umsatzStr = formatUmsatz({
+    umsatz_chf: listing.umsatz_chf,
+    umsatz_bucket: listing.umsatz_bucket,
+  });
+  const ebitdaStr = formatEbitda(margePct);
   const kaufpreisStr = formatKaufpreis({
+    kaufpreis_chf: listing.kaufpreis_chf,
+    kaufpreis_min_chf: listing.kaufpreis_min_chf,
+    kaufpreis_max_chf: listing.kaufpreis_max_chf,
     kaufpreis_bucket: listing.kaufpreis_bucket,
     kaufpreis_vhb: listing.kaufpreis_vhb,
   });
   const facts = renderKeyFacts({
     jahr: listing.jahr ?? new Date().getFullYear(),
-    mitarbeitende: 0, // mitarbeitende_bucket statt — ggf. erweitern
+    mitarbeitende: listing.mitarbeitende ?? 0,
     umsatz: umsatzStr,
     ebitda: ebitdaStr,
   });
