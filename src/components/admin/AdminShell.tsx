@@ -7,7 +7,6 @@ import { Menu, X, Search } from 'lucide-react';
 import { AdminSidebar } from './AdminSidebar';
 import { SidebarUserFooter } from './SidebarUserFooter';
 import { ImpersonationBanner } from './ImpersonationBanner';
-import { ViewSwitcher } from './ViewSwitcher';
 import { cn } from '@/lib/utils';
 
 type Props = {
@@ -58,7 +57,7 @@ export function AdminShell({ email, fullName, badges, children }: Props) {
           </span>
         </Link>
 
-        <form onSubmit={submitSearch} className="hidden lg:flex flex-1 max-w-md mx-auto">
+        <form onSubmit={submitSearch} className="hidden lg:flex flex-1 max-w-md ml-auto">
           <div className="relative w-full">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-quiet" strokeWidth={1.5} />
             <input
@@ -70,10 +69,6 @@ export function AdminShell({ email, fullName, badges, children }: Props) {
             />
           </div>
         </form>
-
-        <div className="ml-auto">
-          <ViewSwitcher />
-        </div>
       </header>
 
       <ImpersonationBanner />
