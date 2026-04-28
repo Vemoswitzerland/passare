@@ -30,6 +30,12 @@ const AUTH_PUBLIC_PREFIXES = ['/auth'];
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
+  // x-pathname Header für Server-Components (Layouts können
+  // aktuelle URL nicht direkt lesen). Wird von verkaeufer/layout.tsx
+  // verwendet um Tunnel-Mode-Routing zu prüfen.
+  const requestHeaders = new Headers(req.headers);
+  requestHeaders.set('x-pathname', pathname);
+
   // ── 1) Beta-Gate ──────────────────────────────────────────
   if (process.env.BETA_GATE_ENABLED === 'true') {
     const isPublic =
@@ -52,16 +58,16 @@ export async function middleware(req: NextRequest) {
     !!process.env.NEXT_PUBLIC_SUPABASE_URL &&
     !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  if (!hasSupabase) return NextResponse.next();
+  if (!hasSupabase) return NextResponse.next({ request: { headers: requestHeaders } });
 
   // Session-Refresh + User-Lookup nur auf Routen, die ihn brauchen.
   const needsAuth =
     AUTH_PROTECTED_PREFIXES.some((p) => pathname.startsWith(p)) ||
     AUTH_PUBLIC_PREFIXES.some((p) => pathname.startsWith(p));
 
-  if (!needsAuth) return NextResponse.next();
+  if (!needsAuth) return NextResponse.next({ request: { headers: requestHeaders } });
 
-  return updateSession(req);
+  return updateSession(req, requestHeaders);
 }
 
 export const config = {

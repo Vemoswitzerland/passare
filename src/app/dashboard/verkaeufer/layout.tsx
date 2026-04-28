@@ -1,7 +1,9 @@
 import { redirect } from 'next/navigation';
+import { headers } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
 import { hasTable } from '@/lib/db/has-table';
 import { VerkaeuferShell } from './components/Shell';
+import { TunnelShell } from './components/TunnelShell';
 
 export const metadata = {
   title: 'Verkäufer-Dashboard — passare',
@@ -31,12 +33,13 @@ export default async function VerkaeuferLayout({ children }: { children: React.R
   let inseratId: string | null = null;
   let inseratStatus: string | null = null;
   let paket: string | null = null;
+  let paidAt: string | null = null;
   let counts = { anfragenNeu: 0, ndaPending: 0, datenraumFiles: 0 };
 
   if (await hasTable('inserate')) {
     const { data: inserat } = await supabase
       .from('inserate')
-      .select('id, status, paket')
+      .select('id, status, paket, paid_at')
       .eq('verkaeufer_id', userData.user.id)
       .order('updated_at', { ascending: false })
       .limit(1)
@@ -46,6 +49,7 @@ export default async function VerkaeuferLayout({ children }: { children: React.R
       inseratId = inserat.id;
       inseratStatus = inserat.status;
       paket = inserat.paket;
+      paidAt = inserat.paid_at;
 
       if (await hasTable('anfragen')) {
         const { count: anfragenNeu } = await supabase
@@ -72,6 +76,27 @@ export default async function VerkaeuferLayout({ children }: { children: React.R
         counts.datenraumFiles = dat ?? 0;
       }
     }
+  }
+
+  // ── TUNNEL-MODE für /inserat und /checkout vor Bezahlung ────────
+  // Wenn noch nicht bezahlt UND der User aktuell IM Wizard ist
+  // (/inserat oder /checkout), zeigen wir die schlanke Tunnel-Shell
+  // ohne Sidebar — fokussiert. Sonstige Verkäufer-Bereiche bleiben
+  // erreichbar (z.B. wenn User zwischendrin verlässt → Dashboard mit
+  // "Inserat fortsetzen"-Banner).
+  const h = await headers();
+  const currentPath = h.get('x-pathname') ?? '';
+  const isInTunnelRoute =
+    currentPath.includes('/dashboard/verkaeufer/inserat') ||
+    currentPath.includes('/dashboard/verkaeufer/checkout');
+  const showTunnelShell = !paidAt && !isAdmin && isInTunnelRoute;
+
+  if (showTunnelShell) {
+    return (
+      <TunnelShell email={userData.user.email ?? ''} fullName={profile.full_name}>
+        {children}
+      </TunnelShell>
+    );
   }
 
   return (

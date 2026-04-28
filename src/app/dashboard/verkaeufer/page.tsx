@@ -16,32 +16,15 @@ export default async function VerkaeuferDashboard({ searchParams }: Props) {
   if (!userData.user) return null;
   const sp = await searchParams;
 
-  // Smart-Routing: wenn der User vom Pre-Reg-Funnel kommt (Cookie noch da
-  // ODER bereits ein nicht-bezahltes Entwurf-Inserat existiert), schicken
-  // wir ihn direkt weiter zum Inserat-Wizard. Vermeidet das "Ich komme
-  // aufs Dashboard und weiss nicht was zu tun ist"-Problem.
-  // ?tab=overview lässt User explizit das Dashboard sehen.
+  // Smart-Routing nur bei Pre-Reg-Cookie (User gerade aus dem Funnel
+  // gekommen). Sonst darf der User frei aufs Dashboard — auch wenn er
+  // einen Entwurf hat, kann er ihn vom Dashboard aus fortsetzen
+  // (siehe Banner unten).
   if (sp.tab !== 'overview' && sp.paid !== '1') {
     const cookieStore = await cookies();
     const hasPreRegCookie = !!cookieStore.get('pre_reg_draft')?.value;
-
     if (hasPreRegCookie) {
       redirect('/dashboard/verkaeufer/inserat/new?from=pre-reg');
-    }
-
-    if (await hasTable('inserate')) {
-      const { data: existing } = await supabase
-        .from('inserate')
-        .select('id, status, paid_at, titel')
-        .eq('verkaeufer_id', userData.user.id)
-        .order('updated_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      // Falls Entwurf existiert und noch nicht bezahlt → zum Edit
-      if (existing && existing.status === 'entwurf' && !existing.paid_at) {
-        redirect(`/dashboard/verkaeufer/inserat/${existing.id}/edit`);
-      }
     }
   }
 
@@ -133,9 +116,38 @@ export default async function VerkaeuferDashboard({ searchParams }: Props) {
   const checklistDone = checklist.filter((c) => c.done).length;
   const checklistTotal = checklist.length;
 
+  // Dashboard-Banner: wenn Entwurf vorhanden und noch nicht bezahlt
+  const hasUnpaidDraft = inserat && inserat.status === 'entwurf' && !inserat.paid_at;
+
   return (
     <div className="px-6 md:px-10 py-8 md:py-12">
       <div className="max-w-content mx-auto">
+        {/* "Inserat fortsetzen"-Banner */}
+        {hasUnpaidDraft && (
+          <div className="rounded-card bg-bronze/5 border border-bronze/30 p-5 md:p-6 mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-soft bg-bronze/15 flex items-center justify-center flex-shrink-0">
+                <Sparkles className="w-5 h-5 text-bronze-ink" strokeWidth={1.5} />
+              </div>
+              <div>
+                <p className="text-body text-navy font-medium">Du hast einen Inserat-Entwurf</p>
+                <p className="text-body-sm text-muted leading-snug mt-0.5">
+                  {inserat.firma_name
+                    ? `${inserat.firma_name} — fertigstellen + Paket buchen, dann geht's live.`
+                    : 'Mache da weiter, wo du aufgehört hast — dein Inserat wartet auf den letzten Schliff.'}
+                </p>
+              </div>
+            </div>
+            <Link
+              href={`/dashboard/verkaeufer/inserat/${inserat.id}/edit`}
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-navy text-cream rounded-soft text-body-sm font-medium hover:bg-ink shadow-card hover:shadow-lift hover:-translate-y-px transition-all whitespace-nowrap"
+            >
+              Inserat fortsetzen
+              <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
+            </Link>
+          </div>
+        )}
+
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-10">
           <div>
