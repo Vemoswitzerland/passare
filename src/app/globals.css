@@ -60,9 +60,15 @@ h1, h2, h3, h4, h5 {
 .admin-scope h5 {
   font-family: var(--font-sans);
   font-weight: 600;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.005em;
   font-variation-settings: normal;
   color: #0B1F3A;
+}
+
+/* Admin-Body etwas kleiner als Marketing-Body — Tool-Density */
+.admin-scope {
+  font-size: 0.875rem; /* 14px statt 16px */
+  line-height: 1.5;
 }
 
 /* UI: Gewichte-Scale für Geist */

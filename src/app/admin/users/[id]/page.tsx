@@ -113,12 +113,12 @@ export default async function AdminUserDetailPage({
       </Link>
 
       <header className="bg-paper border border-stone rounded-soft p-4 mb-6 flex flex-col sm:flex-row gap-5 items-start">
-        <div className="w-16 h-16 rounded-full bg-navy text-cream flex items-center justify-center font-mono text-xl font-medium flex-shrink-0">
+        <div className="w-12 h-12 rounded-full bg-navy text-cream flex items-center justify-center font-mono text-base font-medium flex-shrink-0">
           {initials}
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-3 mb-1">
-            <h1 className="text-2xl text-navy font-semibold">{profile.full_name ?? 'Ohne Namen'}</h1>
+            <h1 className="text-base text-navy font-semibold leading-tight">{profile.full_name ?? 'Ohne Namen'}</h1>
             {profile.rolle ? (
               <Badge variant={roleVariant(profile.rolle)}>{ROLLE_LABEL[profile.rolle]}</Badge>
             ) : (

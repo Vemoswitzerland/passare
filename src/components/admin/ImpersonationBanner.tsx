@@ -38,16 +38,16 @@ export function ImpersonationBanner() {
   };
 
   return (
-    <div className="bg-bronze/15 border-b border-bronze/40 px-6 py-3 flex items-center justify-between gap-4 sticky top-16 z-30">
-      <p className="text-body-sm text-navy flex items-center gap-2">
-        <Eye className="w-4 h-4" strokeWidth={1.5} />
+    <div className="bg-bronze/15 border-b border-bronze/40 px-4 py-1.5 flex items-center justify-between gap-3 sticky top-12 z-30">
+      <p className="text-[13px] text-navy flex items-center gap-1.5">
+        <Eye className="w-3.5 h-3.5" strokeWidth={1.5} />
         Du betrachtest die Plattform als&nbsp;
         <strong>{ROLLE_LABEL[rolle] ?? rolle}</strong> — Demo-Modus.
       </p>
       <button
         type="button"
         onClick={exit}
-        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-soft border border-bronze/40 bg-paper text-navy text-caption font-medium hover:bg-bronze/10 transition-colors"
+        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-soft border border-bronze/40 bg-paper text-navy text-[11px] font-medium hover:bg-bronze/10 transition-colors"
       >
         <X className="w-3.5 h-3.5" strokeWidth={1.5} />
         Zurück zur Admin-Ansicht

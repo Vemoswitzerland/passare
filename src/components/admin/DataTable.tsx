@@ -29,7 +29,7 @@ export function DataTable({ columns, children, empty, className }: DataTableProp
                 <th
                   key={c.key}
                   className={cn(
-                    'px-3 py-2 text-caption uppercase tracking-wide text-quiet font-medium',
+                    'px-3 py-1.5 text-[11px] uppercase tracking-wide text-quiet font-medium',
                     c.align === 'right' && 'text-right',
                     c.align === 'center' && 'text-center',
                     c.align === 'left' && 'text-left',
@@ -45,7 +45,7 @@ export function DataTable({ columns, children, empty, className }: DataTableProp
           <tbody className="divide-y divide-stone/60">
             {isEmpty ? (
               <tr>
-                <td colSpan={columns.length} className="px-3 py-10 text-center text-quiet text-body-sm">
+                <td colSpan={columns.length} className="px-3 py-8 text-center text-quiet text-caption">
                   {empty ?? 'Keine Einträge.'}
                 </td>
               </tr>
@@ -71,7 +71,7 @@ export function Td({
   return (
     <td
       className={cn(
-        'px-3 py-2 text-body-sm text-ink align-middle',
+        'px-3 py-2 text-[13px] text-ink align-middle',
         align === 'right' && 'text-right',
         align === 'center' && 'text-center',
         className,

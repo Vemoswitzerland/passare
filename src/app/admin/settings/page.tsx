@@ -82,7 +82,7 @@ export default function AdminSettingsPage() {
               <p className="text-caption text-quiet uppercase tracking-wide font-medium mb-1">
                 {p.name}
               </p>
-              <p className="text-xl text-navy font-semibold tabular-nums">{p.preis}</p>
+              <p className="text-base text-navy font-semibold tabular-nums">{p.preis}</p>
               <p className="text-caption text-quiet">{p.laufzeit}</p>
               <p className="text-caption text-quiet mt-2 pt-2 border-t border-stone">
                 Verl.: <span className="font-mono">{p.verlaengerung}</span>
@@ -99,7 +99,7 @@ export default function AdminSettingsPage() {
             <p className="text-caption text-quiet uppercase tracking-wide font-medium mb-1">
               Käufer Basic
             </p>
-            <p className="text-xl text-navy font-semibold tabular-nums">CHF 0</p>
+            <p className="text-base text-navy font-semibold tabular-nums">CHF 0</p>
             <p className="text-caption text-quiet">unbefristet</p>
             <p className="text-caption text-muted mt-2 pt-2 border-t border-stone">
               Öffentliche Inserate, 5 Basis-Filter, 5 Anfragen/Monat
@@ -109,7 +109,7 @@ export default function AdminSettingsPage() {
             <p className="text-caption text-quiet uppercase tracking-wide font-medium mb-1">
               Käufer MAX
             </p>
-            <p className="text-xl text-navy font-semibold tabular-nums">CHF 199 / Monat</p>
+            <p className="text-base text-navy font-semibold tabular-nums">CHF 199 / Monat</p>
             <p className="text-caption text-quiet">oder CHF 1&apos;990 / Jahr</p>
             <p className="text-caption text-muted mt-2 pt-2 border-t border-stone">
               7 Tage Frühzugang, alle Filter, unbegrenzte Anfragen, WhatsApp-Alerts

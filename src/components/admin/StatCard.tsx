@@ -12,22 +12,22 @@ type StatCardProps = {
 /**
  * Kompakte KPI-Kachel im Admin-Tool-Stil.
  * — Border-only, kein Schatten, kein farbiger Pill.
- * — Label klein oben, Wert gross in Sans (Mono-Nummern), optional Hint darunter.
+ * — Linear/Stripe-Dashboard-Density.
  */
 export function StatCard({ icon: Icon, value, label, hint, className }: StatCardProps) {
   return (
     <div
       className={cn(
-        'bg-paper border border-stone rounded-soft px-4 py-3 flex flex-col gap-1',
+        'bg-paper border border-stone rounded-soft px-3 py-2.5 flex flex-col gap-0.5',
         className,
       )}
     >
       <div className="flex items-center gap-1.5 text-quiet">
-        {Icon && <Icon className="w-3.5 h-3.5" strokeWidth={1.5} />}
-        <p className="text-caption uppercase tracking-wide font-medium">{label}</p>
+        {Icon && <Icon className="w-3 h-3" strokeWidth={1.5} />}
+        <p className="text-[11px] uppercase tracking-wide font-medium leading-tight">{label}</p>
       </div>
-      <p className="text-2xl text-navy font-semibold tabular-nums leading-tight">{value}</p>
-      {hint && <p className="text-caption text-quiet font-mono leading-tight">{hint}</p>}
+      <p className="text-lg text-navy font-semibold tabular-nums leading-tight">{value}</p>
+      {hint && <p className="text-[11px] text-quiet font-mono leading-tight">{hint}</p>}
     </div>
   );
 }

@@ -118,7 +118,7 @@ export default async function AdminInseratDetailPage({
           )}
         </div>
 
-        <h1 className="text-2xl text-navy font-semibold leading-tight mb-1">{listing.titel}</h1>
+        <h1 className="text-base text-navy font-semibold leading-tight mb-1">{listing.titel}</h1>
         <p className="text-body-sm text-muted">
           {[listing.branche, listing.kanton, listing.gruendungsjahr ? `gegründet ${listing.gruendungsjahr}` : null]
             .filter(Boolean)

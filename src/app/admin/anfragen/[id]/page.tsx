@@ -106,7 +106,7 @@ export default async function AdminAnfrageDetailPage({
             </Badge>
           )}
         </div>
-        <h1 className="text-xl text-navy font-semibold mb-1">
+        <h1 className="text-base text-navy font-semibold mb-1">
           Anfrage von {kaeufer?.full_name ?? '— Anonym'}
         </h1>
         <p className="text-caption text-quiet">

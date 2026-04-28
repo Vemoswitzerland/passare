@@ -27,12 +27,12 @@ export function AdminShell({ email, fullName, badges, children }: Props) {
 
       <ImpersonationBanner />
 
-      <div className="flex-1 grid md:grid-cols-[260px_1fr]">
-        <aside className="hidden md:block border-r border-stone bg-paper sticky top-16 self-start h-[calc(100vh-4rem)]">
+      <div className="flex-1 grid md:grid-cols-[220px_1fr]">
+        <aside className="hidden md:block border-r border-stone bg-paper sticky top-12 self-start h-[calc(100vh-3rem)]">
           <AdminSidebar badges={badges} />
         </aside>
 
-        <main className="min-w-0 p-4 md:p-6">{children}</main>
+        <main className="min-w-0 p-3 md:p-5">{children}</main>
       </div>
 
       {/* Mobile Drawer */}
@@ -53,10 +53,10 @@ export function AdminShell({ email, fullName, badges, children }: Props) {
             drawerOpen ? 'translate-x-0' : '-translate-x-full',
           )}
         >
-          <div className="h-16 border-b border-stone flex items-center justify-between px-4">
-            <span className="font-serif text-xl text-navy">
+          <div className="h-12 border-b border-stone flex items-center justify-between px-3">
+            <span className="text-base text-navy font-semibold">
               passare<span className="text-bronze">.</span>
-              <span className="ml-2 text-caption font-sans uppercase tracking-wider text-quiet font-normal">
+              <span className="ml-1.5 text-[11px] uppercase tracking-wider text-quiet font-medium">
                 Admin
               </span>
             </span>
@@ -73,9 +73,9 @@ export function AdminShell({ email, fullName, badges, children }: Props) {
         </div>
       </div>
 
-      <footer className="border-t border-stone py-4 mt-auto">
-        <p className="text-center text-caption text-quiet">
-          passare Admin · «Made in Switzerland»
+      <footer className="border-t border-stone py-2 mt-auto">
+        <p className="text-center text-[11px] text-quiet">
+          passare Admin
         </p>
       </footer>
     </div>
