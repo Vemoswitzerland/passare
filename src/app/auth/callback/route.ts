@@ -53,57 +53,80 @@ export async function GET(req: NextRequest) {
   const intendedRole = u.user?.user_metadata?.intended_role;
   const preRegRaw = req.cookies.get('pre_reg_draft')?.value;
 
-  if (u.user && intendedRole === 'verkaeufer' && preRegRaw) {
+  // Pre-Reg-Verkäufer: auch wenn keine pre_reg_draft Cookie mehr da ist
+  // (z.B. cookies clear) — wenn intended_role=verkaeufer, dann mindestens
+  // Profile als verkaeufer markieren + onboarding_completed_at setzen.
+  if (u.user && intendedRole === 'verkaeufer') {
     let preReg: any = null;
-    try { preReg = JSON.parse(preRegRaw); } catch { /* invalid */ }
+    if (preRegRaw) {
+      try { preReg = JSON.parse(preRegRaw); } catch { /* invalid */ }
+    }
 
+    const fullName = u.user.user_metadata?.full_name ?? '';
+    const sprache = u.user.user_metadata?.sprache ?? 'de';
+    const ip = (req.headers.get('x-forwarded-for') ?? '').split(',')[0]?.trim() || null;
+    const ua = req.headers.get('user-agent') ?? null;
+    const kanton = (preReg?.kanton ?? '').toUpperCase().slice(0, 2);
+
+    // 1. Profile fertigstellen — wichtig: verhindert Onboarding-Loop
+    const { error: completeErr } = await supabase.rpc('complete_onboarding', {
+      p_rolle: 'verkaeufer',
+      p_full_name: fullName,
+      p_kanton: kanton,
+      p_sprache: sprache,
+      p_agb_version: '2026-04',
+      p_datenschutz_version: '2026-04',
+      p_ip: ip,
+      p_user_agent: ua,
+    });
+
+    if (completeErr) {
+      console.warn('[auth-callback] complete_onboarding fehlgeschlagen:', completeErr.message);
+      // Fallback: direktes Update auf profiles um Onboarding-Loop zu vermeiden
+      await supabase
+        .from('profiles')
+        .upsert({
+          id: u.user.id,
+          rolle: 'verkaeufer',
+          full_name: fullName,
+          kanton: kanton || null,
+          sprache,
+          onboarding_completed_at: new Date().toISOString(),
+        }, { onConflict: 'id' });
+    }
+
+    // 2. Inserat aus Pre-Reg-Daten anlegen (nur wenn Cookie da war)
+    let inseratId: string | null = null;
     if (preReg && typeof preReg === 'object') {
-      const fullName = u.user.user_metadata?.full_name ?? '';
-      const sprache = u.user.user_metadata?.sprache ?? 'de';
-      const ip = (req.headers.get('x-forwarded-for') ?? '').split(',')[0]?.trim() || null;
-      const ua = req.headers.get('user-agent') ?? null;
-
-      // 1. Profile fertigstellen (rolle=verkaeufer, AGB akzeptiert)
-      const { error: completeErr } = await supabase.rpc('complete_onboarding', {
-        p_rolle: 'verkaeufer',
-        p_full_name: fullName,
-        p_kanton: (preReg.kanton ?? '').toUpperCase().slice(0, 2),
-        p_sprache: sprache,
-        p_agb_version: '2026-04',
-        p_datenschutz_version: '2026-04',
-        p_ip: ip,
-        p_user_agent: ua,
-      });
-
-      if (!completeErr) {
-        // 2. Inserat aus Pre-Reg-Daten anlegen
-        const inseratPayload = {
+      const { data, error: insErr } = await supabase.rpc('create_inserat_from_pre_reg', {
+        p: {
           zefix_uid: preReg.zefix_uid ?? null,
           firma_name: preReg.firma_name ?? null,
           firma_rechtsform: preReg.firma_rechtsform ?? null,
           firma_sitz_gemeinde: preReg.firma_sitz_gemeinde ?? null,
           branche_id: preReg.branche_id ?? null,
-          kanton: (preReg.kanton ?? '').toUpperCase().slice(0, 2),
+          kanton,
           jahr: preReg.jahr ?? null,
           mitarbeitende: preReg.mitarbeitende ?? null,
           umsatz: preReg.umsatz ?? null,
           ebitda: preReg.ebitda ?? null,
           valuation: preReg.valuation ?? null,
-        };
-        const { data: inseratId } = await supabase.rpc(
-          'create_inserat_from_pre_reg',
-          { p: inseratPayload },
-        );
-
-        // 3. Cookie clearen + Redirect zu Inserat-Edit
-        const targetUrl = inseratId
-          ? `${origin}/dashboard/verkaeufer/inserat/${inseratId}/edit?from=pre-reg`
-          : `${origin}/dashboard/verkaeufer/inserat/new?from=pre-reg`;
-        const res = NextResponse.redirect(targetUrl);
-        res.cookies.set('pre_reg_draft', '', { maxAge: 0, path: '/' });
-        return res;
+        },
+      });
+      if (insErr) {
+        console.warn('[auth-callback] create_inserat_from_pre_reg fehlgeschlagen:', insErr.message);
+      } else {
+        inseratId = data as string;
       }
     }
+
+    // 3. Cookie clearen + Redirect zu Inserat-Edit (oder zu /new falls Inserat-Anlage fehlschlug)
+    const targetUrl = inseratId
+      ? `${origin}/dashboard/verkaeufer/inserat/${inseratId}/edit?from=pre-reg`
+      : `${origin}/dashboard/verkaeufer/inserat/new?from=pre-reg`;
+    const res = NextResponse.redirect(targetUrl);
+    res.cookies.set('pre_reg_draft', '', { maxAge: 0, path: '/' });
+    return res;
   }
 
   // Standard-Flow: zu /dashboard, dort routet das Smart-Routing
