@@ -12,7 +12,9 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 const COOKIE = 'pre_reg_draft';
+const INTENT_COOKIE = 'passare_intent_verkaeufer';
 const TTL_SECONDS = 30 * 60;
+const INTENT_TTL_SECONDS = 7 * 24 * 60 * 60; // 7 Tage — überlebt OAuth-Redirects sicher
 
 export async function POST(req: NextRequest) {
   try {
@@ -28,6 +30,17 @@ export async function POST(req: NextRequest) {
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       maxAge: TTL_SECONDS,
+      path: '/',
+    });
+    // Zusätzlich ein langlebiges Intent-Cookie das den OAuth-Redirect
+    // sicher überlebt — auch wenn der httpOnly draft-Cookie aus
+    // irgendeinem Grund verloren geht (Browser-Strict-SameSite,
+    // Cross-Site-Tracking-Prevention etc.)
+    res.cookies.set(INTENT_COOKIE, '1', {
+      httpOnly: false,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: INTENT_TTL_SECONDS,
       path: '/',
     });
     return res;
@@ -49,5 +62,6 @@ export async function GET(req: NextRequest) {
 export async function DELETE() {
   const res = NextResponse.json({ ok: true });
   res.cookies.set(COOKIE, '', { maxAge: 0, path: '/' });
+  res.cookies.set(INTENT_COOKIE, '', { maxAge: 0, path: '/' });
   return res;
 }

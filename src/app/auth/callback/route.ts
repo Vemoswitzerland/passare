@@ -52,14 +52,22 @@ export async function GET(req: NextRequest) {
   const { data: u } = await supabase.auth.getUser();
   const intendedRole = u.user?.user_metadata?.intended_role;
   const preRegRaw = req.cookies.get('pre_reg_draft')?.value;
+  // Drittes Sicherheitsnetz: das langlebige Intent-Cookie. Wird beim
+  // ersten Pre-Reg-Step gesetzt mit 7-Tagen-TTL, ohne httpOnly,
+  // sameSite=lax — überlebt Google-OAuth-Redirects und Cookie-
+  // Prevention-Settings zuverlässiger als der httpOnly draft-Cookie.
+  const intentCookie = req.cookies.get('passare_intent_verkaeufer')?.value;
 
-  // Pre-Reg-Verkäufer-Erkennung:
-  //  - via user_metadata.intended_role (gesetzt im klassischen
-  //    /auth/register signUp), ODER
-  //  - via pre_reg_draft Cookie (wird auch bei OAuth-Sign-Up gehalten,
-  //    da Browser-Cookies unabhängig vom Auth-Provider sind)
-  // Cookie hat Vorrang weil es das Pre-Reg-Onboarding eindeutig belegt.
-  const isPreRegVerkaeufer = u.user && (intendedRole === 'verkaeufer' || !!preRegRaw);
+  // Pre-Reg-Verkäufer-Erkennung — DREIFACH-Schutz:
+  //  1. user_metadata.intended_role (klassischer /auth/register Form)
+  //  2. pre_reg_draft Cookie (httpOnly, mit Funnel-Daten)
+  //  3. passare_intent_verkaeufer Cookie (non-httpOnly, langlebig,
+  //     überlebt OAuth-Redirects + Browser-Privacy-Settings)
+  const isPreRegVerkaeufer = u.user && (
+    intendedRole === 'verkaeufer' ||
+    !!preRegRaw ||
+    intentCookie === '1'
+  );
   if (isPreRegVerkaeufer) {
     let preReg: any = null;
     if (preRegRaw) {
@@ -130,6 +138,7 @@ export async function GET(req: NextRequest) {
       : `${origin}/dashboard/verkaeufer/inserat/new?from=pre-reg`;
     const res = NextResponse.redirect(targetUrl);
     res.cookies.set('pre_reg_draft', '', { maxAge: 0, path: '/' });
+    res.cookies.set('passare_intent_verkaeufer', '', { maxAge: 0, path: '/' });
     return res;
   }
 
