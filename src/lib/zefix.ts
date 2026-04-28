@@ -574,11 +574,18 @@ function buildSearchVariants(q: string): string[] {
 /**
  * Match-Quality-Score: höher = besser.
  *  - Exact-Name = 100'000
- *  - StartsWith volle Query = 50'000
+ *  - StartsWith volle Query (mit Wort-Grenze) = 50'000
  *  - Contains volle Query = 10'000
- *  - StartsWith längste Variant = 1'000
- *  - Contains längste Variant = 500
+ *  - StartsWith Variant + Wortgrenze = 5'000
+ *  - StartsWith Variant ohne Wortgrenze = 800
+ *  - Contains Variant mit Wortgrenze = 1'000
+ *  - Contains Variant ohne Wortgrenze = 200
  *  - Plus Bonus für kurze Namen (kürzer = präziser)
+ *
+ * Wortgrenze = direkt nach dem Match kommt ein Whitespace, Komma,
+ * Bindestrich oder das Ende. Damit schlägt "Vemo Group GmbH" das
+ * "Vemor GmbH", weil bei Vemor der Match "vemo" mit "r" weitergeht
+ * (kein Wortende), bei "Vemo Group" mit Leerzeichen.
  */
 function scoreHit(name: string | null, query: string, variants: string[]): number {
   if (!name) return 0;
@@ -589,16 +596,44 @@ function scoreHit(name: string | null, query: string, variants: string[]): numbe
   const lenBonus = Math.max(0, 100 - name.length);
 
   if (lname === lq) return 100_000 + lenBonus;
-  if (lname.startsWith(lq)) return 50_000 + lenBonus;
-  if (lname.includes(lq)) return 10_000 + lenBonus;
+
+  // Hilfs-Funktion: prüft ob nach dem Match ein Wort-Ende kommt
+  const isWordBoundaryAfter = (idx: number, len: number): boolean => {
+    const next = lname.charAt(idx + len);
+    return next === '' || /[\s,.\-/&()]/.test(next);
+  };
+
+  // Volle Query als Match
+  if (lname.startsWith(lq) && isWordBoundaryAfter(0, lq.length)) {
+    return 50_000 + lenBonus;
+  }
+  if (lname.startsWith(lq)) {
+    return 30_000 + lenBonus; // startsWith ohne Wortgrenze (z.B. "vemo group s..." matched "vemo group" + " sa")
+  }
+  const idxQ = lname.indexOf(lq);
+  if (idxQ >= 0 && isWordBoundaryAfter(idxQ, lq.length)) {
+    return 15_000 + lenBonus;
+  }
+  if (idxQ >= 0) return 10_000 + lenBonus;
 
   // Variant-Score (sortiert nach Länge desc, längste zuerst)
   const sorted = [...variants].sort((a, b) => b.length - a.length);
   for (const v of sorted) {
     const lv = v.toLowerCase();
     if (lv === lq) continue; // schon oben gescored
-    if (lname.startsWith(lv)) return 1_000 + lv.length * 10 + lenBonus;
-    if (lname.includes(lv)) return 500 + lv.length * 10 + lenBonus;
+    if (lname.startsWith(lv) && isWordBoundaryAfter(0, lv.length)) {
+      return 5_000 + lv.length * 10 + lenBonus;
+    }
+    if (lname.startsWith(lv)) {
+      return 800 + lv.length * 10 + lenBonus;
+    }
+    const idxV = lname.indexOf(lv);
+    if (idxV >= 0 && isWordBoundaryAfter(idxV, lv.length)) {
+      return 1_000 + lv.length * 10 + lenBonus;
+    }
+    if (idxV >= 0) {
+      return 200 + lv.length * 10 + lenBonus;
+    }
   }
   return 0;
 }
