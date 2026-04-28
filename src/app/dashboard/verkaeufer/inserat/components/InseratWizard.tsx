@@ -6,6 +6,7 @@ import { ArrowRight, ArrowLeft, Check, Loader2, AlertTriangle, Image as ImageIco
 import { saveStep, mockPaketKaufen, submitForReview } from '../actions';
 import { BRANCHEN_LIST } from '@/data/branchen-multiples';
 import { STOCKFOTOS_BY_BRANCHE } from '@/data/branchen-stockfotos';
+import { CurrencyInput, formatCHSwiss } from '@/components/ui/currency-input';
 import { cn } from '@/lib/utils';
 
 // Mapping branche_id (Backend) → Stockfoto-Branche-Name (Display)
@@ -453,13 +454,13 @@ function Step2Basis({ data, update }: { data: Inserat; update: (p: Partial<Inser
             <div>
               <dt className="text-quiet">Umsatz</dt>
               <dd className="text-ink font-medium font-mono">
-                CHF {Number(data.umsatz_chf).toLocaleString('de-CH').replace(/,/g, "'")}
+                CHF {formatCHSwiss(Number(data.umsatz_chf))}
               </dd>
             </div>
             <div>
               <dt className="text-quiet">EBITDA</dt>
               <dd className="text-ink font-medium font-mono">
-                CHF {Number(data.ebitda_chf).toLocaleString('de-CH').replace(/,/g, "'")}
+                CHF {formatCHSwiss(Number(data.ebitda_chf))}
               </dd>
             </div>
           </dl>
@@ -588,38 +589,28 @@ function Step2Basis({ data, update }: { data: Inserat; update: (p: Partial<Inser
       {!preRegDataComplete && (
         <>
           <div className="grid sm:grid-cols-2 gap-6">
-            <FormField label="Jahresumsatz (CHF)" required>
-              <input
-                type="number"
-                value={data.umsatz_chf ?? ''}
-                onChange={(e) => update({ umsatz_chf: Number(e.target.value) })}
-                placeholder="2000000"
-                className="w-full px-4 py-3 bg-paper border border-stone rounded-soft text-body font-mono focus:outline-none focus:border-bronze focus:shadow-focus transition-all"
+            <FormField label="Jahresumsatz" required>
+              <CurrencyInput
+                value={data.umsatz_chf}
+                onChange={(v) => update({ umsatz_chf: v as any })}
+                placeholder="2'000'000"
               />
             </FormField>
             <FormField
-              label="EBITDA (CHF)"
+              label="EBITDA"
               required
               hint={ebitdaWarning ? undefined : 'darf höchstens dem Umsatz entsprechen'}
             >
-              <input
-                type="number"
-                value={data.ebitda_chf ?? ''}
-                onChange={(e) => {
-                  const v = Number(e.target.value);
-                  // Cap auf Umsatz: EBITDA-Marge max 100%
-                  if (umsatzNum > 0 && v > umsatzNum) {
-                    update({ ebitda_chf: umsatzNum });
+              <CurrencyInput
+                value={data.ebitda_chf}
+                onChange={(v) => {
+                  if (v != null && umsatzNum > 0 && v > umsatzNum) {
+                    update({ ebitda_chf: umsatzNum as any });
                   } else {
-                    update({ ebitda_chf: v });
+                    update({ ebitda_chf: v as any });
                   }
                 }}
-                max={umsatzNum > 0 ? umsatzNum : undefined}
-                placeholder="350000"
-                className={cn(
-                  'w-full px-4 py-3 bg-paper border rounded-soft text-body font-mono focus:outline-none focus:shadow-focus transition-all',
-                  ebitdaWarning ? 'border-warn focus:border-warn' : 'border-stone focus:border-bronze',
-                )}
+                placeholder="350'000"
               />
               {ebitdaWarning && (
                 <p className="mt-1.5 text-caption text-warn">{ebitdaWarning}</p>
@@ -631,17 +622,15 @@ function Step2Basis({ data, update }: { data: Inserat; update: (p: Partial<Inser
 
       <div className="grid sm:grid-cols-2 gap-6 items-end">
         <FormField
-          label="Kaufpreis (CHF)"
+          label="Kaufpreis"
           required
           hint={data.kaufpreis_chf ? 'Empfehlung — anpassbar' : undefined}
         >
-          <input
-            type="number"
-            value={data.kaufpreis_chf ?? ''}
-            onChange={(e) => update({ kaufpreis_chf: Number(e.target.value) })}
+          <CurrencyInput
+            value={data.kaufpreis_chf}
+            onChange={(v) => update({ kaufpreis_chf: v as any })}
             disabled={data.kaufpreis_vhb}
-            placeholder="2500000"
-            className="w-full px-4 py-3 bg-paper border border-stone rounded-soft text-body font-mono focus:outline-none focus:border-bronze focus:shadow-focus transition-all disabled:opacity-40"
+            placeholder="2'500'000"
           />
         </FormField>
         <label className="flex items-center gap-2 text-body-sm text-ink cursor-pointer">
@@ -662,34 +651,28 @@ function Step2Basis({ data, update }: { data: Inserat; update: (p: Partial<Inser
           Stattdessen Preis-Range angeben (Min/Max)
         </summary>
         <div className="grid sm:grid-cols-2 gap-4 mt-3">
-          <FormField label="Mindestens (CHF)">
-            <input
-              type="number"
-              value={data.kaufpreis_min_chf ?? ''}
-              onChange={(e) => update({ kaufpreis_min_chf: Number(e.target.value) })}
-              placeholder="2000000"
-              className="w-full px-4 py-3 bg-paper border border-stone rounded-soft text-body font-mono focus:outline-none focus:border-bronze focus:shadow-focus transition-all"
+          <FormField label="Mindestens">
+            <CurrencyInput
+              value={data.kaufpreis_min_chf}
+              onChange={(v) => update({ kaufpreis_min_chf: v as any })}
+              placeholder="2'000'000"
             />
           </FormField>
-          <FormField label="Höchstens (CHF)">
-            <input
-              type="number"
-              value={data.kaufpreis_max_chf ?? ''}
-              onChange={(e) => update({ kaufpreis_max_chf: Number(e.target.value) })}
-              placeholder="3000000"
-              className="w-full px-4 py-3 bg-paper border border-stone rounded-soft text-body font-mono focus:outline-none focus:border-bronze focus:shadow-focus transition-all"
+          <FormField label="Höchstens">
+            <CurrencyInput
+              value={data.kaufpreis_max_chf}
+              onChange={(v) => update({ kaufpreis_max_chf: v as any })}
+              placeholder="3'000'000"
             />
           </FormField>
         </div>
       </details>
 
       <FormField label="Erforderliches Eigenkapital für den Käufer (optional)" hint="meist 20-30 % vom Kaufpreis">
-        <input
-          type="number"
-          value={data.eigenkapital_chf ?? ''}
-          onChange={(e) => update({ eigenkapital_chf: Number(e.target.value) })}
-          placeholder="500000"
-          className="w-full px-4 py-3 bg-paper border border-stone rounded-soft text-body font-mono focus:outline-none focus:border-bronze focus:shadow-focus transition-all"
+        <CurrencyInput
+          value={data.eigenkapital_chf}
+          onChange={(v) => update({ eigenkapital_chf: v as any })}
+          placeholder="500'000"
         />
       </FormField>
 
@@ -1137,7 +1120,7 @@ function Step5Paket({
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5 max-w-6xl mx-auto">
+          <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
             {NEW_PAKETE.map((p) => {
               const isSelected = selectedPaket === p.id;
               const isRecommended = empfohlenId === p.id;
@@ -1147,7 +1130,7 @@ function Step5Paket({
                   type="button"
                   onClick={() => setSelectedPaket(p.id)}
                   className={cn(
-                    'text-left rounded-card border-2 p-6 flex flex-col relative transition-all',
+                    'text-left rounded-card border-2 p-6 md:p-7 flex flex-col relative transition-all',
                     isSelected
                       ? 'border-bronze shadow-lift bg-paper -translate-y-1'
                       : 'border-stone bg-paper hover:border-bronze/40 hover:-translate-y-0.5',
@@ -1163,18 +1146,26 @@ function Step5Paket({
                       Beliebt
                     </span>
                   )}
-                  <p className="overline text-quiet mb-2">{p.label}</p>
-                  <p className="font-serif text-[2.5rem] text-navy font-light font-tabular leading-none mb-1">
-                    CHF {p.preis}
+                  <div className="flex items-baseline justify-between gap-3 mb-1">
+                    <p className="overline text-quiet">{p.label}</p>
+                    {/* Bewertungsbereich */}
+                    <p className="text-caption text-quiet font-mono whitespace-nowrap">
+                      {p.bewertungsbereich.max
+                        ? `bis CHF ${formatCHSwiss(p.bewertungsbereich.max / 1000)}K`
+                        : `> CHF 10 Mio`}
+                    </p>
+                  </div>
+                  <p className="font-serif text-[3rem] text-navy font-light font-tabular leading-none mb-2">
+                    CHF {formatCHSwiss(p.preis)}
                   </p>
-                  <p className="text-caption text-quiet mb-5">
+                  <p className="text-caption text-quiet mb-6">
                     Pauschalpreis · {p.laufzeitMonate ? `${p.laufzeitMonate} Monate` : 'aktiv bis Verkauf'}
                   </p>
-                  <ul className="space-y-2 mb-5 flex-1">
+                  <ul className="space-y-2.5 mb-6 flex-1">
                     {p.features.map((f) => (
                       <li key={f} className="text-body-sm text-muted flex items-start gap-2 leading-snug">
-                        <Check className="w-3.5 h-3.5 text-bronze flex-shrink-0 mt-1" strokeWidth={2} />
-                        {f}
+                        <Check className="w-3.5 h-3.5 text-bronze flex-shrink-0 mt-0.5" strokeWidth={2} />
+                        <span>{f}</span>
                       </li>
                     ))}
                   </ul>
