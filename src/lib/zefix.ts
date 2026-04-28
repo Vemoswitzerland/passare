@@ -521,10 +521,15 @@ export async function primeLookupCache(uid: string): Promise<void> {
 
 /**
  * Generiert smartere Such-Varianten falls die Volltext-Suche
- * keine Treffer liefert. Beispiel "Vemo Group GmbH":
- *   1. "Vemo Group GmbH"   → exact substring
- *   2. "Vemo Group"         → ohne Rechtsform
- *   3. "Vemo"               → Hauptwort allein
+ * keine Treffer liefert. Beispiel "Spezialmaschinen Mustermann AG":
+ *   1. "Spezialmaschinen Mustermann AG"  → exact substring
+ *   2. "Spezialmaschinen Mustermann"      → ohne Rechtsform
+ *   3. "Spezialmaschinen"                  → erstes signifikantes Wort
+ *   4. "Mustermann"                         → weiteres signifikantes Wort
+ *
+ * Wir geben ALLE signifikanten Wörter (≥4 Zeichen) zurück, damit
+ * auch zusammengesetzte Firmen wie "Hofstetter & Müller AG" via
+ * "Hofstetter" UND "Müller" gefunden werden.
  */
 function buildSearchVariants(q: string): string[] {
   const trimmed = q.trim();
@@ -532,17 +537,35 @@ function buildSearchVariants(q: string): string[] {
 
   // Rechtsform-Suffixe entfernen
   const stripRechtsform = trimmed
-    .replace(/\b(GmbH|AG|SA|S\.A\.|Sàrl|Sarl|S\.à r\.l\.|Genossenschaft|Verein|Stiftung|in Liquidation|i\.\s*L\.|& Co\.?|& Cie\.?)\b/gi, '')
+    .replace(/\b(GmbH|AG|SA|S\.A\.|Sàrl|Sarl|S\.à r\.l\.|Genossenschaft|Verein|Stiftung|in Liquidation|i\.\s*L\.|& Co\.?|& Cie\.?|Holding|Group)\b/gi, '')
     .trim()
     .replace(/\s+/g, ' ');
   if (stripRechtsform.length >= 3 && stripRechtsform.toLowerCase() !== trimmed.toLowerCase()) {
     variants.push(stripRechtsform);
   }
 
-  // Erstes signifikantes Wort
-  const firstWord = stripRechtsform.split(/\s+/).find((w) => w.length >= 3);
-  if (firstWord && !variants.some((v) => v.toLowerCase() === firstWord.toLowerCase())) {
-    variants.push(firstWord);
+  // Alle signifikanten Wörter (≥4 Zeichen) — Filter trivialer Bindeworte
+  const STOP_WORDS = new Set([
+    'und', 'der', 'die', 'das', 'für', 'mit', 'von', 'eine', 'einer', 'ein',
+    'des', 'dem', 'den', 'als', 'aus', 'auf', 'bei', 'zur', 'zum', 'als',
+  ]);
+  const words = stripRechtsform
+    .split(/[\s,&\-\/]+/)
+    .map((w) => w.trim())
+    .filter((w) => w.length >= 4 && !STOP_WORDS.has(w.toLowerCase()));
+
+  for (const w of words) {
+    if (!variants.some((v) => v.toLowerCase() === w.toLowerCase())) {
+      variants.push(w);
+    }
+  }
+
+  // Falls keine 4-Buchstaben-Wörter — nimm das erste 3-Buchstaben-Wort als Fallback
+  if (variants.length === 1) {
+    const firstShort = stripRechtsform.split(/\s+/).find((w) => w.length >= 3);
+    if (firstShort && !variants.some((v) => v.toLowerCase() === firstShort.toLowerCase())) {
+      variants.push(firstShort);
+    }
   }
 
   return variants;

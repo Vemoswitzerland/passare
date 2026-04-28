@@ -104,12 +104,27 @@ export function FirmenSuche({ onSelect, placeholder = 'Firma suchen (Name oder U
   }, []);
 
   // Debounce
+  // WICHTIG: Sobald sich Query ändert (≥3 Zeichen), setzen wir SOFORT
+  // loading=true und clearen alte Hits — sonst bleiben für ~300ms+ alte
+  // Treffer ohne Hinweis sichtbar und der User denkt "es sucht gar nicht".
   useEffect(() => {
-    if (!query.trim()) {
+    const trimmed = query.trim();
+    if (!trimmed) {
       setHits([]);
+      setLoading(false);
       return;
     }
-    const t = window.setTimeout(() => search(query), 300);
+    if (trimmed.length < 3) {
+      setHits([]);
+      setLoading(false);
+      return;
+    }
+    // Sofort: alte Hits weg, Spinner an
+    setHits([]);
+    setLoading(true);
+    setActive(0);
+
+    const t = window.setTimeout(() => search(trimmed), 280);
     return () => window.clearTimeout(t);
   }, [query, search]);
 
