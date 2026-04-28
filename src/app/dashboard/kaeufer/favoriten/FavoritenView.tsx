@@ -1,10 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { LayoutGrid, Columns3, BarChart3, X, ArrowRight } from 'lucide-react';
+import { LayoutGrid, Columns3, BarChart3, X } from 'lucide-react';
 import Link from 'next/link';
 import { ListingCardMini } from '@/components/kaeufer/listing-card-mini';
-import type { MockListing } from '@/lib/listings-mock';
+import type { InseratPublic } from '@/lib/listings';
 import type { Suchprofil } from '@/lib/match-score';
 import { cn } from '@/lib/utils';
 
@@ -13,7 +13,7 @@ type FavoritEntry = {
   stage: string;
   note: string | null;
   tags: string[];
-  listing: MockListing;
+  listing: InseratPublic;
 };
 
 type Props = {
@@ -31,6 +31,23 @@ const STAGES: { key: string; label: string }[] = [
   { key: 'lost', label: 'Verloren' },
 ];
 
+/** Kaufpreis-Display: VHB > Bucket > "—" (Client-side, ohne Server-Helper). */
+function displayKaufpreis(l: InseratPublic): string {
+  if (l.kaufpreis_vhb) return 'VHB';
+  return l.kaufpreis_bucket ?? '—';
+}
+
+/** EBITDA-Display: Marge in % oder "—". */
+function displayEbitda(l: InseratPublic): string {
+  if (l.ebitda_marge_pct == null) return '—';
+  return `${l.ebitda_marge_pct.toFixed(1)} %`;
+}
+
+/** Umsatz-Display: Bucket oder "—". */
+function displayUmsatz(l: InseratPublic): string {
+  return l.umsatz_bucket ?? '—';
+}
+
 export function FavoritenView({ favoriten, suchprofil }: Props) {
   const [view, setView] = useState<'list' | 'kanban'>('list');
   const [selected, setSelected] = useState<string[]>([]);
@@ -43,26 +60,6 @@ export function FavoritenView({ favoriten, suchprofil }: Props) {
   };
 
   const compareEntries = favoriten.filter((f) => selected.includes(f.inserat_id));
-
-  if (favoriten.length === 0) {
-    return (
-      <div className="bg-paper border border-dashed border-stone rounded-card p-12 text-center">
-        <p className="overline text-bronze-ink mb-3">Noch keine Favoriten</p>
-        <h3 className="font-serif text-head-md text-navy font-normal mb-3">
-          Deine Watchlist ist leer<span className="text-bronze">.</span>
-        </h3>
-        <p className="text-body-sm text-muted mb-6 max-w-md mx-auto">
-          Speichere im Marktplatz alle Inserate, die dich interessieren — hier kannst du sie verwalten, mit Notizen versehen und im Vergleich nebeneinander stellen.
-        </p>
-        <Link
-          href="/kaufen"
-          className="inline-flex items-center gap-2 px-5 py-2.5 bg-navy text-cream rounded-soft text-body-sm font-medium hover:bg-ink transition-colors"
-        >
-          Zum Marktplatz <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
-        </Link>
-      </div>
-    );
-  }
 
   return (
     <>
@@ -185,20 +182,21 @@ export function FavoritenView({ favoriten, suchprofil }: Props) {
 }
 
 function KanbanCard({ entry }: { entry: FavoritEntry }) {
+  const l = entry.listing;
   return (
     <Link
-      href={`/kaufen/${entry.inserat_id}`}
+      href={`/kaufen/${l.slug ?? l.id}`}
       className="block bg-cream border border-stone rounded-soft p-3 hover:border-bronze transition-colors"
     >
       <p className="font-mono text-[10px] uppercase tracking-widest text-quiet mb-1">
-        {entry.listing.id}
+        {l.id}
       </p>
       <p className="text-caption text-navy font-medium leading-snug mb-2 line-clamp-2">
-        {entry.listing.titel}
+        {l.titel}
       </p>
       <div className="flex items-center justify-between text-caption">
-        <span className="text-quiet">{entry.listing.kanton}</span>
-        <span className="font-mono text-navy">{entry.listing.umsatz}</span>
+        <span className="text-quiet">{l.kanton ?? '—'}</span>
+        <span className="font-mono text-navy">{displayUmsatz(l)}</span>
       </div>
       {entry.note && (
         <p className="text-caption text-muted italic mt-2 pt-2 border-t border-stone leading-snug line-clamp-2">
@@ -214,18 +212,18 @@ function CompareCard({ entry }: { entry: FavoritEntry }) {
   return (
     <div className="bg-paper border border-stone rounded-card overflow-hidden">
       <div className="bg-navy text-cream p-4">
-        <p className="font-mono text-caption text-bronze">{l.id} · {l.kanton}</p>
+        <p className="font-mono text-caption text-bronze">{l.id} · {l.kanton ?? '—'}</p>
         <p className="font-serif text-body-sm text-cream mt-1 leading-tight">{l.titel}</p>
       </div>
       <dl className="divide-y divide-stone text-body-sm">
-        <CompareRow label="Branche" value={l.branche} />
-        <CompareRow label="Kanton" value={l.kanton} />
-        <CompareRow label="Gegründet" value={String(l.jahr)} />
-        <CompareRow label="Mitarbeitende" value={String(l.mitarbeitende)} />
-        <CompareRow label="Umsatz" value={l.umsatz} mono />
-        <CompareRow label="EBITDA" value={l.ebitda} mono />
-        <CompareRow label="Kaufpreis" value={l.kaufpreis} mono />
-        <CompareRow label="Übergabegrund" value={l.grund} />
+        <CompareRow label="Branche" value={l.branche_id ?? '—'} />
+        <CompareRow label="Kanton" value={l.kanton ?? '—'} />
+        <CompareRow label="Gegründet" value={l.jahr != null ? String(l.jahr) : '—'} />
+        <CompareRow label="Mitarbeitende" value={l.mitarbeitende_bucket ?? '—'} />
+        <CompareRow label="Umsatz" value={displayUmsatz(l)} mono />
+        <CompareRow label="EBITDA" value={displayEbitda(l)} mono />
+        <CompareRow label="Kaufpreis" value={displayKaufpreis(l)} mono />
+        <CompareRow label="Übergabegrund" value={l.uebergabe_grund ?? '—'} />
         <CompareRow label="Pipeline-Stage" value={entry.stage} />
       </dl>
     </div>

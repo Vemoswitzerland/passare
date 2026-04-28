@@ -15,7 +15,7 @@ import { z } from 'zod';
 import { createAnfrageToken } from '@/lib/anfrage-token';
 import { sendEmail } from '@/lib/email';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
-import { MOCK_LISTINGS } from '@/lib/listings-mock';
+import { createClient } from '@/lib/supabase/server';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -47,8 +47,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: detail }, { status: 400 });
   }
 
-  // Listing nachschlagen — V1 aus Mock, später aus DB
-  const listing = MOCK_LISTINGS.find((l) => l.id === body.listing_id);
+  // Listing aus DB nachschlagen — nur live Inserate sind anfragbar
+  const supabase = await createClient();
+  const { data: listing } = await supabase
+    .from('inserate')
+    .select('id, titel, slug, owner_id')
+    .eq('id', body.listing_id)
+    .eq('status', 'live')
+    .maybeSingle();
+
   if (!listing) {
     return NextResponse.json({ error: 'Inserat nicht gefunden' }, { status: 404 });
   }

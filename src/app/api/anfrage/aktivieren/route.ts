@@ -4,8 +4,10 @@
  * Letzter Schritt im Anfrage-Flow:
  *   1. Token validieren (signiert + nicht abgelaufen)
  *   2. Käufer-Basic-Konto in Supabase Auth anlegen (email_confirm: true)
- *   3. Anfrage-Mail an info@passare.ch (Sammel-Inbox, da V1 ohne Verkäufer-DB)
- *   4. Welcome-Mail an Käufer (kosmetisch — bestätigt Konto-Anlage)
+ *   3. Anfrage-Datensatz in `anfragen`-Tabelle (Service-Role) anlegen
+ *   4. Anfrage-Mail an Verkäufer (aus `inserate.owner_id` → `auth.users.email`)
+ *      + Sammel-Mail an info@passare.ch fürs Backoffice-Tracking
+ *   5. Welcome-Mail an Käufer (kosmetisch — bestätigt Konto-Anlage)
  *
  * Body: { token, passwort }
  * Response: { ok: true, listing_id } oder { error, status }
@@ -16,7 +18,6 @@ import { z } from 'zod';
 import { verifyAnfrageToken } from '@/lib/anfrage-token';
 import { sendEmail } from '@/lib/email';
 import { createAdminClient, createClient } from '@/lib/supabase/server';
-import { MOCK_LISTINGS } from '@/lib/listings-mock';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -44,13 +45,21 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const listing = MOCK_LISTINGS.find((l) => l.id === payload.l);
+  // Listing aus DB ziehen (Service-Role wegen RLS — owner_id ist in der
+  // Public-View nicht enthalten, brauchen wir aber fürs Anfrage-Routing).
+  const adminClient = createAdminClient();
+  const { data: listing } = await adminClient
+    .from('inserate')
+    .select('id, titel, slug, owner_id')
+    .eq('id', payload.l)
+    .eq('status', 'live')
+    .maybeSingle();
 
-  // Käufer-Basic-Konto in Supabase Auth anlegen
+  // Käufer-Basic-Konto in Supabase Auth anlegen (oder existierenden User holen)
   let createdUser = false;
+  let kaeuferId: string | null = null;
   try {
-    const admin = createAdminClient();
-    const { error } = await admin.auth.admin.createUser({
+    const { data: createData, error } = await adminClient.auth.admin.createUser({
       email: payload.e,
       password: body.passwort,
       email_confirm: true,
@@ -62,8 +71,20 @@ export async function POST(req: NextRequest) {
       if (!msg.includes('already') && !msg.includes('registered')) {
         console.warn('[anfrage:aktivieren] createUser error:', error.message);
       }
+      // User existiert schon → ID via Lookup holen
+      try {
+        const { data: lookup } = await adminClient
+          .from('profiles')
+          .select('id')
+          .eq('email', payload.e)
+          .maybeSingle();
+        if (lookup?.id) kaeuferId = lookup.id as string;
+      } catch (lookupErr) {
+        console.warn('[anfrage:aktivieren] profile-lookup error:', lookupErr);
+      }
     } else {
       createdUser = true;
+      kaeuferId = createData?.user?.id ?? null;
     }
   } catch (err) {
     console.warn('[anfrage:aktivieren] admin client error:', err);
@@ -92,7 +113,75 @@ export async function POST(req: NextRequest) {
     console.warn('[anfrage:aktivieren] signIn-Exception:', err);
   }
 
-  // Anfrage-Mail an Sammel-Inbox (V1 ohne Verkäufer-DB)
+  // Anfrage-Datensatz in `anfragen` anlegen — Service-Role bypasst die RLS-Policy
+  // (auth.uid()=kaeufer_id), damit der Insert auch zuverlässig durchläuft falls die
+  // Session noch nicht "richtig" am Browser ankam.
+  let anfrageId: string | null = null;
+  if (listing?.id && kaeuferId) {
+    try {
+      const { data: anfrageRow, error: anfrageErr } = await adminClient
+        .from('anfragen')
+        .insert({
+          inserat_id: listing.id,
+          kaeufer_id: kaeuferId,
+          message: payload.m,
+          status: 'neu',
+        })
+        .select('id')
+        .maybeSingle();
+      if (anfrageErr) {
+        // UNIQUE-Verletzung (Käufer hat schon angefragt) ist OK
+        const msg = anfrageErr.message?.toLowerCase() ?? '';
+        if (!msg.includes('duplicate') && !msg.includes('unique')) {
+          console.warn('[anfrage:aktivieren] anfragen-insert error:', anfrageErr.message);
+        }
+      } else {
+        anfrageId = anfrageRow?.id ?? null;
+      }
+    } catch (err) {
+      console.warn('[anfrage:aktivieren] anfragen-insert exception:', err);
+    }
+  }
+
+  // Verkäufer-Email aus auth.users holen (Service-Role)
+  let verkaeuferEmail: string | null = null;
+  if (listing?.owner_id) {
+    try {
+      const { data: ownerData, error: ownerErr } = await adminClient.auth.admin.getUserById(
+        listing.owner_id,
+      );
+      if (ownerErr) {
+        console.warn('[anfrage:aktivieren] getUserById error:', ownerErr.message);
+      } else {
+        verkaeuferEmail = ownerData?.user?.email ?? null;
+      }
+    } catch (err) {
+      console.warn('[anfrage:aktivieren] getUserById exception:', err);
+    }
+  }
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://passare-ch.vercel.app';
+
+  // Mail an Verkäufer (wenn Email vorhanden)
+  if (verkaeuferEmail) {
+    await sendEmail({
+      template: 'anfrage_eingegangen',
+      to: verkaeuferEmail,
+      vars: {
+        verkaeuferName: 'Verkäufer',
+        inseratTitel: listing?.titel ?? `Inserat ${payload.l}`,
+        kaeuferTyp: `${payload.n} · ${payload.e}`,
+        nachrichtSnippet: payload.m,
+        anfrageId: anfrageId ?? payload.l,
+        appUrl,
+        link: `${appUrl}/dashboard/verkaeufer/anfragen`,
+      },
+      subject_override: `Neue Anfrage: ${listing?.titel ?? payload.l}`,
+      related_id: anfrageId ?? undefined,
+    });
+  }
+
+  // Sammel-Mail an Backoffice
   await sendEmail({
     template: 'anfrage_eingegangen',
     to: 'info@passare.ch',
@@ -101,8 +190,8 @@ export async function POST(req: NextRequest) {
       inseratTitel: listing?.titel ?? `Inserat ${payload.l}`,
       kaeuferTyp: `${payload.n} · ${payload.e}`,
       nachrichtSnippet: payload.m,
-      anfrageId: payload.l,
-      appUrl: process.env.NEXT_PUBLIC_APP_URL ?? 'https://passare-ch.vercel.app',
+      anfrageId: anfrageId ?? payload.l,
+      appUrl,
     },
     subject_override: `Neue Anfrage: ${listing?.titel ?? payload.l}`,
   });
@@ -114,7 +203,7 @@ export async function POST(req: NextRequest) {
       to: payload.e,
       vars: {
         name: payload.n,
-        loginUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://passare-ch.vercel.app'}/auth/login`,
+        loginUrl: `${appUrl}/auth/login`,
       },
     });
   }

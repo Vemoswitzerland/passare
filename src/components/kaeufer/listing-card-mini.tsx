@@ -2,12 +2,20 @@ import Link from 'next/link';
 import { TrendingUp, FileLock2, Heart } from 'lucide-react';
 import { branchenStockfoto } from '@/data/branchen-stockfotos';
 import { renderKeyFacts } from '@/lib/key-facts';
-import type { MockListing } from '@/lib/listings-mock';
-import { matchScore, matchLabel, type Suchprofil } from '@/lib/match-score';
+import {
+  formatUmsatz,
+  formatEbitda,
+  formatKaufpreis,
+} from '@/lib/format-listing';
+import type { InseratPublic } from '@/lib/listings';
+import { uebergabeGrundLabel } from '@/lib/constants';
+import { matchScore, matchLabel, type Suchprofil, type Inserat } from '@/lib/match-score';
 import { cn } from '@/lib/utils';
 
 type Props = {
-  listing: MockListing;
+  listing: InseratPublic;
+  /** Display-Label für die Branche (DB liefert nur `branche_id`). */
+  branche_label?: string;
   /** Wenn gesetzt, zeigt Match-Score-Badge oben rechts */
   suchprofil?: Suchprofil;
   /** Wenn gesetzt, zeigt Stage-Pill unter dem Titel */
@@ -31,8 +39,27 @@ const STAGE_LABELS: Record<string, { label: string; color: string }> = {
   lost:         { label: 'Verloren',      color: 'bg-stone/40 text-quiet' },
 };
 
+/**
+ * Adapter: `InseratPublic` → `Inserat` (Match-Score-Shape).
+ * `match-score.ts` arbeitet noch mit String-Werten — kommt in Block 4
+ * komplett auf numerische DB-Felder.
+ */
+function toMatchInserat(l: InseratPublic, brancheLabel?: string): Inserat {
+  return {
+    branche: brancheLabel ?? l.branche_id ?? '',
+    kanton: l.kanton ?? '',
+    umsatz: formatUmsatz({ umsatz_bucket: l.umsatz_bucket }),
+    ebitda: formatEbitda(l.ebitda_marge_pct),
+    kaufpreis: formatKaufpreis({
+      kaufpreis_bucket: l.kaufpreis_bucket,
+      kaufpreis_vhb: l.kaufpreis_vhb,
+    }),
+  };
+}
+
 export function ListingCardMini({
   listing,
+  branche_label,
   suchprofil,
   stage,
   detailHref,
@@ -40,9 +67,28 @@ export function ListingCardMini({
   selected,
   onSelect,
 }: Props) {
-  const cover = branchenStockfoto(listing.branche, listing.id);
-  const facts = renderKeyFacts(listing);
-  const score = suchprofil ? matchScore(suchprofil, listing) : null;
+  const idForUI = String(listing.slug ?? listing.id);
+  const brancheDisplay = branche_label ?? listing.branche_id ?? '—';
+  const kantonDisplay = listing.kanton ?? '—';
+  const umsatzDisplay = formatUmsatz({ umsatz_bucket: listing.umsatz_bucket });
+  const ebitdaDisplay = formatEbitda(listing.ebitda_marge_pct);
+  const kaufpreisDisplay = formatKaufpreis({
+    kaufpreis_bucket: listing.kaufpreis_bucket,
+    kaufpreis_vhb: listing.kaufpreis_vhb,
+  });
+  const grundDisplay = uebergabeGrundLabel(listing.uebergabe_grund);
+  const jahrDisplay = listing.jahr ?? new Date().getFullYear();
+
+  const cover = branchenStockfoto(listing.branche_id ?? brancheDisplay, idForUI);
+  const facts = renderKeyFacts({
+    jahr: jahrDisplay,
+    mitarbeitende: 0,
+    umsatz: umsatzDisplay,
+    ebitda: ebitdaDisplay,
+  });
+  const score = suchprofil
+    ? matchScore(suchprofil, toMatchInserat(listing, brancheDisplay))
+    : null;
   const matchInfo = score !== null ? matchLabel(score) : null;
   const stageInfo = stage ? STAGE_LABELS[stage] : null;
 
@@ -70,7 +116,7 @@ export function ListingCardMini({
         <div className="absolute inset-0 bg-gradient-to-t from-navy/70 via-navy/20 to-transparent" />
 
         <span className="absolute top-3 left-3 font-mono text-[10px] uppercase tracking-widest text-cream/85 backdrop-blur-sm bg-navy/40 px-2 py-1 rounded-full">
-          {listing.id}
+          {idForUI}
         </span>
         {score !== null && matchInfo && (
           <span
@@ -90,7 +136,7 @@ export function ListingCardMini({
 
         <div className="absolute bottom-3 left-4 right-4 z-[1]">
           <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-bronze font-semibold leading-tight drop-shadow-[0_2px_8px_rgba(0,0,0,0.7)]">
-            {listing.branche} · Kanton {listing.kanton}
+            {brancheDisplay} · Kanton {kantonDisplay}
           </p>
           <p className="font-mono text-[12px] text-cream mt-1 drop-shadow-[0_2px_8px_rgba(0,0,0,0.7)]">
             {facts}
@@ -130,26 +176,26 @@ export function ListingCardMini({
         <div className="grid grid-cols-3 gap-2 py-3 border-t border-b border-stone mb-4">
           <div>
             <p className="overline text-[10px] mb-0.5">Umsatz</p>
-            <p className="font-mono text-caption text-navy font-medium">{listing.umsatz}</p>
+            <p className="font-mono text-caption text-navy font-medium">{umsatzDisplay}</p>
           </div>
           <div>
             <p className="overline text-[10px] mb-0.5">EBITDA</p>
-            <p className="font-mono text-caption text-navy font-medium">{listing.ebitda}</p>
+            <p className="font-mono text-caption text-navy font-medium">{ebitdaDisplay}</p>
           </div>
           <div>
             <p className="overline text-[10px] mb-0.5">Preis</p>
-            <p className="font-mono text-caption text-navy font-medium">{listing.kaufpreis}</p>
+            <p className="font-mono text-caption text-navy font-medium">{kaufpreisDisplay}</p>
           </div>
         </div>
 
         <p className="font-mono text-[10px] uppercase tracking-wider text-quiet mb-4">
           <TrendingUp className="inline w-3 h-3 mr-1 text-bronze" strokeWidth={1.5} />
-          {listing.grund}
+          {grundDisplay}
         </p>
 
         <div className="mt-auto flex items-center gap-2">
           <Link
-            href={detailHref ?? `/kaufen/${listing.id}`}
+            href={detailHref ?? `/kaufen/${idForUI}`}
             className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-navy text-cream rounded-soft text-caption font-medium hover:bg-ink transition-colors"
           >
             <FileLock2 className="w-3.5 h-3.5" strokeWidth={1.5} />

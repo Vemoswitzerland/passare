@@ -66,6 +66,13 @@ export const CURRENT_STEP = {
  */
 export const UPDATES: Update[] = [
   {
+    date: '2026-04-29',
+    type: 'milestone',
+    titel: 'Plattform vollumfänglich verbunden — keine Beispiele mehr',
+    beschreibung:
+      'Marktplatz, Käufer-Dashboard, Detail-Seiten, Karte und alle Forms zeigen ab jetzt nur noch echte Inserate aus der zentralen Datenbank. Wer ein Inserat aufgibt, sieht es selber unmittelbar live — und sobald jemand ein Dossier anfragt, landet die Anfrage direkt beim richtigen Verkäufer im Dashboard mit Mail-Benachrichtigung. Keine Demo-Bäckerei oder Fake-Maschinenbauer mehr — alles ist echt oder klar als leer kommuniziert mit Aufruf «Sei der/die Erste».',
+  },
+  {
     date: '2026-04-28',
     type: 'feature',
     titel: 'Auto-Login + Google/LinkedIn-Anmeldung beim Anfrage-Flow',

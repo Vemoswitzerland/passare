@@ -3,6 +3,7 @@ import { ArrowLeft } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { hasTable } from '@/lib/db/has-table';
+import { getBranchen } from '@/lib/branchen';
 import { SuchprofilForm } from './SuchprofilForm';
 
 export const metadata = { title: 'Neues Suchprofil — passare', robots: { index: false, follow: false } };
@@ -27,6 +28,7 @@ export default async function NewSuchprofilPage() {
     .eq('id', u.user.id)
     .maybeSingle();
   const isMax = prof?.subscription_tier === 'max';
+  const branchen = await getBranchen();
 
   return (
     <div className="space-y-6 max-w-2xl">
@@ -48,7 +50,7 @@ export default async function NewSuchprofilPage() {
         </p>
       </div>
 
-      <SuchprofilForm isMax={isMax} />
+      <SuchprofilForm isMax={isMax} branchen={branchen} />
     </div>
   );
 }

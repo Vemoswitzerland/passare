@@ -112,12 +112,43 @@ const FALLBACK = [
 ];
 
 /**
+ * Mapping von DB-Branche-ID → Stockfoto-Label.
+ * Die DB nutzt IDs wie 'software_saas', 'maschinenbau' (siehe branchen-Tabelle).
+ * Stockfotos sind nach den alten Display-Labels indexiert — hier brücken wir.
+ */
+const BRANCHE_ID_ZU_STOCKFOTO_KEY: Record<string, string> = {
+  software_saas: 'IT & Technologie',
+  it_services: 'IT & Technologie',
+  healthcare: 'Gesundheit',
+  maschinenbau: 'Maschinenbau',
+  bau_handwerk: 'Bauwesen',
+  beratung_treuhand: 'Beratung',
+  industrie_chemie: 'Handel / Industrie',
+  elektrotechnik: 'Handel / Industrie',
+  lebensmittel: 'Lebensmittel',
+  telco_utilities: 'IT & Technologie',
+  automotive: 'Autoindustrie',
+  handel_ecommerce: 'Kleinhandel',
+  medien_verlage: 'Beratung',
+  logistik_transport: 'Logistik',
+  textil: 'Kleinhandel',
+  gastro_hotel: 'Gastgewerbe',
+  immobilien: 'Finanz / Versicherung',
+  andere: 'Beratung',
+};
+
+/**
  * Wählt deterministisch ein Stockfoto für eine Branche basierend auf einem Seed
  * (üblicherweise listing-id). Gleicher Seed → gleiches Bild, kein Flackern.
+ *
+ * Akzeptiert sowohl Display-Labels (alt: "Maschinenbau") als auch DB-IDs (neu:
+ * "maschinenbau") und brückt über `BRANCHE_ID_ZU_STOCKFOTO_KEY`.
  */
 export function branchenStockfoto(branche: string, seed: string): string {
-  const pool = STOCKFOTOS_BY_BRANCHE[branche] ?? FALLBACK;
+  const lookup = STOCKFOTOS_BY_BRANCHE[branche]
+    ?? STOCKFOTOS_BY_BRANCHE[BRANCHE_ID_ZU_STOCKFOTO_KEY[branche] ?? '']
+    ?? FALLBACK;
   let hash = 0;
   for (let i = 0; i < seed.length; i++) hash = (hash * 31 + seed.charCodeAt(i)) | 0;
-  return pool[Math.abs(hash) % pool.length];
+  return lookup[Math.abs(hash) % lookup.length];
 }

@@ -7,7 +7,17 @@ import {
 import { Container, Section } from '@/components/ui/container';
 import { Reveal } from '@/components/ui/reveal';
 import { branchenStockfoto } from '@/data/branchen-stockfotos';
-import { MOCK_LISTINGS, type MockListing } from '@/lib/listings-mock';
+import {
+  getListingById,
+  formatUmsatz,
+  formatEbitda,
+  formatKaufpreis,
+  formatMitarbeitende,
+  type InseratDetail,
+} from '@/lib/listings';
+import { getBrancheById } from '@/lib/branchen';
+import { uebergabeGrundLabel } from '@/lib/constants';
+import { createClient } from '@/lib/supabase/server';
 import { SiteHeader, SiteFooter } from '../../page';
 import { InlineAnfrageForm } from './InlineAnfrageForm';
 import { LikeShareActions } from './LikeShareActions';
@@ -17,13 +27,41 @@ type Params = {
   searchParams: Promise<{ anfrage?: string }>;
 };
 
+/** Öffentlich sichtbarer Kontakt aus `inserat_kontakte` (anonym=false). */
+type PublicKontakt = {
+  rolle: string | null;
+  name: string | null;
+  email: string | null;
+  telefon: string | null;
+  sortierung: number;
+};
+
+async function getPublicKontakte(inseratId: string): Promise<PublicKontakt[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('inserat_kontakte')
+    .select('rolle, name, email, telefon, anonym, sortierung')
+    .eq('inserat_id', inseratId)
+    .eq('anonym', false)
+    .order('sortierung', { ascending: true });
+  if (error) {
+    console.error('[inserat:detail] getPublicKontakte failed:', error.message);
+    return [];
+  }
+  return (data ?? []) as PublicKontakt[];
+}
+
 export async function generateMetadata({ params }: Params) {
   const { id } = await params;
-  const l = MOCK_LISTINGS.find((x) => x.id === id);
+  const l = await getListingById(id);
   if (!l) return { title: 'Inserat nicht gefunden — passare' };
+  const branche = await getBrancheById(l.branche_id);
+  const brancheLabel = branche?.label_de ?? l.branche_id ?? '—';
+  const umsatzStr = formatUmsatz({ umsatz_chf: l.umsatz_chf, umsatz_bucket: l.umsatz_bucket });
+  const maStr = formatMitarbeitende({ mitarbeitende: l.mitarbeitende, mitarbeitende_bucket: l.mitarbeitende_bucket });
   return {
     title: `${l.titel} — passare`,
-    description: `${l.branche} · Kanton ${l.kanton} · ${l.umsatz} Umsatz · ${l.mitarbeitende} MA. Schweizer KMU-Inserat auf passare.`,
+    description: `${brancheLabel} · Kanton ${l.kanton ?? '—'} · ${umsatzStr} Umsatz · ${maStr}. Schweizer KMU-Inserat auf passare.`,
     robots: { index: false, follow: false },
   };
 }
@@ -31,15 +69,21 @@ export async function generateMetadata({ params }: Params) {
 export default async function InseratDetailPage({ params, searchParams }: Params) {
   const { id } = await params;
   const { anfrage } = await searchParams;
-  const listing = MOCK_LISTINGS.find((l) => l.id === id);
+  const listing = await getListingById(id);
   if (!listing) notFound();
+
+  const [branche, kontakte] = await Promise.all([
+    getBrancheById(listing.branche_id),
+    getPublicKontakte(listing.id),
+  ]);
+  const brancheLabel = branche?.label_de ?? listing.branche_id ?? '—';
 
   return (
     <main className="min-h-screen flex flex-col bg-cream">
       <SiteHeader />
       {anfrage === 'ok' && <AnfrageErfolgBanner />}
-      <DetailHero listing={listing} />
-      <DetailBody listing={listing} />
+      <DetailHero listing={listing} brancheLabel={brancheLabel} />
+      <DetailBody listing={listing} brancheLabel={brancheLabel} kontakte={kontakte} />
       <SiteFooter />
     </main>
   );
@@ -62,19 +106,22 @@ function AnfrageErfolgBanner() {
 }
 
 /* ════════════════════════ Hero (Bild oben) ════════════════════════ */
-function DetailHero({ listing }: { listing: MockListing }) {
-  const cover = branchenStockfoto(listing.branche, listing.id);
+function DetailHero({ listing, brancheLabel }: { listing: InseratDetail; brancheLabel: string }) {
+  const cover = branchenStockfoto(listing.branche_id ?? brancheLabel, listing.id);
+  const now = Date.now();
+  const isFeatured = listing.featured_until && new Date(listing.featured_until).getTime() > now;
+  const ageDays = (now - new Date(listing.published_at).getTime()) / (24 * 60 * 60 * 1000);
+  const isNew = !isFeatured && ageDays < 14;
+
   const statusColor =
-    listing.status === 'featured' ? 'bg-bronze/90 text-cream'
-    : listing.status === 'neu' ? 'bg-success/90 text-cream'
-    : listing.status === 'nda' ? 'bg-navy/90 text-cream'
+    isFeatured ? 'bg-bronze/90 text-cream'
+    : isNew ? 'bg-success/90 text-cream'
     : 'bg-paper/90 text-navy';
 
-  const statusLabel =
-    listing.status === 'featured' ? 'Featured'
-    : listing.status === 'neu' ? 'Neu'
-    : listing.status === 'nda' ? 'NDA-Prozess'
-    : 'Live';
+  const statusLabel = isFeatured ? 'Featured' : isNew ? 'Neu' : 'Live';
+
+  // Kurz-ID fürs Header-Badge (slug bevorzugt, sonst erste 8 Zeichen der UUID)
+  const shortId = listing.slug ?? listing.id.slice(0, 8);
 
   return (
     <section className="relative">
@@ -103,7 +150,7 @@ function DetailHero({ listing }: { listing: MockListing }) {
               </Link>
               <div className="flex items-center gap-2">
                 <span className="font-mono text-[11px] uppercase tracking-widest text-cream/85 backdrop-blur-sm bg-navy/40 px-2.5 py-1 rounded-full">
-                  {listing.id}
+                  {shortId}
                 </span>
                 <span className={`font-mono text-[11px] uppercase tracking-widest px-2.5 py-1 rounded-full backdrop-blur-sm ${statusColor}`}>
                   {statusLabel}
@@ -113,7 +160,7 @@ function DetailHero({ listing }: { listing: MockListing }) {
 
             <div>
               <p className="font-mono text-[12px] md:text-[13px] uppercase tracking-[0.16em] text-bronze font-semibold mb-3 drop-shadow-[0_2px_8px_rgba(0,0,0,0.7)]">
-                {listing.branche} · Kanton {listing.kanton}
+                {brancheLabel} · Kanton {listing.kanton ?? '—'}
               </p>
               <h1 className="font-serif-display text-[clamp(1.75rem,4vw,3rem)] text-cream font-light leading-[1.1] tracking-[-0.02em] max-w-3xl drop-shadow-[0_2px_12px_rgba(0,0,0,0.6)]">
                 {listing.titel}<span className="text-bronze">.</span>
@@ -127,8 +174,27 @@ function DetailHero({ listing }: { listing: MockListing }) {
 }
 
 /* ════════════════════════ Body (Text + Kontakt-Sidebar) ════════════════════════ */
-function DetailBody({ listing }: { listing: MockListing }) {
-  const inserent = listing.inserent ?? { anonym: true };
+function DetailBody({
+  listing,
+  brancheLabel,
+  kontakte,
+}: {
+  listing: InseratDetail;
+  brancheLabel: string;
+  kontakte: PublicKontakt[];
+}) {
+  const grundLabel = uebergabeGrundLabel(listing.uebergabe_grund);
+  const umsatzStr = formatUmsatz({ umsatz_chf: listing.umsatz_chf, umsatz_bucket: listing.umsatz_bucket });
+  const maStr = formatMitarbeitende({
+    mitarbeitende: listing.mitarbeitende,
+    mitarbeitende_bucket: listing.mitarbeitende_bucket,
+  });
+
+  // Sales-Points: text[] aus DB, Fallback Beschreibung als Beschreibungs-Block
+  const fallbackBeschreibung =
+    `Inhabergeführtes Unternehmen aus der Branche ${brancheLabel}, Kanton ${listing.kanton ?? '—'}.`
+    + ` Gegründet ${listing.jahr ?? '—'}, ${maStr}, Jahresumsatz ${umsatzStr}.`
+    + ` Übergabegrund: ${grundLabel}.`;
 
   return (
     <Section className="pt-10 md:pt-14 pb-24">
@@ -144,17 +210,41 @@ function DetailBody({ listing }: { listing: MockListing }) {
               <div className="mt-10">
                 <h2 className="overline mb-4 text-bronze-ink">Über das Unternehmen</h2>
                 <div className="font-serif text-body-lg text-ink leading-relaxed whitespace-pre-line">
-                  {listing.beschreibung ?? `Inhabergeführtes Unternehmen aus der Branche ${listing.branche}, Kanton ${listing.kanton}. Gegründet ${listing.jahr}, ${listing.mitarbeitende} Mitarbeitende, Jahresumsatz ${listing.umsatz}. Übergabegrund: ${listing.grund}.`}
+                  {listing.beschreibung ?? listing.teaser ?? fallbackBeschreibung}
                 </div>
               </div>
             </Reveal>
 
+            {listing.sales_points && listing.sales_points.length > 0 && (
+              <Reveal delay={0.12}>
+                <div className="mt-8">
+                  <h2 className="overline mb-4 text-bronze-ink">Highlights</h2>
+                  <ul className="space-y-2">
+                    {listing.sales_points.map((point, i) => (
+                      <li key={i} className="flex items-start gap-2.5 text-body text-ink">
+                        <CheckCircle2 className="w-4 h-4 text-bronze flex-shrink-0 mt-1" strokeWidth={1.5} />
+                        <span>{point}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </Reveal>
+            )}
+
             <Reveal delay={0.15}>
               <div className="mt-10 grid sm:grid-cols-2 gap-4">
-                <InfoTile icon={Calendar} label="Gegründet" value={String(listing.jahr)} />
-                <InfoTile icon={Users} label="Mitarbeitende" value={`${listing.mitarbeitende}`} />
-                <InfoTile icon={MapPin} label="Standort" value={`Kanton ${listing.kanton}`} />
-                <InfoTile icon={TrendingUp} label="Übergabegrund" value={listing.grund} />
+                <InfoTile
+                  icon={Calendar}
+                  label="Gegründet"
+                  value={listing.jahr ? String(listing.jahr) : '—'}
+                />
+                <InfoTile icon={Users} label="Mitarbeitende" value={maStr} />
+                <InfoTile
+                  icon={MapPin}
+                  label="Standort"
+                  value={listing.kanton ? `Kanton ${listing.kanton}` : '—'}
+                />
+                <InfoTile icon={TrendingUp} label="Übergabegrund" value={grundLabel} />
               </div>
             </Reveal>
 
@@ -180,7 +270,7 @@ function DetailBody({ listing }: { listing: MockListing }) {
           {/* ─── Rechte Spalte: Kontakt-Sidebar ─── */}
           <aside className="lg:sticky lg:top-24 lg:self-start">
             <Reveal delay={0.1}>
-              <ContactPanel listing={listing} inserent={inserent} />
+              <ContactPanel listing={listing} brancheLabel={brancheLabel} kontakte={kontakte} />
             </Reveal>
           </aside>
         </div>
@@ -190,20 +280,30 @@ function DetailBody({ listing }: { listing: MockListing }) {
 }
 
 /* ════════════════════════ KeyFacts Box (Umsatz / EBITDA / Preis) ════════════════════════ */
-function KeyFacts({ listing }: { listing: MockListing }) {
+function KeyFacts({ listing }: { listing: InseratDetail }) {
+  const umsatzStr = formatUmsatz({ umsatz_chf: listing.umsatz_chf, umsatz_bucket: listing.umsatz_bucket });
+  const ebitdaStr = formatEbitda(listing.ebitda_marge_pct);
+  const kaufpreisStr = formatKaufpreis({
+    kaufpreis_chf: listing.kaufpreis_chf,
+    kaufpreis_min_chf: listing.kaufpreis_min_chf,
+    kaufpreis_max_chf: listing.kaufpreis_max_chf,
+    kaufpreis_bucket: listing.kaufpreis_bucket,
+    kaufpreis_vhb: listing.kaufpreis_vhb,
+  });
+
   return (
     <div className="grid grid-cols-3 bg-paper border border-stone rounded-card overflow-hidden">
       <div className="p-5 md:p-6 border-r border-stone">
         <p className="overline mb-2">Umsatz</p>
-        <p className="font-mono text-head-md text-navy font-tabular font-medium">{listing.umsatz}</p>
+        <p className="font-mono text-head-md text-navy font-tabular font-medium">{umsatzStr}</p>
       </div>
       <div className="p-5 md:p-6 border-r border-stone">
         <p className="overline mb-2">EBITDA</p>
-        <p className="font-mono text-head-md text-navy font-tabular font-medium">{listing.ebitda}</p>
+        <p className="font-mono text-head-md text-navy font-tabular font-medium">{ebitdaStr}</p>
       </div>
       <div className="p-5 md:p-6">
         <p className="overline mb-2">Kaufpreis</p>
-        <p className="font-mono text-head-md text-navy font-tabular font-medium">{listing.kaufpreis}</p>
+        <p className="font-mono text-head-md text-navy font-tabular font-medium">{kaufpreisStr}</p>
       </div>
     </div>
   );
@@ -226,12 +326,15 @@ function InfoTile({
 /* ════════════════════════ ContactPanel (Anfrage-Form als Hauptaktion) ════════════════════════ */
 function ContactPanel({
   listing,
-  inserent,
+  brancheLabel,
+  kontakte,
 }: {
-  listing: MockListing;
-  inserent: NonNullable<MockListing['inserent']>;
+  listing: InseratDetail;
+  brancheLabel: string;
+  kontakte: PublicKontakt[];
 }) {
-  const isOeffentlich = !inserent.anonym;
+  const hasPublicKontakt = kontakte.length > 0;
+  const umsatzStr = formatUmsatz({ umsatz_chf: listing.umsatz_chf, umsatz_bucket: listing.umsatz_bucket });
 
   return (
     <div className="bg-paper border border-stone rounded-card p-6 space-y-5">
@@ -247,18 +350,28 @@ function ContactPanel({
       <LikeShareActions
         listingId={listing.id}
         titel={listing.titel}
-        branche={listing.branche}
-        kanton={listing.kanton}
-        umsatz={listing.umsatz}
+        branche={brancheLabel}
+        kanton={listing.kanton ?? '—'}
+        umsatz={umsatzStr}
       />
 
-      {isOeffentlich && <DirektkontaktBox inserent={inserent} />}
+      {hasPublicKontakt && <DirektkontaktBox kontakte={kontakte} firmaName={listing.firma_name} />}
     </div>
   );
 }
 
-function DirektkontaktBox({ inserent }: { inserent: NonNullable<MockListing['inserent']> }) {
-  if (!inserent.email && !inserent.telefon) return null;
+function DirektkontaktBox({
+  kontakte,
+  firmaName,
+}: {
+  kontakte: PublicKontakt[];
+  firmaName: string | null;
+}) {
+  // Erster öffentlicher Kontakt (sortierung asc) — restliche Kontakte werden
+  // bewusst nicht angezeigt, um die Sidebar kompakt zu halten.
+  const k = kontakte[0];
+  if (!k) return null;
+  if (!k.email && !k.telefon) return null;
 
   return (
     <div className="pt-5 border-t border-stone">
@@ -266,43 +379,34 @@ function DirektkontaktBox({ inserent }: { inserent: NonNullable<MockListing['ins
         Lieber direkt? Verkäufer hat sein Profil öffentlich gestellt
       </p>
       <div className="flex items-center gap-3 mb-3">
-        {inserent.foto ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={inserent.foto}
-            alt={inserent.name ?? 'Verkäufer'}
-            className="w-10 h-10 rounded-full object-cover border border-stone"
-          />
-        ) : (
-          <div className="w-10 h-10 rounded-full bg-bronze/15 text-bronze-ink flex items-center justify-center flex-shrink-0 font-serif text-base">
-            {(inserent.name ?? '?').slice(0, 1)}
-          </div>
-        )}
+        <div className="w-10 h-10 rounded-full bg-bronze/15 text-bronze-ink flex items-center justify-center flex-shrink-0 font-serif text-base">
+          {(k.name ?? '?').slice(0, 1)}
+        </div>
         <div className="min-w-0">
-          <p className="font-serif text-body-sm text-navy truncate leading-tight">{inserent.name}</p>
+          <p className="font-serif text-body-sm text-navy truncate leading-tight">{k.name ?? '—'}</p>
           <p className="text-caption text-quiet leading-snug truncate">
-            {inserent.rolle}
-            {inserent.firma ? ` · ${inserent.firma}` : ''}
+            {k.rolle ?? 'Kontakt'}
+            {firmaName ? ` · ${firmaName}` : ''}
           </p>
         </div>
       </div>
       <div className="space-y-1.5">
-        {inserent.email && (
+        {k.email && (
           <a
-            href={`mailto:${inserent.email}`}
+            href={`mailto:${k.email}`}
             className="flex items-center gap-2.5 text-body-sm text-ink hover:text-bronze transition-colors"
           >
             <Mail className="w-3.5 h-3.5 text-bronze flex-shrink-0" strokeWidth={1.5} />
-            <span className="truncate font-mono text-[12px]">{inserent.email}</span>
+            <span className="truncate font-mono text-[12px]">{k.email}</span>
           </a>
         )}
-        {inserent.telefon && (
+        {k.telefon && (
           <a
-            href={`tel:${inserent.telefon.replace(/\s/g, '')}`}
+            href={`tel:${k.telefon.replace(/\s/g, '')}`}
             className="flex items-center gap-2.5 text-body-sm text-ink hover:text-bronze transition-colors"
           >
             <Phone className="w-3.5 h-3.5 text-bronze flex-shrink-0" strokeWidth={1.5} />
-            <span className="font-mono text-[12px]">{inserent.telefon}</span>
+            <span className="font-mono text-[12px]">{k.telefon}</span>
           </a>
         )}
       </div>

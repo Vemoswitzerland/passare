@@ -7,8 +7,7 @@ import { Container } from '@/components/ui/container';
 import { createClient } from '@/lib/supabase/server';
 import { continueWithBasicAction } from './actions';
 import { hasTable } from '@/lib/db/has-table';
-import { matchScore, type Suchprofil } from '@/lib/match-score';
-import { MOCK_LISTINGS } from '@/lib/listings-mock';
+import { countListings } from '@/lib/listings';
 import { cn } from '@/lib/utils';
 
 export const metadata = {
@@ -50,17 +49,17 @@ export default async function PaketPage({ searchParams }: Props) {
     kaeuferProfil = data;
   }
 
-  // Treffer-Count: wieviele Mock-Listings matchen das Profil?
-  const trefferCount = (() => {
-    if (!kaeuferProfil) return MOCK_LISTINGS.length;
-    const sp: Suchprofil = {
-      branche: kaeuferProfil.branche_praeferenzen ?? [],
-      kantone: kaeuferProfil.regionen ?? [],
-      umsatz_min: null,
-      umsatz_max: kaeuferProfil.budget_max ?? null,
-      ebitda_min: null,
-    };
-    return MOCK_LISTINGS.filter((l) => matchScore(sp, l) >= 50).length;
+  // Treffer-Count: wieviele live-Inserate passen grob zum Profil?
+  // V1-Approach: Filter auf erste Branche/Region des Profils via DB.
+  // Volle matchScore-Logik kommt zurück, sobald sie auf InseratPublic läuft.
+  const trefferCount = await (async () => {
+    if (!kaeuferProfil) return countListings();
+    const branche = kaeuferProfil.branche_praeferenzen?.[0];
+    const region = kaeuferProfil.regionen?.[0];
+    return countListings({
+      branche: branche ?? undefined,
+      kanton: region && region !== 'CH' ? region : undefined,
+    });
   })();
 
   const isHighValue =

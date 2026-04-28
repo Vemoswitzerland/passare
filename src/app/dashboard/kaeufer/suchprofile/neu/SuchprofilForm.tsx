@@ -6,13 +6,14 @@ import { Crown, Mail, MessageCircle, Smartphone, ArrowRight } from 'lucide-react
 import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
 import { createSuchprofilAction } from '../actions';
-import { BRANCHEN_LIST, KANTON_CODES } from '@/lib/listings-mock';
+import { KANTON_CODES } from '@/lib/constants';
+import type { Branche } from '@/lib/branchen';
 import { cn } from '@/lib/utils';
 
-type Props = { isMax: boolean };
+type Props = { isMax: boolean; branchen: Branche[] };
 
-export function SuchprofilForm({ isMax }: Props) {
-  const [branchen, setBranchen] = useState<string[]>([]);
+export function SuchprofilForm({ isMax, branchen }: Props) {
+  const [branchenSelected, setBranchenSelected] = useState<string[]>([]);
   const [kantone, setKantone] = useState<string[]>([]);
   const [name, setName] = useState('Mein Suchprofil');
   const [error, setError] = useState<string | null>(null);
@@ -21,7 +22,7 @@ export function SuchprofilForm({ isMax }: Props) {
   const submit = async (formData: FormData) => {
     setPending(true);
     setError(null);
-    formData.set('branche', branchen.join(','));
+    formData.set('branche', branchenSelected.join(','));
     formData.set('kantone', kantone.join(','));
     const result = await createSuchprofilAction(formData);
     setPending(false);
@@ -50,14 +51,16 @@ export function SuchprofilForm({ isMax }: Props) {
       <div>
         <Label>Branchen</Label>
         <div className="flex flex-wrap gap-2">
-          {BRANCHEN_LIST.map((b) => {
-            const active = branchen.includes(b);
+          {branchen.map((b) => {
+            const active = branchenSelected.includes(b.id);
             return (
               <button
-                key={b}
+                key={b.id}
                 type="button"
                 onClick={() =>
-                  setBranchen((prev) => (active ? prev.filter((x) => x !== b) : [...prev, b]))
+                  setBranchenSelected((prev) =>
+                    active ? prev.filter((x) => x !== b.id) : [...prev, b.id],
+                  )
                 }
                 className={cn(
                   'px-3 py-1.5 rounded-pill text-caption font-medium border transition-all',
@@ -66,7 +69,7 @@ export function SuchprofilForm({ isMax }: Props) {
                     : 'bg-paper text-muted border-stone hover:border-bronze hover:text-navy',
                 )}
               >
-                {b}
+                {b.label_de}
               </button>
             );
           })}

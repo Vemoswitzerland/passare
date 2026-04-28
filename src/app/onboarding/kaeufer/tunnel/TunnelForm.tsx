@@ -8,7 +8,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/input';
 import { submitKaeuferTunnelAction, skipKaeuferTunnelAction } from './actions';
-import { BRANCHEN_LIST, KANTON_CODES } from '@/lib/listings-mock';
+import { KANTON_CODES } from '@/lib/constants';
+import type { Branche } from '@/lib/branchen';
 import type { ActionResult } from '@/app/auth/constants';
 import { cn } from '@/lib/utils';
 
@@ -20,14 +21,14 @@ const INVESTOR_OPTIONS = [
   { value: 'berater_broker',       label: 'Berater / Broker',    desc: 'Suche im Mandanten-Auftrag',         icon: Handshake },
 ] as const;
 
-export function TunnelForm() {
+export function TunnelForm({ branchen }: { branchen: Branche[] }) {
   const [state, action, pending] = useActionState<ActionResult | null, FormData>(
     submitKaeuferTunnelAction,
     null,
   );
 
   const [step, setStep] = useState(0);
-  const [branchen, setBranchen] = useState<string[]>([]);
+  const [branchenSelected, setBranchenSelected] = useState<string[]>([]);
   const [kantone, setKantone] = useState<string[]>([]);
   const [chWeit, setChWeit] = useState(false);
   const [investorTyp, setInvestorTyp] = useState<string>('');
@@ -41,15 +42,15 @@ export function TunnelForm() {
 
   const canNext = useMemo(() => {
     switch (step) {
-      case 0: return branchen.length > 0 && (chWeit || kantone.length > 0);
+      case 0: return branchenSelected.length > 0 && (chWeit || kantone.length > 0);
       case 1: return budgetUndisclosed || budgetMax >= budgetMin;
       case 2: return true;
       default: return false;
     }
-  }, [step, branchen, chWeit, kantone, budgetUndisclosed, budgetMin, budgetMax]);
+  }, [step, branchenSelected, chWeit, kantone, budgetUndisclosed, budgetMin, budgetMax]);
 
   const toggleBranche = (b: string) => {
-    setBranchen((prev) => prev.includes(b) ? prev.filter((x) => x !== b) : [...prev, b]);
+    setBranchenSelected((prev) => prev.includes(b) ? prev.filter((x) => x !== b) : [...prev, b]);
   };
   const toggleKanton = (k: string) => {
     setKantone((prev) => prev.includes(k) ? prev.filter((x) => x !== k) : [...prev, k]);
@@ -80,7 +81,7 @@ export function TunnelForm() {
 
       <form action={action} className="px-6 md:px-10 py-8 md:py-10 space-y-6">
         {/* Hidden fields */}
-        <input type="hidden" name="branchen" value={branchen.join(',')} />
+        <input type="hidden" name="branchen" value={branchenSelected.join(',')} />
         <input type="hidden" name="kantone" value={chWeit ? 'CH' : kantone.join(',')} />
         <input type="hidden" name="investor_typ" value={investorTyp} />
         <input type="hidden" name="budget_min" value={budgetUndisclosed ? '' : String(budgetMin)} />
@@ -103,13 +104,13 @@ export function TunnelForm() {
             <div>
               <Label>Branchen</Label>
               <div className="flex flex-wrap gap-2">
-                {BRANCHEN_LIST.map((b) => {
-                  const active = branchen.includes(b);
+                {branchen.map((b) => {
+                  const active = branchenSelected.includes(b.id);
                   return (
                     <button
-                      key={b}
+                      key={b.id}
                       type="button"
-                      onClick={() => toggleBranche(b)}
+                      onClick={() => toggleBranche(b.id)}
                       className={cn(
                         'px-3 py-1.5 rounded-pill text-caption font-medium border transition-all',
                         active
@@ -117,7 +118,7 @@ export function TunnelForm() {
                           : 'bg-paper text-muted border-stone hover:border-bronze hover:text-navy',
                       )}
                     >
-                      {b}
+                      {b.label_de}
                     </button>
                   );
                 })}

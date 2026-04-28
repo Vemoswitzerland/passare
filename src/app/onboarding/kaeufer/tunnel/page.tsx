@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { ShieldCheck, Lock, Zap } from 'lucide-react';
 import { Container } from '@/components/ui/container';
 import { createClient } from '@/lib/supabase/server';
+import { getBranchen } from '@/lib/branchen';
 import { TunnelForm } from './TunnelForm';
 
 export const metadata = {
@@ -25,6 +26,8 @@ export default async function KaeuferTunnelPage() {
   if (profile?.rolle === 'verkaeufer') redirect('/dashboard/verkaeufer');
   // KEIN automatischer Redirect zum Dashboard wenn schon onboarded —
   // sonst Loop wenn das Layout zurückleitet.
+
+  const branchen = await getBranchen();
 
   return (
     <main className="min-h-screen bg-cream">
@@ -60,7 +63,7 @@ export default async function KaeuferTunnelPage() {
             <TrustBadge icon={Zap} label="7 Tage Frühzugang (MAX)" />
           </div>
 
-          <TunnelForm />
+          <TunnelForm branchen={branchen} />
 
           <p className="text-center text-caption text-quiet mt-8">
             Schon eingerichtet?{' '}

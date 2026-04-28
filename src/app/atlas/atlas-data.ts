@@ -1,17 +1,16 @@
 /**
  * passare.ch — Atlas-Datenlader
  *
- * Server-Side: holt aktive Inserate aus DB (defensiv via hasTable),
- * fällt zurück auf MOCK_LISTINGS wenn `inserate` noch nicht existiert
- * (parallele Agents bauen die Tabelle).
+ * Liest live-Inserate aus `inserate_public` via `getListings()`. Bei leerer DB
+ * → leeres Marker-Array, kein Mock-Fallback mehr (Block 4 hat Mocks abgelöst).
  *
  * Reichert jeden Listing mit lat/lng aus Kanton-Centroid + deterministischem
  * Offset (Hash der id) an — so streuen Marker visuell über den Kanton.
  */
 
-import { createClient } from '@/lib/supabase/server';
-import { hasTable } from '@/lib/db/has-table';
-import { MOCK_LISTINGS, type MockListing } from '@/lib/listings-mock';
+import { getListings, type InseratPublic } from '@/lib/listings';
+import { getBranchen, brancheLabelFromList } from '@/lib/branchen';
+import { uebergabeGrundLabel } from '@/lib/constants';
 
 export type AtlasMarker = {
   id: string;
@@ -68,68 +67,41 @@ function seedOffset(seed: string, salt: number): number {
   return (h / 2147483647) * 0.5;
 }
 
-function listingToMarker(l: MockListing): AtlasMarker {
-  const centroid = KANTON_CENTROIDS[l.kanton] ?? [8.227, 46.818];
+function listingToMarker(
+  l: InseratPublic,
+  brancheLabel: string,
+): AtlasMarker {
+  const kanton = l.kanton ?? 'ZH';
+  const centroid = KANTON_CENTROIDS[kanton] ?? [8.227, 46.818];
   // ±0.12° lng, ±0.06° lat (etwa ±9km × ±7km — innerhalb der meisten Kantone)
-  const lng = centroid[0] + seedOffset(l.id, 7) * 0.24;
-  const lat = centroid[1] + seedOffset(l.id, 13) * 0.12;
+  const seed = String(l.slug ?? l.id);
+  const lng = centroid[0] + seedOffset(seed, 7) * 0.24;
+  const lat = centroid[1] + seedOffset(seed, 13) * 0.12;
   return {
-    id: l.id,
+    id: seed,
     titel: l.titel,
-    branche: l.branche,
-    kanton: l.kanton,
-    jahr: l.jahr,
-    mitarbeitende: l.mitarbeitende,
-    umsatz: l.umsatz,
-    ebitda: l.ebitda,
-    kaufpreis: l.kaufpreis,
-    grund: l.grund,
+    branche: brancheLabel,
+    kanton,
+    jahr: l.jahr ?? undefined,
+    mitarbeitende: undefined,
+    umsatz: l.umsatz_bucket ?? undefined,
+    ebitda: l.ebitda_marge_pct != null ? `${l.ebitda_marge_pct.toFixed(1)} %` : undefined,
+    kaufpreis: l.kaufpreis_vhb ? 'VHB' : (l.kaufpreis_bucket ?? undefined),
+    grund: l.uebergabe_grund ? uebergabeGrundLabel(l.uebergabe_grund) : undefined,
     lat,
     lng,
   };
 }
 
 /**
- * Lädt aktive Inserate. Defensiv: wenn `inserate`-Tabelle nicht existiert
- * (parallele Etappe baut sie), Fallback auf MOCK_LISTINGS.
+ * Lädt aktive Inserate aus der DB. Bei leerer DB: leeres Array.
  */
 export async function loadAtlasMarkers(): Promise<AtlasMarker[]> {
-  const tableExists = await hasTable('inserate');
-
-  if (tableExists) {
-    try {
-      const supabase = await createClient();
-      const { data, error } = await supabase
-        .from('inserate')
-        .select('id, slug, titel, branche_id, kanton, jahr, mitarbeitende_bucket, umsatz_bucket, kaufpreis_bucket, kaufpreis_vhb, uebergabe_grund, status')
-        .eq('status', 'live')
-        .limit(500);
-
-      if (!error && data && data.length > 0) {
-        return data.map((row): AtlasMarker => {
-          const id = String(row.slug ?? row.id);
-          const kanton = String(row.kanton ?? 'ZH');
-          const centroid = KANTON_CENTROIDS[kanton] ?? [8.227, 46.818];
-          return {
-            id,
-            titel: String(row.titel ?? 'Inserat'),
-            branche: String(row.branche_id ?? 'Andere'),
-            kanton,
-            jahr: row.jahr ?? undefined,
-            mitarbeitende: undefined,
-            umsatz: row.umsatz_bucket ?? undefined,
-            ebitda: undefined,
-            kaufpreis: row.kaufpreis_vhb ? 'VHB' : (row.kaufpreis_bucket ?? undefined),
-            grund: row.uebergabe_grund ?? undefined,
-            lng: centroid[0] + seedOffset(id, 7) * 0.24,
-            lat: centroid[1] + seedOffset(id, 13) * 0.12,
-          };
-        });
-      }
-    } catch {
-      // Ignore — fallback unten
-    }
-  }
-
-  return MOCK_LISTINGS.map(listingToMarker);
+  const [listings, branchen] = await Promise.all([
+    getListings({ sort: 'neu' }),
+    getBranchen(),
+  ]);
+  return listings.map((l) =>
+    listingToMarker(l, brancheLabelFromList(branchen, l.branche_id)),
+  );
 }

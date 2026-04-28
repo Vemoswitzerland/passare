@@ -8,8 +8,28 @@ import { Button } from '@/components/ui/button';
 import { Divider } from '@/components/ui/divider';
 import { Reveal } from '@/components/ui/reveal';
 import { CardActions } from '@/components/marketplace/CardActions';
+import { MarketplaceEmpty } from '@/components/marketplace/MarketplaceEmpty';
+import { SortSelect } from '@/components/marketplace/SortSelect';
 import { branchenStockfoto } from '@/data/branchen-stockfotos';
 import { renderKeyFacts } from '@/lib/key-facts';
+import {
+  countListings,
+  formatEbitda,
+  formatKaufpreis,
+  formatUmsatz,
+  getListings,
+  type InseratPublic,
+} from '@/lib/listings';
+import { getBranchen, type Branche } from '@/lib/branchen';
+import {
+  EBITDA_BUCKETS,
+  KANTON_CODES,
+  MA_BUCKETS,
+  PREIS_BUCKETS,
+  UEBERGABE_GRUENDE,
+  UMSATZ_BUCKETS,
+  uebergabeGrundLabel,
+} from '@/lib/constants';
 
 /**
  * passare.ch — Homepage = Plattform / Marktplatz
@@ -18,6 +38,9 @@ import { renderKeyFacts } from '@/lib/key-facts';
  * Wer "firma kaufen" googelt, landet hier und sieht SOFORT die Inserate.
  * Filter, Anwählen, Anfragen — alles ohne Konto. Registrieren erst beim
  * tatsächlich-anfragen.
+ *
+ * Stand 2026-04-29: Inserate kommen aus der echten DB (`inserate_public` VIEW).
+ * Bei leerer DB rendert `<MarketplaceEmpty />` mit Onboarding-CTAs.
  */
 
 export const metadata = {
@@ -27,50 +50,71 @@ export const metadata = {
   robots: { index: false, follow: false },
 };
 
-const LISTINGS = [
-  { id: 'dossier-247', titel: 'Spezialmaschinen für die Präzisionsindustrie', branche: 'Maschinenbau', kanton: 'ZH', jahr: 1987, mitarbeitende: 34, umsatz: 'CHF 8.4M', ebitda: '18.2%', kaufpreis: 'CHF 6–8M', grund: 'Altersnachfolge', status: 'featured' },
-  { id: 'dossier-248', titel: 'Regionale Bäckerei mit Filialen', branche: 'Lebensmittel', kanton: 'BE', jahr: 1962, mitarbeitende: 18, umsatz: 'CHF 3.1M', ebitda: '12.5%', kaufpreis: 'VHB', grund: 'Altersnachfolge', status: 'neu' },
-  { id: 'dossier-249', titel: 'IT-Dienstleister Cloud & Security', branche: 'IT & Technologie', kanton: 'ZG', jahr: 2009, mitarbeitende: 42, umsatz: 'CHF 12.1M', ebitda: '22.0%', kaufpreis: 'CHF 14–18M', grund: 'Strategischer Exit', status: 'live' },
-  { id: 'dossier-250', titel: 'Treuhandkanzlei mit Immobilien-Spezialisierung', branche: 'Finanz / Versicherung', kanton: 'VD', jahr: 1998, mitarbeitende: 11, umsatz: 'CHF 2.4M', ebitda: '35.0%', kaufpreis: 'CHF 3–4M', grund: 'Pensionierung', status: 'nda' },
-  { id: 'dossier-251', titel: 'Elektrotechnik & Automation Industrie', branche: 'Handel / Industrie', kanton: 'SG', jahr: 1975, mitarbeitende: 58, umsatz: 'CHF 16.8M', ebitda: '14.1%', kaufpreis: 'CHF 18–22M', grund: 'Nachfolge unklar', status: 'live' },
-  { id: 'dossier-252', titel: 'Boutique-Hotel mit 30 Zimmern', branche: 'Gastgewerbe', kanton: 'GR', jahr: 1923, mitarbeitende: 22, umsatz: 'CHF 4.2M', ebitda: '16.5%', kaufpreis: 'CHF 8–10M', grund: 'Generationenwechsel', status: 'live' },
-  { id: 'dossier-253', titel: 'Logistik-Unternehmen mit eigener Flotte', branche: 'Logistik', kanton: 'AG', jahr: 2001, mitarbeitende: 67, umsatz: 'CHF 22.5M', ebitda: '9.8%', kaufpreis: 'CHF 11–14M', grund: 'Strategisch', status: 'featured' },
-  { id: 'dossier-254', titel: 'Online-Shop für Premium-Haushaltswaren', branche: 'Kleinhandel', kanton: 'LU', jahr: 2015, mitarbeitende: 8, umsatz: 'CHF 1.8M', ebitda: '24.0%', kaufpreis: 'CHF 2–3M', grund: 'Gründer-Exit', status: 'neu' },
-  { id: 'dossier-255', titel: 'Medizintechnik mit eigener Entwicklung', branche: 'Gesundheit', kanton: 'BS', jahr: 1989, mitarbeitende: 29, umsatz: 'CHF 9.7M', ebitda: '19.8%', kaufpreis: 'VHB', grund: 'Private-Equity-Exit', status: 'live' },
-];
+export const dynamic = 'force-dynamic';
 
-const BRANCHEN = [
-  'Alle Branchen', 'Autoindustrie', 'Ausbildung', 'Bauwesen', 'Beratung', 'Energie / Umwelt',
-  'Finanz / Versicherung', 'Gastgewerbe', 'Gesundheit', 'Grafik / Design', 'Grosshandel',
-  'Handel / Industrie', 'IT & Technologie', 'Immobilien', 'Kleinhandel', 'Landwirtschaft',
-  'Lebensmittel', 'Logistik', 'Maschinenbau', 'Andere Dienstleistungen',
-];
+type SearchParams = {
+  branche?: string;
+  kanton?: string;
+  preis?: string;
+  umsatz?: string;
+  ebitda?: string;
+  ma?: string;
+  gruende?: string;
+  suche?: string;
+  sort?: string;
+};
 
-const KANTONE = ['AG', 'AI', 'AR', 'BE', 'BL', 'BS', 'FR', 'GE', 'GL', 'GR', 'JU', 'LU', 'NE', 'NW', 'OW', 'SG', 'SH', 'SO', 'SZ', 'TG', 'TI', 'UR', 'VD', 'VS', 'ZG', 'ZH'];
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<SearchParams>;
+}) {
+  const sp = await searchParams;
+  const filters = parseFiltersFromSearchParams(sp);
 
-const PREIS_BUCKETS = [
-  'Alle', 'Bis CHF 250\'000', 'CHF 250\'000 – 500\'000', 'CHF 500\'000 – 1 Mio',
-  'CHF 1 – 5 Mio', 'CHF 5 – 10 Mio', 'CHF 10 – 20 Mio', 'Über CHF 20 Mio',
-];
+  const [listings, totalCount, branchen] = await Promise.all([
+    getListings(filters),
+    countListings(),
+    getBranchen(),
+  ]);
 
-const UMSATZ_BUCKETS = [
-  'Alle', 'Bis CHF 1 Mio', 'CHF 1 – 5 Mio', 'CHF 5 – 15 Mio',
-  'CHF 15 – 50 Mio', 'Über CHF 50 Mio',
-];
-
-const MA_BUCKETS = ['Alle', '0 – 10 MA', '10 – 20 MA', '20 – 50 MA', '50 – 100 MA', 'Über 100 MA'];
-
-const GRUND = ['Altersnachfolge', 'Pensionierung', 'Strategisch', 'Private Equity', 'Andere'];
-
-export default function HomePage() {
   return (
     <main className="min-h-screen flex flex-col bg-cream">
       <SiteHeader />
-      <Hero />
-      <Marketplace />
+      <Hero totalCount={totalCount} filteredCount={listings.length} />
+      <Marketplace
+        listings={listings}
+        totalCount={totalCount}
+        branchen={branchen}
+        searchParams={sp}
+      />
       <SiteFooter />
     </main>
   );
+}
+
+/* ════════════════════════ Filter-Mapping ════════════════════════ */
+function parseFiltersFromSearchParams(sp: SearchParams) {
+  const preisBucket = PREIS_BUCKETS.find((b) => b.id === sp.preis);
+  const umsatzBucket = UMSATZ_BUCKETS.find((b) => b.id === sp.umsatz);
+  const maBucket = MA_BUCKETS.find((b) => b.id === sp.ma);
+  const ebitdaBucket = EBITDA_BUCKETS.find((b) => b.id === sp.ebitda);
+  const gruende = sp.gruende?.split(',').filter(Boolean);
+
+  return {
+    branche: sp.branche && sp.branche !== 'all' ? sp.branche : undefined,
+    kanton: sp.kanton && sp.kanton !== 'all' ? sp.kanton : undefined,
+    preis_min: preisBucket && 'min' in preisBucket ? preisBucket.min : undefined,
+    preis_max: preisBucket && 'max' in preisBucket ? preisBucket.max : undefined,
+    umsatz_min: umsatzBucket && 'min' in umsatzBucket ? umsatzBucket.min : undefined,
+    umsatz_max: umsatzBucket && 'max' in umsatzBucket ? umsatzBucket.max : undefined,
+    ebitda_min: ebitdaBucket && 'min' in ebitdaBucket ? ebitdaBucket.min : undefined,
+    ma_min: maBucket && 'min' in maBucket ? maBucket.min : undefined,
+    ma_max: maBucket && 'max' in maBucket ? maBucket.max : undefined,
+    gruende: gruende && gruende.length > 0 ? gruende : undefined,
+    suche: sp.suche?.trim() || undefined,
+    sort: (sp.sort as 'neu' | 'preis_asc' | 'preis_desc' | 'umsatz_desc' | 'ebitda_desc' | undefined) ?? 'neu',
+  } as const;
 }
 
 /* ════════════════════════ Header & Footer ════════════════════════ */
@@ -162,7 +206,12 @@ export function SiteFooter() {
 }
 
 /* ════════════════════════ Hero ════════════════════════ */
-function Hero() {
+function Hero({ totalCount, filteredCount }: { totalCount: number; filteredCount: number }) {
+  const sub =
+    totalCount === 0
+      ? 'noch keine öffentlichen Inserate. Sei der/die Erste auf der Plattform.'
+      : 'anonymer Teaser gratis sichtbar. Anfrage, NDA und Datenraum gehen erst nach kostenloser Anmeldung.';
+
   return (
     <Section className="pt-12 md:pt-16 pb-10 md:pb-14">
       <Container>
@@ -178,10 +227,13 @@ function Hero() {
           <Reveal delay={0.1}>
             <p className="text-body-sm text-muted max-w-md leading-relaxed">
               <span className="font-mono text-[11px] uppercase tracking-widest text-navy">
-                {LISTINGS.length} aktive Inserate
-              </span> &middot;
-              anonymer Teaser gratis sichtbar. Anfrage, NDA und Datenraum
-              gehen erst nach kostenloser Anmeldung.
+                {totalCount === 0
+                  ? 'Marktplatz im Aufbau'
+                  : `${filteredCount} ${filteredCount === 1 ? 'Inserat' : 'Inserate'}${
+                      filteredCount !== totalCount ? ` von ${totalCount}` : ''
+                    }`}
+              </span> &middot;{' '}
+              {sub}
             </p>
           </Reveal>
         </div>
@@ -191,95 +243,145 @@ function Hero() {
 }
 
 /* ════════════════════════ Marketplace ════════════════════════ */
-function Marketplace() {
+function Marketplace({
+  listings,
+  totalCount,
+  branchen,
+  searchParams,
+}: {
+  listings: InseratPublic[];
+  totalCount: number;
+  branchen: Branche[];
+  searchParams: SearchParams;
+}) {
+  const isFiltered = Object.values(searchParams).some((v) => v && v !== 'all');
+
   return (
     <Section className="pt-0 md:pt-0 pb-24 md:pb-24">
       <Container>
         <div className="grid lg:grid-cols-[280px_1fr] gap-10">
-          {/* Sidebar */}
+          {/* Sidebar — als <form method="GET"> damit Filter über URL-Params gehen */}
           <aside className="lg:sticky lg:top-24 lg:self-start">
             <Reveal>
-              <div className="bg-paper border border-stone rounded-card p-6 space-y-7">
+              <form method="GET" action="/" className="bg-paper border border-stone rounded-card p-6 space-y-7">
                 <div className="flex items-center gap-2">
                   <Filter className="w-4 h-4 text-bronze" strokeWidth={1.5} />
                   <h2 className="font-mono text-[11px] uppercase tracking-widest text-navy">Filter</h2>
                 </div>
 
                 <div>
-                  <label className="overline block mb-2">Stichwort</label>
+                  <label htmlFor="suche" className="overline block mb-2">Stichwort</label>
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-quiet" strokeWidth={1.5} />
-                    <input type="text" placeholder="z.B. Bäckerei" className="w-full bg-cream border border-stone rounded-soft pl-9 pr-3 py-2.5 text-body-sm placeholder:text-quiet focus:outline-none focus:border-bronze" />
+                    <input
+                      id="suche"
+                      name="suche"
+                      type="text"
+                      defaultValue={searchParams.suche ?? ''}
+                      placeholder="z.B. Bäckerei"
+                      className="w-full bg-cream border border-stone rounded-soft pl-9 pr-3 py-2.5 text-body-sm placeholder:text-quiet focus:outline-none focus:border-bronze"
+                    />
                   </div>
                 </div>
 
                 <div>
-                  <label className="overline block mb-2">Branche</label>
-                  <select className="w-full bg-cream border border-stone rounded-soft px-3 py-2.5 text-body-sm focus:outline-none focus:border-bronze">
-                    {BRANCHEN.map((b) => <option key={b}>{b}</option>)}
+                  <label htmlFor="branche" className="overline block mb-2">Branche</label>
+                  <select
+                    id="branche"
+                    name="branche"
+                    defaultValue={searchParams.branche ?? 'all'}
+                    className="w-full bg-cream border border-stone rounded-soft px-3 py-2.5 text-body-sm focus:outline-none focus:border-bronze"
+                  >
+                    <option value="all">Alle Branchen</option>
+                    {branchen.map((b) => (
+                      <option key={b.id} value={b.id}>{b.label_de}</option>
+                    ))}
                   </select>
                 </div>
 
                 <div>
                   <label className="overline block mb-2">Kanton</label>
-                  <div className="grid grid-cols-5 gap-1 text-center">
-                    {KANTONE.map((k) => (
-                      <button key={k} type="button" className="font-mono text-[11px] py-1.5 rounded-soft text-muted hover:bg-navy hover:text-cream transition-colors">
-                        {k}
-                      </button>
+                  <select
+                    name="kanton"
+                    defaultValue={searchParams.kanton ?? 'all'}
+                    className="w-full bg-cream border border-stone rounded-soft px-3 py-2.5 text-body-sm focus:outline-none focus:border-bronze"
+                  >
+                    <option value="all">Alle Kantone</option>
+                    {KANTON_CODES.map((k) => (
+                      <option key={k} value={k}>{k}</option>
                     ))}
-                  </div>
+                  </select>
                 </div>
 
                 <div>
                   <label className="overline block mb-2">Kaufpreis</label>
-                  <select className="w-full bg-cream border border-stone rounded-soft px-3 py-2.5 text-body-sm focus:outline-none focus:border-bronze">
-                    {PREIS_BUCKETS.map((b) => <option key={b}>{b}</option>)}
+                  <select
+                    name="preis"
+                    defaultValue={searchParams.preis ?? 'all'}
+                    className="w-full bg-cream border border-stone rounded-soft px-3 py-2.5 text-body-sm focus:outline-none focus:border-bronze"
+                  >
+                    {PREIS_BUCKETS.map((b) => <option key={b.id} value={b.id}>{b.label}</option>)}
                   </select>
                 </div>
 
                 <div>
                   <label className="overline block mb-2">Jahresumsatz</label>
-                  <select className="w-full bg-cream border border-stone rounded-soft px-3 py-2.5 text-body-sm focus:outline-none focus:border-bronze">
-                    {UMSATZ_BUCKETS.map((b) => <option key={b}>{b}</option>)}
+                  <select
+                    name="umsatz"
+                    defaultValue={searchParams.umsatz ?? 'all'}
+                    className="w-full bg-cream border border-stone rounded-soft px-3 py-2.5 text-body-sm focus:outline-none focus:border-bronze"
+                  >
+                    {UMSATZ_BUCKETS.map((b) => <option key={b.id} value={b.id}>{b.label}</option>)}
                   </select>
                 </div>
 
                 <div>
                   <label className="overline block mb-2">EBITDA-Marge</label>
-                  <select className="w-full bg-cream border border-stone rounded-soft px-3 py-2.5 text-body-sm focus:outline-none focus:border-bronze">
-                    <option>Alle</option>
-                    <option>&gt; 5%</option>
-                    <option>&gt; 10%</option>
-                    <option>&gt; 15%</option>
-                    <option>&gt; 20%</option>
+                  <select
+                    name="ebitda"
+                    defaultValue={searchParams.ebitda ?? 'all'}
+                    className="w-full bg-cream border border-stone rounded-soft px-3 py-2.5 text-body-sm focus:outline-none focus:border-bronze"
+                  >
+                    {EBITDA_BUCKETS.map((b) => <option key={b.id} value={b.id}>{b.label}</option>)}
                   </select>
                 </div>
 
                 <div>
                   <label className="overline block mb-2">Mitarbeitende</label>
-                  <select className="w-full bg-cream border border-stone rounded-soft px-3 py-2.5 text-body-sm focus:outline-none focus:border-bronze">
-                    {MA_BUCKETS.map((b) => <option key={b}>{b}</option>)}
+                  <select
+                    name="ma"
+                    defaultValue={searchParams.ma ?? 'all'}
+                    className="w-full bg-cream border border-stone rounded-soft px-3 py-2.5 text-body-sm focus:outline-none focus:border-bronze"
+                  >
+                    {MA_BUCKETS.map((b) => <option key={b.id} value={b.id}>{b.label}</option>)}
                   </select>
                 </div>
 
                 <div>
                   <label className="overline block mb-2">Übergabegrund</label>
                   <div className="space-y-2">
-                    {GRUND.map((g) => (
-                      <label key={g} className="flex items-center gap-2 cursor-pointer text-body-sm text-muted hover:text-ink">
-                        <input type="checkbox" className="accent-bronze" />
-                        {g}
-                      </label>
-                    ))}
+                    {UEBERGABE_GRUENDE.map((g) => {
+                      const checked = searchParams.gruende?.split(',').includes(g.id) ?? false;
+                      return (
+                        <label key={g.id} className="flex items-center gap-2 cursor-pointer text-body-sm text-muted hover:text-ink">
+                          <input type="checkbox" name="gruende" value={g.id} defaultChecked={checked} className="accent-bronze" />
+                          {g.label}
+                        </label>
+                      );
+                    })}
                   </div>
                 </div>
 
+                <input type="hidden" name="sort" value={searchParams.sort ?? 'neu'} />
+
                 <div className="pt-4 border-t border-stone flex flex-col gap-2">
                   <Button size="sm" className="w-full justify-center">Filter anwenden</Button>
-                  <button type="button" className="font-mono text-[11px] uppercase tracking-widest text-quiet hover:text-navy">
+                  <Link
+                    href="/"
+                    className="font-mono text-[11px] uppercase tracking-widest text-quiet hover:text-navy text-center"
+                  >
                     zurücksetzen
-                  </button>
+                  </Link>
                 </div>
 
                 {/* MAX-Upsell */}
@@ -292,7 +394,7 @@ function Marketplace() {
                     MAX ansehen <ArrowRight className="w-3 h-3" strokeWidth={1.5} />
                   </Link>
                 </div>
-              </div>
+              </form>
             </Reveal>
           </aside>
 
@@ -301,60 +403,77 @@ function Marketplace() {
             <Reveal>
               <div className="flex items-center justify-between mb-6 pb-4 border-b border-stone flex-wrap gap-3">
                 <p className="font-mono text-[11px] uppercase tracking-widest text-quiet">
-                  <span className="text-navy font-medium">{LISTINGS.length} Inserate</span> &middot; aktualisiert 27.04.2026
+                  {totalCount === 0 ? (
+                    <span className="text-navy font-medium">Marktplatz im Aufbau</span>
+                  ) : (
+                    <>
+                      <span className="text-navy font-medium">
+                        {listings.length} {listings.length === 1 ? 'Inserat' : 'Inserate'}
+                      </span>
+                      {' '}&middot; aktualisiert {new Date().toLocaleDateString('de-CH')}
+                    </>
+                  )}
                 </p>
                 <div className="flex items-center gap-4">
                   <label className="overline text-quiet">Sortieren</label>
-                  <select className="bg-transparent border border-stone rounded-soft px-3 py-1.5 text-body-sm focus:outline-none focus:border-bronze">
-                    <option>Neueste zuerst</option>
-                    <option>Preis aufsteigend</option>
-                    <option>Preis absteigend</option>
-                    <option>Umsatz absteigend</option>
-                    <option>EBITDA absteigend</option>
-                  </select>
+                  <SortSelect defaultValue={searchParams.sort ?? 'neu'} />
                 </div>
               </div>
             </Reveal>
 
-            <Reveal delay={0.1}>
-              <div className="bg-bronze/5 border border-bronze/20 rounded-card px-5 py-4 mb-6 flex items-center gap-4 flex-wrap">
-                <FileLock2 className="w-5 h-5 text-bronze flex-shrink-0" strokeWidth={1.5} />
-                <p className="text-body-sm text-muted flex-1 min-w-[240px]">
-                  <span className="text-navy font-medium">Teaser sind öffentlich.</span> Für Dossier-Anfrage, NDA-Signatur und Datenraum-Zugriff ist eine kostenlose Registrierung nötig.
-                </p>
-                <Link
-                  href="/auth/register?role=kaeufer"
-                  className="font-mono text-[11px] uppercase tracking-widest text-navy hover:text-bronze inline-flex items-center gap-1"
-                >
-                  Käufer werden <ArrowRight className="w-3 h-3" strokeWidth={1.5} />
-                </Link>
-              </div>
-            </Reveal>
-
-            <div className="grid md:grid-cols-2 gap-5">
-              {LISTINGS.map((l, i) => (
-                <Reveal key={l.id} delay={i * 0.03}>
-                  <ListingCard listing={l} />
+            {totalCount === 0 ? (
+              <MarketplaceEmpty variant="marktplatz" />
+            ) : listings.length === 0 ? (
+              <MarketplaceEmpty
+                variant="marktplatz"
+                headline="Keine Inserate für diese Filter-Kombination"
+                beschreibung="Probiere andere Filter aus oder lege ein Suchprofil an — wir benachrichtigen dich, sobald ein passendes Inserat reinkommt."
+              />
+            ) : (
+              <>
+                <Reveal delay={0.1}>
+                  <div className="bg-bronze/5 border border-bronze/20 rounded-card px-5 py-4 mb-6 flex items-center gap-4 flex-wrap">
+                    <FileLock2 className="w-5 h-5 text-bronze flex-shrink-0" strokeWidth={1.5} />
+                    <p className="text-body-sm text-muted flex-1 min-w-[240px]">
+                      <span className="text-navy font-medium">Teaser sind öffentlich.</span> Für Dossier-Anfrage, NDA-Signatur und Datenraum-Zugriff ist eine kostenlose Registrierung nötig.
+                    </p>
+                    <Link
+                      href="/auth/register?role=kaeufer"
+                      className="font-mono text-[11px] uppercase tracking-widest text-navy hover:text-bronze inline-flex items-center gap-1"
+                    >
+                      Käufer werden <ArrowRight className="w-3 h-3" strokeWidth={1.5} />
+                    </Link>
+                  </div>
                 </Reveal>
-              ))}
-            </div>
 
-            <Reveal delay={0.4}>
-              <div className="mt-16 text-center p-10 border border-dashed border-stone rounded-card">
-                <p className="overline mb-3 text-bronze-ink">Weitere Inserate</p>
-                <h3 className="font-serif text-head-lg text-navy mb-3 font-normal">
-                  Mit Käufer MAX sehen Sie alles zuerst.
-                </h3>
-                <p className="text-body-sm text-muted mb-6 max-w-md mx-auto">
-                  Neue Inserate sind 7 Tage lang nur für MAX-Mitglieder sichtbar,
-                  bevor sie öffentlich werden. Plus: alle Filter, unbegrenzte Anfragen,
-                  Echtzeit-Alerts.
-                </p>
-                <Button href="/preise" variant="secondary" size="md">
-                  MAX ab CHF 199/Monat <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
-                </Button>
-              </div>
-            </Reveal>
+                <div className="grid md:grid-cols-2 gap-5">
+                  {listings.map((l, i) => (
+                    <Reveal key={l.id} delay={i * 0.03}>
+                      <ListingCard listing={l} branchen={branchen} />
+                    </Reveal>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {totalCount > 0 && !isFiltered && (
+              <Reveal delay={0.4}>
+                <div className="mt-16 text-center p-10 border border-dashed border-stone rounded-card">
+                  <p className="overline mb-3 text-bronze-ink">Weitere Inserate</p>
+                  <h3 className="font-serif text-head-lg text-navy mb-3 font-normal">
+                    Mit Käufer MAX sehen Sie alles zuerst.
+                  </h3>
+                  <p className="text-body-sm text-muted mb-6 max-w-md mx-auto">
+                    Neue Inserate sind 7 Tage lang nur für MAX-Mitglieder sichtbar,
+                    bevor sie öffentlich werden. Plus: alle Filter, unbegrenzte Anfragen,
+                    Echtzeit-Alerts.
+                  </p>
+                  <Button href="/preise" variant="secondary" size="md">
+                    MAX ab CHF 199/Monat <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
+                  </Button>
+                </div>
+              </Reveal>
+            )}
           </div>
         </div>
       </Container>
@@ -363,27 +482,50 @@ function Marketplace() {
 }
 
 /* ════════════════════════ ListingCard ════════════════════════ */
-function ListingCard({ listing }: { listing: typeof LISTINGS[number] }) {
+function ListingCard({ listing, branchen }: { listing: InseratPublic; branchen: Branche[] }) {
+  // Status-Ableitung
+  const now = Date.now();
+  const isFeatured = listing.featured_until && new Date(listing.featured_until).getTime() > now;
+  const ageDays = (now - new Date(listing.published_at).getTime()) / (24 * 60 * 60 * 1000);
+  const status: 'featured' | 'neu' | 'live' = isFeatured ? 'featured' : ageDays < 14 ? 'neu' : 'live';
+
   const statusColor =
-    listing.status === 'featured' ? 'bg-bronze/90 text-cream'
-    : listing.status === 'neu' ? 'bg-success/90 text-cream'
-    : listing.status === 'nda' ? 'bg-navy/90 text-cream'
+    status === 'featured' ? 'bg-bronze/90 text-cream'
+    : status === 'neu' ? 'bg-success/90 text-cream'
     : 'bg-paper/90 text-navy';
 
   const statusLabel =
-    listing.status === 'featured' ? 'Featured'
-    : listing.status === 'neu' ? 'Neu'
-    : listing.status === 'nda' ? 'NDA-Prozess'
+    status === 'featured' ? 'Featured'
+    : status === 'neu' ? 'Neu'
     : 'Live';
 
-  const cover = branchenStockfoto(listing.branche, listing.id);
-  const facts = renderKeyFacts(listing);
+  const brancheObj = branchen.find((b) => b.id === listing.branche_id);
+  const brancheLabel = brancheObj?.label_de ?? listing.branche_id ?? '—';
+
+  const cover = branchenStockfoto(listing.branche_id ?? brancheLabel, listing.id);
+
+  // KeyFacts arbeiten mit Display-Strings
+  const umsatzStr = formatUmsatz({ umsatz_bucket: listing.umsatz_bucket });
+  const ebitdaStr = formatEbitda(listing.ebitda_marge_pct);
+  const kaufpreisStr = formatKaufpreis({
+    kaufpreis_bucket: listing.kaufpreis_bucket,
+    kaufpreis_vhb: listing.kaufpreis_vhb,
+  });
+  const facts = renderKeyFacts({
+    jahr: listing.jahr ?? new Date().getFullYear(),
+    mitarbeitende: 0, // mitarbeitende_bucket statt — ggf. erweitern
+    umsatz: umsatzStr,
+    ebitda: ebitdaStr,
+  });
+
+  // Public-ID für Anzeige (z.B. "DOS-001234"). Wenn slug existiert: nutzen, sonst kurz-id
+  const displayId = listing.slug ?? listing.id.slice(0, 8);
+  const detailHref = `/inserat/${listing.slug ?? listing.id}`;
 
   return (
     <article className="group relative bg-paper border border-stone rounded-card overflow-hidden hover:-translate-y-0.5 hover:shadow-lift hover:border-bronze/40 transition-all duration-300 flex flex-col cursor-pointer">
-      {/* Stretched-Link: liegt ÜBER dem Cover (das hat relative ohne z-index) — sonst fängt der Cover-Bereich die Klicks ab. Buttons unten überlagern den Link mit z-[2]. */}
       <Link
-        href={`/inserat/${listing.id}`}
+        href={detailHref}
         className="absolute inset-0 z-[1]"
         aria-label={`Inserat ${listing.titel} ansehen`}
       />
@@ -393,18 +535,17 @@ function ListingCard({ listing }: { listing: typeof LISTINGS[number] }) {
         <div
           className="absolute inset-0 transition-transform duration-700 ease-out-expo group-hover:scale-110"
           style={{
-            backgroundImage: `url(${cover})`,
+            backgroundImage: `url(${listing.cover_url ?? cover})`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
             filter: 'blur(6px) brightness(0.55) saturate(1.1)',
             transform: 'scale(1.15)',
           }}
         />
-        {/* Verlauf für bessere Lesbarkeit unten */}
         <div className="absolute inset-0 bg-gradient-to-t from-navy/70 via-navy/20 to-transparent" />
 
         <span className="absolute top-3 left-3 font-mono text-[10px] uppercase tracking-widest text-cream/85 backdrop-blur-sm bg-navy/40 px-2 py-1 rounded-full">
-          {listing.id}
+          {displayId}
         </span>
         <span className={`absolute top-3 right-3 font-mono text-[10px] uppercase tracking-widest px-2.5 py-1 rounded-full backdrop-blur-sm ${statusColor}`}>
           {statusLabel}
@@ -412,7 +553,7 @@ function ListingCard({ listing }: { listing: typeof LISTINGS[number] }) {
 
         <div className="absolute bottom-4 left-5 right-5 z-[1]">
           <p className="font-mono text-[12px] md:text-[13px] uppercase tracking-[0.16em] text-bronze font-semibold leading-tight drop-shadow-[0_2px_8px_rgba(0,0,0,0.7)]">
-            {listing.branche} · Kanton {listing.kanton}
+            {brancheLabel} · Kanton {listing.kanton ?? '—'}
           </p>
           <p className="font-mono text-[13px] md:text-[14px] tracking-wider text-cream mt-1.5 drop-shadow-[0_2px_8px_rgba(0,0,0,0.7)]">
             {facts}
@@ -429,26 +570,28 @@ function ListingCard({ listing }: { listing: typeof LISTINGS[number] }) {
         <div className="grid grid-cols-3 gap-3 py-4 border-t border-b border-stone mb-5">
           <div>
             <p className="overline mb-1">Umsatz</p>
-            <p className="font-mono text-body-sm text-navy font-tabular font-medium">{listing.umsatz}</p>
+            <p className="font-mono text-body-sm text-navy font-tabular font-medium">{umsatzStr}</p>
           </div>
           <div>
             <p className="overline mb-1">EBITDA</p>
-            <p className="font-mono text-body-sm text-navy font-tabular font-medium">{listing.ebitda}</p>
+            <p className="font-mono text-body-sm text-navy font-tabular font-medium">{ebitdaStr}</p>
           </div>
           <div>
             <p className="overline mb-1">Preis</p>
-            <p className="font-mono text-body-sm text-navy font-tabular font-medium">{listing.kaufpreis}</p>
+            <p className="font-mono text-body-sm text-navy font-tabular font-medium">{kaufpreisStr}</p>
           </div>
         </div>
 
-        <p className="font-mono text-[11px] uppercase tracking-wider text-quiet mb-5">
-          <TrendingUp className="inline w-3 h-3 mr-1 text-bronze" strokeWidth={1.5} />
-          {listing.grund}
-        </p>
+        {listing.uebergabe_grund && (
+          <p className="font-mono text-[11px] uppercase tracking-wider text-quiet mb-5">
+            <TrendingUp className="inline w-3 h-3 mr-1 text-bronze" strokeWidth={1.5} />
+            {uebergabeGrundLabel(listing.uebergabe_grund)}
+          </p>
+        )}
 
         <div className="mt-auto flex items-center gap-2 relative z-10">
           <Button
-            href={`/inserat/${listing.id}`}
+            href={detailHref}
             size="sm"
             className="flex-1 justify-center"
           >
@@ -458,9 +601,9 @@ function ListingCard({ listing }: { listing: typeof LISTINGS[number] }) {
           <CardActions
             listingId={listing.id}
             titel={listing.titel}
-            branche={listing.branche}
-            kanton={listing.kanton}
-            umsatz={listing.umsatz}
+            branche={brancheLabel}
+            kanton={listing.kanton ?? '—'}
+            umsatz={umsatzStr}
           />
         </div>
       </div>

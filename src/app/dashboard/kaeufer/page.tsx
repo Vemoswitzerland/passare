@@ -1,14 +1,15 @@
 import Link from 'next/link';
 import {
   ArrowRight, MessageSquare, FileLock2, Bell, Calendar,
-  TrendingUp, Sparkles, Crown, Eye,
+  TrendingUp, Sparkles,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { hasTable } from '@/lib/db/has-table';
-import { matchScore, type Suchprofil } from '@/lib/match-score';
-import { MOCK_LISTINGS } from '@/lib/listings-mock';
+import type { Suchprofil } from '@/lib/match-score';
+import { getDailyDigest, getListings } from '@/lib/listings';
 import { ListingCardMini } from '@/components/kaeufer/listing-card-mini';
 import { MaxUpsellBanner } from '@/components/kaeufer/upsell-banner';
+import { MarketplaceEmpty } from '@/components/marketplace/MarketplaceEmpty';
 
 type Props = { searchParams: Promise<{ welcome?: string }> };
 
@@ -27,7 +28,7 @@ export default async function KaeuferDashboardPage({ searchParams }: Props) {
 
   const isMax = profile?.subscription_tier === 'max';
 
-  // Erstes Suchprofil laden (für Daily Digest Match)
+  // Erstes Suchprofil laden (für Daily Digest Match-Score-Badge in der Card)
   let suchprofil: Suchprofil | null = null;
   let suchprofilName = '';
   if (await hasTable('suchprofile')) {
@@ -51,14 +52,13 @@ export default async function KaeuferDashboardPage({ searchParams }: Props) {
     }
   }
 
-  // Top-Matches für Daily Digest
-  const topMatches = (() => {
-    if (!suchprofil) return MOCK_LISTINGS.slice(0, 3);
-    return [...MOCK_LISTINGS]
-      .map((l) => ({ listing: l, score: matchScore(suchprofil!, l) }))
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 3);
-  })();
+  // Daily-Digest aus DB laden (helper kümmert sich um Suchprofil-Matching + Fallback)
+  const topMatches = await getDailyDigest(u.user.id, 3);
+
+  // "Mehr aus dem Marktplatz" — die nächsten 3 nach den Daily-Digest-Treffern
+  const moreListingsRaw = await getListings({ sort: 'neu', limit: 6 });
+  const topIds = new Set(topMatches.map((t) => t.id));
+  const moreListings = moreListingsRaw.filter((l) => !topIds.has(l.id)).slice(0, 3);
 
   // Tage seit Registrierung
   const daysSinceRegister = profile?.created_at
@@ -115,7 +115,7 @@ export default async function KaeuferDashboardPage({ searchParams }: Props) {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatCard icon={MessageSquare} label="Offene Anfragen" value="0" trend="+0" href="/dashboard/kaeufer/anfragen" />
         <StatCard icon={FileLock2} label="Aktive NDAs" value="0" trend="+0" href="/dashboard/kaeufer/ndas" />
-        <StatCard icon={Bell} label="Heute neue Treffer" value={String(topMatches.filter((t) => 'score' in t && t.score >= 60).length)} trend="Daily Digest" href="/kaufen" />
+        <StatCard icon={Bell} label="Heute neue Treffer" value={String(topMatches.length)} trend="Daily Digest" href="/kaufen" />
         <StatCard icon={Calendar} label="Tage seit Start" value={String(daysSinceRegister || 1)} trend={daysSinceRegister < 7 ? 'Neu' : 'Aktiv'} />
       </div>
 
@@ -139,19 +139,20 @@ export default async function KaeuferDashboardPage({ searchParams }: Props) {
           )}
         </div>
 
-        <div className="grid md:grid-cols-3 gap-4">
-          {topMatches.map((item, i) => {
-            const listing = 'listing' in item ? item.listing : item;
-            return (
+        {topMatches.length === 0 ? (
+          <MarketplaceEmpty variant="kaeufer-digest" />
+        ) : (
+          <div className="grid md:grid-cols-3 gap-4">
+            {topMatches.map((listing) => (
               <ListingCardMini
                 key={listing.id}
                 listing={listing}
                 suchprofil={suchprofil ?? undefined}
-                detailHref={`/kaufen/${listing.id}`}
+                detailHref={`/kaufen/${listing.slug ?? listing.id}`}
               />
-            );
-          })}
-        </div>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* MAX Upsell (nur wenn Basic) */}
@@ -180,29 +181,31 @@ export default async function KaeuferDashboardPage({ searchParams }: Props) {
       </section>
 
       {/* Empfehlungen */}
-      <section>
-        <div className="flex items-center justify-between mb-4 pb-3 border-b border-stone">
-          <h2 className="font-serif text-head-md text-navy font-normal">
-            Mehr aus dem Marktplatz<span className="text-bronze">.</span>
-          </h2>
-          <Link
-            href="/kaufen"
-            className="font-mono text-caption uppercase tracking-widest text-quiet hover:text-navy inline-flex items-center gap-1"
-          >
-            Alle ansehen <ArrowRight className="w-3 h-3" strokeWidth={1.5} />
-          </Link>
-        </div>
-        <div className="grid md:grid-cols-3 gap-4">
-          {MOCK_LISTINGS.slice(3, 6).map((l) => (
-            <ListingCardMini
-              key={l.id}
-              listing={l}
-              suchprofil={suchprofil ?? undefined}
-              detailHref={`/kaufen/${l.id}`}
-            />
-          ))}
-        </div>
-      </section>
+      {moreListings.length > 0 && (
+        <section>
+          <div className="flex items-center justify-between mb-4 pb-3 border-b border-stone">
+            <h2 className="font-serif text-head-md text-navy font-normal">
+              Mehr aus dem Marktplatz<span className="text-bronze">.</span>
+            </h2>
+            <Link
+              href="/kaufen"
+              className="font-mono text-caption uppercase tracking-widest text-quiet hover:text-navy inline-flex items-center gap-1"
+            >
+              Alle ansehen <ArrowRight className="w-3 h-3" strokeWidth={1.5} />
+            </Link>
+          </div>
+          <div className="grid md:grid-cols-3 gap-4">
+            {moreListings.map((l) => (
+              <ListingCardMini
+                key={l.id}
+                listing={l}
+                suchprofil={suchprofil ?? undefined}
+                detailHref={`/kaufen/${l.slug ?? l.id}`}
+              />
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

@@ -6,7 +6,7 @@ import { Reveal, RevealStagger, RevealItem } from '@/components/ui/reveal';
 import { Divider } from '@/components/ui/divider';
 import { SiteHeader } from '../page';
 import { createClient } from '@/lib/supabase/server';
-import { KANTON_CODES } from '@/lib/listings-mock';
+import { KANTON_CODES } from '@/lib/constants';
 import BewertungsWizard from './BewertungsWizard';
 
 export const metadata = {

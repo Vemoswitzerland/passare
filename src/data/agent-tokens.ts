@@ -66,6 +66,16 @@ export type AgentSession = {
  */
 export const SESSIONS: AgentSession[] = [
   {
+    date: '2026-04-29',
+    bereich: 'marketplace',
+    titel: 'Mock-Daten raus, Marktplatz/Käufer/Anfrage/Atlas/Forms via Datenbank',
+    inputTokens: 950_000,
+    outputTokens: 280_000,
+    cacheReadTokens: 120_000,
+    dauerMinuten: 90,
+    status: 'done',
+  },
+  {
     date: '2026-04-27',
     bereich: 'sonstiges',
     titel: 'Token-Tracking + Agent-Protokoll Live auf /status',

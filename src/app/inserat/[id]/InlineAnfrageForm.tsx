@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   AlertCircle, CheckCircle2, Mail, MessageSquare, Send, X,
 } from 'lucide-react';
-import type { MockListing } from '@/lib/listings-mock';
+import type { InseratDetail } from '@/lib/listings';
 
 /**
  * Inline-Anfrage-Formular im ContactPanel der Inserat-Detail-Seite.
@@ -19,7 +19,7 @@ import type { MockListing } from '@/lib/listings-mock';
  *   5. Dort Passwort setzen → Käufer-Basic-Konto aktiv → Redirect aufs Inserat
  */
 
-export function InlineAnfrageForm({ listing }: { listing: MockListing }) {
+export function InlineAnfrageForm({ listing }: { listing: Pick<InseratDetail, 'id' | 'titel' | 'slug'> }) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [nachricht, setNachricht] = useState('');

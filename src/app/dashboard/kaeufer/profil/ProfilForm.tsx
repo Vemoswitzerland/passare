@@ -5,7 +5,8 @@ import { Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/input';
 import { updateKaeuferProfilAction } from './actions';
-import { BRANCHEN_LIST, KANTON_CODES } from '@/lib/listings-mock';
+import { KANTON_CODES } from '@/lib/constants';
+import type { Branche } from '@/lib/branchen';
 import { cn } from '@/lib/utils';
 
 type Initial = {
@@ -45,9 +46,9 @@ const ERFAHRUNG_OPTIONS = [
   { value: '4_plus_deals', label: '4+ Deals' },
 ];
 
-export function ProfilForm({ initial }: { initial: Initial }) {
+export function ProfilForm({ initial, branchen }: { initial: Initial; branchen: Branche[] }) {
   const [investorTyp, setInvestorTyp] = useState(initial?.investor_typ ?? '');
-  const [branchen, setBranchen] = useState<string[]>(initial?.branche_praeferenzen ?? []);
+  const [branchenSelected, setBranchenSelected] = useState<string[]>(initial?.branche_praeferenzen ?? []);
   const [regionen, setRegionen] = useState<string[]>(initial?.regionen ?? []);
   const [budgetMin, setBudgetMin] = useState(initial?.budget_min ?? 500_000);
   const [budgetMax, setBudgetMax] = useState(initial?.budget_max ?? 5_000_000);
@@ -64,7 +65,7 @@ export function ProfilForm({ initial }: { initial: Initial }) {
     setPending(true);
     setError(null);
     setSuccess(false);
-    formData.set('branche_praeferenzen', branchen.join(','));
+    formData.set('branche_praeferenzen', branchenSelected.join(','));
     formData.set('regionen', regionen.join(','));
     const result = await updateKaeuferProfilAction(formData);
     setPending(false);
@@ -172,14 +173,16 @@ export function ProfilForm({ initial }: { initial: Initial }) {
       <fieldset className="border-t border-stone pt-6">
         <legend className="overline text-bronze-ink mb-3">Branche-Präferenzen</legend>
         <div className="flex flex-wrap gap-2">
-          {BRANCHEN_LIST.map((b) => {
-            const active = branchen.includes(b);
+          {branchen.map((b) => {
+            const active = branchenSelected.includes(b.id);
             return (
               <button
-                key={b}
+                key={b.id}
                 type="button"
                 onClick={() =>
-                  setBranchen((prev) => (active ? prev.filter((x) => x !== b) : [...prev, b]))
+                  setBranchenSelected((prev) =>
+                    active ? prev.filter((x) => x !== b.id) : [...prev, b.id],
+                  )
                 }
                 className={cn(
                   'px-3 py-1.5 rounded-pill text-caption font-medium border transition-all',
@@ -188,7 +191,7 @@ export function ProfilForm({ initial }: { initial: Initial }) {
                     : 'bg-paper text-muted border-stone hover:border-bronze hover:text-navy',
                 )}
               >
-                {b}
+                {b.label_de}
               </button>
             );
           })}

@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { hasTable } from '@/lib/db/has-table';
+import { getBranchen } from '@/lib/branchen';
 import { ProfilForm } from './ProfilForm';
 import { ProfilPreview } from './ProfilPreview';
 import { toggleProfilSichtbarkeitAction } from './actions';
@@ -46,6 +47,8 @@ export default async function ProfilPage() {
       .maybeSingle();
     kaeuferProfil = data;
   }
+
+  const branchen = await getBranchen();
 
   return (
     <div className="space-y-8 max-w-content">
@@ -166,7 +169,7 @@ export default async function ProfilPage() {
       {/* ─── Sektion 3: Editierbares Profil ─── */}
       <section>
         <h2 className="font-serif text-head-sm text-navy font-normal mb-3">Profil bearbeiten</h2>
-        <ProfilForm initial={kaeuferProfil} />
+        <ProfilForm initial={kaeuferProfil} branchen={branchen} />
       </section>
 
       {/* ─── Sektion 4: Account ─── */}

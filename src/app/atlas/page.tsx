@@ -6,7 +6,8 @@ import { Reveal, RevealStagger, RevealItem } from '@/components/ui/reveal';
 import { Divider } from '@/components/ui/divider';
 import { SiteHeader } from '../page';
 import { loadAtlasMarkers } from './atlas-data';
-import { BRANCHEN_LIST, KANTON_CODES } from '@/lib/listings-mock';
+import { KANTON_CODES } from '@/lib/constants';
+import { getBranchen } from '@/lib/branchen';
 import AtlasMap from './AtlasMapWrapper';
 
 export const metadata = {
@@ -19,8 +20,13 @@ export const metadata = {
 export const revalidate = 300;
 
 export default async function AtlasPage() {
-  const markers = await loadAtlasMarkers();
-  const branchen = [...BRANCHEN_LIST].sort((a, b) => a.localeCompare(b, 'de'));
+  const [markers, branchenRaw] = await Promise.all([
+    loadAtlasMarkers(),
+    getBranchen(),
+  ]);
+  const branchen = branchenRaw
+    .map((b) => b.label_de)
+    .sort((a, b) => a.localeCompare(b, 'de'));
   const kantone = [...KANTON_CODES];
 
   return (
