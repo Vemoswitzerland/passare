@@ -226,6 +226,11 @@ async function searchViaLindas(names: string[], maxResults: number): Promise<Zef
   });
   const filterExpr = filterParts.join(' || ');
 
+  // Wir holen mehr als angefragt (max 60), damit Client-side-Score-Sort
+  // den besten Treffer auch finden kann wenn die generische Variant
+  // ("Vemo") sehr viele Hits hat. Ohne Höhung würde z.B. "Vemo Group GmbH"
+  // im LINDAS-Output abgeschnitten werden.
+  const fetchLimit = Math.min(60, Math.max(maxResults * 3, 40));
   const query = `
     PREFIX schema: <http://schema.org/>
     PREFIX locn: <http://www.w3.org/ns/locn#>
@@ -238,7 +243,7 @@ async function searchViaLindas(names: string[], maxResults: number): Promise<Zef
         OPTIONAL { ?addr schema:addressLocality ?ort }
         OPTIONAL { ?addr schema:addressRegion ?kanton }
       }
-    } LIMIT ${maxResults}
+    } LIMIT ${fetchLimit}
   `;
   const res = await sparqlQuery(query);
 
@@ -543,6 +548,38 @@ function buildSearchVariants(q: string): string[] {
   return variants;
 }
 
+/**
+ * Match-Quality-Score: höher = besser.
+ *  - Exact-Name = 100'000
+ *  - StartsWith volle Query = 50'000
+ *  - Contains volle Query = 10'000
+ *  - StartsWith längste Variant = 1'000
+ *  - Contains längste Variant = 500
+ *  - Plus Bonus für kurze Namen (kürzer = präziser)
+ */
+function scoreHit(name: string | null, query: string, variants: string[]): number {
+  if (!name) return 0;
+  const lname = name.toLowerCase();
+  const lq = query.toLowerCase();
+
+  // Längen-Bonus: kürzere Namen sind oft präziser (max 100)
+  const lenBonus = Math.max(0, 100 - name.length);
+
+  if (lname === lq) return 100_000 + lenBonus;
+  if (lname.startsWith(lq)) return 50_000 + lenBonus;
+  if (lname.includes(lq)) return 10_000 + lenBonus;
+
+  // Variant-Score (sortiert nach Länge desc, längste zuerst)
+  const sorted = [...variants].sort((a, b) => b.length - a.length);
+  for (const v of sorted) {
+    const lv = v.toLowerCase();
+    if (lv === lq) continue; // schon oben gescored
+    if (lname.startsWith(lv)) return 1_000 + lv.length * 10 + lenBonus;
+    if (lname.includes(lv)) return 500 + lv.length * 10 + lenBonus;
+  }
+  return 0;
+}
+
 export async function searchByName(query: string, maxResults = 20): Promise<ZefixSearchHit[]> {
   const q = query.trim();
   if (q.length < 2) return [];
@@ -553,7 +590,15 @@ export async function searchByName(query: string, maxResults = 20): Promise<Zefi
   for (const variant of variants) {
     try {
       const restHits = await searchViaRest(variant, maxResults);
-      if (restHits.length > 0) return restHits;
+      if (restHits.length > 0) {
+        // Auch REST-Hits nach Match-Quality sortieren — REST liefert oft
+        // alphabetisch, was die exakte Firma in den Hintergrund schiebt.
+        return restHits
+          .map((h) => ({ ...h, _score: scoreHit(h.name, q, variants) }))
+          .sort((a, b) => b._score - a._score)
+          .slice(0, maxResults)
+          .map(({ _score, ...rest }) => rest);
+      }
     } catch {
       // ignore
     }
@@ -562,7 +607,16 @@ export async function searchByName(query: string, maxResults = 20): Promise<Zefi
   // 2. LINDAS in EINER Query mit OR-Filter über alle Variants
   try {
     const lindasHits = await searchViaLindas(variants, maxResults);
-    if (lindasHits.length > 0) return lindasHits;
+    if (lindasHits.length > 0) {
+      // Score-Sort: exakte/präfix-Matches kommen zuerst, "vemo group gmbh"
+      // schlägt damit z.B. "Vemo SA, administration..." obwohl beides
+      // den Substring "vemo" enthält.
+      return lindasHits
+        .map((h) => ({ ...h, _score: scoreHit(h.name, q, variants) }))
+        .sort((a, b) => b._score - a._score)
+        .slice(0, maxResults)
+        .map(({ _score, ...rest }) => rest);
+    }
   } catch {
     // ignore
   }
