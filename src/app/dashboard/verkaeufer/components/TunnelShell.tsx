@@ -9,7 +9,7 @@
 'use client';
 
 import Link from 'next/link';
-import { LogOut } from 'lucide-react';
+import { LogOut, ArrowLeft } from 'lucide-react';
 import { logoutAction } from '@/app/auth/actions';
 
 type Props = {
@@ -29,7 +29,16 @@ export function TunnelShell({ email, fullName, children }: Props) {
               passare<span className="text-bronze">.</span>
             </Link>
 
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-4 md:gap-6">
+              {/* Escape-Link — User kann jederzeit raus */}
+              <Link
+                href="/dashboard/verkaeufer?tab=overview"
+                className="inline-flex items-center gap-1.5 text-caption text-quiet hover:text-navy transition-colors"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" strokeWidth={1.5} />
+                <span className="hidden sm:inline">Zum Dashboard</span>
+                <span className="sm:hidden">Dashboard</span>
+              </Link>
               {fullName && (
                 <span className="hidden md:inline text-caption text-muted">
                   {fullName}
