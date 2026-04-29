@@ -22,6 +22,7 @@ import { StatusBadge } from '@/components/admin/StatusBadge';
 import { InseratAuditPanel } from '@/components/admin/InseratAuditPanel';
 import { InseratAuditThread } from '@/components/admin/InseratAuditThread';
 import { QuickApproveButton } from '@/components/admin/QuickApproveButton';
+import { InseratZefixWarning } from '@/components/admin/InseratZefixWarning';
 import {
   type AdminInserat,
   type AdminAnfrage,
@@ -269,6 +270,16 @@ export default async function AdminInseratDetailPage({
             .join(' · ') || 'Keine Eckdaten erfasst.'}
         </p>
       </header>
+
+      {/* Zefix-Sicherheits-Check — Warnung bei Abweichungen zum Handelsregister */}
+      <InseratZefixWarning
+        zefix_uid={listing.zefix_uid}
+        firma_name={listing.firma_name}
+        firma_rechtsform={listing.firma_rechtsform ?? listing.rechtsform_typ}
+        firma_sitz_gemeinde={listing.firma_sitz_gemeinde}
+        kanton={listing.kanton}
+        gruendungsjahr={listing.gruendungsjahr}
+      />
 
       {/* Quick-Approve Hero — nur bei prüfbaren Status */}
       {isPruefbar && (

@@ -122,6 +122,9 @@ export default async function EditInseratPage({ params, searchParams }: Props) {
     linkedin_url: row.linkedin_url ?? null,
     paket: row.paket,
     paid_at: row.paid_at ?? null,
+    anonymitaet_level: row.anonymitaet_level ?? 'voll_anonym',
+    whatsapp_enabled: row.whatsapp_enabled ?? false,
+    live_chat_enabled: row.live_chat_enabled ?? false,
   };
 
   const initialStep = sp.step ? Number(sp.step) : sp.from === 'pre-reg' ? 2 : 1;

@@ -73,6 +73,91 @@ export async function takeOverPreRegDraft(): Promise<string | null> {
   return data as string;
 }
 
+/**
+ * Verkäufer aktualisiert Inserat-Felder.
+ *
+ * Wenn das Inserat live ist und nur irrelevante Felder geändert werden
+ * (Cover, Social-URLs, Chat-Settings), bleibt es live — kein Re-Review.
+ * Bei relevanten Änderungen (Titel, Preis, Beschreibung, …) geht es
+ * automatisch zurück in `pending` und wandert ins Admin-Audit.
+ *
+ * Wirkt nur bei Status `live`. Inserate die noch in Prüfung sind oder
+ * abgelehnt wurden, werden über andere Wege gehandhabt.
+ */
+export async function updateInseratFields(
+  inseratId: string,
+  changes: Record<string, unknown>,
+): Promise<ActionResult & { needsReview?: boolean; changedFields?: string[] }> {
+  const { classifyChanges, FIELD_LABEL } = await import('@/lib/admin/inserat-change-classification');
+  const supabase = await createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData.user) return { ok: false, error: 'Nicht angemeldet.' };
+
+  // Aktuellen Stand laden
+  const { data: before } = await supabase
+    .from('inserate')
+    .select('*')
+    .eq('id', inseratId)
+    .maybeSingle();
+  if (!before) return { ok: false, error: 'Inserat nicht gefunden.' };
+  if (before.verkaeufer_id !== userData.user.id) {
+    return { ok: false, error: 'Keine Berechtigung.' };
+  }
+
+  // Klassifizieren
+  const classification = classifyChanges(
+    before as Record<string, unknown>,
+    { ...before, ...changes } as Record<string, unknown>,
+  );
+
+  // Status-Logik:
+  //  - aktuell live + nur irrelevante Änderungen → bleibt live
+  //  - aktuell live + relevante Änderungen → zurück auf pending + audit-message
+  //  - alle anderen (entwurf/pending/rueckfrage) → behält den Status, kein Audit
+  const wasLive = before.status === 'live';
+  const goBackToReview = wasLive && classification.needsReview;
+
+  const updatePayload: Record<string, unknown> = { ...changes };
+  if (goBackToReview) {
+    updatePayload.status = 'pending';
+  }
+
+  const { error } = await supabase
+    .from('inserate')
+    .update(updatePayload)
+    .eq('id', inseratId);
+  if (error) return { ok: false, error: error.message };
+
+  // Wenn Re-Review ausgelöst: Audit-Message schreiben
+  if (goBackToReview) {
+    const changedLabels = classification.relevantChanges
+      .map((f) => FIELD_LABEL[f] ?? f)
+      .join(', ');
+    await supabase.from('inserat_audit_messages').insert({
+      inserat_id: inseratId,
+      from_user: userData.user.id,
+      from_role: 'verkaeufer',
+      kind: 'antwort',
+      message: `Inserat geändert — relevante Felder: ${changedLabels}. Bitte erneut prüfen.`,
+    });
+  }
+
+  revalidatePath('/dashboard/verkaeufer/inserat');
+  revalidatePath(`/dashboard/verkaeufer/inserat/${inseratId}/edit`);
+  if (goBackToReview) {
+    revalidatePath('/admin/inserate');
+    revalidatePath(`/admin/inserate/${inseratId}`);
+  }
+  revalidatePath('/');
+
+  return {
+    ok: true,
+    id: inseratId,
+    needsReview: goBackToReview,
+    changedFields: [...classification.relevantChanges, ...classification.unknownChanges],
+  };
+}
+
 /** Step-Save (Auto-Save vom Wizard). */
 export async function saveStep(
   inseratId: string,

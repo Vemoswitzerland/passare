@@ -40,7 +40,7 @@ export function InlineApproveButton({ inseratId }: { inseratId: string }) {
         'inline-flex items-center gap-1 px-2 py-1 rounded-soft text-[11px] font-medium border transition-colors',
         done
           ? 'bg-success/15 text-success border-success/30'
-          : 'bg-success/10 text-success border-success/30 hover:bg-success/20',
+          : 'bg-bronze/10 text-bronze-ink border-bronze/40 hover:bg-bronze/20',
         pending && 'opacity-60',
       )}
     >

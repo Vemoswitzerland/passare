@@ -45,20 +45,10 @@ export function QuickApproveButton({
       : 'Alle Daten geprüft? Ein Klick — Inserat geht live im Marktplatz.';
 
   return (
-    <section
-      className={cn(
-        'mb-4 rounded-soft border-2 p-4 flex items-center justify-between gap-4 flex-wrap',
-        status === 'rueckfrage'
-          ? 'bg-bronze/10 border-bronze/40'
-          : 'bg-success/5 border-success/30',
-      )}
-    >
+    <section className="mb-4 rounded-soft border-2 border-bronze/40 bg-bronze/10 p-4 flex items-center justify-between gap-4 flex-wrap">
       <div className="flex items-start gap-3 min-w-0 flex-1">
         <CheckCircle2
-          className={cn(
-            'w-5 h-5 mt-0.5 flex-shrink-0',
-            status === 'rueckfrage' ? 'text-bronze-ink' : 'text-success',
-          )}
+          className="w-5 h-5 mt-0.5 flex-shrink-0 text-bronze-ink"
           strokeWidth={1.5}
         />
         <div className="min-w-0">
@@ -83,7 +73,7 @@ export function QuickApproveButton({
         disabled={pending}
         className={cn(
           'inline-flex items-center gap-2 px-4 py-2 rounded-soft text-[13px] font-medium transition-colors flex-shrink-0',
-          'bg-success text-cream hover:bg-success/90',
+          'bg-bronze text-cream hover:bg-bronze-ink',
           'disabled:opacity-60',
         )}
       >

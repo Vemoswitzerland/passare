@@ -97,6 +97,10 @@ type Inserat = {
   // Soziale Links
   website_url: string | null;
   linkedin_url: string | null;
+  // Anonymität
+  anonymitaet_level: 'voll_anonym' | 'vorname_funktion' | 'voll_offen' | null;
+  whatsapp_enabled: boolean;
+  live_chat_enabled: boolean;
   // Paket
   paket: string | null;
   paid_at: string | null;
@@ -277,7 +281,12 @@ function buildStepPayload(step: number, d: Inserat): Record<string, unknown> {
     return { cover_url: d.cover_url, cover_source: d.cover_source };
   }
   if (step === 4) {
-    return { sales_points: d.sales_points };
+    return {
+      sales_points: d.sales_points,
+      anonymitaet_level: d.anonymitaet_level ?? 'voll_anonym',
+      whatsapp_enabled: d.whatsapp_enabled ? 'true' : 'false',
+      live_chat_enabled: d.live_chat_enabled ? 'true' : 'false',
+    };
   }
   return {};
 }
@@ -1117,10 +1126,83 @@ function Step4Strengths({
   }
 
   return (
-    <div className="space-y-8 animate-fade-up">
+    <div className="space-y-10 animate-fade-up">
       <div>
-        <h2 className="font-serif text-display-sm text-navy font-light mb-2">Stärken</h2>
-        <p className="text-body text-muted">3–5 prägnante Punkte, die dein Unternehmen auszeichnen. Käufer sehen sie sofort.</p>
+        <h2 className="font-serif text-display-sm text-navy font-light mb-2">Stärken & Sichtbarkeit</h2>
+        <p className="text-body text-muted">Wer dich sieht und wie sichtbar dein Inserat ist.</p>
+      </div>
+
+      {/* ── Anonymitätsstufen ──────────────────────────────────── */}
+      <div>
+        <p className="overline text-bronze-ink mb-3">Wer du bist <span className="text-quiet font-sans normal-case tracking-normal">— wähle dein Anonymitäts-Level</span></p>
+        <div className="grid md:grid-cols-3 gap-3">
+          {([
+            ['voll_anonym', 'Voll Anonym', 'Käufer sieht nur «Anfragen» — empfohlen für Standard-Verkauf', '🎭'],
+            ['vorname_funktion', 'Vorname + Funktion', 'z.B. «Marc, Inhaber» — etwas persönlicher, immer noch anonym', '👤'],
+            ['voll_offen', 'Voll offen', 'Name, Foto, LinkedIn — für Berater und Premium-Mandate', '🆔'],
+          ] as const).map(([id, label, desc]) => {
+            const sel = (data.anonymitaet_level ?? 'voll_anonym') === id;
+            return (
+              <button
+                key={id}
+                type="button"
+                onClick={() => update({ anonymitaet_level: id })}
+                className={cn(
+                  'text-left p-4 rounded-card border-2 transition-all',
+                  sel ? 'border-bronze bg-bronze/5 shadow-subtle' : 'border-stone bg-paper hover:border-bronze/40',
+                )}
+              >
+                <p className="text-body text-navy font-medium mb-1">{label}</p>
+                <p className="text-caption text-quiet leading-snug">{desc}</p>
+                {id === 'voll_anonym' && (
+                  <p className="text-caption text-bronze-ink mt-2 inline-flex items-center gap-1 font-medium">
+                    <Check className="w-3 h-3" strokeWidth={2.5} />
+                    Empfohlen
+                  </p>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ── Erreichbarkeit-Toggles ─────────────────────────────── */}
+      <div className="space-y-3">
+        <p className="overline text-bronze-ink">Erreichbarkeit <span className="text-quiet font-sans normal-case tracking-normal">— optional</span></p>
+        <label className="flex items-start gap-3 cursor-pointer p-4 bg-paper border border-stone rounded-soft hover:border-bronze/40 transition-colors">
+          <input
+            type="checkbox"
+            checked={data.whatsapp_enabled}
+            onChange={(e) => update({ whatsapp_enabled: e.target.checked })}
+            className="h-4 w-4 accent-bronze mt-1"
+          />
+          <div className="flex-1">
+            <p className="text-body-sm text-navy font-medium">WhatsApp-Quick-Contact</p>
+            <p className="text-caption text-quiet leading-snug">
+              Käufer können dich mit einem Klick direkt via WhatsApp anschreiben — auch ohne NDA.
+              Nur Vorname wird sichtbar.
+            </p>
+          </div>
+        </label>
+        <label className="flex items-start gap-3 cursor-pointer p-4 bg-paper border border-stone rounded-soft hover:border-bronze/40 transition-colors">
+          <input
+            type="checkbox"
+            checked={data.live_chat_enabled}
+            onChange={(e) => update({ live_chat_enabled: e.target.checked })}
+            className="h-4 w-4 accent-bronze mt-1"
+          />
+          <div className="flex-1">
+            <p className="text-body-sm text-navy font-medium">Live-Chat aktivieren</p>
+            <p className="text-caption text-quiet leading-snug">
+              Aktive Käufer können dir im Inserat eine Sofort-Nachricht schicken. Du bekommst Push-Notifications.
+            </p>
+          </div>
+        </label>
+      </div>
+
+      {/* ── Sales-Points / Stärken ─────────────────────────────── */}
+      <div>
+        <p className="overline text-bronze-ink mb-3">Highlights <span className="text-quiet font-sans normal-case tracking-normal">— 3 bis 5 Punkte, die Käufer sofort überzeugen</span></p>
       </div>
 
       <ul className="space-y-2">
