@@ -21,32 +21,18 @@ export default async function VerkaeuferLayout({ children }: { children: React.R
     .eq('id', userData.user.id)
     .maybeSingle();
 
-  // Profile-Reparatur statt Redirect-Loop: wer auf /dashboard/verkaeufer
-  // landet, ist eindeutig Verkäufer. Profile direkt setzen wenn nicht
-  // sauber — verhindert Onboarding-Loop endgültig.
-  // Defensiv mit try/catch — selbst wenn DB/RLS hickt, Seite rendert.
-  if (!profile || !profile.onboarding_completed_at || (profile.rolle !== 'verkaeufer' && profile.rolle !== 'admin')) {
-    try {
-      const { data: fixed, error: fixErr } = await supabase
-        .from('profiles')
-        .upsert({
-          id: userData.user.id,
-          rolle: profile?.rolle === 'admin' ? 'admin' : 'verkaeufer',
-          full_name: profile?.full_name ?? userData.user.user_metadata?.full_name ?? '',
-          sprache: (profile as any)?.sprache ?? userData.user.user_metadata?.sprache ?? 'de',
-          onboarding_completed_at: new Date().toISOString(),
-        }, { onConflict: 'id' })
-        .select('full_name, rolle, onboarding_completed_at')
-        .maybeSingle();
-
-      if (fixErr) {
-        console.warn('[verkaeufer-layout] profile-upsert failed:', fixErr.message);
-      } else if (fixed) {
-        Object.assign(profile ?? {}, fixed);
-      }
-    } catch (e) {
-      console.warn('[verkaeufer-layout] profile-upsert exception:', e);
-    }
+  // Auth-Gate: User OHNE Rolle/Onboarding kommen NIE blind ins Verkäufer-
+  // Dashboard. Sie müssen zuerst über /onboarding ihre Rolle wählen.
+  // (Früher haben wir hier defensiv rolle=verkaeufer gesetzt — das war
+  // der Bug, der OAuth-User automatisch zum Verkäufer machte.)
+  if (!profile || !profile.onboarding_completed_at) {
+    redirect('/onboarding');
+  }
+  if (profile.rolle === 'kaeufer') {
+    redirect('/dashboard/kaeufer');
+  }
+  if (profile.rolle !== 'verkaeufer' && profile.rolle !== 'admin') {
+    redirect('/onboarding');
   }
 
   const finalProfile = profile ?? {
