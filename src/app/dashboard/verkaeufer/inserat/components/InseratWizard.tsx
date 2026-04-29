@@ -917,6 +917,175 @@ function Step3Cover({
           )}
         </div>
       )}
+
+      {/* ── Galerie: weitere Bilder (optional, bis 8) ───────────── */}
+      <GalerieSection inseratId={inseratId} />
+    </div>
+  );
+}
+
+/* ─── GALERIE: weitere Bilder hochladen + sortieren ─── */
+function GalerieSection({ inseratId }: { inseratId: string }) {
+  const [items, setItems] = useState<Array<{ id: string; url: string; sortierung: number }>>([]);
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  async function load() {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/inserate/galerie?inserat=${inseratId}`);
+      const data = await res.json();
+      if (res.ok) setItems(data.items ?? []);
+    } catch {
+      // ignore
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { load(); }, [inseratId]);  // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function handleUpload(file: File) {
+    if (file.size > 5 * 1024 * 1024) {
+      setErr('Datei zu gross (max 5 MB)');
+      return;
+    }
+    setUploading(true);
+    setErr(null);
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('inserat_id', inseratId);
+    try {
+      const res = await fetch('/api/inserate/galerie', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (!res.ok) {
+        setErr(data.error ?? 'Upload fehlgeschlagen');
+      } else {
+        await load();
+      }
+    } catch {
+      setErr('Netzwerk-Fehler');
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function move(id: string, dir: -1 | 1) {
+    const idx = items.findIndex((x) => x.id === id);
+    if (idx < 0) return;
+    const newIdx = idx + dir;
+    if (newIdx < 0 || newIdx >= items.length) return;
+    const newItems = [...items];
+    [newItems[idx], newItems[newIdx]] = [newItems[newIdx], newItems[idx]];
+    setItems(newItems);
+    await fetch('/api/inserate/galerie', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ inserat_id: inseratId, order: newItems.map((x) => x.id) }),
+    });
+  }
+
+  async function remove(id: string) {
+    if (!confirm('Bild wirklich löschen?')) return;
+    setItems(items.filter((x) => x.id !== id));
+    await fetch(`/api/inserate/galerie?id=${id}`, { method: 'DELETE' });
+  }
+
+  return (
+    <div className="space-y-4 pt-2">
+      <div>
+        <h3 className="font-serif text-head-sm text-navy font-light mb-1">Weitere Bilder hochladen</h3>
+        <p className="text-body-sm text-muted">
+          Optional · bis 8 Bilder · JPG/PNG/WebP · max 5 MB pro Bild · per Pfeil hoch/runter sortieren
+        </p>
+      </div>
+
+      {err && (
+        <div className="rounded-soft bg-danger/5 border border-danger/30 px-4 py-2.5 text-body-sm text-danger">
+          {err}
+        </div>
+      )}
+
+      {/* Upload-Slot */}
+      {items.length < 8 && (
+        <label className="block cursor-pointer">
+          <input
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) handleUpload(f);
+              e.target.value = '';
+            }}
+            className="sr-only"
+            disabled={uploading}
+          />
+          <div className="border-2 border-dashed border-stone hover:border-bronze/50 rounded-card p-6 text-center transition-colors">
+            {uploading ? (
+              <Loader2 className="w-6 h-6 mx-auto text-bronze animate-spin mb-2" strokeWidth={1.5} />
+            ) : (
+              <Plus className="w-6 h-6 mx-auto text-quiet mb-2" strokeWidth={1.5} />
+            )}
+            <p className="text-body-sm text-navy font-medium">
+              {uploading ? 'Wird hochgeladen …' : 'Bild hinzufügen'}
+            </p>
+            <p className="text-caption text-quiet mt-1">
+              {items.length} von 8 Bildern
+            </p>
+          </div>
+        </label>
+      )}
+
+      {/* Liste mit Up/Down */}
+      {!loading && items.length > 0 && (
+        <ul className="space-y-2">
+          {items.map((item, i) => (
+            <li
+              key={item.id}
+              className="flex items-center gap-3 p-3 bg-paper border border-stone rounded-soft"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={item.url}
+                alt=""
+                className="w-20 h-14 object-cover rounded-soft border border-stone flex-shrink-0"
+              />
+              <div className="flex-1 min-w-0">
+                <p className="text-caption text-quiet font-mono">Position {i + 1}</p>
+              </div>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => move(item.id, -1)}
+                  disabled={i === 0}
+                  className="w-8 h-8 inline-flex items-center justify-center rounded-soft hover:bg-stone/50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  aria-label="Nach oben"
+                >
+                  <ArrowLeft className="w-4 h-4 text-muted rotate-90" strokeWidth={1.5} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => move(item.id, 1)}
+                  disabled={i === items.length - 1}
+                  className="w-8 h-8 inline-flex items-center justify-center rounded-soft hover:bg-stone/50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  aria-label="Nach unten"
+                >
+                  <ArrowLeft className="w-4 h-4 text-muted -rotate-90" strokeWidth={1.5} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => remove(item.id)}
+                  className="w-8 h-8 inline-flex items-center justify-center rounded-soft hover:bg-danger/10 text-quiet hover:text-danger transition-colors"
+                  aria-label="Löschen"
+                >
+                  <Trash2 className="w-4 h-4" strokeWidth={1.5} />
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

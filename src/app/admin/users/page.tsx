@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import { ChevronRight, Users as UsersIcon, Crown } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
-import { DataTable, Td, Tr } from '@/components/admin/DataTable';
+import { DataTable, Td } from '@/components/admin/DataTable';
+import { RowLink } from '@/components/admin/RowLink';
 import { UsersFilterBar } from '@/components/admin/UsersFilterBar';
 import { PageHeader, EmptyState } from '@/components/admin/PageHeader';
 import { UserRowDeleteButton } from '@/components/admin/UserRowDeleteButton';
@@ -115,11 +116,9 @@ export default async function AdminUsersPage({
             const abo = u.subscription_tier ? ABO_DISPLAY[u.subscription_tier] : null;
             const displayName = u.full_name || u.email || 'Ohne Namen';
             return (
-              <Tr key={u.id} className="cursor-pointer">
+              <RowLink key={u.id} href={`/admin/users/${u.id}`}>
                 <Td className="text-ink">
-                  <Link href={`/admin/users/${u.id}`} className="block hover:text-bronze-ink transition-colors">
-                    {u.full_name || <span className="text-quiet italic">— ohne Namen</span>}
-                  </Link>
+                  {u.full_name || <span className="text-quiet italic">— ohne Namen</span>}
                 </Td>
                 <Td className="font-mono text-[12px] text-ink">
                   {u.email ?? <span className="text-quiet">—</span>}
@@ -157,16 +156,10 @@ export default async function AdminUsersPage({
                 <Td align="right">
                   <div className="flex items-center gap-1 justify-end">
                     <UserRowDeleteButton userId={u.id} userName={displayName} />
-                    <Link
-                      href={`/admin/users/${u.id}`}
-                      className="inline-flex p-1 text-quiet hover:text-bronze-ink transition-colors"
-                      aria-label={`Detail von ${u.full_name ?? 'User'}`}
-                    >
-                      <ChevronRight className="w-4 h-4" strokeWidth={1.5} />
-                    </Link>
+                    <ChevronRight className="w-4 h-4 text-quiet" strokeWidth={1.5} />
                   </div>
                 </Td>
-              </Tr>
+              </RowLink>
             );
           })}
         </DataTable>

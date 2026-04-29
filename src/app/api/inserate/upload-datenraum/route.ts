@@ -41,10 +41,10 @@ export async function POST(req: NextRequest) {
 
   const { data: inserat } = await supabase
     .from('inserate')
-    .select('owner_id')
+    .select('verkaeufer_id')
     .eq('id', inseratId)
     .maybeSingle();
-  if (!inserat || inserat.owner_id !== userData.user.id) {
+  if (!inserat || inserat.verkaeufer_id !== userData.user.id) {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 });
   }
 

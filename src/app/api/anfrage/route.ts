@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
   const supabase = await createClient();
   const { data: listing } = await supabase
     .from('inserate')
-    .select('id, titel, slug, owner_id')
+    .select('id, titel, slug, verkaeufer_id')
     .eq('id', body.listing_id)
     .eq('status', 'live')
     .maybeSingle();

@@ -5,7 +5,7 @@
  *   1. Token validieren (signiert + nicht abgelaufen)
  *   2. Käufer-Basic-Konto in Supabase Auth anlegen (email_confirm: true)
  *   3. Anfrage-Datensatz in `anfragen`-Tabelle (Service-Role) anlegen
- *   4. Anfrage-Mail an Verkäufer (aus `inserate.owner_id` → `auth.users.email`)
+ *   4. Anfrage-Mail an Verkäufer (aus `inserate.verkaeufer_id` → `auth.users.email`)
  *      + Sammel-Mail an info@passare.ch fürs Backoffice-Tracking
  *   5. Welcome-Mail an Käufer (kosmetisch — bestätigt Konto-Anlage)
  *
@@ -45,12 +45,12 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Listing aus DB ziehen (Service-Role wegen RLS — owner_id ist in der
+  // Listing aus DB ziehen (Service-Role wegen RLS — verkaeufer_id ist in der
   // Public-View nicht enthalten, brauchen wir aber fürs Anfrage-Routing).
   const adminClient = createAdminClient();
   const { data: listing } = await adminClient
     .from('inserate')
-    .select('id, titel, slug, owner_id')
+    .select('id, titel, slug, verkaeufer_id')
     .eq('id', payload.l)
     .eq('status', 'live')
     .maybeSingle();
@@ -145,10 +145,10 @@ export async function POST(req: NextRequest) {
 
   // Verkäufer-Email aus auth.users holen (Service-Role)
   let verkaeuferEmail: string | null = null;
-  if (listing?.owner_id) {
+  if (listing?.verkaeufer_id) {
     try {
       const { data: ownerData, error: ownerErr } = await adminClient.auth.admin.getUserById(
-        listing.owner_id,
+        listing.verkaeufer_id,
       );
       if (ownerErr) {
         console.warn('[anfrage:aktivieren] getUserById error:', ownerErr.message);
