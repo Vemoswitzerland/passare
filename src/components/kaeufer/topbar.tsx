@@ -71,12 +71,12 @@ export function KaeuferTopbar({ email, fullName, isMax, isAdmin, onMenuToggle }:
       </Link>
 
       <span className={cn(
-        'hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-pill text-caption font-medium',
+        'hidden sm:inline-flex items-center gap-1 px-1.5 py-0.5 rounded-soft text-[10px] uppercase tracking-widest font-mono font-medium leading-none',
         isMax
           ? 'bg-bronze-soft text-bronze-ink border border-bronze/30'
-          : 'bg-navy-soft text-navy border border-navy/15',
+          : 'border border-stone text-quiet',
       )}>
-        {isMax && <Crown className="w-3 h-3" strokeWidth={2} />}
+        {isMax && <Crown className="w-2.5 h-2.5" strokeWidth={2} />}
         {isMax ? 'Käufer MAX' : 'Käufer'}
       </span>
 

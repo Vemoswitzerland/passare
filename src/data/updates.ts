@@ -68,6 +68,20 @@ export const UPDATES: Update[] = [
   {
     date: '2026-04-29',
     type: 'fix',
+    titel: 'Käufer-Onboarding repariert + Käufer-Bereich deutlich schneller',
+    beschreibung:
+      'Beim Speichern des Käufer-Profils ist nichts mehr passiert — das ist behoben. Zusätzlich öffnet sich der Käufer-Bereich jetzt spürbar flotter: alle Daten werden parallel geladen statt nacheinander. Die «Pipeline»-Liste in der Seitenleiste ist verschwunden (wurde nicht gebraucht), und der unnötige Schritt mit dem freien Textfeld am Ende des Anmeldens fliegt raus — den Text gibt man ja sowieso erst beim direkten Anschreiben eines Verkäufers ein.',
+  },
+  {
+    date: '2026-04-29',
+    type: 'design',
+    titel: 'Wer eingeloggt ist, sieht keinen Anmelden-Knopf mehr',
+    beschreibung:
+      'Auf dem Marktplatz war oben rechts immer ein «Anmelden»-Knopf zu sehen — auch für Personen, die bereits eingeloggt waren. Jetzt erscheint dort stattdessen ein direkter Knopf «Mein Bereich», der je nach Rolle zum richtigen Dashboard führt. Auch das «Käufer»-Etikett im Dashboard-Header ist jetzt dezent statt dominant.',
+  },
+  {
+    date: '2026-04-29',
+    type: 'fix',
     titel: 'Marktplatz zeigt jetzt alle Inserat-Daten',
     beschreibung:
       'Die Inserat-Karten auf dem Marktplatz waren leer (Umsatz/EBITDA/Preis zeigten nur «—»), obwohl die Verkäufer alles eingegeben hatten. Grund: ein falsches Mapping zwischen Eingabe und Anzeige. Jetzt erscheinen Umsatz in CHF, EBITDA-Marge in Prozent, Kaufpreis und Mitarbeitende direkt aus der eingegebenen Verkäufer-Information — auf der Übersicht, in den Karten und auf der Detail-Seite.',

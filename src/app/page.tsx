@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import {
   ArrowRight, Search, TrendingUp,
-  FileLock2, Filter, Eye,
+  FileLock2, Filter, Eye, LayoutDashboard,
 } from 'lucide-react';
 import { Container, Section } from '@/components/ui/container';
 import { Button } from '@/components/ui/button';
@@ -30,6 +30,7 @@ import {
   UMSATZ_BUCKETS,
   uebergabeGrundLabel,
 } from '@/lib/constants';
+import { createClient } from '@/lib/supabase/server';
 
 /**
  * passare.ch — Homepage = Plattform / Marktplatz
@@ -118,7 +119,24 @@ function parseFiltersFromSearchParams(sp: SearchParams) {
 }
 
 /* ════════════════════════ Header & Footer ════════════════════════ */
-export function SiteHeader({ activeSell = false }: { activeSell?: boolean } = {}) {
+export async function SiteHeader({ activeSell = false }: { activeSell?: boolean } = {}) {
+  // Login-Status server-side checken — eingeloggte User sehen «Mein Bereich»
+  // statt Anmelden/Registrieren.
+  const supabase = await createClient();
+  const { data: u } = await supabase.auth.getUser();
+  let dashboardHref: string | null = null;
+  if (u.user) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('rolle')
+      .eq('id', u.user.id)
+      .maybeSingle();
+    dashboardHref =
+      profile?.rolle === 'verkaeufer' ? '/dashboard/verkaeufer'
+      : profile?.rolle === 'admin' ? '/admin'
+      : '/dashboard/kaeufer';
+  }
+
   return (
     <header className="sticky top-0 z-40 border-b border-stone bg-cream/85 backdrop-blur-md">
       <Container>
@@ -145,16 +163,25 @@ export function SiteHeader({ activeSell = false }: { activeSell?: boolean } = {}
             </Link>
           </nav>
           <div className="flex items-center gap-3">
-            <Button href="/auth/login" size="sm" variant="ghost" className="hidden md:inline-flex">
-              Anmelden
-            </Button>
-            <Button
-              href={activeSell ? '/verkaufen/start' : '/auth/register'}
-              size="sm"
-              className="hidden md:inline-flex"
-            >
-              Registrieren
-            </Button>
+            {dashboardHref ? (
+              <Button href={dashboardHref} size="sm" className="hidden md:inline-flex">
+                <LayoutDashboard className="w-3.5 h-3.5" strokeWidth={1.5} />
+                Mein Bereich
+              </Button>
+            ) : (
+              <>
+                <Button href="/auth/login" size="sm" variant="ghost" className="hidden md:inline-flex">
+                  Anmelden
+                </Button>
+                <Button
+                  href={activeSell ? '/verkaufen/start' : '/auth/register'}
+                  size="sm"
+                  className="hidden md:inline-flex"
+                >
+                  Registrieren
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </Container>

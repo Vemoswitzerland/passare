@@ -35,16 +35,17 @@ export function TunnelForm({ branchen }: { branchen: Branche[] }) {
   const [budgetUndisclosed, setBudgetUndisclosed] = useState(false);
   const [budgetMin, setBudgetMin] = useState(500_000);
   const [budgetMax, setBudgetMax] = useState(5_000_000);
-  const [beschreibung, setBeschreibung] = useState('');
+  // Beschreibung wurde aus dem Tunnel entfernt (gehört zur Anfrage, nicht zum Profil) —
+  // wird leer mitgeschickt damit die bestehende Action-Schema-Validation passt.
+  const beschreibung = '';
 
-  const totalSteps = 3;
+  const totalSteps = 2;
   const progress = Math.round(((step + 1) / totalSteps) * 100);
 
   const canNext = useMemo(() => {
     switch (step) {
       case 0: return branchenSelected.length > 0 && (chWeit || kantone.length > 0);
       case 1: return budgetUndisclosed || budgetMax >= budgetMin;
-      case 2: return true;
       default: return false;
     }
   }, [step, branchenSelected, chWeit, kantone, budgetUndisclosed, budgetMin, budgetMax]);
@@ -262,33 +263,8 @@ export function TunnelForm({ branchen }: { branchen: Branche[] }) {
                 </>
               )}
             </div>
-          </div>
-        )}
 
-        {/* ─── STEP 2: Optional Beschreibung + Submit ─── */}
-        {step === 2 && (
-          <div className="space-y-6 animate-fade-up">
-            <div>
-              <p className="font-serif text-head-md text-navy font-normal mb-2">
-                Möchtest du noch was sagen<span className="text-bronze">?</span>
-              </p>
-              <p className="text-body-sm text-muted">
-                Optional. 1–2 Sätze die Verkäufer sehen wenn du eine Anfrage stellst.
-              </p>
-            </div>
-
-            <div>
-              <textarea
-                value={beschreibung}
-                onChange={(e) => setBeschreibung(e.target.value)}
-                placeholder="Beispiel: «Ich bin seit 12 Jahren im Maschinenbau und suche eine Übernahme im Raum ZH/AG.»"
-                maxLength={2000}
-                rows={4}
-                className="w-full bg-paper border border-stone rounded-soft px-4 py-3 text-body font-sans text-ink resize-none focus:outline-none focus:border-bronze focus:shadow-focus"
-              />
-              <p className="text-caption text-quiet mt-1">{beschreibung.length} / 2000 Zeichen</p>
-            </div>
-
+            {/* Suchprofil-Hinweis als finaler Trust-Anker direkt vor dem Submit */}
             <div className="flex items-start gap-3 p-4 bg-bronze/5 border border-bronze/20 rounded-soft">
               <Sparkles className="w-5 h-5 text-bronze flex-shrink-0 mt-0.5" strokeWidth={1.5} />
               <div className="text-body-sm text-muted leading-relaxed">

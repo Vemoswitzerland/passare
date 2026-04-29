@@ -13,7 +13,6 @@ export type SidebarCounts = {
   favoriten?: number;
   ndas?: number;
   suchprofile?: number;
-  pipeline?: Record<'neu' | 'kontaktiert' | 'nda' | 'dd' | 'loi' | 'won' | 'lost', number>;
 };
 
 type NavItem = {
@@ -35,16 +34,6 @@ const HAUPTMENU: NavItem[] = [
 const ACCOUNT: NavItem[] = [
   { label: 'MAX-Abo',           href: '/dashboard/kaeufer/abo',          icon: CreditCard },
   { label: 'Käufer-Profil',     href: '/dashboard/kaeufer/profil',       icon: User },
-];
-
-const PIPELINE_STAGES: { key: keyof NonNullable<SidebarCounts['pipeline']>; label: string; color: string }[] = [
-  { key: 'neu',          label: 'Neu',           color: 'text-quiet' },
-  { key: 'kontaktiert',  label: 'Kontaktiert',   color: 'text-navy' },
-  { key: 'nda',          label: 'NDA',           color: 'text-bronze-ink' },
-  { key: 'dd',           label: 'Due Diligence', color: 'text-bronze-ink' },
-  { key: 'loi',          label: 'LOI',           color: 'text-success' },
-  { key: 'won',          label: 'Gewonnen',      color: 'text-success' },
-  { key: 'lost',         label: 'Verloren',      color: 'text-quiet' },
 ];
 
 export function SidebarNav({
@@ -98,30 +87,6 @@ export function SidebarNav({
                       {item.badgeMax ? `${badge}/${item.badgeMax}` : badge}
                     </span>
                   )}
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
-      </div>
-
-      {/* ─── Pipeline (mini) ─── */}
-      <div className="px-3 mb-6">
-        <p className="overline text-quiet px-3 py-2">Pipeline</p>
-        <ul className="space-y-0.5">
-          {PIPELINE_STAGES.map((s) => {
-            const n = counts?.pipeline?.[s.key] ?? 0;
-            return (
-              <li key={s.key}>
-                <Link
-                  href={`/dashboard/kaeufer/favoriten?stage=${s.key}`}
-                  onClick={onNavigate}
-                  className="flex items-center justify-between px-3 py-1.5 rounded-soft hover:bg-stone/30 transition-colors group"
-                >
-                  <span className="text-caption text-muted group-hover:text-navy">{s.label}</span>
-                  <span className={cn('font-mono text-caption', n > 0 ? s.color : 'text-quiet')}>
-                    {n}
-                  </span>
                 </Link>
               </li>
             );
