@@ -65,29 +65,42 @@ export default async function VerkaeuferLayout({ children }: { children: React.R
 
   if (await hasTable('inserate')) {
     // Tunnel-Mode-Entscheidung soll auf das AKTIV bearbeitete Inserat
-    // schauen, nicht auf das neueste insgesamt. Falls der User mehrere
-    // Inserate hat (z.B. eines bezahlt + ein neuer Entwurf), ist nur
-    // der neue Entwurf "im Tunnel".
-    //
-    // Strategie: erst nach unbezahltem Entwurf suchen, sonst neuestes
-    // bezahltes (für Sidebar-Counts).
-    const { data: draftInserat } = await supabase
-      .from('inserate')
-      .select('id, status, paket, paid_at')
-      .eq('verkaeufer_id', userData.user.id)
-      .eq('status', 'entwurf')
-      .is('paid_at', null)
-      .order('updated_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    // schauen, NICHT auf das neueste insgesamt. Strategie:
+    //  1. Wenn URL eine Inserat-ID enthält (/inserat/[id]/edit) → DIESES laden
+    //  2. Sonst: erst nach unbezahltem Entwurf suchen
+    //  3. Sonst: neuestes Inserat (für Sidebar-Counts)
+    const pathHeader = (await headers()).get('x-pathname') ?? '';
+    const urlInseratMatch = pathHeader.match(/\/inserat\/([0-9a-f-]{36})/);
+    const urlInseratId = urlInseratMatch?.[1] ?? null;
 
-    const inserat = draftInserat ?? (await supabase
-      .from('inserate')
-      .select('id, status, paket, paid_at')
-      .eq('verkaeufer_id', userData.user.id)
-      .order('updated_at', { ascending: false })
-      .limit(1)
-      .maybeSingle()).data;
+    let inserat: any = null;
+    if (urlInseratId) {
+      const { data } = await supabase
+        .from('inserate')
+        .select('id, status, paket, paid_at')
+        .eq('id', urlInseratId)
+        .eq('verkaeufer_id', userData.user.id)
+        .maybeSingle();
+      inserat = data;
+    }
+    if (!inserat) {
+      const { data: draftInserat } = await supabase
+        .from('inserate')
+        .select('id, status, paket, paid_at')
+        .eq('verkaeufer_id', userData.user.id)
+        .eq('status', 'entwurf')
+        .is('paid_at', null)
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      inserat = draftInserat ?? (await supabase
+        .from('inserate')
+        .select('id, status, paket, paid_at')
+        .eq('verkaeufer_id', userData.user.id)
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()).data;
+    }
 
     if (inserat) {
       inseratId = inserat.id;
