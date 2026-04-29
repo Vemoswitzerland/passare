@@ -16,15 +16,23 @@ export default async function VerkaeuferDashboard({ searchParams }: Props) {
   if (!userData.user) return null;
   const sp = await searchParams;
 
-  // Smart-Routing nur bei Pre-Reg-Cookie (User gerade aus dem Funnel
-  // gekommen). Sonst darf der User frei aufs Dashboard — auch wenn er
-  // einen Entwurf hat, kann er ihn vom Dashboard aus fortsetzen
-  // (siehe Banner unten).
+  // Smart-Routing nur bei Pre-Reg-Cookie UND noch keine Inserate.
+  // Wenn der User schon Inserate hat (auch alte unbezahlte), ignorieren
+  // wir den Cookie — sonst wird bei jedem Login ein neuer Entwurf
+  // erstellt und der User landet wieder im Tunnel.
   if (sp.tab !== 'overview' && sp.paid !== '1') {
     const cookieStore = await cookies();
     const hasPreRegCookie = !!cookieStore.get('pre_reg_draft')?.value;
     if (hasPreRegCookie) {
-      redirect('/dashboard/verkaeufer/inserat/new?from=pre-reg');
+      const { data: existing } = await supabase
+        .from('inserate')
+        .select('id')
+        .eq('verkaeufer_id', userData.user.id)
+        .limit(1);
+      if (!existing || existing.length === 0) {
+        redirect('/dashboard/verkaeufer/inserat/new?from=pre-reg');
+      }
+      // sonst: Cookie wird bei nächstem /api/pre-reg DELETE oder Auto-Save weg
     }
   }
 

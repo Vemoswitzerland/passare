@@ -74,6 +74,25 @@ export async function GET(req: NextRequest) {
       try { preReg = JSON.parse(preRegRaw); } catch { /* invalid */ }
     }
 
+    // ── WICHTIG: Wenn der User schon Inserate hat, NICHT nochmal eines
+    // anlegen. Sonst wird bei jedem Login ein neuer Entwurf erstellt
+    // und der User landet im Tunnel obwohl er schon ein Inserat führt.
+    const { data: existingInserate } = await supabase
+      .from('inserate')
+      .select('id, status, paid_at')
+      .eq('verkaeufer_id', u.user.id)
+      .order('updated_at', { ascending: false });
+
+    const hasInserat = (existingInserate?.length ?? 0) > 0;
+    if (hasInserat) {
+      // User ist Wiederkehrer — Cookies löschen, ab ins Dashboard
+      const targetUrl = `${origin}/dashboard/verkaeufer`;
+      const res = NextResponse.redirect(targetUrl);
+      res.cookies.set('pre_reg_draft', '', { maxAge: 0, path: '/' });
+      res.cookies.set('passare_intent_verkaeufer', '', { maxAge: 0, path: '/' });
+      return res;
+    }
+
     const fullName = u.user.user_metadata?.full_name ?? '';
     const sprache = u.user.user_metadata?.sprache ?? 'de';
     const ip = (req.headers.get('x-forwarded-for') ?? '').split(',')[0]?.trim() || null;

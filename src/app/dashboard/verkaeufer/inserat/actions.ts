@@ -27,21 +27,25 @@ export async function takeOverPreRegDraft(): Promise<string | null> {
   const { data: userData } = await supabase.auth.getUser();
   if (!userData.user) return null;
 
-  // Check ob bereits ein Inserat aus diesem Draft existiert
-  const { data: existing } = await supabase
+  // Wenn User schon Inserate hat — egal welcher Status — KEIN neues
+  // aus dem Cookie anlegen. Verhindert Tunnel-Loop bei jedem Re-Login.
+  const { data: anyInserat } = await supabase
     .from('inserate')
-    .select('id, zefix_uid')
+    .select('id, zefix_uid, status')
     .eq('verkaeufer_id', userData.user.id)
-    .eq('status', 'entwurf')
     .order('updated_at', { ascending: false })
     .limit(1)
     .maybeSingle();
 
-  if (existing && existing.zefix_uid && existing.zefix_uid === draft.zefix_uid) {
-    // Cookie löschen versuchen (nur wenn wir in Server-Action-Kontext sind —
-    // sonst silently ignore, das Cookie expired in 30 Min eh)
+  if (anyInserat) {
     try { cookieStore.set('pre_reg_draft', '', { maxAge: 0, path: '/' }); } catch { /* render-mode */ }
-    return existing.id;
+    // Wenn das bestehende Inserat aus diesem Draft stammt (gleiche UID)
+    // → return die ID damit der User da weitermacht
+    if (anyInserat.zefix_uid && anyInserat.zefix_uid === draft.zefix_uid) {
+      return anyInserat.id;
+    }
+    // Sonst: User hat ein anderes Inserat — kein neues aus Cookie
+    return null;
   }
 
   const { data, error } = await supabase.rpc('create_inserat_from_pre_reg', {
