@@ -87,29 +87,29 @@ export async function GET(req: NextRequest) {
 
   // ════════════════════════════════════════════════════════════════
   //  NEUER USER — Pre-Reg-Auto-Onboarding (1× pro Lifecycle)
+  // ────────────────────────────────────────────────────────────────
+  //  KEY: Nur ECHTE Pre-Reg-Daten triggern den Auto-Flow. Das langlebige
+  //  `passare_intent_verkaeufer` Cookie alleine reicht NICHT — es kann
+  //  vom letzten Funnel-Versuch übrig sein (7 Tage TTL). Ohne
+  //  `pre_reg_draft` (mit echten Firma-/Bewertungs-Daten) ist es stale
+  //  und wird ignoriert.
   // ════════════════════════════════════════════════════════════════
-  const intendedRole = u.user.user_metadata?.intended_role;
   const preRegRaw = req.cookies.get('pre_reg_draft')?.value;
-  const intentCookie = req.cookies.get('passare_intent_verkaeufer')?.value;
-
-  // Pre-Reg-Verkäufer-Erkennung — DREIFACH-Schutz:
-  //  1. user_metadata.intended_role
-  //  2. pre_reg_draft Cookie
-  //  3. passare_intent_verkaeufer Cookie
-  const isPreRegVerkaeufer = (
-    intendedRole === 'verkaeufer' ||
-    !!preRegRaw ||
-    intentCookie === '1'
-  );
-
-  if (!isPreRegVerkaeufer) {
-    // Standard-Flow: zu /dashboard, dort routet das Smart-Routing
-    return NextResponse.redirect(`${origin}${next || '/dashboard'}`);
-  }
-
   let preReg: any = null;
   if (preRegRaw) {
     try { preReg = JSON.parse(preRegRaw); } catch { /* invalid */ }
+  }
+
+  const hasFreshPreReg = preReg && typeof preReg === 'object' &&
+    (preReg.firma_name || preReg.zefix_uid || preReg.branche_id);
+
+  if (!hasFreshPreReg) {
+    // Kein echter Pre-Reg-Flow → Cookies clearen + Dashboard
+    const targetUrl = `${origin}${next || '/dashboard'}`;
+    const res = NextResponse.redirect(targetUrl);
+    res.cookies.set('pre_reg_draft', '', { maxAge: 0, path: '/' });
+    res.cookies.set('passare_intent_verkaeufer', '', { maxAge: 0, path: '/' });
+    return res;
   }
 
   const fullName = u.user.user_metadata?.full_name ?? '';

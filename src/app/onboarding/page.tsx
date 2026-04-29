@@ -40,8 +40,17 @@ export default async function OnboardingPage() {
   }
 
   const cookieStore = await cookies();
-  const hasPreRegCookie = !!cookieStore.get('pre_reg_draft')?.value;
-  const hasIntentCookie = cookieStore.get('passare_intent_verkaeufer')?.value === '1';
+  const preRegRaw = cookieStore.get('pre_reg_draft')?.value;
+  let preReg: any = null;
+  if (preRegRaw) {
+    try { preReg = JSON.parse(preRegRaw); } catch { /* invalid */ }
+  }
+  // Echter Pre-Reg-Flow nur wenn wir tatsächliche Funnel-Daten haben.
+  // Das langlebige `passare_intent_verkaeufer` allein reicht NICHT —
+  // es kann von einem abgebrochenen Funnel-Versuch übrig sein.
+  const hasFreshPreReg = preReg && typeof preReg === 'object' &&
+    (preReg.firma_name || preReg.zefix_uid || preReg.branche_id);
+
   const intended = u.user.user_metadata?.intended_role;
   const fullName = u.user.user_metadata?.full_name ?? '';
   const sprache = u.user.user_metadata?.sprache ?? 'de';
@@ -60,8 +69,7 @@ export default async function OnboardingPage() {
     redirect('/onboarding/kaeufer/tunnel');
   }
 
-  // Default = Verkäufer (alle anderen Fälle: explicit verkaeufer ODER
-  // Pre-Reg-Cookies ODER nichts gesetzt)
+  // Default = Verkäufer
   await supabase.from('profiles').upsert({
     id: u.user.id,
     rolle: 'verkaeufer',
@@ -70,9 +78,11 @@ export default async function OnboardingPage() {
     onboarding_completed_at: new Date().toISOString(),
   }, { onConflict: 'id' });
 
-  // Wenn Pre-Reg-Cookies da → mit ?from=pre-reg (nutzt Cookie-Daten),
-  // sonst leeres Inserat
-  redirect(hasPreRegCookie || hasIntentCookie
-    ? '/dashboard/verkaeufer/inserat/new?from=pre-reg'
-    : '/dashboard/verkaeufer/inserat/new');
+  // Nur bei ECHTEM Pre-Reg-Flow → direkt ins Inserat (Funnel-Daten werden
+  // dann in /inserat/new via takeOverPreRegDraft übernommen). Sonst →
+  // Dashboard, User entscheidet selbst was er macht.
+  if (hasFreshPreReg) {
+    redirect('/dashboard/verkaeufer/inserat/new?from=pre-reg');
+  }
+  redirect('/dashboard/verkaeufer');
 }
