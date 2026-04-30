@@ -9,7 +9,7 @@ import { DashboardMockup } from '@/components/sections/dashboard-mockup';
 export const metadata = {
   title: 'Firma inserieren — passare',
   description:
-    'Inserieren Sie Ihr KMU auf der Schweizer Plattform passare. Fester Paketpreis ab CHF 425, anonymes Profil, NDA-Gate. Sie behalten die Kontrolle.',
+    'Inserieren Sie Ihr KMU auf der Schweizer Plattform passare. Fester Paketpreis ab CHF 425, anonymes Profil, Freigabe durch Sie als Verkäufer. Sie behalten die Kontrolle.',
   robots: { index: false, follow: false },
 };
 
@@ -481,9 +481,10 @@ function Footer() {
           <div>
             <p className="overline mb-4">Plattform</p>
             <ul className="space-y-3 text-body-sm text-muted">
-              <li><Link className="hover:text-navy" href="/verkaufen">Inserieren</Link></li>
-              <li><Link className="hover:text-navy" href="/kaufen">Firmen entdecken</Link></li>
-              <li><Link className="hover:text-navy" href="/preise">Preise</Link></li>
+              <li><Link className="hover:text-navy" href="/verkaufen">Firma inserieren</Link></li>
+              <li><Link className="hover:text-navy" href="/preise">Inserat-Preise</Link></li>
+              <li><Link className="hover:text-navy" href="/">Firmen entdecken</Link></li>
+              <li><Link className="hover:text-navy" href="/max">Käufer MAX</Link></li>
             </ul>
           </div>
           <div>

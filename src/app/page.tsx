@@ -47,7 +47,7 @@ import { createClient } from '@/lib/supabase/server';
 export const metadata = {
   title: 'passare — Schweizer Marktplatz für KMU-Nachfolge',
   description:
-    'Aktuelle Schweizer KMU-Inserate. Filtern nach Branche, Kanton, Umsatz und EBITDA. Anonymer Teaser gratis sichtbar, Detail-Dossier nach Anfrage und NDA.',
+    'Aktuelle Schweizer KMU-Inserate. Filtern nach Branche, Kanton, Umsatz und EBITDA. Anonymer Teaser gratis sichtbar, Detail-Dossier nach Anfrage und Freigabe durch den Verkäufer.',
   robots: { index: false, follow: false },
 };
 
@@ -159,7 +159,10 @@ export async function SiteHeader({ activeSell = false }: { activeSell?: boolean 
               Firma inserieren
             </Link>
             <Link href="/preise" className="text-[0.8125rem] font-medium text-muted hover:text-ink">
-              Preise
+              Inserat-Preise
+            </Link>
+            <Link href="/max" className="text-[0.8125rem] font-medium text-muted hover:text-ink">
+              Käufer MAX
             </Link>
           </nav>
           <div className="flex items-center gap-3">
@@ -207,7 +210,8 @@ export function SiteFooter() {
             <ul className="space-y-3 text-body-sm text-muted">
               <li><Link className="hover:text-navy" href="/">Firmen entdecken</Link></li>
               <li><Link className="hover:text-navy" href="/verkaufen">Firma inserieren</Link></li>
-              <li><Link className="hover:text-navy" href="/preise">Preise &amp; Käufer MAX</Link></li>
+              <li><Link className="hover:text-navy" href="/preise">Inserat-Preise</Link></li>
+              <li><Link className="hover:text-navy" href="/max">Käufer MAX</Link></li>
             </ul>
           </div>
           <div>
@@ -237,7 +241,7 @@ function Hero({ totalCount, filteredCount }: { totalCount: number; filteredCount
   const sub =
     totalCount === 0
       ? 'noch keine öffentlichen Inserate. Sei der/die Erste auf der Plattform.'
-      : 'anonymer Teaser gratis sichtbar. Anfrage, NDA und Datenraum gehen erst nach kostenloser Anmeldung.';
+      : 'anonymer Teaser gratis sichtbar. Anfrage und Datenraum-Zugang gehen erst nach kostenloser Anmeldung und Freigabe durch den Verkäufer.';
 
   return (
     <Section className="pt-12 md:pt-16 pb-10 md:pb-14">
@@ -424,13 +428,13 @@ function Marketplace({
                   </Link>
                 </div>
 
-                {/* MAX-Upsell */}
+                {/* MAX-Upsell — eigene Käufer-Vorteile-Seite */}
                 <div className="bg-navy text-cream rounded-soft p-4 -mx-2 mt-6">
                   <p className="overline text-bronze mb-2">Käufer MAX</p>
                   <p className="font-serif text-body text-cream mb-3 leading-snug">
                     7 Tage Frühzugang &amp; Echtzeit-Alerts
                   </p>
-                  <Link href="/preise" className="font-mono text-[11px] uppercase tracking-widest text-bronze inline-flex items-center gap-1 hover:gap-2 transition-all">
+                  <Link href="/max" className="font-mono text-[11px] uppercase tracking-widest text-bronze inline-flex items-center gap-1 hover:gap-2 transition-all">
                     MAX ansehen <ArrowRight className="w-3 h-3" strokeWidth={1.5} />
                   </Link>
                 </div>
