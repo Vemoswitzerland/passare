@@ -67,6 +67,13 @@ export const CURRENT_STEP = {
 export const UPDATES: Update[] = [
   {
     date: '2026-04-30',
+    type: 'design',
+    titel: 'Profil & Ausloggen jetzt unten im Menü statt oben rechts',
+    beschreibung:
+      'In allen Dashboards (Käufer, Verkäufer, Admin) ist der Account-Bereich nun einheitlich unten links in der Seitenleiste — Avatar, Name, Mail-Adresse mit Klapp-Menü für Profil-Bearbeiten und Abmelden. Pattern wie Slack, Linear oder Notion. Die obere Leiste ist dadurch sauberer geworden — Logo, Bereichs-Badge, Marktplatz-Knopf und Benachrichtigungsglocke. Beim Käufer ist der MAX-Abo-Eintrag direkt im Account-Menü erreichbar.',
+  },
+  {
+    date: '2026-04-30',
     type: 'feature',
     titel: '«Mein Inserat» neu als Verwaltungsseite · NDA-Eintrag entfernt',
     beschreibung:

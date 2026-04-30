@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { VerkaeuferSidebar } from './Sidebar';
 import { VerkaeuferTopbar } from './Topbar';
+import { SidebarAccountFooter } from '@/components/ui/SidebarAccountFooter';
 
 type Props = {
   email: string;
@@ -20,16 +21,29 @@ export function VerkaeuferShell({
 }: Props) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  // Cyrill: «Profil bei jedem Dashboard nicht oben — sondern unten».
+  const accountFooter = (
+    <SidebarAccountFooter
+      email={email}
+      fullName={fullName}
+      profileHref="/dashboard/verkaeufer/settings"
+      profileLabel="Mein Profil"
+    />
+  );
+
   return (
     <div className="min-h-screen bg-cream flex">
-      {/* Desktop Sidebar */}
-      <div className="hidden md:block flex-shrink-0">
-        <VerkaeuferSidebar
-          inseratId={inseratId}
-          inseratStatus={inseratStatus}
-          paket={paket}
-          counts={counts}
-        />
+      {/* Desktop Sidebar mit Account-Footer unten */}
+      <div className="hidden md:flex flex-col flex-shrink-0 h-screen sticky top-0">
+        <div className="flex-1 overflow-y-auto">
+          <VerkaeuferSidebar
+            inseratId={inseratId}
+            inseratStatus={inseratStatus}
+            paket={paket}
+            counts={counts}
+          />
+        </div>
+        {accountFooter}
       </div>
 
       {/* Mobile Sidebar (Overlay) */}
@@ -40,14 +54,17 @@ export function VerkaeuferShell({
             onClick={() => setMobileOpen(false)}
             aria-hidden
           />
-          <div className="md:hidden fixed left-0 top-0 bottom-0 z-50 animate-fade-in">
-            <VerkaeuferSidebar
-              inseratId={inseratId}
-              inseratStatus={inseratStatus}
-              paket={paket}
-              counts={counts}
-              onClose={() => setMobileOpen(false)}
-            />
+          <div className="md:hidden fixed left-0 top-0 bottom-0 z-50 animate-fade-in flex flex-col bg-cream">
+            <div className="flex-1 overflow-y-auto">
+              <VerkaeuferSidebar
+                inseratId={inseratId}
+                inseratStatus={inseratStatus}
+                paket={paket}
+                counts={counts}
+                onClose={() => setMobileOpen(false)}
+              />
+            </div>
+            {accountFooter}
           </div>
         </>
       )}
