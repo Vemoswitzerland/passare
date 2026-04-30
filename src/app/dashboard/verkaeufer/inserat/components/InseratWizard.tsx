@@ -7,6 +7,7 @@ import { saveStep, mockPaketKaufen, submitForReview } from '../actions';
 import { BRANCHEN_LIST } from '@/data/branchen-multiples';
 import { STOCKFOTOS_BY_BRANCHE } from '@/data/branchen-stockfotos';
 import { CurrencyInput, formatCHSwiss } from '@/components/ui/currency-input';
+import { useTypewriter } from '@/lib/use-typewriter';
 import { cn } from '@/lib/utils';
 
 // Mapping branche_id (Backend) → Stockfoto-Branche-Name (Display)
@@ -204,7 +205,7 @@ export function InseratWizard({ inserat, initialStep, fromPreReg }: Props) {
 
       <div>
         {step === 1 && <Step1Zefix data={data} />}
-        {step === 2 && <Step2Basis data={data} update={update} />}
+        {step === 2 && <Step2Basis data={data} update={update} fromPreReg={fromPreReg} />}
         {step === 3 && <Step3Cover data={data} update={update} inseratId={inserat.id} />}
         {step === 4 && <Step4Strengths data={data} update={update} inseratId={inserat.id} />}
         {step === 5 && (
@@ -416,7 +417,35 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 /* ─── STEP 2: BASIS ─── */
-function Step2Basis({ data, update }: { data: Inserat; update: (p: Partial<Inserat>) => void }) {
+function Step2Basis({
+  data, update, fromPreReg,
+}: {
+  data: Inserat;
+  update: (p: Partial<Inserat>) => void;
+  fromPreReg: boolean;
+}) {
+  // ── Typewriter-Effekt für Pre-Reg-Auto-Fill ──────────────────────
+  // Cyrill: «Wenn man zuerst auf die Seite kommt ist alles leer und
+  // man sieht wie die Felder automatisch befüllt werden, als würde
+  // jemand schreiben — cooler Wow-Effekt».
+  // titel zuerst, dann teaser, dann beschreibung sequenziell.
+  const titelTyper = useTypewriter(data.titel ?? '', {
+    enabled: fromPreReg,
+    startDelay: 200,
+    charDelay: 12,
+  });
+  const teaserStartDelay = 200 + (data.titel?.length ?? 0) * 12 + 250;
+  const teaserTyper = useTypewriter(data.teaser ?? '', {
+    enabled: fromPreReg,
+    startDelay: teaserStartDelay,
+    charDelay: 8,
+  });
+  const beschreibungStartDelay = teaserStartDelay + (data.teaser?.length ?? 0) * 8 + 250;
+  const beschreibungTyper = useTypewriter(data.beschreibung ?? '', {
+    enabled: fromPreReg,
+    startDelay: beschreibungStartDelay,
+    charDelay: 5,
+  });
   // Live-Anonymitäts-Coach (V1: Regex)
   const anonymityWarning = (() => {
     if (!data.firma_name) return null;
@@ -497,36 +526,48 @@ function Step2Basis({ data, update }: { data: Inserat; update: (p: Partial<Inser
         </div>
       </FormField>
 
-      <FormField label="Titel" required hint={`${data.titel?.length ?? 0} / 80 Zeichen`}>
+      <FormField label="Titel" required hint={`${(titelTyper.isTyping ? titelTyper.text : data.titel ?? '').length} / 80 Zeichen`}>
         <input
           type="text"
-          value={data.titel ?? ''}
-          onChange={(e) => update({ titel: e.target.value })}
+          value={titelTyper.isTyping ? titelTyper.text : (data.titel ?? '')}
+          onChange={(e) => { titelTyper.complete(); update({ titel: e.target.value }); }}
+          onFocus={() => titelTyper.complete()}
           maxLength={80}
           placeholder="z. B. Spezialmaschinen für die Präzisionsindustrie"
-          className="w-full px-4 py-3 bg-paper border border-stone rounded-soft text-body focus:outline-none focus:border-bronze focus:shadow-focus transition-all"
+          className={cn(
+            'w-full px-4 py-3 bg-paper border border-stone rounded-soft text-body focus:outline-none focus:border-bronze focus:shadow-focus transition-all',
+            titelTyper.isTyping && 'caret-bronze',
+          )}
         />
       </FormField>
 
-      <FormField label="Teaser" hint={`${data.teaser?.length ?? 0} / 280 · optional`}>
+      <FormField label="Teaser" hint={`${(teaserTyper.isTyping ? teaserTyper.text : data.teaser ?? '').length} / 280 · optional`}>
         <textarea
-          value={data.teaser ?? ''}
-          onChange={(e) => update({ teaser: e.target.value })}
+          value={teaserTyper.isTyping ? teaserTyper.text : (data.teaser ?? '')}
+          onChange={(e) => { teaserTyper.complete(); update({ teaser: e.target.value }); }}
+          onFocus={() => teaserTyper.complete()}
           maxLength={280}
           rows={3}
           placeholder="Kurzer Marketingtext — die ersten Sätze die Käufer sehen."
-          className="w-full px-4 py-3 bg-paper border border-stone rounded-soft text-body focus:outline-none focus:border-bronze focus:shadow-focus transition-all resize-none"
+          className={cn(
+            'w-full px-4 py-3 bg-paper border border-stone rounded-soft text-body focus:outline-none focus:border-bronze focus:shadow-focus transition-all resize-none',
+            teaserTyper.isTyping && 'caret-bronze',
+          )}
         />
       </FormField>
 
-      <FormField label="Beschreibung" required hint={`${data.beschreibung?.length ?? 0} / 2000`}>
+      <FormField label="Beschreibung" required hint={`${(beschreibungTyper.isTyping ? beschreibungTyper.text : data.beschreibung ?? '').length} / 2000`}>
         <textarea
-          value={data.beschreibung ?? ''}
-          onChange={(e) => update({ beschreibung: e.target.value })}
+          value={beschreibungTyper.isTyping ? beschreibungTyper.text : (data.beschreibung ?? '')}
+          onChange={(e) => { beschreibungTyper.complete(); update({ beschreibung: e.target.value }); }}
+          onFocus={() => beschreibungTyper.complete()}
           maxLength={2000}
           rows={6}
           placeholder="Volltext-Beschreibung — Käufer sehen diese nach NDA-Signatur."
-          className="w-full px-4 py-3 bg-paper border border-stone rounded-soft text-body focus:outline-none focus:border-bronze focus:shadow-focus transition-all resize-none"
+          className={cn(
+            'w-full px-4 py-3 bg-paper border border-stone rounded-soft text-body focus:outline-none focus:border-bronze focus:shadow-focus transition-all resize-none',
+            beschreibungTyper.isTyping && 'caret-bronze',
+          )}
         />
       </FormField>
 
@@ -599,7 +640,6 @@ function Step2Basis({ data, update }: { data: Inserat; update: (p: Partial<Inser
         <FormField
           label="EBITDA"
           required
-          hint={ebitdaWarning ? undefined : 'max 100 % Marge'}
         >
           <CurrencyInput
             value={data.ebitda_chf}
@@ -1339,11 +1379,6 @@ function Step4Strengths({
               className="w-full px-4 py-3 bg-paper border border-stone rounded-soft text-body focus:outline-none focus:border-bronze focus:shadow-focus transition-all"
             />
           </label>
-
-          <p className="text-caption text-quiet leading-relaxed">
-            <span className="text-bronze-ink">Hinweis:</span> WhatsApp-Quick-Contact ist automatisch aktiv sobald du eine WhatsApp-Nummer einträgst.
-            Live-Chat ist immer aktiv.
-          </p>
         </div>
       )}
 
@@ -1699,12 +1734,7 @@ function Step5Paket({
             })}
           </div>
 
-          {/* Trust-Footer */}
-          <div className="max-w-5xl mx-auto flex flex-wrap justify-center gap-x-6 gap-y-2 text-caption text-quiet">
-            <span>✓ Boosts sind optional</span>
-            <span>✓ Auch später aus dem Dashboard zubuchbar</span>
-            <span>✓ Keine Vertragsbindung</span>
-          </div>
+          {/* Trust-Footer entfernt — Cyrill: «alle diese Häkchen weg». */}
 
           <div className="flex items-center justify-between max-w-5xl mx-auto pt-2">
             <button
