@@ -67,6 +67,27 @@ export const CURRENT_STEP = {
 export const UPDATES: Update[] = [
   {
     date: '2026-04-30',
+    type: 'design',
+    titel: 'Klare Trennung: Käufer-Vorteile und Verkäufer-Preise auf eigenen Seiten',
+    beschreibung:
+      'Die Preisseite war eine Mischung aus Inserat-Paketen für Verkäufer und MAX-Vorteilen für Käufer — verwirrend, weil jeder Besucher Inhalte für die andere Seite mit-las. Ab jetzt sind die zwei Welten getrennt: «Preise» heisst neu «Inserat-Preise» und zeigt nur noch die drei Verkäufer-Pakete (Light, Pro, Premium) plus die passende Verkäufer-FAQ. Daneben gibt es eine eigene Seite «Käufer MAX» mit allen Käufer-Argumenten — sechs Vorteilskarten, Vergleich Basic vs MAX, drei typische Käufer-Profile und eine eigene MAX-FAQ. Im Hauptmenü erscheinen beide Links getrennt; auf der Marktplatz-Sidebar führt der MAX-Knopf jetzt direkt zur Käufer-Seite (statt wie früher zuerst auf die Verkäufer-Pakete). Wer auf der einen Seite landet und doch die andere sucht, wird unten via Cross-Link sauber rüber geleitet.',
+  },
+  {
+    date: '2026-04-30',
+    type: 'content',
+    titel: 'Inserieren startet jetzt sichtbar mit der Bewertung',
+    beschreibung:
+      'Die «Inserat erstellen»-Knöpfe heissen jetzt überall «Bewerten & inserieren» — der Inserat-Funnel beginnt mit der Smart-Bewertung (Branche, Kanton, Mitarbeitende, Umsatz, EBITDA) und übergibt die Werte direkt ins Inserat. Auf der Verkäufer-Marketing-Seite ist die Bewertungs-Karte jetzt der Haupt-Einstieg statt einem Alternativ-Weg. Die Verkäufer-FAQ wurde komplett überarbeitet: alte Fragen zum Geheimhaltungs-Workflow sind raus, dafür ist jetzt erklärt wie der Bewertung-im-Funnel-Schritt aussieht und was die Pakete im Detail bringen.',
+  },
+  {
+    date: '2026-04-30',
+    type: 'content',
+    titel: 'Begriff «NDA» aus den öffentlichen und Login-Texten entfernt',
+    beschreibung:
+      'Wir haben das Wording überall vereinfacht: statt vom «NDA-Gate», «unterzeichneten NDA» oder «NDA-Fast-Track» zu sprechen, schreiben wir jetzt von «Anfrage-Schutz», «Freigabe durch den Verkäufer», «Detail-Dossier nach Freigabe» und «Direkt-Anfrage-Track». Betroffen sind die Startseite, Verkäufer-Marketing-Seite, Käufer-MAX-Seite, Käufer-Onboarding und Käufer-Abo-Page sowie die Inserat-Detail-Hinweise. Die interne Abwicklung bleibt unverändert; nur die Nutzer-sichtbare Sprache ist neu — schweizerischer und ohne Fachjargon.',
+  },
+  {
+    date: '2026-04-30',
     type: 'feature',
     titel: 'Inbox: alle Konversationen an einem Ort + Inline-Kontakt-Edit',
     beschreibung:
