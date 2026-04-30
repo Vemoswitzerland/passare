@@ -67,6 +67,13 @@ export const CURRENT_STEP = {
 export const UPDATES: Update[] = [
   {
     date: '2026-04-30',
+    type: 'design',
+    titel: 'Marktplatz-Filter kompakter — wichtigste 4 sichtbar, Rest klappbar',
+    beschreibung:
+      'Der Filter auf der Startseite war zu lang — jetzt sieht man auf einen Blick die vier wichtigsten Auswahlfelder (Stichwort, Branche, Kanton, Kaufpreis). Wer mehr einstellen will, klickt auf «Mehr Filter» und bekommt Jahresumsatz, EBITDA-Marge, Mitarbeitende und Übergabegrund eingeblendet. Wenn jemand über einen Link mit erweiterten Filtern kommt, geht der Klapper automatisch auf.',
+  },
+  {
+    date: '2026-04-30',
     type: 'milestone',
     titel: 'Plan komplett überarbeitet — 3 Phasen statt 196 Etappen',
     beschreibung:
