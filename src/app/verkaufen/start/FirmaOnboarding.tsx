@@ -604,20 +604,11 @@ function Step3Finanzen({ draft, update }: { draft: Draft; update: (p: Partial<Dr
 
       <div className="space-y-8 max-w-xl mx-auto">
         <Field label="Jahresumsatz" hint={draft.umsatz ? formatCHF(draft.umsatz) : undefined}>
-          <input
-            type="range"
-            min={100000}
-            max={50000000}
-            step={50000}
-            value={draft.umsatz ?? 1000000}
-            onChange={(e) => update({ umsatz: Number(e.target.value) })}
-            className="w-full accent-bronze"
-          />
+          {/* Slider entfernt — Cyrill: «nur als Eingabefeld, nicht mit Balken». */}
           <CurrencyInput
             value={draft.umsatz}
             onChange={(v) => update({ umsatz: v })}
             placeholder="2'000'000"
-            className="mt-2"
           />
           <p className="mt-2 text-caption text-quiet">
             Brutto-Erlöse aus dem letzten abgeschlossenen Geschäftsjahr.
@@ -682,16 +673,24 @@ function Step3Finanzen({ draft, update }: { draft: Draft; update: (p: Partial<Dr
           {margeMode === 'chf' ? (
             <CurrencyInput
               value={draft.ebitda}
-              onChange={(v) => update({ ebitda: v })}
+              onChange={(v) => {
+                // EBITDA darf physikalisch nie über dem Umsatz liegen (max 100 %
+                // Marge). Wenn der User mehr eingibt, hart auf Umsatz cappen.
+                if (v != null && draft.umsatz != null && draft.umsatz > 0 && v > draft.umsatz) {
+                  update({ ebitda: draft.umsatz });
+                } else {
+                  update({ ebitda: v });
+                }
+              }}
               placeholder="350'000"
             />
           ) : (
             <input
               type="range"
               min={0}
-              max={40}
+              max={100}
               step={0.5}
-              value={margePct}
+              value={Math.min(margePct, 100)}
               onChange={(e) => setMargePct(Number(e.target.value))}
               className="w-full accent-bronze"
             />
@@ -702,29 +701,8 @@ function Step3Finanzen({ draft, update }: { draft: Draft; update: (p: Partial<Dr
         </Field>
 
         <Field label="Mitarbeitende (FTE)" optional hint={draft.mitarbeitende ? `${draft.mitarbeitende} Personen` : undefined}>
-          <div className="flex flex-wrap gap-2 mb-2">
-            {MA_BUCKETS.map((b) => {
-              const selected =
-                draft.mitarbeitende != null &&
-                draft.mitarbeitende >= b.min &&
-                draft.mitarbeitende < b.max;
-              return (
-                <button
-                  key={b.id}
-                  type="button"
-                  onClick={() => update({ mitarbeitende: Math.round((b.min + Math.min(b.max, 999)) / 2) })}
-                  className={cn(
-                    'px-4 py-2 rounded-pill border text-caption transition-all',
-                    selected
-                      ? 'border-bronze bg-bronze/10 text-navy font-medium'
-                      : 'border-stone bg-paper hover:border-bronze/40 text-ink',
-                  )}
-                >
-                  {b.label}
-                </button>
-              );
-            })}
-          </div>
+          {/* Bucket-Buttons entfernt — Cyrill: «nicht vorausgewählte Knöpfe,
+              sondern einfach ein Eingabefeld». */}
           <input
             type="text"
             inputMode="numeric"

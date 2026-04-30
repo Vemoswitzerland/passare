@@ -457,57 +457,9 @@ function Step2Basis({ data, update }: { data: Inserat; update: (p: Partial<Inser
         </div>
       )}
 
-      {/* ── Bereits erfasste Daten (kompakte Read-Only-Card) ─────── */}
-      {preRegDataComplete && (
-        <div className="rounded-card bg-bronze/5 border border-bronze/30 p-4">
-          <div className="flex items-center justify-between mb-3">
-            <p className="overline text-bronze-ink">Aus deinem Pre-Onboarding übernommen</p>
-            <button
-              type="button"
-              onClick={() => alert('Bereits-erfasste-Felder kannst du im Dashboard unter Einstellungen anpassen.')}
-              className="text-caption text-bronze-ink hover:text-bronze underline-offset-4 hover:underline"
-            >
-              Anpassen →
-            </button>
-          </div>
-          <dl className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-caption">
-            <div>
-              <dt className="text-quiet">Branche</dt>
-              <dd className="text-ink font-medium">
-                {BRANCHEN_LIST.find((b) => b.id === data.branche_id)?.label ?? '—'}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-quiet">Kanton</dt>
-              <dd className="text-ink font-medium">{data.kanton}</dd>
-            </div>
-            {data.jahr && (
-              <div>
-                <dt className="text-quiet">Gegründet</dt>
-                <dd className="text-ink font-medium font-mono">{data.jahr}</dd>
-              </div>
-            )}
-            {data.mitarbeitende && (
-              <div>
-                <dt className="text-quiet">Mitarbeitende</dt>
-                <dd className="text-ink font-medium font-mono">{data.mitarbeitende}</dd>
-              </div>
-            )}
-            <div>
-              <dt className="text-quiet">Umsatz</dt>
-              <dd className="text-ink font-medium font-mono">
-                CHF {formatCHSwiss(Number(data.umsatz_chf))}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-quiet">EBITDA</dt>
-              <dd className="text-ink font-medium font-mono">
-                CHF {formatCHSwiss(Number(data.ebitda_chf))}
-              </dd>
-            </div>
-          </dl>
-        </div>
-      )}
+      {/* Read-Only-Card entfernt — Cyrill: «Gründungsjahr wird nicht
+          übernommen». Stattdessen sind ALLE Felder unten IMMER sichtbar
+          und editierbar, vor-befüllt mit Pre-Reg-Werten falls vorhanden. */}
 
       {/* ── Kategorie (ohne Emojis, ohne Art-Toggle) ─────────────── */}
       <FormField label="Kategorie" required>
@@ -572,95 +524,102 @@ function Step2Basis({ data, update }: { data: Inserat; update: (p: Partial<Inser
         />
       </FormField>
 
-      {/* Branche/Kanton nur anzeigen, falls noch nicht aus Pre-Reg da */}
-      {!preRegDataComplete && (
-        <div className="grid sm:grid-cols-2 gap-6">
-          <FormField label="Branche" required>
-            <select
-              value={data.branche_id ?? ''}
-              onChange={(e) => update({ branche_id: e.target.value })}
-              className="w-full px-4 py-3 bg-paper border border-stone rounded-soft text-body focus:outline-none focus:border-bronze focus:shadow-focus transition-all"
-            >
-              <option value="">Wähle …</option>
-              {BRANCHEN_LIST.map((b) => (
-                <option key={b.id} value={b.id}>{b.label}</option>
-              ))}
-            </select>
-          </FormField>
-          <FormField label="Kanton" required>
-            <select
-              value={data.kanton ?? ''}
-              onChange={(e) => update({ kanton: e.target.value })}
-              className="w-full px-4 py-3 bg-paper border border-stone rounded-soft text-body focus:outline-none focus:border-bronze focus:shadow-focus transition-all"
-            >
-              <option value="">Wähle …</option>
-              {KANTONE.map(([code, label]) => (
-                <option key={code} value={code}>{label} ({code})</option>
-              ))}
-            </select>
-          </FormField>
-        </div>
-      )}
+      {/* Branche/Kanton — IMMER sichtbar (vor-befüllt aus Pre-Reg falls da). */}
+      <div className="grid sm:grid-cols-2 gap-6">
+        <FormField label="Branche" required>
+          <select
+            value={data.branche_id ?? ''}
+            onChange={(e) => update({ branche_id: e.target.value })}
+            className="w-full px-4 py-3 bg-paper border border-stone rounded-soft text-body focus:outline-none focus:border-bronze focus:shadow-focus transition-all"
+          >
+            <option value="">Wähle …</option>
+            {BRANCHEN_LIST.map((b) => (
+              <option key={b.id} value={b.id}>{b.label}</option>
+            ))}
+          </select>
+        </FormField>
+        <FormField label="Kanton" required>
+          <select
+            value={data.kanton ?? ''}
+            onChange={(e) => update({ kanton: e.target.value })}
+            className="w-full px-4 py-3 bg-paper border border-stone rounded-soft text-body focus:outline-none focus:border-bronze focus:shadow-focus transition-all"
+          >
+            <option value="">Wähle …</option>
+            {KANTONE.map(([code, label]) => (
+              <option key={code} value={code}>{label} ({code})</option>
+            ))}
+          </select>
+        </FormField>
+      </div>
 
-      {/* Gründungsjahr und Mitarbeitende sind optional, falls nicht aus Pre-Reg */}
-      {!preRegDataComplete && (
-        <div className="grid sm:grid-cols-2 gap-6">
-          <FormField label="Gründungsjahr">
-            <input
-              type="number"
-              value={data.jahr ?? ''}
-              onChange={(e) => update({ jahr: Number(e.target.value) })}
-              min={1800}
-              max={new Date().getFullYear()}
-              className="w-full px-4 py-3 bg-paper border border-stone rounded-soft text-body font-mono focus:outline-none focus:border-bronze focus:shadow-focus transition-all"
-            />
-          </FormField>
-          <FormField label="Mitarbeitende">
-            <input
-              type="number"
-              value={data.mitarbeitende ?? ''}
-              onChange={(e) => update({ mitarbeitende: Number(e.target.value) })}
-              min={1}
-              className="w-full px-4 py-3 bg-paper border border-stone rounded-soft text-body font-mono focus:outline-none focus:border-bronze focus:shadow-focus transition-all"
-            />
-          </FormField>
-        </div>
-      )}
+      {/* Gründungsjahr + Mitarbeitende — IMMER sichtbar.
+          Vorher: nur wenn !preRegDataComplete → Field war versteckt obwohl
+          Wert fehlt, wenn Zefix-Lookup das Jahr nicht zurückgab.
+          Mitarbeitende = einfaches Eingabefeld (keine Bucket-Buttons mehr). */}
+      <div className="grid sm:grid-cols-2 gap-6">
+        <FormField label="Gründungsjahr" required>
+          <input
+            type="number"
+            value={data.jahr ?? ''}
+            onChange={(e) => update({ jahr: Number(e.target.value) })}
+            min={1800}
+            max={new Date().getFullYear()}
+            placeholder="1987"
+            className="w-full px-4 py-3 bg-paper border border-stone rounded-soft text-body font-mono focus:outline-none focus:border-bronze focus:shadow-focus transition-all"
+          />
+        </FormField>
+        <FormField label="Mitarbeitende" required>
+          <input
+            type="number"
+            value={data.mitarbeitende ?? ''}
+            onChange={(e) => update({ mitarbeitende: Number(e.target.value) })}
+            min={1}
+            placeholder="20"
+            className="w-full px-4 py-3 bg-paper border border-stone rounded-soft text-body font-mono focus:outline-none focus:border-bronze focus:shadow-focus transition-all"
+          />
+        </FormField>
+      </div>
 
-      {/* Jahresumsatz/EBITDA nur anzeigen, falls noch nicht aus Pre-Reg da */}
-      {!preRegDataComplete && (
-        <>
-          <div className="grid sm:grid-cols-2 gap-6">
-            <FormField label="Jahresumsatz" required>
-              <CurrencyInput
-                value={data.umsatz_chf}
-                onChange={(v) => update({ umsatz_chf: v as any })}
-                placeholder="2'000'000"
-              />
-            </FormField>
-            <FormField
-              label="EBITDA"
-              required
-              hint={ebitdaWarning ? undefined : 'darf höchstens dem Umsatz entsprechen'}
-            >
-              <CurrencyInput
-                value={data.ebitda_chf}
-                onChange={(v) => {
-                  if (v != null && umsatzNum > 0 && v > umsatzNum) {
-                    update({ ebitda_chf: umsatzNum as any });
-                  } else {
-                    update({ ebitda_chf: v as any });
-                  }
-                }}
-                placeholder="350'000"
-              />
-              {ebitdaWarning && (
-                <p className="mt-1.5 text-caption text-warn">{ebitdaWarning}</p>
-              )}
-            </FormField>
-          </div>
-        </>
-      )}
+      {/* Jahresumsatz + EBITDA — IMMER sichtbar.
+          EBITDA wird hart auf max=Umsatz gecappt (100 % Marge). */}
+      <div className="grid sm:grid-cols-2 gap-6">
+        <FormField label="Jahresumsatz" required>
+          <CurrencyInput
+            value={data.umsatz_chf}
+            onChange={(v) => {
+              update({ umsatz_chf: v as any });
+              // Wenn EBITDA nun grösser als neuer Umsatz → cappen.
+              if (
+                v != null && Number(v) > 0 &&
+                data.ebitda_chf != null && Number(data.ebitda_chf) > Number(v)
+              ) {
+                update({ ebitda_chf: v as any });
+              }
+            }}
+            placeholder="2'000'000"
+          />
+        </FormField>
+        <FormField
+          label="EBITDA"
+          required
+          hint={ebitdaWarning ? undefined : 'darf höchstens dem Umsatz entsprechen (max 100 % Marge)'}
+        >
+          <CurrencyInput
+            value={data.ebitda_chf}
+            onChange={(v) => {
+              if (v != null && umsatzNum > 0 && v > umsatzNum) {
+                update({ ebitda_chf: umsatzNum as any });
+              } else {
+                update({ ebitda_chf: v as any });
+              }
+            }}
+            placeholder="350'000"
+          />
+          {ebitdaWarning && (
+            <p className="mt-1.5 text-caption text-warn">{ebitdaWarning}</p>
+          )}
+        </FormField>
+      </div>
 
       <div className="grid sm:grid-cols-2 gap-6 items-end">
         <FormField

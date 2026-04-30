@@ -67,6 +67,20 @@ export const CURRENT_STEP = {
 export const UPDATES: Update[] = [
   {
     date: '2026-04-30',
+    type: 'fix',
+    titel: 'Inserat-Wizard: Gründungsjahr & Co. immer sichtbar, Profilbild-Upload geht wieder',
+    beschreibung:
+      'Im Inserat-Wizard waren Gründungsjahr, Mitarbeitende, Umsatz und Gewinn versteckt sobald andere Felder gefüllt waren — was beim Pre-Reg-Funnel fehlte konnte man nicht mehr nachtragen. Jetzt sind alle Eckdaten-Felder immer sichtbar, vor-befüllt mit dem was schon da ist und editierbar. Im Pre-Reg-Funnel wurden die Auswahlknöpfe für Mitarbeitende und der Slider für Jahresumsatz entfernt — beides ist jetzt ein klassisches Eingabefeld. Der jährliche Gewinn (EBITDA) wird automatisch auf maximal 100 % Marge begrenzt — vorher konnte man fälschlich mehr Gewinn als Umsatz eingeben. Ausserdem behoben: Profilbild- und Cover-Upload warfen «Bucket not found» weil die Speicher-Container in der Datenbank fehlten — jetzt sauber angelegt mit korrekten Berechtigungen.',
+  },
+  {
+    date: '2026-04-30',
+    type: 'fix',
+    titel: 'Login mit Google bringt Admin jetzt direkt ins Admin-Panel',
+    beschreibung:
+      'Der eigentliche Login-Bug war versteckt: Google-Anmeldung läuft nicht über den Standard-Login-Pfad, sondern über eine eigene Custom-Route. Dort war die Weiterleitung hart auf das Verkäufer-Dashboard fixiert. Jetzt prüft auch dieser Pfad die Rolle und leitet Admins direkt ins Admin-Panel, Käufer ins Käufer-Dashboard, Verkäufer ins Verkäufer-Dashboard.',
+  },
+  {
+    date: '2026-04-30',
     type: 'design',
     titel: 'Ladeanimationen überall — passare fühlt sich jetzt flüssig an',
     beschreibung:
