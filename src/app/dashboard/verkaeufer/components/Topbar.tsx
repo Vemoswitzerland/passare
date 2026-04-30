@@ -1,10 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import {
-  Menu, Bell, Store,
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Menu, Bell, Store } from 'lucide-react';
 
 type Props = {
   email: string;
@@ -15,15 +12,19 @@ type Props = {
 };
 
 /**
- * Verkäufer-Topbar — Profil + Logout sind NICHT mehr hier oben rechts,
- * sondern unten in der Sidebar (siehe SidebarAccountFooter in Shell.tsx).
- * Cyrill: «Profil bei jedem Dashboard nicht oben — sondern unten».
+ * Verkäufer-Topbar — schlank.
  *
- * Topbar enthält jetzt nur: Mobile-Menü-Toggle, Verkäufer-Badge,
- * Sync-Indikator, Marktplatz-Knopf, Notifications-Bell.
+ * Cyrill 30.04.2026: «Diese Live-Badge oben neben Verkäufer wegnehmen,
+ * das macht 0 Sinn. Auch das Verkäufer-Badge wegnehmen — er sieht ja
+ * dass er im Verkäufer-Bereich ist.»
+ *
+ * Profil + Logout sind unten in der Sidebar (SidebarAccountFooter).
+ * Topbar enthält jetzt nur: Mobile-Menü-Toggle, Marktplatz-Knopf,
+ * Notifications-Bell.
  */
 export function VerkaeuferTopbar({
-  email: _email, fullName: _fullName, isAdmin: _isAdmin, onMenuToggle, syncStatus = 'ok',
+  email: _email, fullName: _fullName, isAdmin: _isAdmin, onMenuToggle,
+  syncStatus: _syncStatus,
 }: Props) {
   return (
     <header className="h-16 border-b border-stone bg-paper/85 backdrop-blur-md sticky top-0 z-40 flex items-center px-4 md:px-6 gap-3 md:gap-6">
@@ -35,20 +36,6 @@ export function VerkaeuferTopbar({
       >
         <Menu className="w-5 h-5 text-navy" strokeWidth={1.5} />
       </button>
-
-      <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-pill text-caption font-medium bg-navy-soft text-navy border border-navy/15">
-        Verkäufer
-      </span>
-
-      <div className="flex-1 hidden md:flex items-center gap-2">
-        <span className="inline-flex items-center gap-1.5 text-caption text-muted">
-          <span className={cn(
-            'w-1.5 h-1.5 rounded-full',
-            syncStatus === 'ok' ? 'bg-success animate-pulse-dot' : 'bg-warn',
-          )} />
-          {syncStatus === 'ok' ? 'Live' : 'Synchronisiert …'}
-        </span>
-      </div>
 
       <div className="flex items-center gap-2 ml-auto">
         {/* Marktplatz-Knopf — Sprung zur öffentlichen Börse. */}

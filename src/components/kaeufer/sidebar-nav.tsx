@@ -129,13 +129,10 @@ export function SidebarNav({
         </ul>
       </div>
 
-      {/* ─── Footer Sync-Dot ─── */}
+      {/* Cyrill 30.04.2026: «Live-Badge wegnehmen — Verkäufer/Käufer
+          sieht ja eh dass er im Bereich ist». Footer ohne Sync-Dot. */}
       <div className="mt-8 pt-6 border-t border-stone px-6">
-        <div className="flex items-center gap-2">
-          <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse-dot" />
-          <span className="text-caption text-quiet font-mono">Live · Käufer-Bereich</span>
-        </div>
-        <p className="text-caption text-quiet mt-2 leading-relaxed">
+        <p className="text-caption text-quiet leading-relaxed">
           Daily Digest jeden Morgen 7:00 Uhr.
         </p>
       </div>

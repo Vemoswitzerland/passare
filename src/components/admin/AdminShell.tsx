@@ -50,11 +50,10 @@ export function AdminShell({ email, fullName, badges, children }: Props) {
           <Menu className="w-5 h-5 text-navy" strokeWidth={1.5} />
         </button>
 
+        {/* Cyrill 30.04.2026: «Bereich-Badge weg — Admin sieht ja eh
+            dass er im Verwaltungsbereich ist.» Nur noch Logo + Punkt. */}
         <Link href="/admin" className="text-base text-navy font-semibold tracking-tight flex-shrink-0">
           passare<span className="text-bronze">.</span>
-          <span className="ml-1.5 text-[11px] uppercase tracking-wider text-quiet font-medium">
-            Admin
-          </span>
         </Link>
 
         <form onSubmit={submitSearch} className="hidden lg:flex flex-1 max-w-md ml-auto">
@@ -114,9 +113,6 @@ export function AdminShell({ email, fullName, badges, children }: Props) {
           <div className="h-12 border-b border-stone flex items-center justify-between px-3 flex-shrink-0">
             <span className="text-base text-navy font-semibold">
               passare<span className="text-bronze">.</span>
-              <span className="ml-1.5 text-[11px] uppercase tracking-wider text-quiet font-medium">
-                Admin
-              </span>
             </span>
             <button
               type="button"

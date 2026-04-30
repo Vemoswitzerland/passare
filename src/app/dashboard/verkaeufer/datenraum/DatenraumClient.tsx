@@ -141,7 +141,7 @@ export function DatenraumClient({ inseratId, files, accessLog }: Props) {
             <label
               htmlFor="datenraum-upload"
               className={cn(
-                'inline-flex items-center gap-1.5 px-4 py-1.5 bg-bronze text-cream rounded-soft text-caption font-medium cursor-pointer hover:bg-bronze-ink transition-colors',
+                'inline-flex items-center gap-1.5 px-4 py-1.5 bg-bronze text-white rounded-soft text-caption font-medium cursor-pointer hover:bg-bronze-ink transition-colors',
                 uploading && 'opacity-50 cursor-not-allowed',
               )}
             >

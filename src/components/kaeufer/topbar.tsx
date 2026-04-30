@@ -15,12 +15,12 @@ type Props = {
 };
 
 /**
- * Käufer-Topbar — Profil + Logout sind NICHT mehr hier oben rechts,
- * sondern unten in der Sidebar (siehe SidebarAccountFooter in shell.tsx).
- * Cyrill: «Profil bei jedem Dashboard nicht oben — sondern unten».
+ * Käufer-Topbar — schlank.
  *
- * Topbar enthält jetzt nur noch: Mobile-Menü-Toggle, Logo, Käufer-Badge,
- * Such-Link zum Marktplatz, Marktplatz-Knopf, Notifications-Bell.
+ * Cyrill 30.04.2026: «Käufer-Badge wegnehmen — er sieht ja dass er
+ * im Käufer-Bereich ist. Live-Knopf überall weg.» MAX-Badge nur
+ * wenn der User MAX hat — als Auszeichnung, nicht als Bereich-
+ * Indikator (kommt nur bei isMax).
  */
 export function KaeuferTopbar({ email: _email, fullName: _fullName, isMax, isAdmin: _isAdmin, onMenuToggle }: Props) {
   return (
@@ -38,15 +38,16 @@ export function KaeuferTopbar({ email: _email, fullName: _fullName, isMax, isAdm
         passare<span className="text-bronze">.</span>
       </Link>
 
-      <span className={cn(
-        'hidden sm:inline-flex items-center gap-1 px-1.5 py-0.5 rounded-soft text-[10px] uppercase tracking-widest font-mono font-medium leading-none',
-        isMax
-          ? 'bg-bronze-soft text-bronze-ink border border-bronze/30'
-          : 'border border-stone text-quiet',
-      )}>
-        {isMax && <Crown className="w-2.5 h-2.5" strokeWidth={2} />}
-        {isMax ? 'Käufer MAX' : 'Käufer'}
-      </span>
+      {/* MAX-Badge nur als Auszeichnung wenn der User wirklich MAX hat */}
+      {isMax && (
+        <span className={cn(
+          'hidden sm:inline-flex items-center gap-1 px-1.5 py-0.5 rounded-soft text-[10px] uppercase tracking-widest font-mono font-medium leading-none',
+          'bg-bronze-soft text-bronze-ink border border-bronze/30',
+        )}>
+          <Crown className="w-2.5 h-2.5" strokeWidth={2} />
+          MAX
+        </span>
+      )}
 
       <div className="hidden lg:flex flex-1 max-w-md mx-auto">
         <div className="relative w-full">
