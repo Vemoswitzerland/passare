@@ -157,9 +157,13 @@ export default async function AdminInseratDetailPage({
   const admin = createAdminClient();
 
   // Alles parallel laden — vorher 4 sequentielle Round-Trips
+  // + audit_messages für das Logbuch (chronologische Timeline der
+  // Konversation Admin↔Verkäufer). Service-Role weil RLS auf
+  // inserat_audit_messages den User-Client blockiert.
   const [
     { data: inseratData },
     { data: anfrData },
+    { data: auditData },
   ] = await Promise.all([
     supabase.from('inserate').select('*').eq('id', id).maybeSingle(),
     supabase
@@ -167,12 +171,27 @@ export default async function AdminInseratDetailPage({
       .select('id, public_id, status, nachricht, created_at')
       .eq('inserat_id', id)
       .order('created_at', { ascending: false })
-      .limit(5),
+      .limit(20),
+    admin
+      .from('inserat_audit_messages')
+      .select('id, from_user, from_role, kind, message, created_at')
+      .eq('inserat_id', id)
+      .order('created_at', { ascending: false })
+      .limit(50),
   ]);
 
   if (!inseratData) notFound();
   const listing = inseratData as FullInserat;
   const anfragen = (anfrData ?? []) as AdminAnfrage[];
+  type AuditRow = {
+    id: string;
+    from_user: string;
+    from_role: 'admin' | 'verkaeufer';
+    kind: 'rueckfrage' | 'antwort' | 'ablehnung' | 'freigabe' | 'kommentar' | 'pause';
+    message: string;
+    created_at: string;
+  };
+  const auditMessages = (auditData ?? []) as AuditRow[];
 
   // Verkäufer-Profil + andere Inserate dieses Verkäufers + Anfragen-Total parallel
   type VerkaeuferProfile = {
@@ -603,57 +622,152 @@ export default async function AdminInseratDetailPage({
             </section>
           )}
 
-          {/* Anfragen */}
-          <section className="bg-paper border border-stone rounded-soft p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-[11px] uppercase tracking-wide font-medium text-quiet">
-                Anfragen ({anfragen.length})
-              </h3>
-              {anfragen.length > 0 && (
-                <Link
-                  href={`/admin/anfragen?inserat=${listing.id}`}
-                  className="text-[11px] text-quiet hover:text-navy transition-colors"
-                >
-                  Alle anzeigen →
-                </Link>
-              )}
-            </div>
-            {anfragen.length === 0 ? (
-              <p className="text-[12px] text-quiet italic">Noch keine Anfragen.</p>
-            ) : (
-              <ul className="divide-y divide-stone/60 -mx-2">
-                {anfragen.slice(0, 5).map((a) => (
-                  <li key={a.id}>
-                    <Link
-                      href={`/admin/anfragen/${a.id}`}
-                      className="flex items-start gap-3 px-2 py-2 hover:bg-cream/60 transition-colors rounded-soft"
-                    >
-                      <MessageSquare className="w-3.5 h-3.5 text-quiet mt-1 flex-shrink-0" strokeWidth={1.5} />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-                          <p className="text-[13px] text-ink">{a.public_id ?? a.id.slice(0, 8)}</p>
-                          <span
-                            className={cn(
-                              'inline-flex items-center gap-1 px-1.5 py-px rounded-soft text-[10px] font-medium border',
-                              anfrageStatusStyles[a.status],
-                            )}
-                          >
-                            {ANFRAGE_STATUS_LABELS[a.status]}
-                          </span>
+          {/* ──────────────────────────────────────────────────────────
+              LOGBUCH — chronologische Timeline aller Aktivitäten zu
+              diesem Inserat. Cyrill 30.04.2026: «zeige dort wie in einem
+              Logbuch die Chat-Nachrichten die unter Nachrichten mit dem
+              User geschrieben wurden — was wann wie wo passiert ist».
+              Mergt Anfragen (Käufer) + Audit-Messages (Admin↔Verkäufer)
+              in eine einzige read-only Timeline, neueste zuerst.
+              ────────────────────────────────────────────────────────── */}
+          {(() => {
+            type LogEntry =
+              | {
+                  kind: 'anfrage';
+                  id: string;
+                  created_at: string;
+                  status: AnfrageStatus;
+                  publicId: string | null;
+                  nachricht: string | null;
+                }
+              | {
+                  kind: 'audit';
+                  id: string;
+                  created_at: string;
+                  auditKind: AuditRow['kind'];
+                  fromRole: 'admin' | 'verkaeufer';
+                  message: string;
+                };
+            const log: LogEntry[] = [
+              ...anfragen.map((a) => ({
+                kind: 'anfrage' as const,
+                id: a.id,
+                created_at: a.created_at,
+                status: a.status,
+                publicId: a.public_id ?? null,
+                nachricht: a.nachricht ?? null,
+              })),
+              ...auditMessages.map((m) => ({
+                kind: 'audit' as const,
+                id: m.id,
+                created_at: m.created_at,
+                auditKind: m.kind,
+                fromRole: m.from_role,
+                message: m.message,
+              })),
+            ].sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
+
+            return (
+              <section className="bg-paper border border-stone rounded-soft p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-[11px] uppercase tracking-wide font-medium text-quiet">
+                    Logbuch ({log.length})
+                  </h3>
+                  <span className="text-[10px] text-quiet font-mono">
+                    {anfragen.length} Anfrage{anfragen.length !== 1 ? 'n' : ''}
+                    {' · '}
+                    {auditMessages.length} Nachricht{auditMessages.length !== 1 ? 'en' : ''}
+                  </span>
+                </div>
+                {log.length === 0 ? (
+                  <p className="text-[12px] text-quiet italic">
+                    Noch nichts passiert. Sobald der Verkäufer das Inserat einreicht,
+                    Käufer Anfragen stellen oder du dem Verkäufer schreibst, erscheint
+                    hier die Timeline.
+                  </p>
+                ) : (
+                  <ol className="relative pl-4 border-l border-stone/60 space-y-3">
+                    {log.slice(0, 30).map((e) => (
+                      <li key={`${e.kind}-${e.id}`} className="relative">
+                        {/* Timeline-Punkt */}
+                        <span
+                          className={cn(
+                            'absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full border-2 bg-paper',
+                            e.kind === 'anfrage'
+                              ? 'border-bronze'
+                              : e.fromRole === 'admin'
+                                ? 'border-navy'
+                                : 'border-success',
+                          )}
+                        />
+                        <div className="flex items-start gap-2">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                              {e.kind === 'anfrage' ? (
+                                <>
+                                  <span className="font-mono text-[10px] uppercase tracking-wide text-bronze-ink font-medium">
+                                    Anfrage
+                                  </span>
+                                  <span
+                                    className={cn(
+                                      'inline-flex items-center gap-1 px-1.5 py-px rounded-soft text-[10px] font-medium border',
+                                      anfrageStatusStyles[e.status],
+                                    )}
+                                  >
+                                    {ANFRAGE_STATUS_LABELS[e.status]}
+                                  </span>
+                                  {e.publicId && (
+                                    <code className="font-mono text-[10px] text-quiet">
+                                      {e.publicId}
+                                    </code>
+                                  )}
+                                </>
+                              ) : (
+                                <>
+                                  <span
+                                    className={cn(
+                                      'font-mono text-[10px] uppercase tracking-wide font-medium',
+                                      e.fromRole === 'admin' ? 'text-navy' : 'text-success',
+                                    )}
+                                  >
+                                    {e.fromRole === 'admin' ? 'passare-Team' : 'Verkäufer'}
+                                  </span>
+                                  <span className="font-mono text-[10px] uppercase tracking-wide text-quiet">
+                                    {auditKindLabel(e.auditKind)}
+                                  </span>
+                                </>
+                              )}
+                              <span className="ml-auto font-mono text-[10px] text-quiet whitespace-nowrap">
+                                {formatDate(e.created_at)}
+                              </span>
+                            </div>
+                            <p className="text-[12px] text-ink leading-snug whitespace-pre-wrap break-words">
+                              {e.kind === 'anfrage'
+                                ? e.nachricht || <em className="text-quiet not-italic">Anfrage ohne Nachricht.</em>
+                                : e.message}
+                            </p>
+                          </div>
+                          {e.kind === 'anfrage' && (
+                            <Link
+                              href={`/admin/anfragen/${e.id}`}
+                              className="text-[11px] text-quiet hover:text-navy transition-colors flex-shrink-0 mt-0.5"
+                            >
+                              →
+                            </Link>
+                          )}
                         </div>
-                        {a.nachricht && (
-                          <p className="text-[12px] text-muted line-clamp-2">{a.nachricht}</p>
-                        )}
-                      </div>
-                      <p className="text-[11px] text-quiet font-mono whitespace-nowrap">
-                        {formatDate(a.created_at)}
-                      </p>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
+                      </li>
+                    ))}
+                  </ol>
+                )}
+                {log.length > 30 && (
+                  <p className="text-[11px] text-quiet italic mt-3">
+                    + {log.length - 30} weitere Einträge (gekürzt)
+                  </p>
+                )}
+              </section>
+            );
+          })()}
 
           {/* Audit-Konversation entfernt — Cyrill 30.04.2026: «macht keinen
               Sinn dort unten, soll bei Anfragen auftauchen, also ein Chat
@@ -997,4 +1111,24 @@ function VerifyBadge({ ok, label }: { ok: boolean; label: string }) {
       {label}
     </span>
   );
+}
+
+/** Audit-Kind als kurze, lesbare Beschriftung (Logbuch-Timeline). */
+function auditKindLabel(kind: string): string {
+  switch (kind) {
+    case 'rueckfrage':
+      return 'Rückfrage';
+    case 'antwort':
+      return 'Antwort';
+    case 'ablehnung':
+      return 'Abgelehnt';
+    case 'freigabe':
+      return 'Freigegeben';
+    case 'kommentar':
+      return 'Nachricht';
+    case 'pause':
+      return 'Pausiert';
+    default:
+      return kind;
+  }
 }

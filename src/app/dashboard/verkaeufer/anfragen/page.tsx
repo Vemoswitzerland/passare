@@ -60,38 +60,53 @@ export default async function AnfragenPage({ searchParams }: Props) {
     kind: string;
     created_at: string;
   };
+  // Service-Role: RLS auf inserat_audit_messages ist für den Verkäufer
+  // restriktiv (nur eigene Inserate via Join lesbar). Wir umgehen das mit
+  // dem Service-Role-Client und scopen auf die eigenen Inserat-IDs — der
+  // Owner-Check kommt indirekt über alleInserate (wurde mit User-Auth
+  // gefiltert auf verkaeufer_id == auth.uid()).
+  // hasTable-Check entfernt: wenn Tabelle nicht existiert wirft die Query
+  // einen 42P01-Error den wir abfangen. Vorher hat der hasTable-Check ggf.
+  // false-positive false geliefert wegen RLS, dann waren die Nachrichten
+  // unsichtbar — Cyrill: «sehe die Anfragen nicht».
   let passareMessages: PassareMsg[] = [];
-  if ((alleInserate ?? []).length > 0 && (await hasTable('inserat_audit_messages'))) {
-    const inseratIds = (alleInserate ?? []).map((i: { id: string }) => i.id);
-    const inseratLookup = new Map<string, { titel: string | null; status: string | null }>();
-    for (const i of alleInserate ?? []) {
-      inseratLookup.set(i.id as string, {
-        titel: (i.titel as string | null) ?? null,
-        status: (i.status as string | null) ?? null,
-      });
+  if ((alleInserate ?? []).length > 0) {
+    try {
+      const inseratIds = (alleInserate ?? []).map((i: { id: string }) => i.id);
+      const inseratLookup = new Map<string, { titel: string | null; status: string | null }>();
+      for (const i of alleInserate ?? []) {
+        inseratLookup.set(i.id as string, {
+          titel: (i.titel as string | null) ?? null,
+          status: (i.status as string | null) ?? null,
+        });
+      }
+      const adminClient = createAdminClient();
+      const { data: rawMsgs, error } = await adminClient
+        .from('inserat_audit_messages')
+        .select('id, inserat_id, message, kind, created_at, from_role')
+        .in('inserat_id', inseratIds)
+        .eq('from_role', 'admin')
+        .order('created_at', { ascending: false })
+        .limit(20);
+      if (error) {
+        console.warn('[anfragen] passareMessages query failed:', error.message);
+      } else {
+        passareMessages = (rawMsgs ?? []).map((m: Record<string, unknown>) => {
+          const meta = inseratLookup.get(m.inserat_id as string);
+          return {
+            id: m.id as string,
+            inserat_id: m.inserat_id as string,
+            inserat_titel: meta?.titel ?? null,
+            inserat_status: meta?.status ?? null,
+            message: m.message as string,
+            kind: m.kind as string,
+            created_at: m.created_at as string,
+          };
+        });
+      }
+    } catch (err) {
+      console.warn('[anfragen] passareMessages threw:', err);
     }
-    // Service-Role: RLS ist auf Verkäufer-Sicht restriktiv, wir haben hier
-    // den Owner-Check schon über alleInserate gemacht.
-    const adminClient = createAdminClient();
-    const { data: rawMsgs } = await adminClient
-      .from('inserat_audit_messages')
-      .select('id, inserat_id, message, kind, created_at, from_role')
-      .in('inserat_id', inseratIds)
-      .eq('from_role', 'admin')
-      .order('created_at', { ascending: false })
-      .limit(10);
-    passareMessages = (rawMsgs ?? []).map((m: Record<string, unknown>) => {
-      const meta = inseratLookup.get(m.inserat_id as string);
-      return {
-        id: m.id as string,
-        inserat_id: m.inserat_id as string,
-        inserat_titel: meta?.titel ?? null,
-        inserat_status: meta?.status ?? null,
-        message: m.message as string,
-        kind: m.kind as string,
-        created_at: m.created_at as string,
-      };
-    });
   }
 
   let q = supabase

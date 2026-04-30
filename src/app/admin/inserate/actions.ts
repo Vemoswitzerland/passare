@@ -223,6 +223,7 @@ export async function sendInseratMessageAction(input: { id: string; message: str
 
   revalidatePath(`/admin/inserate/${id}`);
   revalidatePath('/dashboard/verkaeufer/inserat');
+  revalidatePath('/dashboard/verkaeufer/anfragen');
   return { ok: true };
 }
 
