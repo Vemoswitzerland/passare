@@ -93,7 +93,7 @@ export default async function AnfragenInboxPage({ searchParams }: Props) {
       .select('anfrage_id, message, created_at')
       .in('anfrage_id', ids)
       .order('created_at', { ascending: false });
-    for (const m of rawLasts ?? []) {
+    for (const m of (rawLasts ?? []) as Array<Record<string, unknown>>) {
       const aid = m.anfrage_id as string;
       if (!lastMsgsByAnfrage.has(aid)) {
         lastMsgsByAnfrage.set(aid, {
@@ -116,7 +116,7 @@ export default async function AnfragenInboxPage({ searchParams }: Props) {
       .select('inserat_id, message, created_at')
       .in('inserat_id', inseratIds)
       .order('created_at', { ascending: false });
-    for (const m of auditRaw ?? []) {
+    for (const m of (auditRaw ?? []) as Array<Record<string, unknown>>) {
       const iid = m.inserat_id as string;
       const ex = passareLastByInserat.get(iid);
       if (!ex) {
@@ -190,9 +190,10 @@ export default async function AnfragenInboxPage({ searchParams }: Props) {
         .select('id, from_user, from_role, message, created_at')
         .eq('anfrage_id', anfrageId)
         .order('created_at', { ascending: true });
-      const userIds = Array.from(new Set((msgs ?? []).map((m) => m.from_user as string)));
+      const msgList = (msgs ?? []) as Array<Record<string, unknown>>;
+      const userIds = Array.from(new Set(msgList.map((m) => m.from_user as string)));
       const profMap = await loadProfiles(adminClient, userIds);
-      activeMessages = (msgs ?? []).map((m) => {
+      activeMessages = msgList.map((m) => {
         const prof = profMap.get(m.from_user as string);
         const isMe = (m.from_user as string) === userData.user!.id;
         const display = (m.from_role as string) === 'admin'
@@ -218,9 +219,10 @@ export default async function AnfragenInboxPage({ searchParams }: Props) {
         .select('id, from_user, from_role, kind, message, created_at')
         .eq('inserat_id', inseratId)
         .order('created_at', { ascending: true });
-      const userIds = Array.from(new Set((msgs ?? []).map((m) => m.from_user as string)));
+      const msgList = (msgs ?? []) as Array<Record<string, unknown>>;
+      const userIds = Array.from(new Set(msgList.map((m) => m.from_user as string)));
       const profMap = await loadProfiles(adminClient, userIds);
-      activeMessages = (msgs ?? []).map((m) => {
+      activeMessages = msgList.map((m) => {
         const prof = profMap.get(m.from_user as string);
         const isMe = (m.from_user as string) === userData.user!.id;
         const display = (m.from_role as string) === 'admin'
