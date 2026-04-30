@@ -62,7 +62,10 @@ export default async function DatenraumPage() {
             Datenraum
           </h1>
           <p className="text-body text-muted mt-2">
-            Vertrauliche Dokumente für Käufer mit signierter NDA. {files?.length ?? 0} Datei{files?.length !== 1 ? 'en' : ''}.
+            Vertrauliche Dokumente — du gibst sie pro Anfrage einzeln für ausgewählte Käufer frei.
+            {files?.length
+              ? ` Aktuell ${files.length} Datei${files.length === 1 ? '' : 'en'} hochgeladen.`
+              : ' Noch keine Dateien — über den Hochladen-Knopf unten Dateien hinzufügen.'}
           </p>
         </div>
         <DatenraumClient
