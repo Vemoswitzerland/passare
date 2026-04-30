@@ -609,17 +609,17 @@ function ListingCard({ listing, branchen }: { listing: InseratPublic; branchen: 
         </h3>
 
         <div className="grid grid-cols-3 gap-3 py-4 border-t border-b border-stone mb-5">
-          <div>
+          <div className="min-w-0">
             <p className="overline mb-1">Umsatz</p>
-            <p className="font-mono text-body-sm text-navy font-tabular font-medium">{umsatzStr}</p>
+            <p className="font-mono text-body-sm text-navy font-tabular font-medium whitespace-nowrap">{umsatzStr}</p>
           </div>
-          <div>
+          <div className="min-w-0">
             <p className="overline mb-1">EBITDA</p>
-            <p className="font-mono text-body-sm text-navy font-tabular font-medium">{ebitdaStr}</p>
+            <p className="font-mono text-body-sm text-navy font-tabular font-medium whitespace-nowrap">{ebitdaStr}</p>
           </div>
-          <div>
+          <div className="min-w-0">
             <p className="overline mb-1">Preis</p>
-            <p className="font-mono text-body-sm text-navy font-tabular font-medium">{kaufpreisStr}</p>
+            <p className="font-mono text-body-sm text-navy font-tabular font-medium whitespace-nowrap">{kaufpreisStr}</p>
           </div>
         </div>
 

@@ -7,10 +7,17 @@
 
 import { formatCHF } from '@/lib/utils';
 
-/** "CHF 1.2 Mio" / "CHF 250'000" — kompakte Darstellung. */
+/** "CHF 1.2 Mio" / "CHF 250'000" — kompakte Darstellung.
+ *  Nutzt non-breaking spaces ( ), damit «CHF», Zahl und «Mio» beim
+ *  Render in schmalen Spalten nicht auf separate Zeilen umbrechen. */
 export function formatCompactCHF(amount: number): string {
-  if (amount >= 1_000_000) return `CHF ${(amount / 1_000_000).toFixed(1)} Mio`;
-  return formatCHF(amount);
+  if (amount >= 1_000_000) {
+    const mio = amount / 1_000_000;
+    // Bei glatten Werten kein .0 anzeigen (17 statt 17.0), sonst eine Nachkommastelle
+    const num = Number.isInteger(mio) ? String(mio) : mio.toFixed(1);
+    return `CHF ${num} Mio`;
+  }
+  return formatCHF(amount).replace(/^CHF\s/, 'CHF ');
 }
 
 /**
@@ -45,7 +52,7 @@ export function formatKaufpreis(input: {
   const min = input.kaufpreis_min_chf;
   const max = input.kaufpreis_max_chf;
   if (typeof min === 'number' && typeof max === 'number' && min > 0 && max > 0) {
-    return `${formatCompactCHF(min)} – ${formatCompactCHF(max).replace(/^CHF\s*/, '')}`;
+    return `${formatCompactCHF(min)} – ${formatCompactCHF(max).replace(/^CHF\s*/, '')}`;
   }
   if (typeof input.kaufpreis_chf === 'number' && input.kaufpreis_chf > 0) {
     return formatCompactCHF(input.kaufpreis_chf);

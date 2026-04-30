@@ -270,15 +270,15 @@ function KeyFacts({ listing }: { listing: InseratDetail }) {
     <div className="grid grid-cols-3 bg-paper border border-stone rounded-card overflow-hidden">
       <div className="p-5 md:p-6 border-r border-stone">
         <p className="overline mb-2">Umsatz</p>
-        <p className="font-mono text-head-md text-navy font-tabular font-medium">{umsatzStr}</p>
+        <p className="font-mono text-head-md text-navy font-tabular font-medium whitespace-nowrap">{umsatzStr}</p>
       </div>
       <div className="p-5 md:p-6 border-r border-stone">
         <p className="overline mb-2">EBITDA</p>
-        <p className="font-mono text-head-md text-navy font-tabular font-medium">{ebitdaStr}</p>
+        <p className="font-mono text-head-md text-navy font-tabular font-medium whitespace-nowrap">{ebitdaStr}</p>
       </div>
       <div className="p-5 md:p-6">
         <p className="overline mb-2">Kaufpreis</p>
-        <p className="font-mono text-head-md text-navy font-tabular font-medium">{kaufpreisStr}</p>
+        <p className="font-mono text-head-md text-navy font-tabular font-medium whitespace-nowrap">{kaufpreisStr}</p>
       </div>
     </div>
   );
