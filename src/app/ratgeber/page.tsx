@@ -8,9 +8,9 @@ import { SiteHeader } from '../page';
 import { createClient } from '@/lib/supabase/server';
 
 export const metadata = {
-  title: 'Ratgeber — Firmenverkauf, Bewertung, NDA — passare',
+  title: 'Ratgeber — Firmenverkauf, Bewertung, Nachfolge — passare',
   description:
-    'Fachartikel zur Nachfolgeregelung von Schweizer KMU. Bewertungsmethoden, NDA-Klauseln, der richtige Verkaufszeitpunkt — pragmatisch erklärt.',
+    'Fachartikel zur Nachfolgeregelung von Schweizer KMU. Bewertungsmethoden, Geheimhaltung, der richtige Verkaufszeitpunkt — pragmatisch erklärt.',
   robots: { index: false, follow: false },
 };
 

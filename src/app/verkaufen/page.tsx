@@ -53,19 +53,22 @@ function Hero() {
             <Reveal delay={0.1}>
               <p className="text-body-lg md:text-xl text-muted max-w-prose leading-relaxed mb-10">
                 Ihr Inserat ist öffentlich &mdash; Firmenname, echte Zahlen und Dossier
-                bleiben verdeckt. Erst nach unterzeichnetem NDA und Ihrer Freigabe
-                erhält ein Interessent Einblick. Sie bleiben Herr des Prozesses.
+                bleiben verdeckt. Erst wenn Sie einen Interessenten freischalten,
+                sieht er die Details. Sie bleiben Herr des Prozesses.
               </p>
             </Reveal>
             <Reveal delay={0.2}>
-              <div className="flex flex-col sm:flex-row gap-4 items-start mb-12">
+              <div className="flex flex-col sm:flex-row gap-4 items-start mb-3">
                 <Button href="/verkaufen/start" size="lg">
-                  Inserat erstellen <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
+                  Bewerten &amp; inserieren <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
                 </Button>
                 <Button href="#pakete" variant="secondary" size="lg">
                   Pakete ansehen
                 </Button>
               </div>
+              <p className="text-caption text-quiet mb-12 max-w-prose">
+                Der Inserat-Funnel beginnt mit der Smart-Bewertung &mdash; Sie sehen die Marktwert-Range Ihrer Firma, bevor Sie das Inserat fertig stellen.
+              </p>
             </Reveal>
             <Reveal delay={0.3}>
               <div className="flex flex-wrap items-center gap-x-5 gap-y-2 font-mono text-[11px] uppercase tracking-widest text-quiet">
@@ -75,7 +78,7 @@ function Hero() {
                 <span className="w-px h-3 bg-stone" />
                 <SignalDot>Anonym</SignalDot>
                 <span className="w-px h-3 bg-stone" />
-                <SignalDot>NDA-Gate</SignalDot>
+                <SignalDot>0&nbsp;% Provision</SignalDot>
               </div>
             </Reveal>
           </div>
@@ -102,7 +105,7 @@ function SignalDot({ children }: { children: React.ReactNode }) {
 /* ───────────────────────────────── */
 function Benefits() {
   const items = [
-    { Icon: ShieldCheck, title: 'Anonym inserieren', body: 'Teaser öffentlich, Details nach NDA. Ihre Mitarbeitenden, Lieferanten und Kunden erfahren es nicht.' },
+    { Icon: ShieldCheck, title: 'Anonym inserieren', body: 'Teaser öffentlich, Details erst nach Ihrer Freigabe. Ihre Mitarbeitenden, Lieferanten und Kunden erfahren nichts vom Verkauf.' },
     { Icon: Clock, title: '10–15 Min. live', body: 'Zefix-Import, KI-Assistent, Foto-Upload. Ihr Inserat läuft noch heute.' },
     { Icon: TrendingUp, title: 'Pauschal-Preis', body: 'Sie zahlen einmalig für Ihr Inserat — egal ob Ihre Firma am Ende für CHF 500\'000 oder CHF 25 Mio den Besitzer wechselt.' },
     { Icon: Users, title: 'Verifizierte Käufer', body: 'Über 300 registrierte Käufer mit KYC und ernstem Interesse. Keine Schaulustigen.' },
@@ -257,7 +260,7 @@ function Packages() {
 function Process() {
   const steps = [
     { Icon: Upload, step: 'I', title: 'Firma importieren', body: 'Zefix-Autocomplete holt Grunddaten. KI-Assistent schreibt den Teaser anonymisiert.' },
-    { Icon: FileLock2, step: 'II', title: 'NDA-Gate einrichten', body: 'Template anpassen, Käufer signieren digital (eSign QES-konform).' },
+    { Icon: FileLock2, step: 'II', title: 'Anfrage-Schutz aktivieren', body: 'Sie entscheiden, wer Detail-Dossier und Datenraum sieht. Jede Anfrage landet zuerst in Ihrem Dashboard zur Freigabe.' },
     { Icon: MessageCircle, step: 'III', title: 'Interessenten filtern', body: 'Anfragen kommen in Ihr Dashboard. Sie entscheiden, wen Sie freischalten.' },
     { Icon: Handshake, step: 'IV', title: 'Deal abschliessen', body: 'Direktverhandlung. Bei Bedarf vermitteln wir Fachanwälte und Treuhänder.' },
   ];
@@ -344,12 +347,12 @@ function BewertungsKarte() {
                 </ul>
 
                 <div className="flex flex-col sm:flex-row gap-3 items-start">
-                  <Button href="/bewerten" size="lg">
+                  <Button href="/verkaufen/start" size="lg">
                     <Calculator className="w-4 h-4" strokeWidth={1.5} />
-                    Firma jetzt bewerten
+                    Bewerten &amp; inserieren
                   </Button>
-                  <Button href="/verkaufen/start" variant="ghost" size="lg">
-                    Direkt zum Inserat <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
+                  <Button href="/bewerten" variant="ghost" size="lg">
+                    Nur bewerten (ohne Inserat) <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
                   </Button>
                 </div>
               </div>
@@ -397,14 +400,38 @@ function BewertungsKarte() {
 /* ───────────────────────────────── */
 function FAQ() {
   const items = [
-    { q: 'Muss ich meinen Firmennamen öffentlich angeben?', a: 'Nein. Im öffentlichen Teaser ist die Firma anonymisiert. Erst nach unterzeichnetem NDA und Ihrer expliziten Freigabe sieht ein Interessent den Firmennamen und Detailzahlen.' },
-    { q: 'Wie funktioniert das NDA-Gate?', a: 'Interessenten signieren mit einem Klick eine vordefinierte Geheimhaltungserklärung (eSign, QES-konform). Die signierte PDF wird archiviert, Sie werden benachrichtigt und können den Zugriff auf das Dossier und den Datenraum individuell freigeben.' },
-    { q: 'Verdient passare am Verkaufspreis mit?', a: 'Nein. passare ist eine Self-Service-Plattform. Sie zahlen einmal das Paket — ob Sie für CHF 500\'000 oder CHF 25 Mio verkaufen, am Plattform-Preis ändert sich nichts.' },
-    { q: 'Was passiert, wenn mein Inserat nach der Laufzeit nicht verkauft ist?', a: 'Sie können das Inserat manuell verlängern — der Boost «+6 Monate Laufzeit» kostet CHF 490 (für jedes Paket gleich). Es gibt keine automatische Verlängerung — Sie entscheiden.' },
-    { q: 'Was ist der Klein-Inserat-Rabatt?', a: 'Firmen mit einem Verkaufspreis unter CHF 500\'000 erhalten 25 % Rabatt auf alle Pakete (Light CHF 535, Pro CHF 670, Premium CHF 1\'420 — jeweils 12 Monate). Der Rabatt wird automatisch im Wizard angewendet, sobald Sie den Kaufpreis angeben.' },
-    { q: 'Kann ich mein Inserat pausieren oder löschen?', a: 'Jederzeit, aus dem Dashboard. Sie können auch einzelne Interessenten sperren oder freischalten.' },
-    { q: 'Was bringt die «Hervorhebung»?', a: 'Bei Pro 4× pro Jahr, bei Premium 12× pro Jahr inklusive: Ihr Inserat rutscht für 7 Tage auf Seite 1 des Marktplatzes und nimmt die Top-Position im Branchenfilter ein. Zusätzlich kann jede Hervorhebung einzeln dazugebucht werden (CHF 49).' },
-    { q: 'Was bedeutet «Newsletter-Slot»?', a: 'Im Premium-Paket inklusive (2× pro Jahr): Ihr Inserat wird prominent im wöchentlichen passare-Newsletter erwähnt — der Newsletter geht an alle aktiven Käufer mit passendem Suchprofil. Einzeln dazubuchbar für CHF 86.' },
+    {
+      q: 'Muss ich meinen Firmennamen öffentlich angeben?',
+      a: 'Nein. Im öffentlichen Teaser ist Ihre Firma anonymisiert. Firmenname, Standort und Detailzahlen sieht ein Interessent erst, wenn Sie ihn aktiv im Dashboard freischalten.',
+    },
+    {
+      q: 'Wie läuft eine Anfrage ab?',
+      a: 'Ein Interessent stellt über das Inserat eine Anfrage mit kurzer Vorstellung. Sie sehen die Anfrage im Dashboard, prüfen Käuferprofil und Hintergrund, und entscheiden ob Sie freischalten oder ablehnen. Erst nach Ihrer Freigabe erhält der Interessent Detail-Dossier und ggf. den Datenraum.',
+    },
+    {
+      q: 'Beginnt der Inserat-Funnel mit der Bewertung?',
+      a: 'Ja. Im Inserat-Wizard fragen wir zuerst Branche, Kanton, Mitarbeitende, Umsatz und EBITDA-Marge ab und zeigen Ihnen sofort eine indikative Marktwert-Range basierend auf aktuellen Schweizer KMU-Multiples. Das Inserat selbst wird im gleichen Flow erstellt — kein separater Schritt.',
+    },
+    {
+      q: 'Verdient passare am Verkaufspreis mit?',
+      a: 'Nein. passare ist eine Self-Service-Plattform. Sie zahlen einmal das Paket — ob Sie für CHF 500\'000 oder CHF 25 Mio verkaufen, am Plattform-Preis ändert sich nichts. 0 % Erfolgsprovision.',
+    },
+    {
+      q: 'Was passiert, wenn mein Inserat nach der Laufzeit nicht verkauft ist?',
+      a: 'Sie verlängern manuell oder nehmen das Inserat von der Plattform — beides aus dem Dashboard. Verlängerung kostet CHF 490 für 6 weitere Monate (egal welches Paket). Es gibt keine automatische Verlängerung.',
+    },
+    {
+      q: 'Was ist der Klein-Inserat-Rabatt?',
+      a: 'Firmen mit einem Verkaufspreis unter CHF 500\'000 erhalten 25 % Rabatt auf alle drei Pakete. Der Rabatt wird automatisch im Wizard angewendet, sobald Sie den Kaufpreis angeben.',
+    },
+    {
+      q: 'Kann ich mein Inserat pausieren oder löschen?',
+      a: 'Jederzeit, aus dem Dashboard. Sie können auch einzelne Interessenten ausschliessen oder priorisieren.',
+    },
+    {
+      q: 'Was bringt die Hervorhebung im Pro- und Premium-Paket?',
+      a: 'Pro: 4× pro Jahr inklusive. Premium: 12× pro Jahr inklusive. Ihr Inserat rutscht 7 Tage auf Seite 1 des Marktplatzes und nimmt die Top-Position im Branchenfilter. Einzeln dazubuchbar für CHF 49.',
+    },
   ];
 
   return (
@@ -451,10 +478,10 @@ function CTA() {
           <Reveal delay={0.2}>
             <div className="flex flex-col sm:flex-row gap-4 items-start">
               <Button href="/verkaufen/start" variant="bronze" size="lg">
-                Inserat erstellen <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
+                Bewerten &amp; inserieren <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
               </Button>
               <span className="font-mono text-[11px] uppercase tracking-widest text-cream/50 mt-3">
-                Ab CHF 425 &middot; Pauschalpreis &middot; anonym
+                Ab CHF 425 &middot; Pauschalpreis &middot; 0 % Provision
               </span>
             </div>
           </Reveal>

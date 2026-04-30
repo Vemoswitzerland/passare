@@ -136,7 +136,7 @@ export default async function AboPage() {
               { text: 'WhatsApp-Alerts in <5 Min', has: true },
               { text: 'Unbegrenzte Anfragen', has: true },
               { text: 'Bis 3 Suchprofile', has: true },
-              { text: 'NDA-Fast-Track', has: true },
+              { text: 'Direkt-Anfrage-Track (priorisiert)', has: true },
               { text: 'KMU-Multiples-Datenbank', has: true },
               { text: 'Featured-Käuferprofil', has: true },
               { text: 'Berater-Datenraum-Share (14 Tage)', has: true },
@@ -157,7 +157,7 @@ export default async function AboPage() {
           <ROIStat icon={FileLock2} value="14 Tage" label="Berater-Read-Only-Link" />
         </div>
         <p className="text-caption text-quiet mt-5 leading-relaxed border-t border-stone pt-4">
-          Die meisten Top-Inserate werden in den ersten 7 Tagen unter NDA gestellt. Mit Basic siehst du sie erst, wenn diese Phase fast vorbei ist.
+          Die meisten Top-Inserate werden in den ersten 7 Tagen weggeschnappt. Mit Basic siehst du sie erst, wenn diese Phase fast vorbei ist.
         </p>
       </section>
 

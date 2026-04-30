@@ -170,7 +170,7 @@ export default async function PaketPage({ searchParams }: Props) {
                 <FeatureRow text="5 Anfragen pro Monat" />
                 <FeatureRow text="Alerts wöchentlich per E-Mail" />
                 <FeatureRow text="1 Suchprofil" />
-                <FeatureRow text="NDAs unterzeichnen" />
+                <FeatureRow text="Anfragen senden + Detail-Dossier nach Freigabe" />
                 <FeatureRow text="MAX-Features" available={false} />
               </ul>
 
@@ -218,7 +218,7 @@ export default async function PaketPage({ searchParams }: Props) {
                 <FeatureRow text="Unbegrenzte Anfragen" />
                 <FeatureRow text="WhatsApp-Alerts in <5 Min" highlight />
                 <FeatureRow text="Bis 3 Suchprofile" />
-                <FeatureRow text="NDA-Fast-Track" />
+                <FeatureRow text="Direkt-Anfrage-Track (priorisiert)" />
                 <FeatureRow text="KMU-Multiples-Datenbank" highlight />
                 <FeatureRow text="Featured-Käuferprofil" />
                 <FeatureRow text="Berater-Datenraum-Zugang" />
@@ -256,7 +256,7 @@ export default async function PaketPage({ searchParams }: Props) {
           <div className="max-w-4xl mx-auto mt-12 grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <FeatureVisual icon={Zap} title="Frühzugang" desc="7 Tage vor allen anderen" />
             <FeatureVisual icon={Bell} title="WhatsApp-Alerts" desc="In unter 5 Minuten" />
-            <FeatureVisual icon={MessageSquare} title="NDA-Fast-Track" desc="Verkäufer sehen «MAX»-Badge" />
+            <FeatureVisual icon={MessageSquare} title="Direkt-Anfrage" desc="Verkäufer sehen «MAX»-Badge" />
             <FeatureVisual icon={FileLock2} title="Datenraum-Share" desc="Berater zeitlich begrenzt rein" />
           </div>
 

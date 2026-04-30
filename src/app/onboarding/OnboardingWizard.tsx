@@ -152,9 +152,9 @@ function StepRolle({
           title="Ich verkaufe"
           subtitle="Mein Unternehmen anonym inserieren"
           bullets={[
-            'Ab CHF 290, einmaliger Paketpreis',
+            'Ab CHF 425, einmaliger Paketpreis',
             'Pauschalpreis — keine Folgekosten',
-            'NDA-Gate vor Detailfreigabe',
+            'Detailfreigabe nur durch Sie selbst',
           ]}
         />
         <RolleCard

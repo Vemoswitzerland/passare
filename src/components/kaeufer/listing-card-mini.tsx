@@ -32,7 +32,7 @@ type Props = {
 const STAGE_LABELS: Record<string, { label: string; color: string }> = {
   neu:          { label: 'Neu',           color: 'bg-stone/60 text-ink' },
   kontaktiert:  { label: 'Kontaktiert',   color: 'bg-navy-soft text-navy' },
-  nda:          { label: 'NDA',           color: 'bg-bronze-soft text-bronze-ink' },
+  nda:          { label: 'Freigabe',      color: 'bg-bronze-soft text-bronze-ink' },
   dd:           { label: 'Due Diligence', color: 'bg-bronze-soft text-bronze-ink' },
   loi:          { label: 'LOI',           color: 'bg-success/10 text-success' },
   won:          { label: 'Gewonnen',      color: 'bg-success/15 text-success' },

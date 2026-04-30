@@ -229,7 +229,7 @@ function DetailBody({
                     </h3>
                     <p className="text-body-sm text-muted leading-relaxed">
                       Bilanzen, GuV, Mitarbeiter-Aufstellung, Standort-Pläne und vertiefte Marktanalyse
-                      stehen nach NDA-Signatur im verschlüsselten Datenraum. Anfrage über das Kontakt-Panel
+                      stehen nach Freigabe durch den Verkäufer im verschlüsselten Datenraum. Anfrage über das Kontakt-Panel
                       rechts.
                     </p>
                   </div>
