@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  LayoutDashboard, FileText, MessageSquare, FileSignature,
+  LayoutDashboard, FileText, MessageSquare,
   FolderOpen, BarChart3, Package, Settings, X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -42,12 +42,7 @@ export function VerkaeuferSidebar({
       label: 'Anfragen',
       counter: counts.anfragenNeu || undefined,
     },
-    {
-      href: '/dashboard/verkaeufer/nda',
-      icon: FileSignature,
-      label: 'NDA',
-      counter: counts.ndaPending || undefined,
-    },
+    // NDA-Eintrag entfernt — Cyrill: «das werden wir dann und dann nicht abbilden».
     {
       href: '/dashboard/verkaeufer/datenraum',
       icon: FolderOpen,

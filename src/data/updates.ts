@@ -67,6 +67,13 @@ export const CURRENT_STEP = {
 export const UPDATES: Update[] = [
   {
     date: '2026-04-30',
+    type: 'feature',
+    titel: '«Mein Inserat» neu als Verwaltungsseite · NDA-Eintrag entfernt',
+    beschreibung:
+      'Wer auf «Inserat bearbeiten» klickt, landet jetzt auf einer richtigen Verwaltungsseite — nicht mehr direkt im Bearbeitungs-Funnel. Oben sieht man Status, Vorschau und Bearbeiten-Knopf, darunter vier Kennzahl-Kacheln (Aufrufe, Anfragen, Favoriten, Tage live). Links eine Vorschau wie der Käufer es sieht, rechts eine Liste aller Sektionen (Eckdaten, Texte, Bilder, Stärken, Sichtbarkeit, Paket) mit grünem Häkchen wenn fertig — ein Klick führt direkt in den passenden Wizard-Schritt. Footer mit Pausieren, Detail-Statistik und Inserat löschen (kommt in der nächsten Etappe). Der separate NDA-Eintrag ist aus der Verkäufer- und Käufer-Sidebar verschwunden — wird nicht abgebildet.',
+  },
+  {
+    date: '2026-04-30',
     type: 'design',
     titel: 'Pakete-Vergleichsliste passt auf einen Bildschirm · Marktplatz-Knopf in jedem Bereich',
     beschreibung:

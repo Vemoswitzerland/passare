@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  LayoutDashboard, Heart, MessageSquare, FileLock2, Bell,
+  LayoutDashboard, Heart, MessageSquare, Bell,
   CreditCard, User, type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -27,7 +27,7 @@ const HAUPTMENU: NavItem[] = [
   { label: 'Übersicht',         href: '/dashboard/kaeufer',              icon: LayoutDashboard },
   { label: 'Anfragen',          href: '/dashboard/kaeufer/anfragen',     icon: MessageSquare, badgeKey: 'anfragen' },
   { label: 'Favoriten',         href: '/dashboard/kaeufer/favoriten',    icon: Heart, badgeKey: 'favoriten' },
-  { label: 'NDAs & Datenraum',  href: '/dashboard/kaeufer/ndas',         icon: FileLock2, badgeKey: 'ndas' },
+  // «NDAs & Datenraum» entfernt — Cyrill: «NDA werden wir dann und dann nicht abbilden».
   { label: 'Suchprofile',       href: '/dashboard/kaeufer/suchprofile',  icon: Bell, badgeKey: 'suchprofile', badgeMax: 3 },
 ];
 
