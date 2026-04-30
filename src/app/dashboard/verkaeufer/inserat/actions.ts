@@ -274,6 +274,68 @@ export async function setAnonymitaetLevel(
   return { ok: true };
 }
 
+/**
+ * Verkäufer pflegt seine Kontakt-Daten direkt aus dem Anonymitäts-
+ * Panel (wenn Halb-anonym oder Voll-offen aktiv ist und Felder noch
+ * leer sind).
+ *
+ * Cyrill 30.04.2026: «Wenn die Daten noch nicht drin sind, soll
+ * unten ein Fenster aufgehen wo man sie eingeben/ändern kann».
+ *
+ * Alle Kontakt-Felder sind als IRRELEVANT klassifiziert — Inserat
+ * bleibt live, kein Re-Review.
+ */
+export async function updateKontaktFelder(
+  inseratId: string,
+  data: {
+    kontakt_vorname?: string | null;
+    kontakt_nachname?: string | null;
+    kontakt_funktion?: string | null;
+    kontakt_email_public?: string | null;
+    kontakt_whatsapp_nr?: string | null;
+    kontakt_foto_url?: string | null;
+  },
+): Promise<ActionResult> {
+  const supabase = await createClient();
+  const { data: u } = await supabase.auth.getUser();
+  if (!u.user) return { ok: false, error: 'Nicht angemeldet.' };
+
+  // Whitelist-Patch — nur erlaubte Felder
+  const patch: Record<string, string | null> = {};
+  if ('kontakt_vorname' in data) patch.kontakt_vorname = trimOrNull(data.kontakt_vorname);
+  if ('kontakt_nachname' in data) patch.kontakt_nachname = trimOrNull(data.kontakt_nachname);
+  if ('kontakt_funktion' in data) patch.kontakt_funktion = trimOrNull(data.kontakt_funktion);
+  if ('kontakt_email_public' in data) patch.kontakt_email_public = trimOrNull(data.kontakt_email_public);
+  if ('kontakt_whatsapp_nr' in data) patch.kontakt_whatsapp_nr = trimOrNull(data.kontakt_whatsapp_nr);
+  if ('kontakt_foto_url' in data) patch.kontakt_foto_url = trimOrNull(data.kontakt_foto_url);
+
+  if (Object.keys(patch).length === 0) {
+    return { ok: true, id: inseratId };
+  }
+
+  // Email basic-validate
+  if (patch.kontakt_email_public && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(patch.kontakt_email_public)) {
+    return { ok: false, error: 'Ungültige E-Mail.' };
+  }
+
+  const { error } = await supabase
+    .from('inserate')
+    .update(patch)
+    .eq('id', inseratId)
+    .eq('verkaeufer_id', u.user.id);
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath('/dashboard/verkaeufer/inserat');
+  revalidatePath(`/inserat/${inseratId}`);
+  return { ok: true, id: inseratId };
+}
+
+function trimOrNull(v: string | null | undefined): string | null {
+  if (v == null) return null;
+  const t = v.trim();
+  return t.length === 0 ? null : t;
+}
+
 /** Inserat löschen (nur Entwurf erlaubt durch RLS). */
 export async function deleteInserat(inseratId: string): Promise<ActionResult> {
   const supabase = await createClient();

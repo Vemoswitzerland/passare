@@ -10,8 +10,6 @@ import { hasTable } from '@/lib/db/has-table';
 import { submitForReview } from './actions';
 import { formatCHFShort } from '@/lib/valuation';
 import { InseratStatusBanner } from '@/components/verkaeufer/InseratStatusBanner';
-import { InseratChat, type ChatMessage } from '@/components/verkaeufer/InseratChat';
-import { createAdminClient } from '@/lib/supabase/server';
 import { AnonymitaetToggle } from './components/AnonymitaetToggle';
 
 export const metadata = { title: 'Mein Inserat — passare Verkäufer' };
@@ -208,13 +206,14 @@ export default async function InseratIndexPage() {
           />
         </div>
 
-        {/* ─── CHAT mit passare-Team ─────────────────────────────
-            Cyrill 30.04.2026: Auch bei live-Inseraten muss der Chat sichtbar
-            sein — der Admin kann jederzeit eine Frage zum Inserat stellen
-            ohne den Status zu wechseln. renderChat returnt null wenn weder
-            Nachrichten existieren noch ein Workflow-Status aktiv ist.
-            ----------------------------------------------------- */}
-        {await renderChat(inserat.id, inserat.status)}
+        {/* ─── CHAT ist UNTER ANFRAGEN ─────────────────────────────
+            Cyrill 30.04.2026: «Konversation soll nicht hier stattfinden,
+            sondern als Thread unter Anfragen — alle Chats (Käufer +
+            passare-Team) an einem zentralen Ort, mit subtilem Inserat-
+            Tag im Chat-Header zum Zurückspringen.» Chat aus dieser Page
+            entfernt — die InseratStatusBanner-Box oben zeigt nur noch
+            den Status (Rückfrage / Abgelehnt / In-Prüfung) und führt
+            falls nötig in den Anfragen-Bereich. */}
 
         {/* ─── ANONYMITÄTS-TOGGLE ──────────────────────────────────
             Cyrill 30.04.2026: «Verkäufer soll umstellen können ob er
@@ -224,6 +223,14 @@ export default async function InseratIndexPage() {
         <AnonymitaetToggle
           inseratId={inserat.id}
           current={(inserat.anonymitaet_level as 'voll_anonym' | 'vorname_funktion' | 'voll_offen') ?? 'voll_anonym'}
+          kontakt={{
+            kontakt_vorname: (inserat.kontakt_vorname as string | null) ?? null,
+            kontakt_nachname: (inserat.kontakt_nachname as string | null) ?? null,
+            kontakt_funktion: (inserat.kontakt_funktion as string | null) ?? null,
+            kontakt_email_public: (inserat.kontakt_email_public as string | null) ?? null,
+            kontakt_whatsapp_nr: (inserat.kontakt_whatsapp_nr as string | null) ?? null,
+            kontakt_foto_url: (inserat.kontakt_foto_url as string | null) ?? null,
+          }}
         />
 
         {/* ─── KPI-STRIP ───────────────────────────────────────── */}
@@ -403,95 +410,6 @@ export default async function InseratIndexPage() {
           </button>
         </div>
       </div>
-    </div>
-  );
-}
-
-/**
- * Lädt die Audit-Nachrichten für den Chat-Container.
- * Service-Role-Client umgeht RLS — Owner-Check wurde oben in der Page schon
- * gemacht über inserat.verkaeufer_id == auth.uid().
- */
-async function renderChat(inseratId: string, status: string) {
-  const admin = createAdminClient();
-  const { data: rawMessages } = await admin
-    .from('inserat_audit_messages')
-    .select('id, from_user, from_role, kind, message, created_at')
-    .eq('inserat_id', inseratId)
-    .order('created_at', { ascending: true });
-
-  const messages = (rawMessages ?? []) as Array<{
-    id: string;
-    from_user: string;
-    from_role: 'admin' | 'verkaeufer';
-    kind: 'rueckfrage' | 'antwort' | 'ablehnung' | 'freigabe' | 'kommentar' | 'pause';
-    message: string;
-    created_at: string;
-  }>;
-
-  // Author-Profile nachladen
-  const userIds = Array.from(new Set(messages.map((m) => m.from_user)));
-  const profileMap = new Map<string, { name: string | null; email: string | null }>();
-  if (userIds.length > 0) {
-    const { data: profiles } = await admin
-      .from('profiles')
-      .select('id, full_name, email')
-      .in('id', userIds);
-    for (const p of profiles ?? []) {
-      profileMap.set(p.id as string, {
-        name: (p.full_name as string | null) ?? null,
-        email: (p.email as string | null) ?? null,
-      });
-    }
-  }
-
-  const enriched: ChatMessage[] = messages.map((m) => {
-    const profile = profileMap.get(m.from_user);
-    const display = profile?.name ?? profile?.email ?? null;
-    const initials = display
-      ? display
-          .split(/[\s@]/)
-          .map((s) => s[0])
-          .filter(Boolean)
-          .slice(0, 2)
-          .join('')
-          .toUpperCase()
-      : m.from_role === 'admin'
-        ? 'PT'
-        : 'VK';
-    return {
-      id: m.id,
-      from_role: m.from_role,
-      kind: m.kind,
-      message: m.message,
-      created_at: m.created_at,
-      author_name: m.from_role === 'admin' ? 'passare-Team' : display,
-      author_initials: initials,
-    };
-  });
-
-  // Cyrill 30.04.2026: Verkäufer kann immer antworten — der Admin kann auch
-  // bei live-Inseraten Fragen stellen. Nur bei finalen/inaktiven Status
-  // (entwurf, verkauft, abgelehnt, abgelaufen) gesperrt.
-  const canReply = !['entwurf', 'abgelehnt', 'verkauft', 'abgelaufen'].includes(status);
-
-  // Wenn 0 Nachrichten UND Status nicht in einem aktiven Workflow-Schritt,
-  // gar nichts rendern — kein leerer Chat-Container im Mein-Inserat.
-  if (
-    enriched.length === 0 &&
-    !['rueckfrage', 'pending', 'zur_pruefung', 'abgelehnt'].includes(status)
-  ) {
-    return null;
-  }
-
-  return (
-    <div className="mb-6">
-      <InseratChat
-        inseratId={inseratId}
-        messages={enriched}
-        status={status}
-        canReply={canReply}
-      />
     </div>
   );
 }

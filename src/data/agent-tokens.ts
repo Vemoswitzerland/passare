@@ -68,6 +68,15 @@ export const SESSIONS: AgentSession[] = [
   {
     date: '2026-04-30',
     bereich: 'verkaeufer',
+    titel: 'Inbox-Umbau: zentrale Nachrichten-Übersicht (Käufer + passare-Team) + Inline-Kontakt-Edit',
+    inputTokens: 540_000,
+    outputTokens: 110_000,
+    dauerMinuten: 45,
+    status: 'done',
+  },
+  {
+    date: '2026-04-30',
+    bereich: 'verkaeufer',
     titel: 'Mein-Inserat-Header kompakt + Anonymitäts-Toggle + Live-Edit + Auth-Mail-Hook deployed',
     inputTokens: 480_000,
     outputTokens: 70_000,

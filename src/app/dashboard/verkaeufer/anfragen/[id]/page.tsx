@@ -41,10 +41,11 @@ export default async function AnfrageDetailPage({ params }: Props) {
   if (!u.user) notFound();
 
   // Anfrage laden mit Owner-Check
+  // (DB-Schema: nachricht statt message, kein score/decline_reason mehr)
   const { data: anfrage } = await supabase
     .from('anfragen')
     .select(`
-      id, kaeufer_id, message, status, score, created_at, decline_reason,
+      id, kaeufer_id, nachricht, status, created_at, admin_notes,
       dossier_requested_at, dossier_request_message, datenraum_granted_at,
       inserate!inner(id, titel, verkaeufer_id, paket)
     `)
@@ -169,7 +170,7 @@ export default async function AnfrageDetailPage({ params }: Props) {
             <section className="bg-paper border border-stone rounded-card p-5">
               <p className="overline text-bronze-ink mb-3">Anfrage-Nachricht</p>
               <p className="text-body text-ink leading-relaxed whitespace-pre-wrap">
-                {anfrage.message ?? <span className="text-quiet italic">Keine Nachricht.</span>}
+                {anfrage.nachricht ?? <span className="text-quiet italic">Keine Nachricht.</span>}
               </p>
             </section>
 

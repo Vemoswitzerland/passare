@@ -68,6 +68,13 @@ export const UPDATES: Update[] = [
   {
     date: '2026-04-30',
     type: 'feature',
+    titel: 'Inbox: alle Konversationen an einem Ort + Inline-Kontakt-Edit',
+    beschreibung:
+      'Drei grosse Verbesserungen: (1) Der bisherige Chat auf «Mein Inserat» ist weg — alle Nachrichten (Käufer-Anfragen UND Nachrichten vom passare-Team) wandern jetzt in eine zentrale Inbox unter dem Sidebar-Eintrag «Nachrichten» (vorher «Anfragen»). Layout im Slack-/Linear-Stil: links die Liste aller Konversationen mit Letzte-Nachricht-Preview und Inserat-Tag, rechts der aktive Chat — oben rechts ein subtiler Link zum jeweiligen Inserat zum Zurückspringen. (2) Käufer und Verkäufer können sich jetzt direkt im Anfragen-Chat hin und her schreiben (vorher gab es nur die initiale Käufer-Nachricht und Status-Aktionen) — Verlauf wird gespeichert, Bestands-Anfragen wurden automatisch in den neuen Chat-Verlauf migriert. (3) Beim Anonymitäts-Toggle auf «Mein Inserat» klappt jetzt automatisch ein Eingabe-Panel auf, wenn man von «Anonym» auf «Halb-anonym» oder «Voll-offen» wechselt und die nötigen Kontakt-Daten (Vorname, Funktion, Nachname, E-Mail, WhatsApp) noch nicht ausgefüllt sind — alles direkt in der Übersicht editierbar, Inserat bleibt live, Speichern in einem Klick.',
+  },
+  {
+    date: '2026-04-30',
+    type: 'feature',
     titel: 'Mein Inserat: kompakter Header + Anonymität direkt umstellen + live-editierbar',
     beschreibung:
       'Drei Verbesserungen auf der «Mein Inserat»-Übersicht: (1) Header kompakter — Titel, Status-Badge und die beiden Knöpfe «Live-Inserat / Vorschau» und «Bearbeiten» sind jetzt alle auf einer Zeile statt gestapelt, ID-Info wandert in den «zuletzt geändert»-Hinweis darunter. (2) Neue Sektion «Anonymität» mit drei Karten zum direkten Umstellen — Anonym (nur Eckdaten), Halb-anonym (plus Vorname und Funktion) und Voll-offen (plus Foto, Mail, Firma) — Verkäufer kann jederzeit selbst entscheiden, ohne den Wizard zu öffnen, das Inserat bleibt live. (3) Live-Inserate sind jetzt komplett editierbar — Verkäufer reicht Änderungen direkt im Wizard ein, der Server prüft was geändert wurde: Cover-Bild, Anonymität, Kontaktdaten, Social-URLs gehen direkt durch (Inserat bleibt live), nur sicherheitsrelevante Änderungen (Titel, Beschreibung, Branche, Zahlen, Eckdaten, Mitarbeitende) lösen automatisch ein erneutes Admin-Review aus mit einer Audit-Nachricht «Verkäufer hat Inserat editiert — relevante Felder: …, bitte prüfen».',
