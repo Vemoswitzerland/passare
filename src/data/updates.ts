@@ -67,6 +67,20 @@ export const CURRENT_STEP = {
 export const UPDATES: Update[] = [
   {
     date: '2026-04-30',
+    type: 'feature',
+    titel: 'Mein Inserat: kompakter Header + Anonymität direkt umstellen + live-editierbar',
+    beschreibung:
+      'Drei Verbesserungen auf der «Mein Inserat»-Übersicht: (1) Header kompakter — Titel, Status-Badge und die beiden Knöpfe «Live-Inserat / Vorschau» und «Bearbeiten» sind jetzt alle auf einer Zeile statt gestapelt, ID-Info wandert in den «zuletzt geändert»-Hinweis darunter. (2) Neue Sektion «Anonymität» mit drei Karten zum direkten Umstellen — Anonym (nur Eckdaten), Halb-anonym (plus Vorname und Funktion) und Voll-offen (plus Foto, Mail, Firma) — Verkäufer kann jederzeit selbst entscheiden, ohne den Wizard zu öffnen, das Inserat bleibt live. (3) Live-Inserate sind jetzt komplett editierbar — Verkäufer reicht Änderungen direkt im Wizard ein, der Server prüft was geändert wurde: Cover-Bild, Anonymität, Kontaktdaten, Social-URLs gehen direkt durch (Inserat bleibt live), nur sicherheitsrelevante Änderungen (Titel, Beschreibung, Branche, Zahlen, Eckdaten, Mitarbeitende) lösen automatisch ein erneutes Admin-Review aus mit einer Audit-Nachricht «Verkäufer hat Inserat editiert — relevante Felder: …, bitte prüfen».',
+  },
+  {
+    date: '2026-04-30',
+    type: 'infrastruktur',
+    titel: 'Auth-Mails kommen jetzt von passare statt Supabase',
+    beschreibung:
+      'Bestätigungs-Mails (E-Mail-Verifizierung, Passwort-Reset, Magic-Link) wurden bisher mit dem Standard-«Confirm your signup»-Wording vom Hosting-Anbieter verschickt. Die passare-eigene Versand-Funktion mit Branding (Fraunces-Logo, Cream-Hintergrund, Bronze-Akzent) ist jetzt aktiv und versendet alle Auth-Mails über den eigenen Mail-Provider mit dem passare-Absender. (Hinweis: Die Aktivierung im Auth-Hook-Dashboard mit den Secrets ist als manueller Schritt in der Anleitung dokumentiert.)',
+  },
+  {
+    date: '2026-04-30',
     type: 'fix',
     titel: '«Mein Inserat»-Cockpit: jetzt wirklich sichtbar + EBITDA/Preis-Korrektur',
     beschreibung:

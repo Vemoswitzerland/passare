@@ -162,21 +162,116 @@ export async function updateInseratFields(
   };
 }
 
-/** Step-Save (Auto-Save vom Wizard). */
+/**
+ * Step-Save (Auto-Save vom Wizard).
+ *
+ * Cyrill 30.04.2026: «Live-Inserate sollen editierbar sein — Verkäufer
+ * reicht Änderungen ein, Admin prüft NUR sicherheitsrelevante Felder».
+ *
+ * Logik:
+ *  - Inserat war live + relevante Änderung (Titel, Zahlen, Branche…) →
+ *    Status zurück auf 'pending', Audit-Message für Admin.
+ *  - Inserat war live + nur irrelevante Änderung (Cover, Anonymität,
+ *    Kontakt, Social-URL) → bleibt live, kein Re-Review.
+ *  - Alle anderen Status (entwurf/pending/rueckfrage) → behalten Status,
+ *    kein Re-Review-Trigger nötig.
+ */
 export async function saveStep(
   inseratId: string,
   step: number,
   data: Record<string, unknown>,
-): Promise<ActionResult> {
+): Promise<ActionResult & { needsReview?: boolean }> {
+  const { classifyChanges, FIELD_LABEL } = await import('@/lib/admin/inserat-change-classification');
   const supabase = await createClient();
+
+  // Stand vor dem Save laden — nur Felder die der Wizard ändert
+  const { data: before } = await supabase
+    .from('inserate')
+    .select('*')
+    .eq('id', inseratId)
+    .maybeSingle();
+
+  const wasLive = before?.status === 'live';
+
+  // RPC ruft submit_inserat_step → schreibt Felder + setzt updated_at
   const { error } = await supabase.rpc('submit_inserat_step', {
     p_id: inseratId,
     p_step: step,
     p_data: data,
   });
   if (error) return { ok: false, error: error.message };
+
+  // Re-Review nur prüfen wenn vorher live
+  let needsReview = false;
+  if (wasLive && before) {
+    const { data: after } = await supabase
+      .from('inserate')
+      .select('*')
+      .eq('id', inseratId)
+      .maybeSingle();
+    if (after) {
+      const cls = classifyChanges(
+        before as Record<string, unknown>,
+        after as Record<string, unknown>,
+      );
+      if (cls.needsReview) {
+        // Status zurück auf pending → wandert ins Admin-Audit
+        const { error: statusErr } = await supabase
+          .from('inserate')
+          .update({ status: 'pending' })
+          .eq('id', inseratId);
+        if (!statusErr) {
+          needsReview = true;
+          // Audit-Nachricht — Admin sieht was geändert wurde
+          const labels = cls.relevantChanges
+            .map((f) => FIELD_LABEL[f] ?? f)
+            .join(', ');
+          const { data: u } = await supabase.auth.getUser();
+          if (u.user) {
+            await supabase.from('inserat_audit_messages').insert({
+              inserat_id: inseratId,
+              from_user: u.user.id,
+              from_role: 'verkaeufer',
+              kind: 'antwort',
+              message: `Verkäufer hat Inserat editiert — relevante Felder: ${labels}. Bitte prüfen.`,
+            });
+          }
+          revalidatePath('/admin/inserate');
+          revalidatePath(`/admin/inserate/${inseratId}`);
+        }
+      }
+    }
+  }
+
   revalidatePath('/dashboard/verkaeufer/inserat');
-  return { ok: true, id: inseratId };
+  return { ok: true, id: inseratId, needsReview };
+}
+
+/**
+ * Verkäufer ändert sein Anonymitäts-Level direkt aus «Mein Inserat»
+ * (3-Stufen-Toggle — voll_anonym / vorname_funktion / voll_offen).
+ *
+ * Da `anonymitaet_level` als IRRELEVANT klassifiziert ist, bleibt das
+ * Inserat live und es gibt kein Re-Review.
+ */
+export async function setAnonymitaetLevel(
+  inseratId: string,
+  level: 'voll_anonym' | 'vorname_funktion' | 'voll_offen',
+): Promise<ActionResult> {
+  const supabase = await createClient();
+  const { data: u } = await supabase.auth.getUser();
+  if (!u.user) return { ok: false, error: 'Nicht angemeldet.' };
+
+  const { error } = await supabase
+    .from('inserate')
+    .update({ anonymitaet_level: level })
+    .eq('id', inseratId)
+    .eq('verkaeufer_id', u.user.id);
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath('/dashboard/verkaeufer/inserat');
+  revalidatePath(`/inserat/${inseratId}`);
+  return { ok: true };
 }
 
 /** Inserat löschen (nur Entwurf erlaubt durch RLS). */

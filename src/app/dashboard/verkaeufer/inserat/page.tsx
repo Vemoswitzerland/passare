@@ -12,6 +12,7 @@ import { formatCHFShort } from '@/lib/valuation';
 import { InseratStatusBanner } from '@/components/verkaeufer/InseratStatusBanner';
 import { InseratChat, type ChatMessage } from '@/components/verkaeufer/InseratChat';
 import { createAdminClient } from '@/lib/supabase/server';
+import { AnonymitaetToggle } from './components/AnonymitaetToggle';
 
 export const metadata = { title: 'Mein Inserat — passare Verkäufer' };
 
@@ -152,21 +153,19 @@ export default async function InseratIndexPage() {
   return (
     <div className="px-6 md:px-10 py-8 md:py-12">
       <div className="max-w-content mx-auto">
-        {/* ─── HEADER ──────────────────────────────────────────── */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
-          <div className="min-w-0">
-            <p className="overline text-bronze-ink mb-2">Mein Inserat</p>
-            <h1 className="font-serif text-display-sm text-navy font-light tracking-tight truncate">
+        {/* ─── HEADER ──────────────────────────────────────────────
+            Cyrill 30.04.2026: Titel + Live-Inserat + Bearbeiten alle
+            auf 1 Höhe. Kein Overline-/ID-Subtext mehr — die ID-Info
+            wandert in den «zuletzt geändert»-Hinweis unter dem Titel. */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-6">
+          <div className="flex items-baseline gap-3 min-w-0">
+            <h1 className="font-serif text-head-lg md:text-display-sm text-navy font-light tracking-tight truncate">
               {inserat.titel || inserat.firma_name || 'Entwurf'}
             </h1>
-            <p className="text-caption text-quiet font-mono mt-1">
-              ID {inserat.id.slice(0, 8)} · zuletzt geändert {formatRelative(inserat.updated_at)}
-            </p>
-          </div>
-          <div className="flex items-center gap-3 flex-shrink-0">
             <StatusBadge status={inserat.status} />
-            {/* Cyrill 30.04.2026: bei nicht-live → Vorschau, bei live → Public-
-                Inserat (so wie es Käufer sehen). isLive prüft auf status==='live'. */}
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {/* bei live → Public-Inserat (Käufer-Sicht), sonst Vorschau */}
             {isLive ? (
               <Link
                 href={`/inserat/${inserat.public_id ?? inserat.id}`}
@@ -196,6 +195,9 @@ export default async function InseratIndexPage() {
             </Link>
           </div>
         </div>
+        <p className="text-caption text-quiet font-mono mb-6">
+          ID {inserat.id.slice(0, 8)} · zuletzt geändert {formatRelative(inserat.updated_at)}
+        </p>
 
         {/* ─── STATUS-BANNER ───────────────────────────────────── */}
         <div className="mb-6">
@@ -213,6 +215,16 @@ export default async function InseratIndexPage() {
             Nachrichten existieren noch ein Workflow-Status aktiv ist.
             ----------------------------------------------------- */}
         {await renderChat(inserat.id, inserat.status)}
+
+        {/* ─── ANONYMITÄTS-TOGGLE ──────────────────────────────────
+            Cyrill 30.04.2026: «Verkäufer soll umstellen können ob er
+            anonym, mittel-anonym oder voll-offen auftritt — direkt aus
+            der Übersicht, ohne den Wizard zu öffnen». Anonymitäts-Level
+            ist als IRRELEVANT klassifiziert → kein Re-Review. */}
+        <AnonymitaetToggle
+          inseratId={inserat.id}
+          current={(inserat.anonymitaet_level as 'voll_anonym' | 'vorname_funktion' | 'voll_offen') ?? 'voll_anonym'}
+        />
 
         {/* ─── KPI-STRIP ───────────────────────────────────────── */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">

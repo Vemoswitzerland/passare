@@ -28,6 +28,18 @@ const IRRELEVANT_FIELDS = new Set([
   'whatsapp_enabled',
   'live_chat_enabled',
   'chat_zeiten',
+  // Cyrill 30.04.2026: «Admin muss nur sicherheitsrelevante Dinge prüfen».
+  // Anonymitäts-Level ist Verkäufer-Entscheidung, nicht Käufer-Täuschung —
+  // er entscheidet selbst wieviel er von sich zeigt. Kontakt-Daten sind
+  // ebenfalls Verkäufer-eigene Daten (er kann sich umbenennen, andere Mail
+  // nehmen, WhatsApp wechseln). Das ist keine Sicherheitsfrage.
+  'anonymitaet_level',
+  'kontakt_vorname',
+  'kontakt_nachname',
+  'kontakt_funktion',
+  'kontakt_foto_url',
+  'kontakt_email_public',
+  'kontakt_whatsapp_nr',
   // Auto-tracked oder nur intern:
   'views',
   'updated_at',
@@ -38,6 +50,8 @@ const IRRELEVANT_FIELDS = new Set([
   'published_at',
   'paused_at',
   'featured_until',
+  'live_at',
+  'public_id',
   // Status selber wird vom Audit-Flow gesetzt, nicht vom Verkäufer
   'status',
   'rejection_reason',
@@ -89,7 +103,8 @@ const RELEVANT_FIELDS = new Set([
   'immobilien',
   'finanzierung',
   'wir_anteil_moeglich',
-  'anonymitaet_level',
+  // Cyrill: anonymitaet_level ist KEIN sicherheits-/inhaltskritisches
+  // Feld — Verkäufer-Selbstentscheidung. Liegt jetzt in IRRELEVANT_FIELDS.
   // Übergabe
   'grund',
   'uebergabe_zeitpunkt',

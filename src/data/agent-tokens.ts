@@ -67,6 +67,15 @@ export type AgentSession = {
 export const SESSIONS: AgentSession[] = [
   {
     date: '2026-04-30',
+    bereich: 'verkaeufer',
+    titel: 'Mein-Inserat-Header kompakt + Anonymitäts-Toggle + Live-Edit + Auth-Mail-Hook deployed',
+    inputTokens: 480_000,
+    outputTokens: 70_000,
+    dauerMinuten: 35,
+    status: 'done',
+  },
+  {
+    date: '2026-04-30',
     bereich: 'seo',
     titel: 'Inserat-Detail: Verkäufer-Kontakt-Box je nach Anonymitäts-Level',
     inputTokens: 620_000,
