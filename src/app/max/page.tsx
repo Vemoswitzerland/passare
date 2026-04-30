@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import {
-  ArrowRight, Check, Eye, Zap, BellRing, MessageCircle,
+  ArrowRight, Eye, BellRing, MessageCircle,
   Filter, Bookmark, Sparkles, ShieldCheck,
 } from 'lucide-react';
 import { Container, Section } from '@/components/ui/container';
