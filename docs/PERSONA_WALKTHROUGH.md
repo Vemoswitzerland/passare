@@ -322,6 +322,84 @@ Lukas Weber, 32, Zürich. Head of Operations bei passare. Vorher 4 Jahre bei Ric
 
 ---
 
+## 👤 PERSONA 4 — HANS (NACHFOLGER-SUCHENDER INHABER) — NEU aus Sprachmemo
+
+### Setup
+Hans Furrer, 64, Olten. Inhaber Malerbetrieb (12 MA, ~1.8 Mio Umsatz, gesund). Seit 40 Jahren im Geschäft. **Sucht keinen Cash-Out — sucht Nachfolger.** Hat genug Geld, will Lebenswerk weiterführen lassen. Seine Mitarbeiter sind ihm wichtig. Zwei eigene Kinder im Bürojob, kein Interesse am Betrieb. Spricht nur Deutsch. Nutzt WhatsApp, hat Mühe mit komplizierten Web-Tools.
+
+### Was er wirklich braucht
+1. Einen Weg, **passende Nachfolger zu finden** — nicht beliebige Käufer
+2. Sehen können wer der Mensch hinter der Anfrage ist (CV, Werdegang, Motivation), bevor er weitergibt
+3. Nicht das Gefühl haben "ich werde verkauft" — eher "ich gebe weiter"
+4. Anonymität bis er selber bereit ist (Mitarbeiter sollen es nicht aus dem Internet erfahren)
+5. Möglichst keine Anwälte/Berater anfangs (kommt für ihn später)
+
+### Journey + Gaps
+- 🔴 **FEHLT komplett:** Kategorie "Nachfolge gesucht" als alternativer Inserat-Typ. Heute kann er nur "Firma verkaufen" — fühlt sich falsch an.
+- 🔴 **FEHLT:** Filter im Marktplatz "Nachfolger gesucht" vs "Firma zu verkaufen"
+- 🔴 **FEHLT:** Bidirektionale Suche — er möchte aktiv Talent-Profile durchsuchen ("Maler-Meister in BE/SO mit 5+ Jahren Erfahrung")
+- 🔴 **FEHLT:** Eigenes Pricing-Paket "Nachfolge-Light" (~CHF 90?) weil er keinen unmittelbaren Cash-Outflow hat
+- ✅ Anonyme Inserat-Detail-Page existiert bereits (anonyme Eckdaten + Volltext nach Anfrage)
+
+### Was Hans bei companymarket verloren ist
+Companymarket hat keine Nachfolge-Kategorie. Hans hat dort ein "zu verkaufen"-Inserat geschaltet, bekommt nur Investor-Anfragen die ihn enttäuschen ("die wollen den Betrieb zerlegen"). Frustriert.
+
+→ Adressiert durch **Phase 2 P2.1 Nachfolger-Marktplatz**.
+
+---
+
+## 👤 PERSONA 5 — MARC (TALENT MIT ÜBERNAHME-WUNSCH) — NEU aus Sprachmemo
+
+### Setup
+Marc Hofer, 38, Bern. Malermeister mit eigener Prüfung, seit 8 Jahren Foreman in einem grösseren Maler-Betrieb (60 MA). Geheimer Wunsch: eigener Betrieb. Hat CHF 200k auf der Seite + Eltern könnten weitere 300k beisteuern. Will nicht von Null gründen — möchte einen bestehenden Betrieb mit Kundenstamm übernehmen. **Darf bei seinem aktuellen Arbeitgeber nicht auffallen** dass er sucht.
+
+### Was er wirklich braucht
+1. Anonyme Sichtbarkeit — auf der Plattform präsent sein, ohne dass sein Name oder seine LinkedIn-URL preisgegeben werden
+2. Affordable — er ist kein MAX-Käufer. CHF 199/Monat ist zu viel.
+3. Verkäufer wie Hans sollen ihn FINDEN können (passive Suche)
+4. Erkennen können was eine Übernahme finanziell bedeutet (Finanzierung, Werte)
+5. Know-How-Hilfe: was muss er beim Übernahme-Prozess beachten?
+
+### Journey + Gaps
+- 🔴 **FEHLT komplett:** Käufer-Talent-Tier (CHF 24/Jahr) — heute hat er nur Wahl Basic (kann nichts) oder MAX (zu teuer)
+- 🔴 **FEHLT:** Anonymes öffentliches Talent-Profil ("Maler-Meister, BE, sucht Übernahme 1-3 Mio")
+- 🔴 **FEHLT:** Onboarding-Quiz das aus seinen Antworten ein Profil baut
+- 🔴 **FEHLT:** "Privatsphäre-Garantie" — sichtbar dokumentiert dass Verkäufer nur Profil-Eckdaten sehen, kein Klarname bis zur Anfrage
+- 🔴 **FEHLT:** Ratgeber-Hub für "Wie übernehme ich einen Betrieb?" (Etappe `/ratgeber` existiert, aber Übernahme-Inhalte fehlen)
+
+### Was Marc heute macht
+Heute liest er passiv companymarket-Inserate, schickt nie Anfragen weil er Angst hat dass sein Arbeitgeber es mitkriegt. Bewegt sich nicht von der Stelle.
+
+→ Adressiert durch **Phase 2 P2.1 Nachfolger-Marktplatz + P2.2 Talent-Tier**.
+
+---
+
+## 👤 PERSONA 6 — LENA (FRUSTRIERTE MITARBEITERIN, EINE VON 500'000) — NEU aus Sprachmemo
+
+### Setup
+Lena Bühler, 52, Aarau. HR-Leiterin in einer Mittelfirma (180 MA). Seit 22 Jahren angestellt. Verdient anständig, aber: spürt seit 5 Jahren "ich bin im falschen Setting, ich wäre eine bessere Chefin". Hat keinen konkreten Übernahme-Plan, aber Lust würde sie haben. Cyrils 500'000-Schweizer-Persona: "Eigentlich bin ich der/die geborene Chef/Chefin."
+
+### Was sie wirklich braucht
+1. Ein Ort wo sie sich präsentieren kann ohne dass es viel kostet — CHF 24/Jahr ist OK
+2. Sichtbarkeit für mögliche Verkäufer ("ich bin offen für Gespräche, hier ist mein Profil")
+3. Newsletter / News über M&A-Markt CH — sie ist neugierig, nicht aktiv
+4. Niedrige Schwelle — kein Mandat, kein Anwalt, einfach "drin sein"
+5. Nicht das Gefühl, einen aggressiven Sales-Funnel runterzulaufen
+
+### Journey + Gaps
+- 🔴 **FEHLT:** Talent-Tier (siehe Marc)
+- 🔴 **FEHLT:** Newsroom in dem sie passiv Beiträge konsumieren kann (Branchenleader-Content-Hub)
+- 🔴 **FEHLT:** Niedrigschwellige "ich bin grundsätzlich interessiert"-Eintragung (Quiz, kein klassisches Profil-Formular)
+- 🔴 **FEHLT:** Kuratierte Inhalte für "ich überlege mal eine Übernahme — wie geht das?"
+- 🔴 **FEHLT:** Möglichkeit selber im Newsroom kleine Posts zu schreiben ("HR-Erfahrung sucht Firma im Mittelstand")
+
+### Was Lena heute macht
+Nichts. Sie liest gelegentlich Handelszeitung, denkt sich "schade dass es keinen einfachen Marktplatz gibt", schliesst den Tab. Wird nie konvertieren ohne niedrigschwelliges Angebot.
+
+→ Adressiert durch **Phase 2 P2.2 Talent-Tier + P2.4 Branchenleader-Content-Hub**.
+
+---
+
 ## 🎯 KONSOLIDIERTE TOP-20 MUST-FIX (pre-Launch)
 
 Aus allen 3 Perspektiven zusammen — was KRITISCH für den Launch ist, wenn passare companymarket verdrängen soll:

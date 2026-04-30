@@ -66,6 +66,13 @@ export const CURRENT_STEP = {
  */
 export const UPDATES: Update[] = [
   {
+    date: '2026-04-30',
+    type: 'milestone',
+    titel: 'Plan komplett überarbeitet — 3 Phasen statt 196 Etappen',
+    beschreibung:
+      'Bestandsaufnahme über das ganze Projekt: Was ist wirklich live, was steht noch offen, was kommt aus den Sprachmemos neu dazu. Aus dem alten 196-Etappen-Plan wurde ein realitätsbasierter 3-Phasen-Plan. Phase 1 = was vor dem öffentlichen Launch fehlt (Mehrsprachigkeit, Bot-Schutz, Rechnungen, Trust, Tests). Phase 2 = Wachstum nach Launch (Nachfolger-Marktplatz, Talent-Tier für 24 Fr./Jahr, Atlas mit Auto-Wert für jede CH-Firma, Branchenleader-Newsroom). Phase 3 = Vision in 12+ Monaten (Finanzierung + Vertrags-KI + Daten-Dashboard für Banken).',
+  },
+  {
     date: '2026-04-29',
     type: 'fix',
     titel: 'Käufer-Onboarding repariert + Käufer-Bereich deutlich schneller',

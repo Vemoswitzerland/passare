@@ -94,13 +94,14 @@ passare.ch ist ein **VÖLLIG eigenständiges Projekt** — unabhängig von Vemo 
 
 Alle Preise zzgl. **8.1% CH-MwSt**. Keine automatische Verlängerung.
 
-### 🟢 Käufer — Gratis oder MAX-Abo
-| Tier | Preis | Kernmerkmale |
+### 🟢 Käufer — DREI Tiers (Basic / Talent / MAX)
+| Tier | Preis | Zielgruppe |
 |---|---|---|
-| **Käufer Basic** | CHF 0 unbefristet | Öffentliche Inserate, 5 Basis-Filter, 5 Anfragen/Monat |
-| **Käufer MAX** | CHF 199/M oder CHF 1'990/Jahr | 7 Tage Frühzugang, alle Filter, unbegrenzte Anfragen, WhatsApp-Alerts, Featured-Käuferprofil, NDA-Fast-Track, KMU-Multiples-DB |
+| **Käufer Basic** | CHF 0 unbefristet | Browsen, 5 Basis-Filter, 5 Anfragen/Monat |
+| **Käufer Talent** ⭐ | CHF 24/Jahr | "Ich will Firma übernehmen" — frustrierte CH-Mitarbeiter mit Übernahme-Wunsch. Eigenes öffentliches Talent-Profil, im Newsroom posten, von Verkäufern findbar. |
+| **Käufer MAX** | CHF 199/M oder CHF 1'990/Jahr | Aktive Käufer mit Mandat: 7 Tage Frühzugang, alle Filter, unbegrenzte Anfragen, WhatsApp-Alerts, Featured-Käuferprofil, NDA-Fast-Track, KMU-Multiples-DB |
 
-**Keine Pro-Zwischenstufe!** Nur Basic + MAX.
+**Talent-Tier kommt in Phase 2.** Phase 1 startet mit Basic + MAX.
 
 ### 🛑 Broker-Angebot — Phase 2, NICHT V1
 Broker können sich als Käufer registrieren (MAX-Abo). Dediziertes Broker-Produkt: spätere Etappe.
@@ -174,12 +175,20 @@ Im Code IMMER `verkaeufer` + `kaeufer` (beide transliteriert). Nie mischen!
 
 ---
 
-## 🗺️ DER MASTER PLAN
+## 🗺️ DER MASTER PLAN — 3 Phasen (V2, 30.04.2026)
 
-Die vollständige Roadmap liegt in [docs/MASTER_PLAN.md](docs/MASTER_PLAN.md) — **196 Etappen in 16 Blöcken** (15 aus Gap-Analyse + 21 aus Persona-Walkthrough integriert).
+Die Roadmap liegt in [docs/MASTER_PLAN.md](docs/MASTER_PLAN.md) — **komplett überarbeitet** nach Code-Audit + Sprachmemo-Integration vom 30.04.2026.
 
-**Grundregel: 1 Chat = 1 Etappe.** Keine zwei Etappen pro Chat.
-Jede Etappe wird **enorm tief** implementiert, niemals oberflächlich.
+**Drei Phasen:**
+- **Phase 1 — Public-Launch-Readiness** (4-6 Wochen): 12 Items die das Beta-Gate aus dem Weg räumen (i18n, MFA, CAPTCHA, Rechnungen, Trust-Pages, CI/CD, E2E-Tests, Monitoring, Powerups-UI)
+- **Phase 2 — Growth** (3-6 Monate post-Launch): 14 Items, davon **4 NEU aus Sprachmemos** (Nachfolger-Marktplatz, Talent-Tier, Atlas v2, Branchenleader-Hub)
+- **Phase 3 — Money Machine** (12+ Monate, Vision): Financing + Contracting + Data Command
+
+**Status Quo:** ~75 reale Features sind live — Auth, Verkäufer, Käufer, Admin, Bewertungstool, Atlas, Ratgeber, Stripe, Email, KI alles operativ.
+
+**Alte 196-Etappen-Version:** [docs/MASTER_PLAN_ARCHIV_2026-04-30.md](docs/MASTER_PLAN_ARCHIV_2026-04-30.md) (Archiv, nicht mehr aktuell).
+
+**Grundregel:** Pro Chat 1 Phase-Item komplett umsetzen, sehr tief. Niemals oberflächlich.
 
 ---
 
@@ -328,14 +337,31 @@ Code & Kommentare auch DE.
 
 ---
 
-## 🚀 Aktueller Stand
+## 🚀 Aktueller Stand (30.04.2026)
 
-- ✅ **Etappe 1 LIVE** — Repo, Scaffold, Beta-Gate, Vercel-Deploy
-- ✅ **Etappe 1.5 LIVE** — Design-System v1.0
-- ✅ **Etappe 1.7 LIVE** — Self-Service-Modell + Einzelseiten (`/verkaufen`, `/kaufen`, `/preise`)
-- ✅ **Etappe 1.8 LIVE** — Live-Status-Seite `/status` (Code `2827`) als Build-Log mit Task-Liste
-- ✅ **Etappe 1.9 LIVE** — Vercel SSO-Protection deaktiviert (öffentlich) + `robots.txt` Disallow:/
-- 📋 **Etappe 1.95** — Gap-Analyse abgeschlossen, ~15 neue Pflicht-Etappen integriert (siehe `docs/GAP_ANALYSIS.md`)
-- ⏳ **Etappe 2 NEXT** — Persistenz-Layer + Authentifizierung (Profile, RLS, Login-Flow)
+### LIVE & funktional ✅
+- **Fundament**: Repo, Beta-Gate, Design-System, Custom-Domain `passare.ch`, Status-Page `/status` (PIN 2827), Living Style Guide `/design`
+- **DB**: 13 Migrations, ~18 Tabellen, RLS überall (Recursion-Bugs gefixt)
+- **Auth**: Register/Login/Reset/OTP/PKCE + Google + LinkedIn OAuth
+- **Onboarding**: 3-Step-Wizard (Rolle → Profil → AGB) + `terms_acceptances`
+- **Verkäufer-Bereich**: Pre-Reg-Funnel (Zefix → Smart-Pricing), 5-Step-Inserat-Wizard mit Autosave, Dashboard (Übersicht, Inserate, Anfragen, NDA-Pipeline, Datenraum mit Versionen, Statistik, Paket-Verwaltung, Preview)
+- **Käufer-Bereich**: Marktplatz mit Filter, Inserat-Detail, Anfragen-Inbox, NDA-Sign, Favoriten-Kanban, Saved Searches mit Daily-Alerts, Käuferprofil, MAX-Abo-Portal, Berater-Datenraum-Share
+- **Admin-Bereich**: User-Management mit Impersonation, Inserat-Review-Queue mit Rückfrage-Workflow, Blog-Management mit KI-Generator, Anfragen-Moderation, Logs/Audit, Volltextsuche
+- **Lead-Magnete**: `/bewerten` (6-Fragen-Wizard), `/atlas` (MapLibre-Karte), `/ratgeber` (MDX-Blog mit KI)
+- **Backend**: 8 React-Email-Templates via Resend, Stripe Checkout+Webhook+Portal, Zefix mit 24h-Cache, Anthropic Claude für Branche/Teaser/Blog, Rate-Limiting, AI-Audit-Logging
 
-Siehe [docs/MASTER_PLAN.md](docs/MASTER_PLAN.md) für alle Etappen.
+### NEXT — Phase 1 (Public-Launch-Readiness)
+- ⏳ **P1.1** Cross-Bereich-Integration (letzter offener Task aus Status: Verkäufer↔Käufer↔Admin verbinden)
+- ⏳ **P1.2** Rechnungen + MwSt + PDF + Storno
+- ⏳ **P1.3** Trust + AGB-Versionierung + Cookie-Consent
+- ⏳ **P1.4** CAPTCHA + Bot-Schutz
+- ⏳ **P1.5** MFA für Admin (kritisch wegen Impersonation)
+- ⏳ **P1.6** Telefon-Verifikation Verkäufer (Twilio)
+- ⏳ **P1.7** i18n DE/FR/IT/EN aktivieren (großer Brocken)
+- ⏳ **P1.8** Powerups-Shop-UI
+- ⏳ **P1.9** Monitoring (Sentry + Plausible)
+- ⏳ **P1.10** Staging + CI/CD-Gates
+- ⏳ **P1.11** E2E-Tests (Playwright, 5 kritische Flows)
+- ⏳ **P1.12** Inserat-Pricing-UX-Polish
+
+Siehe [docs/MASTER_PLAN.md](docs/MASTER_PLAN.md) für alle Phasen + Phase 2 (Growth) + Phase 3 (Money Machine Vision).
