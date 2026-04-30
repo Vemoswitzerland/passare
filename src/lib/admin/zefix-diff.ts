@@ -184,8 +184,24 @@ export async function checkZefixDiff(input: {
     });
   }
 
-  // Gründungsjahr (±1 = info, ±5 = warning, > 5 = critical)
-  if (input.gruendungsjahr && zefix.gruendungsjahr) {
+  // Gründungsjahr — Cyrill 30.04.2026: manuell eingetragene Werte wurden
+  // letztes Mal nicht sauber aus dem HR übernommen. Wir prüfen hier explizit
+  // drei Fälle: (a) Inserat leer + HR hat Wert → "fehlt, übernimmst du den
+  // HR-Wert?" (b) Beide gesetzt + Diff → wie bisher. (c) Inserat hat Wert,
+  // HR liefert keinen → kein Eintrag (HR ist nicht autoritativ für jedes
+  // Gründungsjahr, vor allem bei Einzelfirmen).
+  if (zefix.gruendungsjahr && !input.gruendungsjahr) {
+    entries.push({
+      field: 'gruendungsjahr',
+      label: 'Gründungsjahr',
+      inserat: null,
+      zefix: zefix.gruendungsjahr.toString(),
+      severity: 'warning',
+      hint:
+        'Im Inserat fehlt das Gründungsjahr — laut Handelsregister ist es ' +
+        `${zefix.gruendungsjahr}. Wert übernehmen.`,
+    });
+  } else if (input.gruendungsjahr && zefix.gruendungsjahr) {
     const diff = Math.abs(input.gruendungsjahr - zefix.gruendungsjahr);
     if (diff > 0) {
       entries.push({
@@ -200,6 +216,42 @@ export async function checkZefixDiff(input: {
             : `Gründungsjahr weicht um ${diff} Jahr(e) ab.`,
       });
     }
+  }
+
+  // Firmenname — auch wenn Inserat leer aber HR Wert hat
+  if (zefix.name && !input.firma_name) {
+    entries.push({
+      field: 'firma_name',
+      label: 'Firmenname',
+      inserat: null,
+      zefix: zefix.name,
+      severity: 'warning',
+      hint: `Firmenname fehlt im Inserat — Handelsregister: «${zefix.name}».`,
+    });
+  }
+
+  // Rechtsform — auch wenn Inserat leer aber HR Wert hat
+  if (zefix.rechtsform && !input.firma_rechtsform) {
+    entries.push({
+      field: 'firma_rechtsform',
+      label: 'Rechtsform',
+      inserat: null,
+      zefix: zefix.rechtsform,
+      severity: 'warning',
+      hint: `Rechtsform fehlt im Inserat — Handelsregister: «${zefix.rechtsform}».`,
+    });
+  }
+
+  // Sitz-Gemeinde — auch wenn Inserat leer aber HR Wert hat
+  if (zefix.gemeinde && !input.firma_sitz_gemeinde) {
+    entries.push({
+      field: 'firma_sitz_gemeinde',
+      label: 'Sitz-Gemeinde',
+      inserat: null,
+      zefix: zefix.gemeinde,
+      severity: 'warning',
+      hint: `Sitz-Gemeinde fehlt im Inserat — Handelsregister: «${zefix.gemeinde}».`,
+    });
   }
 
   // Top-Severity ableiten

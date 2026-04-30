@@ -68,6 +68,13 @@ export const UPDATES: Update[] = [
   {
     date: '2026-04-30',
     type: 'feature',
+    titel: 'Admin-Inserat-Review: Verkäufer-Profil ausgeklappt + Handelsregister-Alarm',
+    beschreibung:
+      'Beim Prüfen eines Inserats stehen rechts jetzt sämtliche Verkäufer-Daten direkt sichtbar — Name, Mitgliedschaft, Telefon- und KYC-Verifikation, E-Mail, Telefon, Kanton, Sprache, Quality-Score, Antwortzeit, alle anderen Inserate dieses Verkäufers (mit ihren Status-Badges), Tags und Admin-Notizen. Der Inserate-Zähler ist intelligenter: bei nur einem Inserat steht «Einziges Inserat», nur bei mehreren steht «3 von 7». Der Handelsregister-Abgleich ist deutlich prominenter: Abweichungen erscheinen in einer aufgeräumten Tabelle (Feld · Inserat · Handelsregister · Stufe) statt nur als Tooltip. Wenn der Verkäufer das Gründungsjahr nicht eingetragen hat, das Handelsregister es aber liefert, gibt es eine deutliche Warnung mit dem Vorschlag, den HR-Wert zu übernehmen — gleiches gilt für Firmenname, Rechtsform und Sitz-Gemeinde. Sidebar-Badge bei «Inserate» zeigt jetzt «pending / total» (z.B. «3 / 12») statt nur die Pending-Zahl, weil mehr Kontext beim einen Blick.',
+  },
+  {
+    date: '2026-04-30',
+    type: 'feature',
     titel: 'Anfragen-Pro: Käufer-Profil ansehen, Dossier anfordern, Datenraum freigeben',
     beschreibung:
       'Ab dem Pro-Paket öffnet sich beim Klick auf eine Anfrage eine eigene Detail-Seite mit dem kompletten Käufer-Profil — Investor-Typ, Budget, gewünschte Regionen und Branchen, Timing, Erfahrung, persönliche Beschreibung, LinkedIn, MAX-Status und Verifikations-Badges (Telefon, Finanzierung, KYC). Zwei prominente Knöpfe rechts: «Käuferdossier anfordern» (mit optionaler Begleit-Nachricht — der Käufer bekommt eine Mail und lädt sein PDF-Dossier hoch) und «Datenraum freigeben» (gibt diesem Käufer Zugriff auf den geschützten Datenraum). So kann der Verkäufer den Käufer prüfen bevor er den Chat startet — er bleibt anonym solange er will.',

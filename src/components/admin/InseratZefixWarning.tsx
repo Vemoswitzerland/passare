@@ -1,12 +1,15 @@
-import { AlertTriangle, ShieldCheck, ShieldAlert } from 'lucide-react';
+import { AlertTriangle, ShieldCheck, ShieldAlert, ShieldQuestion } from 'lucide-react';
 import { checkZefixDiff } from '@/lib/admin/zefix-diff';
 import { cn } from '@/lib/utils';
 
 /**
- * Server-Component die im Hintergrund den Zefix-Check ausführt
- * und nur bei Abweichungen ein Warn-Banner rendert.
+ * Server-Component die im Hintergrund den Zefix-Check ausführt.
  *
- * Verwendung in der Admin-Inserat-Detail-Page.
+ * Cyrill 30.04.2026: «wenn jemand Information abändert oder das mit dem
+ * Handelsregister nicht übereinstimmt, dass Du dort wirklich Alert anzeigt».
+ *
+ * Darum: Bei jeder Abweichung ein DEUTLICHES, ausgeklapptes Banner mit
+ * Inserat-Wert ↔ HR-Wert direkt nebeneinander — nicht im Tooltip versteckt.
  */
 export async function InseratZefixWarning({
   zefix_uid,
@@ -23,15 +26,24 @@ export async function InseratZefixWarning({
   kanton: string | null;
   gruendungsjahr: number | null;
 }) {
-  // Nur wenn UID hinterlegt ist, lohnt sich der Lookup
+  // Keine UID → grosses, sichtbares Hinweis-Banner (vorher: subtiles Badge)
   if (!zefix_uid) {
     return (
-      <div
-        className="mb-3 inline-flex items-center gap-1.5 px-2 py-1 rounded-soft border border-stone bg-stone/30 text-[11px] text-quiet font-medium"
-        title="Inserat ist nicht mit dem Schweizer Handelsregister verknüpft (keine UID hinterlegt). Identität nicht automatisch verifizierbar."
-      >
-        <ShieldAlert className="w-3 h-3" strokeWidth={1.5} />
-        Nicht mit Handelsregister verknüpft
+      <div className="mb-3 rounded-soft border border-warn/40 bg-warn/10 p-3 flex items-start gap-2.5">
+        <ShieldQuestion
+          className="w-4 h-4 mt-0.5 flex-shrink-0 text-warn"
+          strokeWidth={1.5}
+        />
+        <div className="flex-1">
+          <p className="text-[12px] font-semibold text-warn leading-snug">
+            Inserat ohne Handelsregister-Verknüpfung
+          </p>
+          <p className="text-[11px] text-warn/85 mt-1 leading-relaxed">
+            Es ist keine UID hinterlegt. Identität der Firma kann nicht
+            automatisch verifiziert werden — manuell prüfen oder UID
+            nachfordern bevor Freigabe.
+          </p>
+        </div>
       </div>
     );
   }
@@ -51,39 +63,45 @@ export async function InseratZefixWarning({
     return null;
   }
 
+  // UID war ungültig oder nicht im HR gefunden
   if (diff.unverified) {
-    const tooltip = diff.unverifiedReason ?? 'Handelsregister-Lookup fehlgeschlagen';
+    const reason = diff.unverifiedReason ?? 'Handelsregister-Lookup fehlgeschlagen';
     return (
-      <div
-        className="mb-3 inline-flex items-center gap-1.5 px-2 py-1 rounded-soft border border-warn/30 bg-warn/10 text-[11px] text-warn font-medium"
-        title={tooltip}
-      >
-        <AlertTriangle className="w-3 h-3" strokeWidth={1.5} />
-        UID nicht im Handelsregister gefunden
+      <div className="mb-3 rounded-soft border border-warn/40 bg-warn/10 p-3 flex items-start gap-2.5">
+        <AlertTriangle
+          className="w-4 h-4 mt-0.5 flex-shrink-0 text-warn"
+          strokeWidth={1.5}
+        />
+        <div className="flex-1">
+          <p className="text-[12px] font-semibold text-warn">
+            UID nicht im Handelsregister gefunden
+          </p>
+          <p className="text-[11px] text-warn/85 mt-1 font-mono">{reason}</p>
+        </div>
       </div>
     );
   }
 
-  // Keine Abweichungen → kompakter «verified»-Hinweis
+  // Keine Abweichungen → kompaktes «verified»-Banner
   if (diff.entries.length === 0) {
     return (
-      <div
-        className="mb-3 inline-flex items-center gap-1.5 px-2 py-1 rounded-soft border border-success/30 bg-success/10 text-[11px] text-success font-medium"
-        title={`Daten stimmen mit dem Handelsregister überein (Quelle: ${diff.source ?? 'lindas'}).`}
-      >
+      <div className="mb-3 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-soft border border-success/30 bg-success/10 text-[11px] text-success font-medium">
         <ShieldCheck className="w-3 h-3" strokeWidth={1.5} />
         Mit Handelsregister abgeglichen
+        <span className="text-success/60 font-mono ml-1">
+          ({diff.source ?? 'lindas'})
+        </span>
       </div>
     );
   }
 
-  // Abweichungen vorhanden → grosses Warnbanner
+  // Abweichungen vorhanden → grosses Banner mit Inserat | HR direkt nebeneinander
   const tone =
     diff.topSeverity === 'critical'
-      ? 'border-danger/40 bg-danger/10 text-danger'
+      ? { border: 'border-danger/40', bg: 'bg-danger/10', text: 'text-danger', icon: AlertTriangle }
       : diff.topSeverity === 'warning'
-        ? 'border-warn/40 bg-warn/10 text-warn'
-        : 'border-stone bg-stone/30 text-quiet';
+        ? { border: 'border-warn/40', bg: 'bg-warn/10', text: 'text-warn', icon: AlertTriangle }
+        : { border: 'border-stone', bg: 'bg-stone/30', text: 'text-quiet', icon: ShieldAlert };
 
   const headline =
     diff.topSeverity === 'critical'
@@ -92,49 +110,73 @@ export async function InseratZefixWarning({
         ? 'Abweichungen zum Handelsregister'
         : 'Geringfügige Abweichungen zum Handelsregister';
 
-  // Tooltip mit allen Diffs (Browsers wrappen das automatisch)
-  const tooltip = diff.entries
-    .map((e) => `[${e.severity.toUpperCase()}] ${e.label}: Inserat «${e.inserat ?? '—'}» vs. Handelsregister «${e.zefix ?? '—'}»\n→ ${e.hint}`)
-    .join('\n\n');
+  const Icon = tone.icon;
 
   return (
-    <div
-      className={cn(
-        'mb-3 rounded-soft border p-3',
-        tone.replace('text-danger', '').replace('text-warn', '').replace('text-quiet', ''),
-        tone,
-      )}
-      title={tooltip}
-    >
-      <div className="flex items-start gap-2 mb-2">
-        <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" strokeWidth={1.5} />
-        <p className="text-[12px] font-semibold">{headline}</p>
+    <div className={cn('mb-3 rounded-soft border p-3', tone.border, tone.bg)}>
+      <div className="flex items-start gap-2 mb-3">
+        <Icon className={cn('w-4 h-4 mt-0.5 flex-shrink-0', tone.text)} strokeWidth={1.5} />
+        <div className="flex-1">
+          <p className={cn('text-[12px] font-semibold leading-snug', tone.text)}>{headline}</p>
+          <p className="text-[11px] text-quiet mt-0.5">
+            {diff.entries.length === 1
+              ? '1 Feld abweichend'
+              : `${diff.entries.length} Felder abweichend`}{' '}
+            · Quelle: {diff.source ?? 'Handelsregister'}
+          </p>
+        </div>
       </div>
-      <ul className="space-y-1 text-[11px] ml-6">
-        {diff.entries.map((e) => (
-          <li key={e.field} className="flex items-baseline gap-2">
-            <span
-              className={cn(
-                'inline-flex items-center px-1 py-px rounded-soft font-mono text-[10px] font-medium uppercase tracking-wide',
-                e.severity === 'critical'
-                  ? 'bg-danger/20 text-danger'
-                  : e.severity === 'warning'
-                    ? 'bg-warn/20 text-warn'
-                    : 'bg-stone/40 text-quiet',
-              )}
+
+      <div className="border-t border-current/10 pt-2">
+        {/* Spalten-Header — nur ab sm sichtbar */}
+        <div className="hidden sm:grid grid-cols-[140px_1fr_1fr_auto] gap-3 px-1 pb-1.5 text-[10px] uppercase tracking-wide font-medium text-quiet">
+          <span>Feld</span>
+          <span>Inserat</span>
+          <span>Handelsregister</span>
+          <span className="text-right">Stufe</span>
+        </div>
+
+        <ul className="divide-y divide-current/10">
+          {diff.entries.map((e) => (
+            <li
+              key={e.field}
+              className="py-2 px-1 grid sm:grid-cols-[140px_1fr_1fr_auto] grid-cols-1 gap-x-3 gap-y-1 items-baseline"
             >
-              {e.severity}
-            </span>
-            <span className="font-medium">{e.label}:</span>
-            <span className="text-ink font-mono">«{e.inserat ?? '—'}»</span>
-            <span className="text-quiet">↔</span>
-            <span className="text-ink font-mono">«{e.zefix ?? '—'}»</span>
-          </li>
-        ))}
-      </ul>
-      <p className="text-[10px] text-quiet mt-2 ml-6 italic">
-        Quelle: {diff.source ?? 'Handelsregister'} · hover für Erklärung
-      </p>
+              <p className="text-[12px] font-medium text-ink">{e.label}</p>
+              <p className="font-mono text-[12px] text-ink truncate" title={e.inserat ?? '(leer)'}>
+                {e.inserat ? (
+                  <span>«{e.inserat}»</span>
+                ) : (
+                  <em className="text-quiet not-italic">— fehlt</em>
+                )}
+              </p>
+              <p className="font-mono text-[12px] text-ink truncate" title={e.zefix ?? '—'}>
+                {e.zefix ? (
+                  <span>«{e.zefix}»</span>
+                ) : (
+                  <em className="text-quiet not-italic">—</em>
+                )}
+              </p>
+              <span
+                className={cn(
+                  'inline-flex items-center px-1.5 py-px rounded-soft font-mono text-[10px] font-medium uppercase tracking-wide justify-self-start sm:justify-self-end',
+                  e.severity === 'critical'
+                    ? 'bg-danger/20 text-danger'
+                    : e.severity === 'warning'
+                      ? 'bg-warn/20 text-warn'
+                      : 'bg-stone/40 text-quiet',
+                )}
+              >
+                {e.severity}
+              </span>
+              {/* Hint volle Breite unter der Reihe — Cyrill: «Alert anzeigen» */}
+              <p className="sm:col-span-4 text-[11px] text-quiet leading-snug italic">
+                {e.hint}
+              </p>
+            </li>
+          ))}
+        </ul>
+      </div>
     </div>
   );
 }

@@ -13,18 +13,31 @@ export const metadata = {
  * PERF: Counts werden 30 Sekunden gecacht. Bei Tab-Wechsel innerhalb der
  * Admin-Session muss nicht jedesmal die DB neu befragt werden für die
  * Sidebar-Badges. Service-Role-Client umgeht User-Auth — counts sind global.
+ *
+ * Zusätzlich: total_inserate für Smart-Badge "X / Y" (X = pending, Y = total).
+ * Cyrill 30.04.2026: «kein 1 von 1 angeboten» — wenn pending == total dann
+ * zeigen wir nur eine Zahl, sonst "X / Y" für Kontext.
  */
 const getCachedCounts = unstable_cache(
   async () => {
     try {
       const admin = createAdminClient();
-      const { data, error } = await admin.rpc('admin_dashboard_counts').single();
-      if (error || !data) return null;
-      return data as {
-        total_users: number;
-        pending_inserate: number;
-        offene_anfragen: number;
-        blog_drafts: number;
+      const [rpcRes, totalIns] = await Promise.all([
+        admin.rpc('admin_dashboard_counts').single(),
+        admin.from('inserate').select('id', { count: 'exact', head: true }),
+      ]);
+      const rpcData = rpcRes.data as
+        | {
+            total_users: number;
+            pending_inserate: number;
+            offene_anfragen: number;
+            blog_drafts: number;
+          }
+        | null;
+      if (rpcRes.error || !rpcData) return null;
+      return {
+        ...rpcData,
+        total_inserate: totalIns.count ?? 0,
       };
     } catch {
       return null;
@@ -33,6 +46,22 @@ const getCachedCounts = unstable_cache(
   ['admin-dashboard-counts'],
   { revalidate: 30, tags: ['admin-counts'] },
 );
+
+/**
+ * Smart-Badge fürs Inserate-Item:
+ *  • 0 pending → kein Badge
+ *  • pending == total → einfach die Zahl ("1" statt "1 / 1", weil das mit
+ *    sich selber zu vergleichen sinnlos ist)
+ *  • sonst → "X / Y" zur Kontextualisierung
+ */
+function inserateBadge(
+  pending: number | undefined,
+  total: number | undefined,
+): string | number | undefined {
+  if (!pending) return undefined;
+  if (!total || total === pending) return pending;
+  return `${pending} / ${total}`;
+}
 
 /**
  * PERF: React `cache()` dedupliziert die Profile-Lookups innerhalb EINES
@@ -59,7 +88,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   if (adminData.profile?.rolle !== 'admin') redirect('/dashboard');
 
   const badges = {
-    '/admin/inserate': counts?.pending_inserate ? counts.pending_inserate : undefined,
+    '/admin/inserate': inserateBadge(counts?.pending_inserate, counts?.total_inserate),
     '/admin/users': counts?.total_users ? counts.total_users : undefined,
     '/admin/anfragen': counts?.offene_anfragen ? counts.offene_anfragen : undefined,
     '/admin/blog': counts?.blog_drafts ? counts.blog_drafts : undefined,
