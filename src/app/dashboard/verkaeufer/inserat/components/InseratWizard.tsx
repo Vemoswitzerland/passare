@@ -563,7 +563,7 @@ function Step2Basis({
           onFocus={() => beschreibungTyper.complete()}
           maxLength={2000}
           rows={6}
-          placeholder="Volltext-Beschreibung — Käufer sehen diese nach NDA-Signatur."
+          placeholder="Volltext-Beschreibung — Käufer sehen diese erst nach Ihrer Freigabe."
           className={cn(
             'w-full px-4 py-3 bg-paper border border-stone rounded-soft text-body focus:outline-none focus:border-bronze focus:shadow-focus transition-all resize-none',
             beschreibungTyper.isTyping && 'caret-bronze',

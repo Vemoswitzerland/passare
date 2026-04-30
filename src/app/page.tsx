@@ -497,7 +497,7 @@ function Marketplace({
                     bevor sie öffentlich werden. Plus: alle Filter, unbegrenzte Anfragen,
                     Echtzeit-Alerts.
                   </p>
-                  <Button href="/preise" variant="secondary" size="md">
+                  <Button href="/max" variant="secondary" size="md">
                     MAX ab CHF 199/Monat <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
                   </Button>
                 </div>

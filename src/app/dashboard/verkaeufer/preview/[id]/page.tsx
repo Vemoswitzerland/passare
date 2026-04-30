@@ -115,7 +115,7 @@ export default async function PreviewPage({ params }: Props) {
               {inserat.beschreibung ? (
                 <p className="text-body text-ink whitespace-pre-wrap leading-relaxed">{inserat.beschreibung}</p>
               ) : (
-                <p className="text-body text-quiet italic">Volldetails nach NDA-Signatur</p>
+                <p className="text-body text-quiet italic">Volldetails nach Ihrer Freigabe</p>
               )}
             </div>
           </div>
