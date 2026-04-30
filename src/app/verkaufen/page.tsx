@@ -9,7 +9,7 @@ import { DashboardMockup } from '@/components/sections/dashboard-mockup';
 export const metadata = {
   title: 'Firma inserieren — passare',
   description:
-    'Inserieren Sie Ihr KMU auf der Schweizer Plattform passare. Fester Paketpreis ab CHF 290, anonymes Profil, NDA-Gate. Sie behalten die Kontrolle.',
+    'Inserieren Sie Ihr KMU auf der Schweizer Plattform passare. Fester Paketpreis ab CHF 425, anonymes Profil, NDA-Gate. Sie behalten die Kontrolle.',
   robots: { index: false, follow: false },
 };
 
@@ -69,7 +69,7 @@ function Hero() {
             </Reveal>
             <Reveal delay={0.3}>
               <div className="flex flex-wrap items-center gap-x-5 gap-y-2 font-mono text-[11px] uppercase tracking-widest text-quiet">
-                <SignalDot>Ab CHF 290</SignalDot>
+                <SignalDot>Ab CHF 425</SignalDot>
                 <span className="w-px h-3 bg-stone" />
                 <SignalDot>Pauschalpreis</SignalDot>
                 <span className="w-px h-3 bg-stone" />
@@ -139,32 +139,29 @@ function Packages() {
     {
       tag: 'Einstieg',
       name: 'Inserat Light',
-      price: 'CHF 290',
-      note: 'einmalig · 3 Monate Laufzeit',
+      price: 'CHF 710',
+      note: 'einmalig · 12 Monate Laufzeit',
       features: [
-        'Anonymes Inserat im Marktplatz',
-        '5 Bilder · 2 PDFs im Datenraum',
-        'NDA-Gate mit eSign',
-        'Anfragen-Dashboard',
-        'KI-Teaser-Generator',
+        '1 Inserat live im Marktplatz',
+        'Anfragen empfangen',
+        'In-App-Chat mit Käufern',
+        'Vollständige Statistik (Charts, Conversion)',
       ],
-      verlaengerung: 'Verlängerung: +CHF 190 pro 3 Monate',
+      verlaengerung: 'Auch als 6-Monats-Paket: CHF 425',
     },
     {
       tag: 'Empfohlen',
       highlight: true,
       name: 'Inserat Pro',
       price: 'CHF 890',
-      note: 'einmalig · 6 Monate Laufzeit',
+      note: 'einmalig · 12 Monate Laufzeit',
       features: [
         'Alles aus Light, plus:',
-        '20 Bilder + Videos · unbegrenzter Datenraum',
-        'Wasserzeichen auf PDF-Downloads',
-        'Matching mit Käuferprofilen',
-        'Newsletter-Feature (einmalig)',
-        'Detailstatistiken & Conversion',
+        'Datenraum mit Versionierung',
+        'Hervorhebung 4× pro Jahr',
+        '(Seite 1 + Top-Position im Branchenfilter)',
       ],
-      verlaengerung: 'Verlängerung: +CHF 490 pro 6 Monate',
+      verlaengerung: 'Auch als 6-Monats-Paket: CHF 535',
     },
     {
       tag: 'Maximum Reichweite',
@@ -173,13 +170,12 @@ function Packages() {
       note: 'einmalig · 12 Monate Laufzeit',
       features: [
         'Alles aus Pro, plus:',
-        'Homepage-Feature (1 Woche/Monat)',
-        'Newsletter-Feature (monatlich)',
-        'Mehrsprachige Version (FR/IT/EN)',
-        '2h persönliche Beratung',
-        'Priorisierter Support',
+        'Hervorhebung 12× pro Jahr',
+        'Newsletter-Slot 2× pro Jahr',
+        'Bis 3 Mitarbeiter onboarden',
+        'Käuferprofil-Einsicht bei Anfragen',
       ],
-      verlaengerung: 'Verlängerung: +CHF 990 pro 12 Monate',
+      verlaengerung: 'Auch als 6-Monats-Paket: CHF 1\'140',
     },
   ];
 
@@ -195,6 +191,9 @@ function Packages() {
             <p className="text-body-lg text-muted leading-relaxed max-w-prose">
               Sie wählen ein Paket &mdash; Ihr Inserat läuft die ganze Laufzeit.
               Keine automatische Verlängerung. Sie zahlen einmal für die Plattform.
+            </p>
+            <p className="mt-4 text-body-sm text-bronze-ink leading-relaxed max-w-prose">
+              <strong className="font-medium">Klein-Inserat-Rabatt 25 %</strong> für Firmen mit Verkaufspreis unter CHF 500&apos;000 &mdash; wird automatisch im Wizard angewendet.
             </p>
           </div>
         </Reveal>
@@ -401,9 +400,11 @@ function FAQ() {
     { q: 'Muss ich meinen Firmennamen öffentlich angeben?', a: 'Nein. Im öffentlichen Teaser ist die Firma anonymisiert. Erst nach unterzeichnetem NDA und Ihrer expliziten Freigabe sieht ein Interessent den Firmennamen und Detailzahlen.' },
     { q: 'Wie funktioniert das NDA-Gate?', a: 'Interessenten signieren mit einem Klick eine vordefinierte Geheimhaltungserklärung (eSign, QES-konform). Die signierte PDF wird archiviert, Sie werden benachrichtigt und können den Zugriff auf das Dossier und den Datenraum individuell freigeben.' },
     { q: 'Verdient passare am Verkaufspreis mit?', a: 'Nein. passare ist eine Self-Service-Plattform. Sie zahlen einmal das Paket — ob Sie für CHF 500\'000 oder CHF 25 Mio verkaufen, am Plattform-Preis ändert sich nichts.' },
-    { q: 'Was passiert, wenn mein Inserat nach der Laufzeit nicht verkauft ist?', a: 'Sie können das Inserat manuell verlängern (Light +CHF 190 / Pro +CHF 490 / Premium +CHF 990). Es gibt keine automatische Verlängerung — Sie entscheiden.' },
+    { q: 'Was passiert, wenn mein Inserat nach der Laufzeit nicht verkauft ist?', a: 'Sie können das Inserat manuell verlängern — der Boost «+6 Monate Laufzeit» kostet CHF 490 (für jedes Paket gleich). Es gibt keine automatische Verlängerung — Sie entscheiden.' },
+    { q: 'Was ist der Klein-Inserat-Rabatt?', a: 'Firmen mit einem Verkaufspreis unter CHF 500\'000 erhalten 25 % Rabatt auf alle Pakete (Light CHF 535, Pro CHF 670, Premium CHF 1\'420 — jeweils 12 Monate). Der Rabatt wird automatisch im Wizard angewendet, sobald Sie den Kaufpreis angeben.' },
     { q: 'Kann ich mein Inserat pausieren oder löschen?', a: 'Jederzeit, aus dem Dashboard. Sie können auch einzelne Interessenten sperren oder freischalten.' },
-    { q: 'Bietet passare auch persönliche Beratung?', a: 'Im Premium-Paket sind 2 Stunden Beratung mit unserem Netzwerk (Treuhänder, Fachanwalt) inklusive. Darüber hinaus vermitteln wir Experten zu marktüblichen Stundensätzen.' },
+    { q: 'Was bringt die «Hervorhebung»?', a: 'Bei Pro 4× pro Jahr, bei Premium 12× pro Jahr inklusive: Ihr Inserat rutscht für 7 Tage auf Seite 1 des Marktplatzes und nimmt die Top-Position im Branchenfilter ein. Zusätzlich kann jede Hervorhebung einzeln dazugebucht werden (CHF 49).' },
+    { q: 'Was bedeutet «Newsletter-Slot»?', a: 'Im Premium-Paket inklusive (2× pro Jahr): Ihr Inserat wird prominent im wöchentlichen passare-Newsletter erwähnt — der Newsletter geht an alle aktiven Käufer mit passendem Suchprofil. Einzeln dazubuchbar für CHF 86.' },
   ];
 
   return (
@@ -453,7 +454,7 @@ function CTA() {
                 Inserat erstellen <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
               </Button>
               <span className="font-mono text-[11px] uppercase tracking-widest text-cream/50 mt-3">
-                Ab CHF 290 &middot; Pauschalpreis &middot; anonym
+                Ab CHF 425 &middot; Pauschalpreis &middot; anonym
               </span>
             </div>
           </Reveal>

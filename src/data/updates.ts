@@ -67,6 +67,13 @@ export const CURRENT_STEP = {
 export const UPDATES: Update[] = [
   {
     date: '2026-04-30',
+    type: 'design',
+    titel: 'Verkäufer-Landingpage auf neue Pakete angepasst',
+    beschreibung:
+      'Die Verkäufer-Seite zeigt jetzt überall die neuen Preise: Hero «Ab CHF 425», die drei Paket-Karten mit Light/Pro/Premium für CHF 710/890/1\'890 (jeweils 12 Monate Laufzeit, alternativ als 6-Monats-Variante). Klein-Inserat-Rabatt 25 % wird im Pakete-Block ausgewiesen. FAQ neu beantwortet zu Verlängerung, Klein-Rabatt, Hervorhebung und Newsletter-Slot.',
+  },
+  {
+    date: '2026-04-30',
     type: 'feature',
     titel: 'Neues Verkäufer-Pricing live: Light · Pro · Premium',
     beschreibung:
