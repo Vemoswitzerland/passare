@@ -67,6 +67,13 @@ export const CURRENT_STEP = {
 export const UPDATES: Update[] = [
   {
     date: '2026-04-30',
+    type: 'design',
+    titel: 'Ladeanimationen überall — passare fühlt sich jetzt flüssig an',
+    beschreibung:
+      'Bei jedem Klick auf einen Link erscheint sofort ein dünner bronzener Lade-Balken oben am Bildrand — egal wie schnell oder langsam die Seite reagiert. Beim Öffnen einer Inserat-Detailseite, beim Wechsel ins Käufer- oder Verkäufer-Dashboard, beim Anmelden oder Onboarden sieht man jetzt sofort eine Vorschau-Struktur (Skelett) statt einer leeren weißen Seite. Auch beim Marktplatz, Atlas, Bewertungstool und Ratgeber gibt es passende Lade-Layouts. Aufgesetzt als globaler Standard — neue Seiten bekommen das automatisch mit.',
+  },
+  {
+    date: '2026-04-30',
     type: 'fix',
     titel: 'Login leitet Admin nicht mehr fälschlich ins Verkäufer-Dashboard',
     beschreibung:

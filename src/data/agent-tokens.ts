@@ -66,6 +66,15 @@ export type AgentSession = {
  */
 export const SESSIONS: AgentSession[] = [
   {
+    date: '2026-04-30',
+    bereich: 'design',
+    titel: 'Globale Ladeanimationen + Loading-Skeletons systemweit',
+    inputTokens: 350_000,
+    outputTokens: 95_000,
+    dauerMinuten: 25,
+    status: 'done',
+  },
+  {
     date: '2026-04-29',
     bereich: 'kaeufer',
     titel: 'Käufer-Onboarding-Hotfix + Marktplatz-Header + Performance-Boost',
