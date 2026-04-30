@@ -84,11 +84,31 @@ Erstellt:
 
 ```bash
 cd /Users/cyrill/Desktop/passare-new
-supabase functions deploy send-email     --project-ref ocbrjivpnsmxriyskgjx --no-verify-jwt
-supabase functions deploy email-handler  --project-ref ocbrjivpnsmxriyskgjx --no-verify-jwt
+supabase functions deploy send-email      --project-ref ocbrjivpnsmxriyskgjx --no-verify-jwt
+supabase functions deploy email-handler   --project-ref ocbrjivpnsmxriyskgjx --no-verify-jwt
+supabase functions deploy auth-email-hook --project-ref ocbrjivpnsmxriyskgjx --no-verify-jwt
 ```
 
 `--no-verify-jwt` ist nötig weil Supabase Auth Hooks (Welcome, Verify, Reset) anonym aufrufen.
+
+### 5a. Auth-Email-Hook im Dashboard aktivieren (PFLICHT)
+
+**Status 30.04.2026:** Edge-Function `auth-email-hook` ist deployed, aber der Hook ist im Auth-Dashboard noch NICHT aktiviert — deshalb kommen Bestätigungs-Mails noch mit dem Default-Supabase-Wording «Confirm your signup».
+
+**Manueller Setup-Schritt:**
+1. Supabase Dashboard → **Authentication → Hooks → Send Email Hook**
+2. Type: **HTTPS**
+3. URL: `https://ocbrjivpnsmxriyskgjx.supabase.co/functions/v1/auth-email-hook`
+4. Secret generieren (UI gibt einen Wert mit Prefix `v1,whsec_…`)
+5. Den Secret-Wert auch als Edge-Function-Secret hinterlegen:
+   ```bash
+   supabase secrets set \
+     SEND_EMAIL_HOOK_SECRET="v1,whsec_…" \
+     --project-ref ocbrjivpnsmxriyskgjx
+   ```
+6. Hook **enablen**
+
+Danach gehen alle Auth-Mails (Signup-Verify, Password-Reset, Magic-Link) durch unsere `auth-email-hook` Edge-Function und werden mit dem passare-Branding über Resend verschickt.
 
 ---
 
