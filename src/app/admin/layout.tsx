@@ -49,18 +49,23 @@ const getCachedCounts = unstable_cache(
 
 /**
  * Smart-Badge fürs Inserate-Item:
- *  • 0 pending → kein Badge
+ *  • Beide leer → kein Badge (jungfräuliches System)
+ *  • Nur pending = 0 (aber Inserate da) → Total als Sidebar-Hinweis (sonst
+ *    weiss Admin nicht ob die Tabelle leer oder einfach alles freigegeben ist)
  *  • pending == total → einfach die Zahl ("1" statt "1 / 1", weil das mit
- *    sich selber zu vergleichen sinnlos ist)
- *  • sonst → "X / Y" zur Kontextualisierung
+ *    sich selber zu vergleichen sinnlos ist — Cyrill's Wunsch)
+ *  • sonst → "X / Y" zur Kontextualisierung (z.B. "3 / 12")
  */
 function inserateBadge(
   pending: number | undefined,
   total: number | undefined,
 ): string | number | undefined {
-  if (!pending) return undefined;
-  if (!total || total === pending) return pending;
-  return `${pending} / ${total}`;
+  const p = pending ?? 0;
+  const t = total ?? 0;
+  if (!p && !t) return undefined;
+  if (!p) return t;
+  if (!t || t === p) return p;
+  return `${p} / ${t}`;
 }
 
 /**

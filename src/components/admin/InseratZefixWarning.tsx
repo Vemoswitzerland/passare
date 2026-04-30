@@ -127,7 +127,7 @@ export async function InseratZefixWarning({
         </div>
       </div>
 
-      <div className="border-t border-current/10 pt-2">
+      <div className="border-t border-stone/60 pt-2">
         {/* Spalten-Header — nur ab sm sichtbar */}
         <div className="hidden sm:grid grid-cols-[140px_1fr_1fr_auto] gap-3 px-1 pb-1.5 text-[10px] uppercase tracking-wide font-medium text-quiet">
           <span>Feld</span>
@@ -136,7 +136,7 @@ export async function InseratZefixWarning({
           <span className="text-right">Stufe</span>
         </div>
 
-        <ul className="divide-y divide-current/10">
+        <ul className="divide-y divide-stone/60">
           {diff.entries.map((e) => (
             <li
               key={e.field}
