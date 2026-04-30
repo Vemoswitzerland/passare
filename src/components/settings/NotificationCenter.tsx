@@ -116,15 +116,21 @@ export function NotificationCenter({
                       onClick={() => toggle(item.key)}
                       disabled={isPending}
                       className={cn(
-                        'relative flex-shrink-0 w-10 h-6 rounded-full transition-colors',
+                        // 44 × 24 Track mit 2 px Innen-Padding → 20 × 20 Knopf
+                        // bewegt sich exakt zwischen 0 und 20 px (Track-Breite −
+                        // Knopf-Breite − 2× Padding). Flexbox-Layout statt absolut
+                        // positionierten Span — der Bug «Kugel ausserhalb» kam von
+                        // translate-x-[18px] mit JIT-Tailwind das den arbitrary
+                        // value nicht kompilierte.
+                        'flex-shrink-0 inline-flex items-center w-11 h-6 rounded-full p-0.5 transition-colors',
                         enabled ? 'bg-bronze' : 'bg-stone',
                         isPending && 'opacity-60',
                       )}
                     >
                       <span
                         className={cn(
-                          'absolute top-0.5 w-5 h-5 bg-cream rounded-full shadow-subtle transition-transform',
-                          enabled ? 'translate-x-[18px]' : 'translate-x-0.5',
+                          'block w-5 h-5 bg-cream rounded-full shadow-subtle transition-transform',
+                          enabled ? 'translate-x-5' : 'translate-x-0',
                         )}
                       />
                     </button>
