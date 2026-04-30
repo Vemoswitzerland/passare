@@ -1,7 +1,8 @@
-import { Package, Calendar, ArrowRight, Check, AlertCircle } from 'lucide-react';
+import { Package, Calendar, ArrowRight, Check, AlertCircle, Zap, Mail, Clock } from 'lucide-react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { hasTable } from '@/lib/db/has-table';
+import { POWERUPS, type Powerup } from '@/data/pakete';
 
 export const metadata = { title: 'Paket — passare Verkäufer' };
 
@@ -29,6 +30,17 @@ export default async function PaketPage() {
     .maybeSingle();
 
   if (!inserat) return <NoData message="Erstelle zuerst ein Inserat." />;
+
+  // Aktivierte Boosts laden — pro Inserat
+  const { data: aktiveBoosts } = (await hasTable('inserat_powerups'))
+    ? await supabase
+        .from('inserat_powerups')
+        .select('id, powerup_id, menge, preis_chf, aktiviert_at, laeuft_bis, status')
+        .eq('inserat_id', inserat.id)
+        .order('aktiviert_at', { ascending: false })
+    : { data: [] };
+
+  const aktiveBoostIds = new Set((aktiveBoosts ?? []).map((b: any) => b.powerup_id));
 
   const paket = inserat.paket ? PAKETE_INFO[inserat.paket as keyof typeof PAKETE_INFO] : null;
   const expiresAt = inserat.expires_at ? new Date(inserat.expires_at) : null;
@@ -127,6 +139,92 @@ export default async function PaketPage() {
                 </div>
               </div>
             )}
+
+            {/* ── BOOSTS / Add-Ons ──────────────────────────── */}
+            <div className="rounded-card bg-paper border border-stone p-6 mb-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-serif text-head-sm text-navy">Boosts & Add-Ons</h3>
+                <span className="text-caption text-quiet font-mono">
+                  {(aktiveBoosts ?? []).length} aktiv
+                </span>
+              </div>
+
+              {/* Aktive Boosts */}
+              {(aktiveBoosts ?? []).length > 0 && (
+                <div className="mb-5">
+                  <p className="overline text-bronze-ink mb-2">Aktiviert</p>
+                  <ul className="space-y-2">
+                    {(aktiveBoosts ?? []).map((boost: any) => {
+                      const meta = POWERUPS.find((p) => p.id === boost.powerup_id);
+                      const Icon = meta?.icon === 'Mail' ? Mail : meta?.icon === 'Clock' ? Clock : Zap;
+                      const laeuft = boost.laeuft_bis ? new Date(boost.laeuft_bis) : null;
+                      const aktiv = !laeuft || laeuft.getTime() > Date.now();
+                      return (
+                        <li key={boost.id} className="flex items-center gap-3 p-3 bg-cream/40 border border-stone/40 rounded-soft">
+                          <span className={`w-9 h-9 rounded-soft flex items-center justify-center flex-shrink-0 ${aktiv ? 'bg-bronze/15 text-bronze-ink' : 'bg-stone text-quiet'}`}>
+                            <Icon className="w-4 h-4" strokeWidth={1.5} />
+                          </span>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-body-sm text-navy font-medium">{meta?.label ?? boost.powerup_id}</p>
+                            <p className="text-caption text-quiet">
+                              {laeuft
+                                ? aktiv
+                                  ? `Aktiv bis ${laeuft.toLocaleDateString('de-CH')}`
+                                  : `Abgelaufen am ${laeuft.toLocaleDateString('de-CH')}`
+                                : 'Einmalig — bereits eingelöst'}
+                            </p>
+                          </div>
+                          <span className="text-caption font-mono text-quiet">
+                            CHF {Number(boost.preis_chf).toLocaleString('de-CH')}
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              )}
+
+              {/* Verfügbare Boosts */}
+              <p className="overline text-bronze-ink mb-2">Dazubuchen</p>
+              <div className="grid sm:grid-cols-3 gap-3">
+                {POWERUPS.map((p) => {
+                  const istAktiv = aktiveBoostIds.has(p.id) && p.laufzeitTage !== null;
+                  const Icon = p.icon === 'Mail' ? Mail : p.icon === 'Clock' ? Clock : Zap;
+                  return (
+                    <div
+                      key={p.id}
+                      className="rounded-soft border border-stone p-4 hover:border-bronze/40 transition-colors flex flex-col"
+                    >
+                      <div className="flex items-start gap-2 mb-2">
+                        <span className="w-8 h-8 rounded-soft bg-bronze/10 flex items-center justify-center flex-shrink-0">
+                          <Icon className="w-4 h-4 text-bronze-ink" strokeWidth={1.5} />
+                        </span>
+                        <div className="min-w-0">
+                          <p className="font-serif text-head-sm text-navy leading-tight">{p.label}</p>
+                          <p className="text-caption text-quiet">{p.einheit}</p>
+                        </div>
+                      </div>
+                      <p className="text-caption text-muted leading-snug mb-3 flex-1">{p.tagline}</p>
+                      <div className="flex items-center justify-between gap-2 pt-2 border-t border-stone/40">
+                        <span className="font-mono text-body-sm text-navy">CHF {p.preis}</span>
+                        {istAktiv ? (
+                          <span className="inline-flex items-center gap-1 text-caption text-success font-medium">
+                            <Check className="w-3 h-3" strokeWidth={2} /> Aktiv
+                          </span>
+                        ) : (
+                          <Link
+                            href={`/dashboard/verkaeufer/inserat/${inserat.id}/edit?step=5&boost=${p.id}`}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 bg-bronze text-cream rounded-soft text-caption font-medium hover:bg-bronze-ink transition-colors"
+                          >
+                            Buchen <ArrowRight className="w-3 h-3" strokeWidth={1.5} />
+                          </Link>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
 
             {/* Upgrade-Optionen */}
             {inserat.paket !== 'premium' && (
