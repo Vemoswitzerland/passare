@@ -26,6 +26,9 @@ type Props = {
     | 'kontakt_whatsapp_nr'
     | 'linkedin_url'
     | 'firma_name'
+    | 'titel'
+    | 'public_id'
+    | 'id'
   >;
 };
 
@@ -63,9 +66,22 @@ export function VerkaeuferKontaktBox({ listing }: Props) {
   const email = listing.kontakt_email_public?.trim() || null;
   const whatsappRaw = listing.kontakt_whatsapp_nr?.trim() || null;
   const whatsappEnabled = Boolean(listing.whatsapp_enabled && whatsappRaw);
-  const whatsappHref = whatsappEnabled ? buildWhatsAppHref(whatsappRaw) : null;
+  // WhatsApp-Smartlink mit Vorausfüll-Text — Käufer kommt mit Kontext direkt
+  // in die Konversation. Nutzt Vorname falls vorhanden, sonst neutral.
+  const inseratLink = `https://passare.ch/inserat/${listing.public_id ?? listing.id}`;
+  const greeting = vorname ? `Guten Tag ${vorname}` : 'Guten Tag';
+  const waText =
+    `${greeting}, ich interessiere mich für Ihr Inserat «${listing.titel}» auf passare.ch.\n\n${inseratLink}`;
+  const whatsappHref = whatsappEnabled ? buildWhatsAppHref(whatsappRaw, waText) : null;
   const linkedin = listing.linkedin_url?.trim() || null;
   const linkedinHref = linkedin ? normalizeUrl(linkedin) : null;
+  // Mailto-Smartlink mit Subject + Body — gleicher Vorlauf wie WhatsApp,
+  // damit der Käufer nicht aus dem leeren weiss schreiben muss.
+  const mailSubject = `Anfrage zu Ihrem Inserat «${listing.titel}»`;
+  const mailBody = `${greeting},\n\nich habe Ihr Inserat «${listing.titel}» auf passare.ch gesehen und möchte gerne mehr erfahren.\n\nMit freundlichen Grüssen`;
+  const mailtoHref = email
+    ? `mailto:${email}?subject=${encodeURIComponent(mailSubject)}&body=${encodeURIComponent(mailBody)}`
+    : null;
 
   const hasAnyAction = Boolean(email || whatsappHref || linkedinHref);
   if (!fullName && !funktion && !listing.kontakt_foto_url && !hasAnyAction) {
@@ -105,9 +121,9 @@ export function VerkaeuferKontaktBox({ listing }: Props) {
               external
             />
           )}
-          {email && (
+          {mailtoHref && (
             <ActionButton
-              href={`mailto:${email}`}
+              href={mailtoHref}
               icon={<Mail className="w-3.5 h-3.5" strokeWidth={1.75} />}
               label="E-Mail"
             />
@@ -166,8 +182,9 @@ function ActionButton({
 
 /* ════════════════════════ Helpers ════════════════════════ */
 
-/** Akzeptiert «+41 79 123 45 67», «0791234567», «41791234567» — gibt wa.me-URL zurück oder null. */
-function buildWhatsAppHref(raw: string | null): string | null {
+/** Akzeptiert «+41 79 123 45 67», «0791234567», «41791234567» — gibt wa.me-URL zurück oder null.
+ *  Optional: vorausgefüllter Text wird als ?text=… angehängt (Smartlink). */
+function buildWhatsAppHref(raw: string | null, text?: string): string | null {
   if (!raw) return null;
   const digits = raw.replace(/\D/g, '');
   if (!digits) return null;
@@ -176,7 +193,8 @@ function buildWhatsAppHref(raw: string | null): string | null {
   if (intl.startsWith('00')) intl = intl.slice(2);
   else if (intl.startsWith('0')) intl = `41${intl.slice(1)}`;
   if (intl.length < 8) return null;
-  return `https://wa.me/${intl}`;
+  const base = `https://wa.me/${intl}`;
+  return text ? `${base}?text=${encodeURIComponent(text)}` : base;
 }
 
 /** Sicheres Normalisieren von URLs (LinkedIn, etc.) — ergänzt https:// falls fehlt.
