@@ -67,6 +67,13 @@ export const CURRENT_STEP = {
 export const UPDATES: Update[] = [
   {
     date: '2026-04-30',
+    type: 'fix',
+    titel: 'Google-Anmeldung: Endlos-Weiterleitung behoben',
+    beschreibung:
+      'Beim Versuch sich mit Google zu registrieren ist die Seite in eine Endlos-Schleife geraten («zu oft weitergeleitet»). Grund: der Beta-Schutz hat die Rückkehr von Google nicht durchgelassen, weil der Beta-Cookie bei manchen Browsern beim Wechsel von Google zurück nicht mitgeschickt wird. Behoben: die Anmelde-Routen sind jetzt vom Beta-Schutz ausgenommen.',
+  },
+  {
+    date: '2026-04-30',
     type: 'design',
     titel: 'Verkäufer-Landingpage auf neue Pakete angepasst',
     beschreibung:

@@ -22,7 +22,10 @@ const BETA_PUBLIC_PATHS = new Set([
 // Diese Prefixe bleiben auch hinter dem Beta-Gate erreichbar.
 // /api/anfrage muss public sein, weil die Verifikations-Mail-Links externe
 // Browser-Sessions öffnen (frischer Cookie-Container, kein Beta-Cookie).
-const BETA_PUBLIC_PREFIXES = ['/_next', '/assets', '/images', '/api/anfrage'];
+// /api/auth (Google OAuth + Supabase Auth) darf NIE blockiert werden — sonst
+// entsteht ein Redirect-Loop wenn Google den User zurückleitet (Cross-Site-
+// Redirect kann den passare_beta-Cookie wegen SameSite-Policy verlieren).
+const BETA_PUBLIC_PREFIXES = ['/_next', '/assets', '/images', '/api/anfrage', '/api/auth'];
 
 const AUTH_PROTECTED_PREFIXES = ['/dashboard', '/admin', '/onboarding'];
 const AUTH_PUBLIC_PREFIXES = ['/auth'];
