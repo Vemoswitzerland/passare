@@ -5,9 +5,12 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   MessageSquare, Send, ExternalLink, Sparkles, User, Inbox as InboxIcon,
+  Paperclip, FileText, X as XIcon, CheckCircle2, XCircle, Pause as PauseIcon,
+  CheckCheck, ShieldCheck,
 } from 'lucide-react';
-import { sendAnfrageMessage } from './actions';
+import { sendAnfrageMessage, listDatenraumFilesForAnfrage, type AnfrageAttachment } from './actions';
 import { respondToRevisionAction } from '../inserat/actions';
+import { sendInseratMessageAction } from '@/app/admin/inserate/actions';
 import { cn } from '@/lib/utils';
 
 /**
@@ -49,6 +52,10 @@ export type InboxMessage = {
   createdAt: string;
   /** für passare-Team-Threads: Audit-Kind als Label */
   kindLabel: string | null;
+  /** Raw kind für Action-Karten-Rendering (freigabe/ablehnung/pause/rueckfrage) */
+  kindRaw?: string | null;
+  /** Anhänge — Datenraum-Files, Käufer-Dossier, Direkt-Upload */
+  attachments?: AnfrageAttachment[];
 };
 
 type Props = {
@@ -58,10 +65,16 @@ type Props = {
   activeMessages: InboxMessage[];
   /** Bei passare-Team-Threads: ist Antworten erlaubt? */
   canReplyPassare: boolean;
+  /** Aus welchem Bereich öffnen wir die Inbox? Bestimmt URL + erlaubte Features */
+  basePath?: string;
+  /** User-Rolle — bestimmt Attachment-Funktionen */
+  senderRole?: 'verkaeufer' | 'kaeufer' | 'admin';
 };
 
 export function InboxLayout({
   threads, activeThreadId, activeThread, activeMessages, canReplyPassare,
+  basePath = '/dashboard/verkaeufer/anfragen',
+  senderRole = 'verkaeufer',
 }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -69,7 +82,7 @@ export function InboxLayout({
   const openThread = (threadId: string) => {
     const sp = new URLSearchParams(searchParams.toString());
     sp.set('thread', threadId);
-    router.push(`/dashboard/verkaeufer/anfragen?${sp.toString()}`);
+    router.push(`${basePath}?${sp.toString()}`);
   };
 
   // Cyrill 30.04.2026: «Inbox zu klein — links nur «Nachrichten»-Label,
@@ -149,6 +162,7 @@ export function InboxLayout({
             thread={activeThread}
             messages={activeMessages}
             canReply={activeThread.type === 'kaeufer' || canReplyPassare}
+            senderRole={senderRole}
           />
         )}
       </section>
@@ -159,17 +173,22 @@ export function InboxLayout({
 // ─── CHAT-PANE ────────────────────────────────────────────────────
 
 function ChatPane({
-  thread, messages, canReply,
+  thread, messages, canReply, senderRole,
 }: {
   thread: InboxThread;
   messages: InboxMessage[];
   canReply: boolean;
+  senderRole: 'verkaeufer' | 'kaeufer' | 'admin';
 }) {
   const router = useRouter();
   const [draft, setDraft] = useState('');
   const [pending, startTx] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
+
+  // Anhänge die mit der nächsten Nachricht mitgeschickt werden
+  const [pendingAttachments, setPendingAttachments] = useState<AnfrageAttachment[]>([]);
+  const [attachOpen, setAttachOpen] = useState(false);
 
   // Auto-scroll an Ende des Verlaufs
   useEffect(() => {
@@ -181,17 +200,32 @@ function ChatPane({
   const send = () => {
     setError(null);
     const text = draft.trim();
-    if (text.length < 1) return;
+    if (text.length < 1 && pendingAttachments.length === 0) return;
 
     startTx(async () => {
-      const res = thread.type === 'kaeufer'
-        ? await sendAnfrageMessage(thread.id.replace(/^k:/, ''), text)
-        : await respondToRevisionAction(thread.id.replace(/^p:/, ''), text);
-      if (res.ok) {
-        setDraft('');
-        router.refresh();
-      } else {
-        setError(res.error ?? 'Senden fehlgeschlagen.');
+      try {
+        let res: { ok: boolean; error?: string };
+        if (thread.type === 'kaeufer') {
+          res = await sendAnfrageMessage(thread.id.replace(/^k:/, ''), text, pendingAttachments);
+        } else if (senderRole === 'admin') {
+          // Admin schreibt in audit-messages mit from_role='admin'
+          res = await sendInseratMessageAction({
+            id: thread.id.replace(/^p:/, ''),
+            message: text,
+          });
+        } else {
+          // Verkäufer antwortet auf passare-Team-Rückfrage
+          res = await respondToRevisionAction(thread.id.replace(/^p:/, ''), text);
+        }
+        if (res.ok) {
+          setDraft('');
+          setPendingAttachments([]);
+          router.refresh();
+        } else {
+          setError(res.error ?? 'Senden fehlgeschlagen.');
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Senden fehlgeschlagen.');
       }
     });
   };
@@ -209,10 +243,16 @@ function ChatPane({
             <p className="text-caption text-quiet">{thread.statusLabel}</p>
           )}
         </div>
-        {/* Subtile Inserat-Verlinkung oben rechts */}
+        {/* Subtile Inserat-Verlinkung oben rechts — Ziel je nach Rolle */}
         {thread.inseratTitel && (
           <Link
-            href={`/dashboard/verkaeufer/inserat`}
+            href={
+              senderRole === 'verkaeufer'
+                ? '/dashboard/verkaeufer/inserat'
+                : senderRole === 'admin'
+                  ? `/admin/inserate/${thread.inseratId}`
+                  : `/inserat/${thread.inseratId}`
+            }
             className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-soft text-caption text-quiet hover:text-navy hover:bg-stone/40 transition-colors max-w-[260px]"
             title={`Zum Inserat «${thread.inseratTitel}»`}
           >
@@ -241,49 +281,71 @@ function ChatPane({
           </div>
         ) : (
           <ul className="space-y-3">
-            {messages.map((m) => (
-              <li key={m.id} className={cn('flex gap-2', m.fromMe ? 'justify-end' : 'justify-start')}>
-                {!m.fromMe && (
-                  <div className="w-7 h-7 rounded-full bg-bronze/15 text-bronze-ink flex items-center justify-center text-[10px] font-medium flex-shrink-0">
-                    {m.authorInitials}
-                  </div>
-                )}
-                <div className={cn(
-                  'max-w-[78%] rounded-card px-3.5 py-2.5',
-                  m.fromMe
-                    ? 'bg-navy text-cream'
-                    : 'bg-paper border border-stone text-ink',
-                )}>
+            {messages.map((m) => {
+              // Action-Karten für passare-Team-Status: ganzbreite zentrierte Karten
+              // statt normaler Chat-Bubble — visualisiert Status-Änderung im Verlauf.
+              const isActionCard = !m.fromMe && m.kindRaw && ['freigabe', 'ablehnung', 'pause'].includes(m.kindRaw);
+              if (isActionCard) {
+                return <ActionCard key={m.id} kind={m.kindRaw!} message={m.message} createdAt={m.createdAt} />;
+              }
+              return (
+                <li key={m.id} className={cn('flex gap-2', m.fromMe ? 'justify-end' : 'justify-start')}>
                   {!m.fromMe && (
-                    <div className="flex items-center gap-2 mb-1">
-                      <p className="text-caption font-medium text-navy">{m.authorName}</p>
-                      {m.kindLabel && (
-                        <span className="font-mono text-[10px] uppercase tracking-wide text-bronze-ink">
-                          {m.kindLabel}
-                        </span>
-                      )}
+                    <div className="w-7 h-7 rounded-full bg-bronze/15 text-bronze-ink flex items-center justify-center text-[10px] font-medium flex-shrink-0">
+                      {m.authorInitials}
                     </div>
                   )}
-                  <p className={cn(
-                    'text-body-sm whitespace-pre-wrap leading-relaxed',
-                    m.fromMe ? 'text-cream' : 'text-ink',
+                  <div className={cn(
+                    'max-w-[78%] rounded-card px-3.5 py-2.5',
+                    m.fromMe
+                      ? 'bg-navy text-cream'
+                      : 'bg-paper border border-stone text-ink',
                   )}>
-                    {m.message}
-                  </p>
-                  <p className={cn(
-                    'text-[10px] mt-1 text-right font-mono',
-                    m.fromMe ? 'text-cream/60' : 'text-quiet',
-                  )}>
-                    {formatTime(m.createdAt)}
-                  </p>
-                </div>
-                {m.fromMe && (
-                  <div className="w-7 h-7 rounded-full bg-navy text-cream flex items-center justify-center text-[10px] font-medium flex-shrink-0">
-                    Du
+                    {!m.fromMe && (
+                      <div className="flex items-center gap-2 mb-1">
+                        <p className="text-caption font-medium text-navy">{m.authorName}</p>
+                        {m.kindLabel && (
+                          <span className="font-mono text-[10px] uppercase tracking-wide text-bronze-ink">
+                            {m.kindLabel}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                    {m.message && m.message !== '(Unterlagen)' && (
+                      <p className={cn(
+                        'text-body-sm whitespace-pre-wrap leading-relaxed',
+                        m.fromMe ? 'text-cream' : 'text-ink',
+                      )}>
+                        {m.message}
+                      </p>
+                    )}
+                    {m.attachments && m.attachments.length > 0 && (
+                      <ul className={cn(
+                        'space-y-1.5',
+                        m.message && m.message !== '(Unterlagen)' ? 'mt-2' : '',
+                      )}>
+                        {m.attachments.map((a, i) => (
+                          <li key={i}>
+                            <AttachmentChip attachment={a} dark={m.fromMe} />
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    <p className={cn(
+                      'text-[10px] mt-1 text-right font-mono',
+                      m.fromMe ? 'text-cream/60' : 'text-quiet',
+                    )}>
+                      {formatTime(m.createdAt)}
+                    </p>
                   </div>
-                )}
-              </li>
-            ))}
+                  {m.fromMe && (
+                    <div className="w-7 h-7 rounded-full bg-navy text-cream flex items-center justify-center text-[10px] font-medium flex-shrink-0">
+                      Du
+                    </div>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>
@@ -291,7 +353,45 @@ function ChatPane({
       {/* Eingabe */}
       {canReply ? (
         <footer className="border-t border-stone px-3 py-3 bg-paper">
+          {/* Pending-Anhang-Liste — ausstehende Files vor dem Senden */}
+          {pendingAttachments.length > 0 && (
+            <ul className="mb-2 space-y-1">
+              {pendingAttachments.map((a, i) => (
+                <li
+                  key={`${a.kind}:${a.file_id ?? a.name}:${i}`}
+                  className="inline-flex items-center gap-2 mr-2 mb-1 px-2 py-1 rounded-soft bg-bronze/10 border border-bronze/30 text-caption"
+                >
+                  <FileText className="w-3 h-3 text-bronze-ink" strokeWidth={1.5} />
+                  <span className="truncate max-w-[200px]">{a.name}</span>
+                  {a.size && (
+                    <span className="font-mono text-[10px] text-quiet">{formatBytes(a.size)}</span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setPendingAttachments((prev) => prev.filter((_, idx) => idx !== i))}
+                    className="text-quiet hover:text-danger transition-colors ml-1"
+                    aria-label="Entfernen"
+                  >
+                    <XIcon className="w-3 h-3" strokeWidth={2} />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+
           <div className="flex items-end gap-2">
+            {/* Unterlagen-Knopf — nur Verkäufer (Datenraum) und Admin (alles) */}
+            {thread.type === 'kaeufer' && senderRole !== 'kaeufer' && (
+              <button
+                type="button"
+                onClick={() => setAttachOpen(true)}
+                disabled={pending}
+                className="inline-flex items-center justify-center w-9 h-9 rounded-soft border border-stone text-bronze-ink hover:bg-bronze/10 hover:border-bronze/40 transition-colors disabled:opacity-40 flex-shrink-0"
+                title="Unterlagen aus dem Datenraum anhängen"
+              >
+                <Paperclip className="w-4 h-4" strokeWidth={1.5} />
+              </button>
+            )}
             <textarea
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
@@ -314,7 +414,7 @@ function ChatPane({
             <button
               type="button"
               onClick={send}
-              disabled={pending || draft.trim().length < 1}
+              disabled={pending || (draft.trim().length < 1 && pendingAttachments.length === 0)}
               className="inline-flex items-center gap-1.5 px-3 py-2 bg-navy text-cream rounded-soft text-body-sm font-medium hover:bg-ink disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
               <Send className="w-3.5 h-3.5" strokeWidth={1.5} />
@@ -330,6 +430,23 @@ function ChatPane({
             Antworten in diesem Chat sind aktuell deaktiviert.
           </p>
         </footer>
+      )}
+
+      {/* Attachment-Modal: Datenraum-Files auswählen — nur Verkäufer/Admin */}
+      {attachOpen && thread.type === 'kaeufer' && senderRole !== 'kaeufer' && (
+        <AttachmentModal
+          anfrageId={thread.id.replace(/^k:/, '')}
+          alreadySelected={pendingAttachments}
+          onClose={() => setAttachOpen(false)}
+          onSelect={(files) => {
+            setPendingAttachments((prev) => {
+              const existingIds = new Set(prev.map((p) => p.file_id).filter(Boolean));
+              const additions = files.filter((f) => !existingIds.has(f.file_id));
+              return [...prev, ...additions];
+            });
+            setAttachOpen(false);
+          }}
+        />
       )}
     </>
   );
@@ -394,4 +511,260 @@ function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString('de-CH', {
     hour: '2-digit', minute: '2-digit',
   });
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+}
+
+// ─── ATTACHMENT-CHIP — gerendert in der Chat-Bubble ────────────────
+
+function AttachmentChip({
+  attachment, dark,
+}: {
+  attachment: AnfrageAttachment;
+  dark?: boolean;
+}) {
+  return (
+    <div className={cn(
+      'inline-flex items-center gap-2 px-2.5 py-1.5 rounded-soft text-caption max-w-full',
+      dark
+        ? 'bg-cream/15 text-cream border border-cream/20'
+        : 'bg-bronze/10 text-ink border border-bronze/30',
+    )}>
+      <FileText className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={1.5} />
+      <span className="truncate">{attachment.name}</span>
+      {attachment.size && (
+        <span className={cn('font-mono text-[10px]', dark ? 'text-cream/60' : 'text-quiet')}>
+          {formatBytes(attachment.size)}
+        </span>
+      )}
+    </div>
+  );
+}
+
+// ─── ACTION-CARD — passare-Team-Workflow-Status im Chat-Verlauf ───
+
+function ActionCard({
+  kind, message, createdAt,
+}: {
+  kind: string;
+  message: string;
+  createdAt: string;
+}) {
+  const map: Record<string, {
+    label: string;
+    icon: typeof CheckCircle2;
+    cls: string;
+  }> = {
+    freigabe: {
+      label: 'Inserat freigegeben',
+      icon: CheckCircle2,
+      cls: 'bg-success/10 border-success/30 text-success',
+    },
+    ablehnung: {
+      label: 'Inserat abgelehnt',
+      icon: XCircle,
+      cls: 'bg-danger/10 border-danger/30 text-danger',
+    },
+    pause: {
+      label: 'Inserat pausiert',
+      icon: PauseIcon,
+      cls: 'bg-stone text-muted border-stone',
+    },
+  };
+  const m = map[kind] ?? map.freigabe;
+  const Icon = m.icon;
+  return (
+    <li className="flex justify-center my-1">
+      <div className={cn(
+        'inline-flex items-start gap-3 max-w-[90%] rounded-card border px-4 py-3',
+        m.cls,
+      )}>
+        <div className="flex-shrink-0 mt-0.5">
+          <Icon className="w-5 h-5" strokeWidth={1.5} />
+        </div>
+        <div className="min-w-0">
+          <p className="text-body-sm font-medium">{m.label}</p>
+          {message && message !== '(Unterlagen)' && (
+            <p className="text-caption mt-0.5 leading-relaxed text-ink whitespace-pre-wrap">{message}</p>
+          )}
+          <p className="text-[10px] text-quiet mt-1 font-mono">{formatTime(createdAt)}</p>
+        </div>
+      </div>
+    </li>
+  );
+}
+
+// ─── ATTACHMENT-MODAL — Datenraum-Files auswählen ──────────────────
+
+function AttachmentModal({
+  anfrageId, alreadySelected, onSelect, onClose,
+}: {
+  anfrageId: string;
+  alreadySelected: AnfrageAttachment[];
+  onSelect: (files: AnfrageAttachment[]) => void;
+  onClose: () => void;
+}) {
+  const [loading, setLoading] = useState(true);
+  const [files, setFiles] = useState<Array<{
+    id: string; name: string; ordner: string | null; size: number; mime: string | null;
+  }>>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    let cancel = false;
+    (async () => {
+      const res = await listDatenraumFilesForAnfrage(anfrageId);
+      if (cancel) return;
+      if (res.ok) setFiles(res.files);
+      else setError(res.error);
+      setLoading(false);
+    })();
+    return () => { cancel = true; };
+  }, [anfrageId]);
+
+  const alreadyIds = new Set(alreadySelected.map((a) => a.file_id).filter(Boolean));
+
+  const toggle = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const confirm = () => {
+    const picks = files
+      .filter((f) => selectedIds.has(f.id))
+      .map<AnfrageAttachment>((f) => ({
+        kind: 'datenraum',
+        file_id: f.id,
+        name: f.name,
+        size: f.size,
+        mime: f.mime ?? undefined,
+      }));
+    onSelect(picks);
+  };
+
+  const selectAll = () => {
+    setSelectedIds(new Set(files.filter((f) => !alreadyIds.has(f.id)).map((f) => f.id)));
+  };
+
+  // Group by ordner
+  const grouped = files.reduce<Record<string, typeof files>>((acc, f) => {
+    const o = f.ordner ?? 'Allgemein';
+    (acc[o] ??= []).push(f);
+    return acc;
+  }, {});
+
+  return (
+    <div className="fixed inset-0 z-50 bg-ink/40 flex items-center justify-center p-4">
+      <div className="bg-paper rounded-card border border-stone shadow-elevated w-full max-w-2xl max-h-[80vh] flex flex-col overflow-hidden">
+        <header className="px-5 py-4 border-b border-stone flex items-center gap-3">
+          <Paperclip className="w-4 h-4 text-bronze-ink" strokeWidth={1.5} />
+          <div className="flex-1">
+            <p className="text-body-sm font-medium text-navy">Unterlagen aus Datenraum</p>
+            <p className="text-caption text-quiet">Wähle Dateien die du dem Käufer zukommen lassen willst.</p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-quiet hover:text-navy transition-colors"
+            aria-label="Schliessen"
+          >
+            <XIcon className="w-4 h-4" strokeWidth={1.5} />
+          </button>
+        </header>
+
+        <div className="flex-1 overflow-y-auto px-5 py-3 min-h-0">
+          {loading && <p className="text-caption text-quiet text-center py-8">Lädt …</p>}
+          {error && <p className="text-caption text-danger text-center py-8">{error}</p>}
+          {!loading && !error && files.length === 0 && (
+            <div className="text-center py-12 text-quiet">
+              <FileText className="w-8 h-8 mx-auto mb-2" strokeWidth={1.5} />
+              <p className="text-caption">Noch keine Dateien im Datenraum.</p>
+              <p className="text-[10px] mt-1">Lade Unterlagen unter «Datenraum» hoch.</p>
+            </div>
+          )}
+          {!loading && files.length > 0 && (
+            <div className="space-y-4">
+              {Object.entries(grouped).map(([ordner, list]) => (
+                <div key={ordner}>
+                  <p className="overline text-bronze-ink mb-1.5">{ordner}</p>
+                  <ul className="space-y-1">
+                    {list.map((f) => {
+                      const isAlready = alreadyIds.has(f.id);
+                      const checked = selectedIds.has(f.id);
+                      return (
+                        <li key={f.id}>
+                          <label className={cn(
+                            'flex items-center gap-3 px-3 py-2 rounded-soft cursor-pointer transition-colors',
+                            isAlready ? 'bg-stone/30 cursor-not-allowed' : checked ? 'bg-bronze/10' : 'hover:bg-stone/30',
+                          )}>
+                            <input
+                              type="checkbox"
+                              checked={checked || isAlready}
+                              disabled={isAlready}
+                              onChange={() => toggle(f.id)}
+                              className="w-4 h-4 accent-bronze"
+                            />
+                            <FileText className="w-4 h-4 text-quiet flex-shrink-0" strokeWidth={1.5} />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-body-sm text-ink truncate">{f.name}</p>
+                              <p className="text-[10px] text-quiet font-mono">{formatBytes(f.size)}</p>
+                            </div>
+                            {isAlready && (
+                              <span className="text-[10px] text-quiet flex items-center gap-1">
+                                <CheckCheck className="w-3 h-3" strokeWidth={2} />
+                                bereits ausgewählt
+                              </span>
+                            )}
+                          </label>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <footer className="px-5 py-3 border-t border-stone flex items-center gap-3 bg-stone/20">
+          <button
+            type="button"
+            onClick={selectAll}
+            disabled={loading || files.length === 0}
+            className="text-caption text-bronze-ink hover:text-bronze transition-colors disabled:opacity-40"
+          >
+            Alle auswählen
+          </button>
+          <span className="ml-auto text-caption text-quiet">
+            {selectedIds.size} ausgewählt
+          </span>
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-3 py-1.5 text-caption text-quiet hover:text-navy transition-colors"
+          >
+            Abbrechen
+          </button>
+          <button
+            type="button"
+            onClick={confirm}
+            disabled={selectedIds.size === 0}
+            className="px-3 py-1.5 bg-navy text-cream rounded-soft text-caption font-medium hover:bg-ink disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            Anhängen
+          </button>
+        </footer>
+      </div>
+    </div>
+  );
 }

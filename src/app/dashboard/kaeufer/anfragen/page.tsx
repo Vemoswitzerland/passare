@@ -1,170 +1,253 @@
-import Link from 'next/link';
-import { ArrowRight, MessageSquare, FileLock2, Clock, Check, X, AlertCircle } from 'lucide-react';
-import { createClient } from '@/lib/supabase/server';
+import { Inbox } from 'lucide-react';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { hasTable } from '@/lib/db/has-table';
-import { cn } from '@/lib/utils';
+import {
+  InboxLayout, type InboxThread, type InboxMessage,
+} from '@/app/dashboard/verkaeufer/anfragen/InboxLayout';
 
-export const metadata = { title: 'Nachrichten — Käufer · passare', robots: { index: false, follow: false } };
-
-type Anfrage = {
-  id: string;
-  inserat_id: string;
-  inserat_titel?: string | null;
-  branche?: string | null;
-  kanton?: string | null;
-  status: string;
-  letzte_antwort?: string | null;
-  unread?: boolean;
-  created_at: string;
+export const metadata = {
+  title: 'Nachrichten — passare Käufer',
+  robots: { index: false, follow: false },
 };
 
-export default async function AnfragenPage() {
-  const supabase = await createClient();
-  const { data: u } = await supabase.auth.getUser();
-  if (!u.user) return null;
+type Props = { searchParams: Promise<{ thread?: string }> };
 
-  let anfragen: Anfrage[] = [];
-  const anfragenExists = await hasTable('anfragen');
-  if (anfragenExists) {
-    const { data } = await supabase
-      .from('anfragen')
-      .select('*')
-      .eq('kaeufer_id', u.user.id)
+/**
+ * Käufer-Inbox: alle Käufer↔Verkäufer-Konversationen an einem Ort.
+ *
+ * Cyrill 30.04.2026: «Die gleiche Chat-Funktion bitte jetzt einbauen
+ * noch im Käufer- und im Verwaltungsdashboard. Dort ist nämlich noch
+ * das Alte drin.»
+ *
+ * Threads:
+ *   • k:<anfrageId> = Käufer ↔ Verkäufer pro eigene Anfrage
+ *
+ * Aktiver Thread per ?thread=… in der URL.
+ */
+export default async function KaeuferInboxPage({ searchParams }: Props) {
+  const { thread: threadParam } = await searchParams;
+  const supabase = await createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData.user) return null;
+
+  if (!(await hasTable('anfragen'))) {
+    return (
+      <div className="px-6 py-16 text-center">
+        <Inbox className="w-12 h-12 mx-auto text-quiet mb-4" strokeWidth={1.5} />
+        <h2 className="font-serif text-head-md text-navy mb-2">Nachrichten werden noch eingerichtet</h2>
+        <p className="text-body text-muted">Sobald du eine Anfrage stellst, siehst du sie hier.</p>
+      </div>
+    );
+  }
+
+  // ── Eigene Anfragen laden — Käufer-Sicht ────────────────────────
+  const { data: kaeuferAnfragen } = await supabase
+    .from('anfragen')
+    .select('id, kaeufer_id, inserat_id, status, nachricht, created_at, updated_at')
+    .eq('kaeufer_id', userData.user.id)
+    .order('updated_at', { ascending: false });
+
+  if (!kaeuferAnfragen || kaeuferAnfragen.length === 0) {
+    return (
+      <div className="h-[calc(100vh-3.5rem)] md:h-[calc(100vh-4rem)] px-3 py-3 md:px-4 md:py-4 flex items-center justify-center">
+        <div className="rounded-card bg-paper border border-stone p-12 text-center max-w-md">
+          <Inbox className="w-10 h-10 mx-auto text-quiet mb-3" strokeWidth={1.5} />
+          <h3 className="font-serif text-head-sm text-navy mb-1">Noch keine Nachrichten</h3>
+          <p className="text-body-sm text-muted">Sobald du Verkäufer anschreibst, läuft hier euer Chat.</p>
+        </div>
+      </div>
+    );
+  }
+
+  const adminClient = createAdminClient();
+  const ids = kaeuferAnfragen.map((a) => a.id as string);
+  const inseratIds = kaeuferAnfragen.map((a) => a.inserat_id as string);
+
+  // Last-Message pro Thread
+  type LastMsg = { anfrage_id: string; message: string; created_at: string };
+  let lastMsgsByAnfrage = new Map<string, LastMsg>();
+  if ((await hasTable('anfrage_messages'))) {
+    const { data: rawLasts } = await adminClient
+      .from('anfrage_messages')
+      .select('anfrage_id, message, created_at')
+      .in('anfrage_id', ids)
       .order('created_at', { ascending: false });
-    anfragen = (data ?? []) as Anfrage[];
+    for (const m of (rawLasts ?? []) as Array<Record<string, unknown>>) {
+      const aid = m.anfrage_id as string;
+      if (!lastMsgsByAnfrage.has(aid)) {
+        lastMsgsByAnfrage.set(aid, {
+          anfrage_id: aid,
+          message: m.message as string,
+          created_at: m.created_at as string,
+        });
+      }
+    }
+  }
+
+  // Inserate inkl. anonymitaet_level laden — Service-Role weil Käufer
+  // nicht zwingend Read-Access hat.
+  const { data: insRows } = await adminClient
+    .from('inserate')
+    .select('id, titel, verkaeufer_id, anonymitaet_level')
+    .in('id', inseratIds);
+  type InsInfo = {
+    titel: string | null;
+    verkaeufer_id: string;
+    anonymitaet_level: string | null;
+  };
+  const insMap = new Map<string, InsInfo>();
+  for (const i of (insRows ?? []) as Array<Record<string, unknown>>) {
+    insMap.set(i.id as string, {
+      titel: (i.titel as string | null) ?? null,
+      verkaeufer_id: i.verkaeufer_id as string,
+      anonymitaet_level: (i.anonymitaet_level as string | null) ?? null,
+    });
+  }
+
+  // Verkäufer-Profile (für Threads die voll-offen sind)
+  const verkaeuferIds = Array.from(new Set(Array.from(insMap.values()).map((i) => i.verkaeufer_id)));
+  const verkaeuferProfMap = new Map<string, { name: string | null }>();
+  if (verkaeuferIds.length > 0) {
+    const { data: profs } = await adminClient
+      .from('profiles')
+      .select('id, full_name')
+      .in('id', verkaeuferIds);
+    for (const p of (profs ?? []) as Array<Record<string, unknown>>) {
+      verkaeuferProfMap.set(p.id as string, {
+        name: (p.full_name as string | null) ?? null,
+      });
+    }
+  }
+
+  // ── Threads bauen ──────────────────────────────────────────────
+  const threads: InboxThread[] = kaeuferAnfragen
+    .map((a) => {
+      const last = lastMsgsByAnfrage.get(a.id as string);
+      const ins = insMap.get(a.inserat_id as string);
+      const verkProf = ins ? verkaeuferProfMap.get(ins.verkaeufer_id) : null;
+      // Bei voll_anonym oder vorname_funktion: pseudonymer Verkäufer-Name
+      const showFullName = ins?.anonymitaet_level === 'voll_offen';
+      const title = showFullName && verkProf?.name ? verkProf.name : 'Verkäufer';
+      return {
+        id: `k:${a.id}`,
+        type: 'kaeufer' as const,
+        title,
+        initials: deriveInitials(title),
+        lastMessage: last?.message ?? (a.nachricht as string | null) ?? '(keine Nachricht)',
+        lastAt: last?.created_at ?? (a.updated_at as string),
+        inseratId: a.inserat_id as string,
+        inseratTitel: ins?.titel ?? null,
+        detailHref: null,
+        statusLabel: statusLabel(a.status as string),
+        unread: false,
+      };
+    })
+    .sort((a, b) => new Date(b.lastAt).getTime() - new Date(a.lastAt).getTime());
+
+  // ── Aktiven Thread laden ───────────────────────────────────────
+  const activeThreadId = threadParam ?? threads[0]?.id ?? null;
+  const activeThread = threads.find((t) => t.id === activeThreadId) ?? null;
+  let activeMessages: InboxMessage[] = [];
+
+  if (activeThread) {
+    const anfrageId = activeThread.id.replace(/^k:/, '');
+    const { data: msgs } = await adminClient
+      .from('anfrage_messages')
+      .select('id, from_user, from_role, message, attachments, created_at')
+      .eq('anfrage_id', anfrageId)
+      .order('created_at', { ascending: true });
+    const msgList = (msgs ?? []) as Array<Record<string, unknown>>;
+    const userIds = Array.from(new Set(msgList.map((m) => m.from_user as string)));
+    const profMap = await loadProfiles(adminClient, userIds);
+    activeMessages = msgList.map((m) => {
+      const prof = profMap.get(m.from_user as string);
+      const isMe = (m.from_user as string) === userData.user!.id;
+      const fromRole = m.from_role as string;
+      const display = fromRole === 'admin'
+        ? 'passare-Team'
+        : fromRole === 'verkaeufer'
+          ? activeThread.title
+          : prof?.name ?? prof?.email ?? 'Käufer';
+      return {
+        id: m.id as string,
+        fromMe: isMe,
+        authorName: display,
+        authorInitials: deriveInitials(display),
+        message: m.message as string,
+        createdAt: m.created_at as string,
+        kindLabel: null,
+        kindRaw: null,
+        attachments: Array.isArray(m.attachments)
+          ? (m.attachments as Array<Record<string, unknown>>).map((at) => ({
+              kind: (at.kind as 'datenraum' | 'kaeufer_dossier' | 'upload') ?? 'upload',
+              file_id: at.file_id as string | undefined,
+              name: (at.name as string) ?? 'Datei',
+              url: at.url as string | undefined,
+              size: at.size as number | undefined,
+              mime: at.mime as string | undefined,
+            }))
+          : [],
+      };
+    });
   }
 
   return (
-    <div className="space-y-6 max-w-content">
-      <div>
-        <p className="overline text-bronze mb-2">Posteingang</p>
-        <h1 className="font-serif text-display-sm md:text-head-lg text-navy font-light">
-          Nachrichten<span className="text-bronze">.</span>
-        </h1>
-        <p className="text-body-sm text-muted mt-2 max-w-2xl">
-          Alle Dossier-Anfragen mit den Antworten der Verkäufer plus Nachrichten vom passare-Team — an einem Ort.
-        </p>
-      </div>
-
-      {/* Templates-Banner */}
-      <div className="bg-bronze/5 border border-bronze/20 rounded-card p-5">
-        <div className="flex items-start gap-3">
-          <MessageSquare className="w-5 h-5 text-bronze flex-shrink-0 mt-0.5" strokeWidth={1.5} />
-          <div className="flex-1">
-            <p className="text-body-sm text-navy font-medium mb-1">Anfrage-Vorlagen</p>
-            <p className="text-caption text-muted leading-relaxed">
-              Sobald du im Marktplatz auf «Dossier anfragen» klickst, kannst du aus 3 vorgefertigten Nachrichten wählen («Vorstellung + Budget + Timing» / «Kurz und neugierig» / «Konkretes Angebot») und sie anpassen.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Status-Filter */}
-      <div className="inline-flex bg-paper border border-stone rounded-soft p-0.5 flex-wrap">
-        {(['Alle', 'Offen', 'In Bearbeitung', 'Akzeptiert', 'Abgelehnt', 'Archiviert'] as const).map((label, i) => (
-          <button
-            key={label}
-            className={cn(
-              'px-3 py-1.5 rounded-soft text-caption font-medium transition-colors',
-              i === 0 ? 'bg-navy text-cream' : 'text-muted hover:text-navy',
-            )}
-            disabled
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-
-      {!anfragenExists || anfragen.length === 0 ? (
-        <EmptyState defensiv={!anfragenExists} />
-      ) : (
-        <div className="bg-paper border border-stone rounded-card overflow-hidden">
-          <ul className="divide-y divide-stone">
-            {anfragen.map((a) => (
-              <AnfrageRow key={a.id} anfrage={a} />
-            ))}
-          </ul>
-        </div>
-      )}
+    <div className="h-[calc(100vh-3.5rem)] md:h-[calc(100vh-4rem)] px-3 py-3 md:px-4 md:py-4">
+      <InboxLayout
+        threads={threads}
+        activeThreadId={activeThreadId}
+        activeThread={activeThread}
+        activeMessages={activeMessages}
+        canReplyPassare={false}
+        basePath="/dashboard/kaeufer/anfragen"
+        senderRole="kaeufer"
+      />
     </div>
   );
 }
 
-function EmptyState({ defensiv }: { defensiv: boolean }) {
-  return (
-    <div className="bg-paper border border-dashed border-stone rounded-card p-12 text-center">
-      <p className="overline text-bronze-ink mb-3">Noch keine Anfragen</p>
-      <h3 className="font-serif text-head-md text-navy font-normal mb-3">
-        Hier werden deine Dossier-Anfragen erscheinen<span className="text-bronze">.</span>
-      </h3>
-      <p className="text-body-sm text-muted mb-6 max-w-md mx-auto">
-        Stöbere im Marktplatz und klicke auf «Dossier anfragen» bei Inseraten die dich interessieren — der Verkäufer bekommt eine Nachricht und kann dir das NDA freigeben.
-      </p>
-      {defensiv && (
-        <p className="text-caption text-quiet bg-warn/5 border border-warn/20 rounded-soft px-3 py-2 inline-flex items-center gap-2 mb-6">
-          <AlertCircle className="w-3.5 h-3.5 text-warn" strokeWidth={1.5} />
-          Tabelle „anfragen" wird gerade vom Verkäufer-Bereich aufgebaut
-        </p>
-      )}
-      <div>
-        <Link
-          href="/kaufen"
-          className="inline-flex items-center gap-2 px-5 py-2.5 bg-navy text-cream rounded-soft text-body-sm font-medium hover:bg-ink transition-colors"
-        >
-          Zum Marktplatz <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
-        </Link>
-      </div>
-    </div>
-  );
+// ─── HELPERS ─────────────────────────────────────────────────────
+
+async function loadProfiles(
+  client: ReturnType<typeof createAdminClient>,
+  userIds: string[],
+): Promise<Map<string, { name: string | null; email: string | null }>> {
+  const map = new Map<string, { name: string | null; email: string | null }>();
+  if (userIds.length === 0) return map;
+  const { data } = await client
+    .from('profiles')
+    .select('id, full_name, email')
+    .in('id', userIds);
+  for (const p of data ?? []) {
+    map.set(p.id as string, {
+      name: (p.full_name as string | null) ?? null,
+      email: (p.email as string | null) ?? null,
+    });
+  }
+  return map;
 }
 
-function AnfrageRow({ anfrage }: { anfrage: Anfrage }) {
-  const statusInfo = STATUS_MAP[anfrage.status] ?? { label: anfrage.status, color: 'bg-stone/60 text-ink', icon: Clock };
-  const StatusIcon = statusInfo.icon;
-
-  return (
-    <li>
-      <Link
-        href={`/dashboard/kaeufer/anfragen/${anfrage.id}`}
-        className="flex items-start gap-4 px-5 py-4 hover:bg-stone/30 transition-colors"
-      >
-        {anfrage.unread && (
-          <span className="w-2 h-2 rounded-full bg-bronze flex-shrink-0 mt-2.5" />
-        )}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-baseline justify-between gap-3 mb-1">
-            <p className="font-mono text-caption text-quiet">
-              {anfrage.inserat_id} · {anfrage.branche ?? '—'} · {anfrage.kanton ?? '—'}
-            </p>
-            <p className="font-mono text-caption text-quiet">
-              {new Date(anfrage.created_at).toLocaleDateString('de-CH')}
-            </p>
-          </div>
-          <p className="text-body-sm text-navy font-medium leading-snug mb-1">
-            {anfrage.inserat_titel ?? 'Inserat'}
-          </p>
-          {anfrage.letzte_antwort && (
-            <p className="text-caption text-muted line-clamp-1">
-              <FileLock2 className="inline w-3 h-3 mr-1 text-bronze" strokeWidth={1.5} />
-              {anfrage.letzte_antwort}
-            </p>
-          )}
-        </div>
-        <span className={cn('inline-flex items-center gap-1.5 text-caption font-medium px-2.5 py-1 rounded-pill', statusInfo.color)}>
-          <StatusIcon className="w-3 h-3" strokeWidth={2} />
-          {statusInfo.label}
-        </span>
-      </Link>
-    </li>
-  );
+function deriveInitials(name: string | null | undefined): string {
+  if (!name) return '?';
+  return name
+    .split(/[\s@]/)
+    .map((s) => s[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
 }
 
-const STATUS_MAP: Record<string, { label: string; color: string; icon: React.ComponentType<{ className?: string; strokeWidth?: number }> }> = {
-  offen:           { label: 'Offen',          color: 'bg-stone/60 text-ink',           icon: Clock },
-  pending:         { label: 'Pending',        color: 'bg-warn/10 text-warn',           icon: Clock },
-  in_bearbeitung:  { label: 'In Bearbeitung', color: 'bg-navy-soft text-navy',         icon: MessageSquare },
-  akzeptiert:      { label: 'Akzeptiert',     color: 'bg-success/10 text-success',     icon: Check },
-  approved:        { label: 'Akzeptiert',     color: 'bg-success/10 text-success',     icon: Check },
-  abgelehnt:       { label: 'Abgelehnt',      color: 'bg-danger/5 text-danger',        icon: X },
-  declined:        { label: 'Abgelehnt',      color: 'bg-danger/5 text-danger',        icon: X },
-};
+function statusLabel(status: string): string | null {
+  switch (status) {
+    case 'neu': return 'Neue Anfrage';
+    case 'in_pruefung': return 'In Prüfung';
+    case 'akzeptiert': return 'Akzeptiert';
+    case 'abgelehnt': return 'Abgelehnt';
+    case 'nda_pending': return 'NDA ausstehend';
+    case 'nda_signed': return 'NDA unterzeichnet';
+    case 'released': return 'Datenraum freigegeben';
+    case 'geschlossen': return 'Geschlossen';
+    default: return null;
+  }
+}

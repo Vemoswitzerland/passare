@@ -187,7 +187,7 @@ export default async function AnfragenInboxPage({ searchParams }: Props) {
       const anfrageId = activeThread.id.replace(/^k:/, '');
       const { data: msgs } = await adminClient
         .from('anfrage_messages')
-        .select('id, from_user, from_role, message, created_at')
+        .select('id, from_user, from_role, message, attachments, created_at')
         .eq('anfrage_id', anfrageId)
         .order('created_at', { ascending: true });
       const msgList = (msgs ?? []) as Array<Record<string, unknown>>;
@@ -207,6 +207,17 @@ export default async function AnfragenInboxPage({ searchParams }: Props) {
           message: m.message as string,
           createdAt: m.created_at as string,
           kindLabel: null,
+          kindRaw: null,
+          attachments: Array.isArray(m.attachments)
+            ? (m.attachments as Array<Record<string, unknown>>).map((a) => ({
+                kind: (a.kind as 'datenraum' | 'kaeufer_dossier' | 'upload') ?? 'upload',
+                file_id: a.file_id as string | undefined,
+                name: (a.name as string) ?? 'Datei',
+                url: a.url as string | undefined,
+                size: a.size as number | undefined,
+                mime: a.mime as string | undefined,
+              }))
+            : [],
         };
       });
     } else {
@@ -236,6 +247,8 @@ export default async function AnfragenInboxPage({ searchParams }: Props) {
           message: m.message as string,
           createdAt: m.created_at as string,
           kindLabel: kindLabel(m.kind as string),
+          kindRaw: m.kind as string,
+          attachments: [],
         };
       });
     }

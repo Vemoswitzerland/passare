@@ -68,6 +68,15 @@ export const SESSIONS: AgentSession[] = [
   {
     date: '2026-04-30',
     bereich: 'verkaeufer',
+    titel: 'Chat: Unterlagen-Anhänge + Action-Karten + Inbox in Käufer + Admin-Bereich',
+    inputTokens: 880_000,
+    outputTokens: 180_000,
+    dauerMinuten: 60,
+    status: 'done',
+  },
+  {
+    date: '2026-04-30',
+    bereich: 'verkaeufer',
     titel: 'Inbox-Umbau: zentrale Nachrichten-Übersicht (Käufer + passare-Team) + Inline-Kontakt-Edit',
     inputTokens: 540_000,
     outputTokens: 110_000,

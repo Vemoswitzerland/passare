@@ -67,6 +67,13 @@ export const CURRENT_STEP = {
 export const UPDATES: Update[] = [
   {
     date: '2026-04-30',
+    type: 'feature',
+    titel: 'Chat erweitert: Unterlagen senden + Action-Karten + Inbox in Käufer + Admin',
+    beschreibung:
+      'Drei grosse Erweiterungen am Chat-System: (1) Verkäufer können jetzt direkt aus dem Chat Unterlagen aus dem Datenraum an Käufer schicken — Knopf links neben dem Eingabefeld öffnet ein Auswahl-Fenster mit allen eigenen Datenraum-Dateien gruppiert nach Ordner, Multi-Select möglich, Datei-Karten erscheinen als Anhänge in der Chat-Bubble (mit Datei-Name, Grösse, Symbol). (2) Status-Aktionen vom passare-Team werden jetzt als visuelle Karten im Chat-Verlauf gerendert statt nur als Text — Inserat freigegeben (grünes Häkchen, grüner Hintergrund), Inserat abgelehnt (rotes X, roter Hintergrund), Inserat pausiert (graue Pause-Karte) — so sieht man die Workflow-Schritte direkt im Verlauf. (3) Die gleiche zentrale Inbox gibt es jetzt auch im Käufer-Dashboard (Liste der Verkäufer-Konversationen) und im Admin-Verwaltungsbereich (alle Plattform-Konversationen — sowohl Käufer↔Verkäufer als auch passare-Team↔Verkäufer). Vollflächiges Layout, Header weg, Liste links nur «Nachrichten» + Counter, Chat füllt die ganze restliche Fläche.',
+  },
+  {
+    date: '2026-04-30',
     type: 'design',
     titel: 'Klare Trennung: Käufer-Vorteile und Verkäufer-Preise auf eigenen Seiten',
     beschreibung:
