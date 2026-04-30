@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { MessageSquare, ChevronRight, Filter, Lock, Unlock } from 'lucide-react';
+import { MessageSquare, ChevronRight, Filter, Lock, Unlock, Sparkles, ArrowRight } from 'lucide-react';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { PageHeader, EmptyState } from '@/components/admin/PageHeader';
 import { DataTable, Td, Tr } from '@/components/admin/DataTable';
@@ -13,7 +13,7 @@ import {
 import { cn } from '@/lib/utils';
 
 export const metadata = {
-  title: 'Admin · Anfragen — passare',
+  title: 'Admin · Nachrichten — passare',
   robots: { index: false, follow: false },
 };
 
@@ -103,9 +103,156 @@ export default async function AdminAnfragenPage({
     return qs ? `/admin/anfragen?${qs}` : '/admin/anfragen';
   };
 
+  // ── Verkäufer-Konversationen aggregieren — Cyrill 30.04.2026:
+  // «Nachricht geschrieben über Inserat aber es hat mir als Admin keinen
+  // Chat geöffnet mit dem Verkäufer unter Nachrichten». Wir gruppieren
+  // pro Inserat das letzte Audit-Message + Counter, klick führt zum
+  // Inserat-Detail wo Logbuch + Nachricht-senden-Panel zusammen sind.
+  type VerkConvo = {
+    inserat_id: string;
+    inserat_titel: string | null;
+    inserat_public_id: string | null;
+    verkaeufer_id: string | null;
+    verkaeufer_name: string | null;
+    last_message: string;
+    last_at: string;
+    last_role: 'admin' | 'verkaeufer';
+    count: number;
+  };
+  let verkConvos: VerkConvo[] = [];
+  try {
+    const adminClient = createAdminClient();
+    const { data: rawAudit } = await adminClient
+      .from('inserat_audit_messages')
+      .select('inserat_id, message, kind, from_role, created_at')
+      .order('created_at', { ascending: false })
+      .limit(500);
+    if (rawAudit && rawAudit.length > 0) {
+      const byInserat = new Map<string, { last: typeof rawAudit[number]; count: number }>();
+      for (const m of rawAudit) {
+        const id = m.inserat_id as string;
+        const e = byInserat.get(id);
+        if (!e) byInserat.set(id, { last: m, count: 1 });
+        else e.count += 1;
+      }
+      const inseratIds = Array.from(byInserat.keys());
+      const { data: insMeta } = await adminClient
+        .from('inserate')
+        .select('id, titel, public_id, verkaeufer_id')
+        .in('id', inseratIds);
+      const insMap = new Map<string, { titel: string | null; public_id: string | null; verkaeufer_id: string | null }>();
+      for (const i of insMeta ?? []) {
+        insMap.set(i.id as string, {
+          titel: (i.titel as string | null) ?? null,
+          public_id: (i.public_id as string | null) ?? null,
+          verkaeufer_id: (i.verkaeufer_id as string | null) ?? null,
+        });
+      }
+      const verkIds = Array.from(insMap.values()).map((x) => x.verkaeufer_id).filter(Boolean) as string[];
+      const verkMap = new Map<string, { full_name: string | null }>();
+      if (verkIds.length > 0) {
+        const { data: verkProfiles } = await adminClient
+          .from('profiles')
+          .select('id, full_name')
+          .in('id', verkIds);
+        for (const p of verkProfiles ?? []) {
+          verkMap.set(p.id as string, { full_name: (p.full_name as string | null) ?? null });
+        }
+      }
+      verkConvos = Array.from(byInserat.entries()).map(([insId, e]) => {
+        const meta = insMap.get(insId);
+        const verk = meta?.verkaeufer_id ? verkMap.get(meta.verkaeufer_id) : null;
+        return {
+          inserat_id: insId,
+          inserat_titel: meta?.titel ?? null,
+          inserat_public_id: meta?.public_id ?? null,
+          verkaeufer_id: meta?.verkaeufer_id ?? null,
+          verkaeufer_name: verk?.full_name ?? null,
+          last_message: e.last.message as string,
+          last_at: e.last.created_at as string,
+          last_role: e.last.from_role as 'admin' | 'verkaeufer',
+          count: e.count,
+        };
+      });
+      verkConvos.sort((a, b) => (a.last_at < b.last_at ? 1 : -1));
+    }
+  } catch (err) {
+    console.warn('[admin-anfragen] verkConvos query failed:', err);
+  }
+
   return (
     <div className="max-w-6xl">
-      <PageHeader overline="Verwaltung" title="Anfragen" />
+      <PageHeader overline="Verwaltung" title="Nachrichten" />
+
+      {/* ── Verkäufer-Konversationen ───────────────────────────────
+          Aggregiert pro Inserat: letzte Nachricht + Zähler. Klick
+          führt zum Inserat-Detail (Logbuch + Schreiben in einem). */}
+      {verkConvos.length > 0 && (
+        <section className="mb-6 rounded-card bg-navy/[0.03] border border-navy/15 overflow-hidden">
+          <header className="px-4 py-2.5 border-b border-navy/10 bg-navy/[0.05] flex items-center gap-2">
+            <Sparkles className="w-3.5 h-3.5 text-navy" strokeWidth={1.5} />
+            <h2 className="text-[12px] text-navy font-medium">
+              Konversationen mit Verkäufern
+            </h2>
+            <span className="font-mono text-[11px] text-quiet ml-1">
+              {verkConvos.length}
+            </span>
+          </header>
+          <ul className="divide-y divide-stone/60">
+            {verkConvos.slice(0, 10).map((c) => (
+              <li key={c.inserat_id}>
+                <Link
+                  href={`/admin/inserate/${c.inserat_id}`}
+                  className="block px-4 py-3 hover:bg-cream/60 transition-colors"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <p className="text-[13px] text-ink font-medium truncate max-w-[300px]">
+                          {c.verkaeufer_name ?? <em className="text-quiet font-normal">Verkäufer unbekannt</em>}
+                        </p>
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-soft text-[10px] font-medium bg-paper border border-stone text-navy">
+                          <span className="text-quiet">Inserat:</span>
+                          <span className="truncate max-w-[200px]">{c.inserat_titel ?? '—'}</span>
+                        </span>
+                        <span className="font-mono text-[10px] text-quiet ml-auto whitespace-nowrap">
+                          {formatDate(c.last_at)}
+                        </span>
+                      </div>
+                      <p className="text-[12px] text-muted line-clamp-1">
+                        <span className={cn(
+                          'font-mono text-[10px] uppercase tracking-wide mr-1.5',
+                          c.last_role === 'admin' ? 'text-navy' : 'text-success',
+                        )}>
+                          {c.last_role === 'admin' ? 'Du:' : `${c.verkaeufer_name?.split(' ')[0] ?? 'Verkäufer'}:`}
+                        </span>
+                        {c.last_message}
+                      </p>
+                      {c.count > 1 && (
+                        <p className="text-[10px] text-quiet font-mono mt-1">
+                          {c.count} Nachricht{c.count !== 1 ? 'en' : ''} insgesamt
+                        </p>
+                      )}
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-quiet flex-shrink-0 mt-1" strokeWidth={1.5} />
+                  </div>
+                </Link>
+              </li>
+            ))}
+          </ul>
+          {verkConvos.length > 10 && (
+            <p className="px-4 py-2 text-[11px] text-quiet italic border-t border-stone/60">
+              + {verkConvos.length - 10} weitere Konversationen
+            </p>
+          )}
+        </section>
+      )}
+
+      <div className="mb-3">
+        <h2 className="text-[11px] uppercase tracking-wide font-medium text-quiet">
+          Käufer-Anfragen
+        </h2>
+      </div>
 
       <div className="flex items-center gap-1 flex-wrap mb-4">
         <Filter className="w-3.5 h-3.5 text-quiet mr-1" strokeWidth={1.5} />
