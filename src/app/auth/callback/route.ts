@@ -76,15 +76,28 @@ export async function GET(req: NextRequest) {
 
   if (isWiederkehrer || hasInserat) {
     // ── Wiederkehrer-Flow ─────────────────────────────────────────
-    // ALLE Pre-Reg-Cookies aufräumen — sie haben hier nichts mehr
-    // verloren, der User soll ins richtige Dashboard, NICHT in den Tunnel.
+    // ALLE Pre-Reg-Cookies aufräumen + DIREKT zur rolle-passenden Route.
+    // Robust: Profil-Rolle ist die primäre Quelle (deckt admin/kaeufer/
+    // verkaeufer ab). Hat das Profil keine Rolle aber ein Inserat,
+    // nehmen wir verkaeufer als Default. Sonst → generisches /dashboard,
+    // das selbst nochmal rolle-routet.
     //
-    // Rollen-basiertes Routing: hat ein User Inserate, gehört er klar
-    // ins Verkäufer-Dashboard. Ohne Inserate → /dashboard, das selber
-    // die Rolle (admin/kaeufer/verkaeufer) prüft und passend redirected.
-    // VORHER: alle Wiederkehrer landeten hart auf /dashboard/verkaeufer
-    // — auch Admins, was kein Sinn macht.
-    const targetPath = hasInserat ? '/dashboard/verkaeufer' : '/dashboard';
+    // VORHER (zwei Bugs): alle Wiederkehrer landeten hart auf
+    // /dashboard/verkaeufer (auch Admins!) und der Zwischenschritt
+    // /dashboard ist optional fragil bei Cookie-/Cache-Issues.
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('rolle')
+      .eq('id', u.user.id)
+      .maybeSingle();
+
+    const targetPath =
+      profile?.rolle === 'admin' ? '/admin'
+      : profile?.rolle === 'kaeufer' ? '/dashboard/kaeufer'
+      : profile?.rolle === 'verkaeufer' ? '/dashboard/verkaeufer'
+      : hasInserat ? '/dashboard/verkaeufer'
+      : '/dashboard';
+
     const targetUrl = `${origin}${targetPath}`;
     const res = NextResponse.redirect(targetUrl);
     res.cookies.set('pre_reg_draft', '', { maxAge: 0, path: '/' });
