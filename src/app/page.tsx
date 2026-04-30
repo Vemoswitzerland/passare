@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import {
   ArrowRight, Search, TrendingUp,
-  FileLock2, Filter, Eye, LayoutDashboard,
+  FileLock2, Filter, Eye, LayoutDashboard, ChevronDown,
 } from 'lucide-react';
 import { Container, Section } from '@/components/ui/container';
 import { Button } from '@/components/ui/button';
@@ -282,6 +282,11 @@ function Marketplace({
   searchParams: SearchParams;
 }) {
   const isFiltered = Object.values(searchParams).some((v) => v && v !== 'all');
+  const hasAdvancedFilter =
+    (!!searchParams.umsatz && searchParams.umsatz !== 'all') ||
+    (!!searchParams.ebitda && searchParams.ebitda !== 'all') ||
+    (!!searchParams.ma && searchParams.ma !== 'all') ||
+    !!searchParams.gruende;
 
   return (
     <Section className="pt-0 md:pt-0 pb-24 md:pb-24">
@@ -290,7 +295,7 @@ function Marketplace({
           {/* Sidebar — als <form method="GET"> damit Filter über URL-Params gehen */}
           <aside className="lg:sticky lg:top-24 lg:self-start">
             <Reveal>
-              <form method="GET" action="/" className="bg-paper border border-stone rounded-card p-6 space-y-7">
+              <form method="GET" action="/" className="bg-paper border border-stone rounded-card p-5 space-y-5">
                 <div className="flex items-center gap-2">
                   <Filter className="w-4 h-4 text-bronze" strokeWidth={1.5} />
                   <h2 className="font-mono text-[11px] uppercase tracking-widest text-navy">Filter</h2>
@@ -351,53 +356,61 @@ function Marketplace({
                   </select>
                 </div>
 
-                <div>
-                  <label className="overline block mb-2">Jahresumsatz</label>
-                  <select
-                    name="umsatz"
-                    defaultValue={searchParams.umsatz ?? 'all'}
-                    className="w-full bg-cream border border-stone rounded-soft px-3 py-2.5 text-body-sm focus:outline-none focus:border-bronze"
-                  >
-                    {UMSATZ_BUCKETS.map((b) => <option key={b.id} value={b.id}>{b.label}</option>)}
-                  </select>
-                </div>
+                <details open={hasAdvancedFilter} className="group border-t border-stone -mx-5 px-5 pt-5">
+                  <summary className="flex items-center justify-between cursor-pointer list-none select-none text-quiet hover:text-navy transition-colors [&::-webkit-details-marker]:hidden">
+                    <span className="font-mono text-[11px] uppercase tracking-widest">Mehr Filter</span>
+                    <ChevronDown className="w-4 h-4 transition-transform group-open:rotate-180" strokeWidth={1.5} />
+                  </summary>
+                  <div className="space-y-5 mt-5">
+                    <div>
+                      <label className="overline block mb-2">Jahresumsatz</label>
+                      <select
+                        name="umsatz"
+                        defaultValue={searchParams.umsatz ?? 'all'}
+                        className="w-full bg-cream border border-stone rounded-soft px-3 py-2.5 text-body-sm focus:outline-none focus:border-bronze"
+                      >
+                        {UMSATZ_BUCKETS.map((b) => <option key={b.id} value={b.id}>{b.label}</option>)}
+                      </select>
+                    </div>
 
-                <div>
-                  <label className="overline block mb-2">EBITDA-Marge</label>
-                  <select
-                    name="ebitda"
-                    defaultValue={searchParams.ebitda ?? 'all'}
-                    className="w-full bg-cream border border-stone rounded-soft px-3 py-2.5 text-body-sm focus:outline-none focus:border-bronze"
-                  >
-                    {EBITDA_BUCKETS.map((b) => <option key={b.id} value={b.id}>{b.label}</option>)}
-                  </select>
-                </div>
+                    <div>
+                      <label className="overline block mb-2">EBITDA-Marge</label>
+                      <select
+                        name="ebitda"
+                        defaultValue={searchParams.ebitda ?? 'all'}
+                        className="w-full bg-cream border border-stone rounded-soft px-3 py-2.5 text-body-sm focus:outline-none focus:border-bronze"
+                      >
+                        {EBITDA_BUCKETS.map((b) => <option key={b.id} value={b.id}>{b.label}</option>)}
+                      </select>
+                    </div>
 
-                <div>
-                  <label className="overline block mb-2">Mitarbeitende</label>
-                  <select
-                    name="ma"
-                    defaultValue={searchParams.ma ?? 'all'}
-                    className="w-full bg-cream border border-stone rounded-soft px-3 py-2.5 text-body-sm focus:outline-none focus:border-bronze"
-                  >
-                    {MA_BUCKETS.map((b) => <option key={b.id} value={b.id}>{b.label}</option>)}
-                  </select>
-                </div>
+                    <div>
+                      <label className="overline block mb-2">Mitarbeitende</label>
+                      <select
+                        name="ma"
+                        defaultValue={searchParams.ma ?? 'all'}
+                        className="w-full bg-cream border border-stone rounded-soft px-3 py-2.5 text-body-sm focus:outline-none focus:border-bronze"
+                      >
+                        {MA_BUCKETS.map((b) => <option key={b.id} value={b.id}>{b.label}</option>)}
+                      </select>
+                    </div>
 
-                <div>
-                  <label className="overline block mb-2">Übergabegrund</label>
-                  <div className="space-y-2">
-                    {UEBERGABE_GRUENDE.map((g) => {
-                      const checked = searchParams.gruende?.split(',').includes(g.id) ?? false;
-                      return (
-                        <label key={g.id} className="flex items-center gap-2 cursor-pointer text-body-sm text-muted hover:text-ink">
-                          <input type="checkbox" name="gruende" value={g.id} defaultChecked={checked} className="accent-bronze" />
-                          {g.label}
-                        </label>
-                      );
-                    })}
+                    <div>
+                      <label className="overline block mb-2">Übergabegrund</label>
+                      <div className="space-y-2">
+                        {UEBERGABE_GRUENDE.map((g) => {
+                          const checked = searchParams.gruende?.split(',').includes(g.id) ?? false;
+                          return (
+                            <label key={g.id} className="flex items-center gap-2 cursor-pointer text-body-sm text-muted hover:text-ink">
+                              <input type="checkbox" name="gruende" value={g.id} defaultChecked={checked} className="accent-bronze" />
+                              {g.label}
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
                   </div>
-                </div>
+                </details>
 
                 <input type="hidden" name="sort" value={searchParams.sort ?? 'neu'} />
 
