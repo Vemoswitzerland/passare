@@ -7,7 +7,7 @@
 //    automatisch als Verkäufer markiert)
 // ════════════════════════════════════════════════════════════════════
 import { redirect } from 'next/navigation';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
 import { RolleWaehlen } from './RolleWaehlen';
 import { logoutAction } from '@/app/auth/actions';
@@ -50,29 +50,45 @@ export default async function OnboardingPage() {
   const sprache = u.user.user_metadata?.sprache ?? 'de';
 
   // ── Eindeutige Käufer-Indikatoren ────────────────────────────────
+  // Kaeufer wird in /onboarding/kaeufer/tunnel komplett geführt — wir
+  // setzen hier nur die rolle, onboarding_completed_at folgt am Ende
+  // des Tunnels via complete_onboarding-RPC.
   if (intended === 'kaeufer' || profile?.rolle === 'kaeufer') {
-    if (!profile) {
-      await supabase.from('profiles').upsert({
-        id: u.user.id, rolle: 'kaeufer', full_name: fullName, sprache,
-      }, { onConflict: 'id' });
-    }
     redirect('/onboarding/kaeufer/tunnel');
   }
 
   // ── Eindeutige Verkäufer-Indikatoren ─────────────────────────────
+  // KEIN direkter UPSERT auf profiles — RLS lässt rolle und
+  // onboarding_completed_at nicht zu (nur der security-definer-RPC darf
+  // das). Sonst entsteht ein Loop: upsert silent fail → onboarding bleibt
+  // null → /dashboard redirected wieder zu /onboarding.
   if (intended === 'verkaeufer' || hasFreshPreReg) {
-    await supabase.from('profiles').upsert({
-      id: u.user.id,
-      rolle: 'verkaeufer',
-      full_name: fullName,
-      sprache,
-      onboarding_completed_at: new Date().toISOString(),
-    }, { onConflict: 'id' });
+    const h = await headers();
+    const ip = (h.get('x-forwarded-for') ?? '').split(',')[0]?.trim() || null;
+    const ua = h.get('user-agent') ?? null;
+    const kanton = (preReg?.kanton ?? '').toUpperCase().slice(0, 2) || 'ZH';
 
-    if (hasFreshPreReg) {
-      redirect('/dashboard/verkaeufer/inserat/new?from=pre-reg');
+    const { error: completeErr } = await supabase.rpc('complete_onboarding', {
+      p_rolle: 'verkaeufer',
+      p_full_name: fullName || u.user.email?.split('@')[0] || 'User',
+      p_kanton: kanton,
+      p_sprache: sprache,
+      p_agb_version: '2026-04',
+      p_datenschutz_version: '2026-04',
+      p_ip: ip,
+      p_user_agent: ua,
+    });
+
+    if (completeErr) {
+      console.warn('[onboarding] complete_onboarding fehlgeschlagen:', completeErr.message);
+      // Fallback: Rollenwahl-Page anzeigen statt Loop riskieren
+      // (User landet hier wenn z.B. Pre-Reg-Daten unvollständig)
+    } else {
+      if (hasFreshPreReg) {
+        redirect('/dashboard/verkaeufer/inserat/new?from=pre-reg');
+      }
+      redirect('/dashboard/verkaeufer');
     }
-    redirect('/dashboard/verkaeufer');
   }
 
   // ── KEINE Indikatoren — User muss selbst wählen ──────────────────

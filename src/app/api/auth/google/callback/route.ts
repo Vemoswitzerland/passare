@@ -91,19 +91,20 @@ export async function GET(req: NextRequest) {
   const supabaseAnon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!supabaseUrl || !supabaseAnon) return errorRedirect(req, 'supabase_config_missing');
 
-  const finalUrl = new URL(next, siteUrl(req));
-  const res = NextResponse.redirect(finalUrl);
-  clearCookies(res);
+  // Wir sammeln die Auth-Cookies (mit Options!) in einem Array, damit
+  // wir sie später auf den finalen Redirect mit korrektem httpOnly/secure
+  // /sameSite kopieren können. NextResponse.cookies.getAll() liefert
+  // keine Options zurück — daher das Buffer-Pattern.
+  type AuthCookieToSet = { name: string; value: string; options?: CookieOptions };
+  const authCookies: AuthCookieToSet[] = [];
 
   const supabase = createServerClient(supabaseUrl, supabaseAnon, {
     cookies: {
       getAll() {
         return cookieStore.getAll().map((c) => ({ name: c.name, value: c.value }));
       },
-      setAll(cookiesToSet: { name: string; value: string; options?: CookieOptions }[]) {
-        cookiesToSet.forEach(({ name, value, options }) => {
-          res.cookies.set(name, value, options);
-        });
+      setAll(cookiesToSet: AuthCookieToSet[]) {
+        authCookies.push(...cookiesToSet);
       },
     },
   });
@@ -118,5 +119,110 @@ export async function GET(req: NextRequest) {
     return errorRedirect(req, `supabase_signin_${errCode}`);
   }
 
-  return res;
+  // ════════════════════════════════════════════════════════════════
+  //  Auth-Cookies + Pre-Reg-Auto-Onboarding (analog /auth/callback)
+  // ────────────────────────────────────────────────────────────────
+  const { data: u } = await supabase.auth.getUser();
+  if (!u.user) {
+    return errorRedirect(req, 'session_failed');
+  }
+
+  // Wiederkehrer-Erkennung: Account älter als 5 Min ODER hat schon Inserate
+  const accountAgeMs = Date.now() - new Date(u.user.created_at).getTime();
+  const isWiederkehrer = accountAgeMs > 5 * 60 * 1000;
+
+  const { data: existingInserate } = await supabase
+    .from('inserate')
+    .select('id')
+    .eq('verkaeufer_id', u.user.id)
+    .limit(1);
+  const hasInserat = (existingInserate?.length ?? 0) > 0;
+
+  // Pre-Reg-Daten prüfen (nur ECHTE Funnel-Daten zählen)
+  const preRegRaw = req.cookies.get('pre_reg_draft')?.value;
+  let preReg: any = null;
+  if (preRegRaw) {
+    try { preReg = JSON.parse(preRegRaw); } catch { /* invalid */ }
+  }
+  const hasFreshPreReg = preReg && typeof preReg === 'object' &&
+    (preReg.firma_name || preReg.zefix_uid || preReg.branche_id);
+
+  // Helper: finalen Redirect mit Auth-Cookies (mit Options!) bauen
+  function buildFinalRedirect(targetUrl: string, clearPreReg: boolean): NextResponse {
+    const r = NextResponse.redirect(targetUrl);
+    // Auth-Cookies mit korrekten Options (httpOnly, secure, sameSite) übertragen
+    authCookies.forEach(({ name, value, options }) => {
+      r.cookies.set(name, value, options);
+    });
+    // OAuth-Helper-Cookies löschen
+    r.cookies.delete('passare_oauth_pkce');
+    r.cookies.delete('passare_oauth_state');
+    r.cookies.delete('passare_oauth_next');
+    if (clearPreReg) {
+      r.cookies.set('pre_reg_draft', '', { maxAge: 0, path: '/' });
+      r.cookies.set('passare_intent_verkaeufer', '', { maxAge: 0, path: '/' });
+    }
+    return r;
+  }
+
+  // Wiederkehrer ODER hat schon Inserate → direkt ins Dashboard
+  if (isWiederkehrer || hasInserat) {
+    return buildFinalRedirect(`${siteUrl(req)}/dashboard/verkaeufer`, true);
+  }
+
+  // Kein Pre-Reg-Flow → einfacher Redirect zur next-URL
+  if (!hasFreshPreReg) {
+    return buildFinalRedirect(new URL(next, siteUrl(req)).toString(), true);
+  }
+
+  // ── NEUER User mit Pre-Reg-Daten — Auto-Onboarding via RPC ─────
+  const fullName = u.user.user_metadata?.full_name ?? u.user.email?.split('@')[0] ?? 'User';
+  const sprache = u.user.user_metadata?.sprache ?? 'de';
+  const ip = (req.headers.get('x-forwarded-for') ?? '').split(',')[0]?.trim() || null;
+  const ua = req.headers.get('user-agent') ?? null;
+  const kanton = (preReg?.kanton ?? '').toUpperCase().slice(0, 2) || 'ZH';
+
+  // 1. Profile fertigstellen via RPC (security definer — darf rolle + onboarding_completed_at setzen)
+  const { error: completeErr } = await supabase.rpc('complete_onboarding', {
+    p_rolle: 'verkaeufer',
+    p_full_name: fullName,
+    p_kanton: kanton,
+    p_sprache: sprache,
+    p_agb_version: '2026-04',
+    p_datenschutz_version: '2026-04',
+    p_ip: ip,
+    p_user_agent: ua,
+  });
+  if (completeErr) {
+    console.warn('[google-callback] complete_onboarding fehlgeschlagen:', completeErr.message);
+  }
+
+  // 2. Inserat aus Pre-Reg-Daten anlegen
+  let inseratId: string | null = null;
+  const { data: createdId, error: insErr } = await supabase.rpc('create_inserat_from_pre_reg', {
+    p: {
+      zefix_uid: preReg.zefix_uid ?? null,
+      firma_name: preReg.firma_name ?? null,
+      firma_rechtsform: preReg.firma_rechtsform ?? null,
+      firma_sitz_gemeinde: preReg.firma_sitz_gemeinde ?? null,
+      branche_id: preReg.branche_id ?? null,
+      kanton,
+      jahr: preReg.jahr ?? null,
+      mitarbeitende: preReg.mitarbeitende ?? null,
+      umsatz: preReg.umsatz ?? null,
+      ebitda: preReg.ebitda ?? null,
+      valuation: preReg.valuation ?? null,
+    },
+  });
+  if (insErr) {
+    console.warn('[google-callback] create_inserat_from_pre_reg fehlgeschlagen:', insErr.message);
+  } else {
+    inseratId = createdId as string;
+  }
+
+  // 3. Final-Redirect mit Cookie-Cleanup
+  const targetUrl = inseratId
+    ? `${siteUrl(req)}/dashboard/verkaeufer/inserat/${inseratId}/edit?from=pre-reg`
+    : `${siteUrl(req)}/dashboard/verkaeufer/inserat/new?from=pre-reg`;
+  return buildFinalRedirect(targetUrl, true);
 }

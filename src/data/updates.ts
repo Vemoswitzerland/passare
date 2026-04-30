@@ -68,6 +68,13 @@ export const UPDATES: Update[] = [
   {
     date: '2026-04-30',
     type: 'fix',
+    titel: 'Endlos-Schleife nach Google-Login beim Inserat-Erstellen behoben',
+    beschreibung:
+      'Nach erfolgreicher Google-Anmeldung blieb der Browser zwischen «Konto einrichten» und «Inserat erstellen» hängen — ewige Weiterleitungs-Schleife. Ursache: das Profil-Update für die Rolle und den abgeschlossenen Onboarding-Status wurde von der Datenbank-Sicherheitsregel blockiert (User dürfen diese Felder nicht direkt ändern, nur über eine geschützte Funktion). Das Profil blieb dadurch im Zwischenstand und beide Seiten haben sich gegenseitig zurückgeworfen. Behoben: alle Stellen die Rolle + Onboarding-Status setzen, nutzen jetzt die geschützte Funktion. Ausserdem läuft beim Google-Login jetzt der gleiche automatische Pre-Reg-Auto-Onboarding-Flow wie beim klassischen Login — wer aus dem Funnel kommt, bekommt sofort sein Inserat angelegt.',
+  },
+  {
+    date: '2026-04-30',
+    type: 'fix',
     titel: 'Google-Anmeldung: Endlos-Weiterleitung behoben',
     beschreibung:
       'Beim Versuch sich mit Google zu registrieren ist die Seite in eine Endlos-Schleife geraten («zu oft weitergeleitet»). Grund: der Beta-Schutz hat die Rückkehr von Google nicht durchgelassen, weil der Beta-Cookie bei manchen Browsern beim Wechsel von Google zurück nicht mitgeschickt wird. Behoben: die Anmelde-Routen sind jetzt vom Beta-Schutz ausgenommen.',
