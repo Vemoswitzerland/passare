@@ -67,6 +67,13 @@ export const CURRENT_STEP = {
 export const UPDATES: Update[] = [
   {
     date: '2026-04-30',
+    type: 'fix',
+    titel: 'Login leitet Admin nicht mehr fälschlich ins Verkäufer-Dashboard',
+    beschreibung:
+      'Wer sich nach längerer Zeit wieder eingeloggt hat, landete bisher hart auf dem Verkäufer-Dashboard — auch Admins. Jetzt prüft der Login-Schritt zuerst die Rolle und leitet Admins ins Admin-Panel, Käufer ins Käufer-Dashboard und nur tatsächliche Verkäufer (mit Inseraten oder Verkäufer-Rolle) ins Verkäufer-Dashboard.',
+  },
+  {
+    date: '2026-04-30',
     type: 'design',
     titel: 'Pakete-Vergleich neu, Profilbild-Upload, Pricing-Logik umgekehrt',
     beschreibung:

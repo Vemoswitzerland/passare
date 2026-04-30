@@ -77,8 +77,15 @@ export async function GET(req: NextRequest) {
   if (isWiederkehrer || hasInserat) {
     // ── Wiederkehrer-Flow ─────────────────────────────────────────
     // ALLE Pre-Reg-Cookies aufräumen — sie haben hier nichts mehr
-    // verloren, der User soll ins Dashboard, NICHT in den Tunnel.
-    const targetUrl = `${origin}/dashboard/verkaeufer`;
+    // verloren, der User soll ins richtige Dashboard, NICHT in den Tunnel.
+    //
+    // Rollen-basiertes Routing: hat ein User Inserate, gehört er klar
+    // ins Verkäufer-Dashboard. Ohne Inserate → /dashboard, das selber
+    // die Rolle (admin/kaeufer/verkaeufer) prüft und passend redirected.
+    // VORHER: alle Wiederkehrer landeten hart auf /dashboard/verkaeufer
+    // — auch Admins, was kein Sinn macht.
+    const targetPath = hasInserat ? '/dashboard/verkaeufer' : '/dashboard';
+    const targetUrl = `${origin}${targetPath}`;
     const res = NextResponse.redirect(targetUrl);
     res.cookies.set('pre_reg_draft', '', { maxAge: 0, path: '/' });
     res.cookies.set('passare_intent_verkaeufer', '', { maxAge: 0, path: '/' });
