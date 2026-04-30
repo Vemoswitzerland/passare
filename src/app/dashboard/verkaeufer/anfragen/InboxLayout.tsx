@@ -72,13 +72,17 @@ export function InboxLayout({
     router.push(`/dashboard/verkaeufer/anfragen?${sp.toString()}`);
   };
 
+  // Cyrill 30.04.2026: «Inbox zu klein — links nur «Nachrichten»-Label,
+  // Chat-Seite schön gross.» Layout füllt den ganzen verfügbaren Höhen-
+  // raum (Eltern-Container ist in der Page auf calc(100vh - …) gesetzt),
+  // linke Liste schmaler, Chat-Seite verschluckt den Rest.
   return (
-    <div className="rounded-card bg-paper border border-stone overflow-hidden grid grid-cols-1 md:grid-cols-[320px_1fr] min-h-[640px]">
+    <div className="h-full rounded-card bg-paper border border-stone overflow-hidden grid grid-cols-1 md:grid-cols-[280px_1fr]">
       {/* ── LISTE LINKS ────────────────────────────────────────────── */}
-      <aside className="border-b md:border-b-0 md:border-r border-stone bg-stone/20 flex flex-col">
-        <header className="px-4 py-3 border-b border-stone flex items-center gap-2">
-          <InboxIcon className="w-4 h-4 text-quiet" strokeWidth={1.5} />
-          <p className="overline text-bronze-ink">Konversationen</p>
+      <aside className="border-b md:border-b-0 md:border-r border-stone bg-stone/20 flex flex-col min-h-0">
+        <header className="px-4 py-3 border-b border-stone flex items-center gap-2 flex-shrink-0">
+          <InboxIcon className="w-4 h-4 text-bronze-ink" strokeWidth={1.5} />
+          <p className="text-body-sm text-navy font-medium">Nachrichten</p>
           <span className="font-mono text-caption text-quiet ml-auto">{threads.length}</span>
         </header>
 
@@ -89,7 +93,7 @@ export function InboxLayout({
             <p className="text-caption mt-1">Sobald Käufer dein Inserat anschreiben oder das passare-Team eine Frage stellt, erscheint es hier.</p>
           </div>
         ) : (
-          <ul className="flex-1 overflow-y-auto divide-y divide-stone/60">
+          <ul className="flex-1 overflow-y-auto divide-y divide-stone/60 min-h-0">
             {threads.map((t) => {
               const isActive = t.id === activeThreadId;
               return (
@@ -136,8 +140,8 @@ export function InboxLayout({
         )}
       </aside>
 
-      {/* ── CHAT RECHTS ───────────────────────────────────────────── */}
-      <section className="flex flex-col min-h-[640px]">
+      {/* ── CHAT RECHTS — schluckt alle verbleibende Höhe + Breite ─── */}
+      <section className="flex flex-col min-h-0 h-full">
         {!activeThread ? (
           <EmptyState />
         ) : (
@@ -229,7 +233,7 @@ function ChatPane({
       </header>
 
       {/* Verlauf */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-4 bg-cream/30">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-4 bg-cream/30 min-h-0">
         {messages.length === 0 ? (
           <div className="text-center py-12 text-quiet">
             <MessageSquare className="w-8 h-8 mx-auto mb-2" strokeWidth={1.5} />

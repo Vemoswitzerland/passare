@@ -241,28 +241,18 @@ export default async function AnfragenInboxPage({ searchParams }: Props) {
     }
   }
 
+  // Cyrill 30.04.2026: «Inbox ist zu klein, Titel nimmt zu viel Platz —
+  // mach die Chat-Seite schön gross.» Header weg, Inbox füllt die ganze
+  // Bildschirmfläche (minus Sidebar-Breite + minimaler Padding).
   return (
-    <div className="px-6 md:px-10 py-8 md:py-12">
-      <div className="max-w-content mx-auto">
-        <div className="mb-6">
-          <p className="overline text-bronze-ink mb-2">Nachrichten</p>
-          <h1 className="font-serif text-display-sm text-navy font-light tracking-tight">
-            Inbox
-          </h1>
-          <p className="text-body text-muted mt-1">
-            {threads.length} {threads.length === 1 ? 'Konversation' : 'Konversationen'} —
-            Käufer-Anfragen und Nachrichten vom passare-Team an einem Ort.
-          </p>
-        </div>
-
-        <InboxLayout
-          threads={threads}
-          activeThreadId={activeThreadId}
-          activeThread={activeThread}
-          activeMessages={activeMessages}
-          canReplyPassare={canReplyPassare}
-        />
-      </div>
+    <div className="h-[calc(100vh-3.5rem)] md:h-[calc(100vh-4rem)] px-3 py-3 md:px-4 md:py-4">
+      <InboxLayout
+        threads={threads}
+        activeThreadId={activeThreadId}
+        activeThread={activeThread}
+        activeMessages={activeMessages}
+        canReplyPassare={canReplyPassare}
+      />
     </div>
   );
 }
