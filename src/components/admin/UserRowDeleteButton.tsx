@@ -42,14 +42,15 @@ export function UserRowDeleteButton({ userId, userName }: Props) {
       type="button"
       onClick={onClick}
       disabled={pending}
-      title="User löschen"
-      className="inline-flex items-center justify-center p-1 rounded-soft text-quiet hover:text-danger hover:bg-danger/10 transition-colors disabled:opacity-50"
+      title={`User «${userName}» löschen`}
+      data-no-row-click
+      className="inline-flex items-center justify-center p-1.5 rounded-soft text-danger/60 hover:text-danger hover:bg-danger/15 active:bg-danger/25 transition-colors disabled:opacity-50 cursor-pointer"
       aria-label={`User ${userName} löschen`}
     >
       {pending ? (
-        <Loader2 className="w-3.5 h-3.5 animate-spin" strokeWidth={1.5} />
+        <Loader2 className="w-4 h-4 animate-spin" strokeWidth={1.5} />
       ) : (
-        <Trash2 className="w-3.5 h-3.5" strokeWidth={1.5} />
+        <Trash2 className="w-4 h-4" strokeWidth={1.75} />
       )}
     </button>
   );
