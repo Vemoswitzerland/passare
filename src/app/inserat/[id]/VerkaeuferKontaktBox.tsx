@@ -93,42 +93,42 @@ export function VerkaeuferKontaktBox({ listing }: Props) {
   }
 
   return (
-    <div className="bg-bronze/5 border border-bronze/20 rounded-card p-5 flex flex-col items-center text-center gap-3">
-      {/* Name */}
-      {fullName && (
-        <p className="font-serif text-head-md text-navy font-normal leading-tight">
-          {fullName}
-        </p>
-      )}
-
-      {/* Funktion · Firma */}
-      {subtitle && (
-        <p className="font-mono text-[11px] uppercase tracking-widest text-bronze-ink leading-snug -mt-1">
-          {subtitle}
-        </p>
-      )}
-
-      {/* Profilbild oder Initial-Avatar (96px, mittig, rund) */}
-      {listing.kontakt_foto_url ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={listing.kontakt_foto_url}
-          alt=""
-          className="w-24 h-24 rounded-full object-cover border-2 border-bronze/30 mt-1"
-        />
-      ) : (
-        <div className="w-24 h-24 rounded-full bg-bronze/15 text-bronze-ink flex items-center justify-center font-serif text-3xl mt-1">
-          {(vorname?.[0] ?? funktion?.[0] ?? '?').toUpperCase()}
+    <div className="bg-bronze/5 border border-bronze/20 rounded-card p-5 space-y-4">
+      {/* Oben: Profilbild links, Name + Funktion rechts */}
+      <div className="flex items-center gap-4">
+        {listing.kontakt_foto_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={listing.kontakt_foto_url}
+            alt=""
+            className="w-16 h-16 rounded-full object-cover border-2 border-bronze/30 flex-shrink-0"
+          />
+        ) : (
+          <div className="w-16 h-16 rounded-full bg-bronze/15 text-bronze-ink flex items-center justify-center font-serif text-2xl flex-shrink-0">
+            {(vorname?.[0] ?? funktion?.[0] ?? '?').toUpperCase()}
+          </div>
+        )}
+        <div className="min-w-0 flex-1">
+          {fullName && (
+            <p className="font-serif text-head-md text-navy font-normal leading-tight truncate">
+              {fullName}
+            </p>
+          )}
+          {subtitle && (
+            <p className="font-mono text-[11px] uppercase tracking-widest text-bronze-ink leading-snug mt-1 truncate">
+              {subtitle}
+            </p>
+          )}
         </div>
-      )}
+      </div>
 
-      {/* Telefonnummer (klickbar) + E-Mail als Text */}
+      {/* Telefonnummer + E-Mail über volle Breite (eigene Zeilen) */}
       {(whatsappDisplay || email) && (
-        <div className="flex flex-col gap-0.5 mt-1">
+        <div className="flex flex-col gap-1 pt-1 border-t border-bronze/15">
           {whatsappDisplay && (
             <a
               href={`tel:${whatsappRaw?.replace(/\s/g, '')}`}
-              className="font-mono text-body-sm text-navy hover:text-bronze transition-colors"
+              className="block font-mono text-body-sm text-navy hover:text-bronze transition-colors pt-2"
             >
               {whatsappDisplay}
             </a>
@@ -136,7 +136,7 @@ export function VerkaeuferKontaktBox({ listing }: Props) {
           {email && (
             <a
               href={`mailto:${email}`}
-              className="font-mono text-body-sm text-navy hover:text-bronze transition-colors break-all"
+              className="block font-mono text-body-sm text-navy hover:text-bronze transition-colors break-all"
             >
               {email}
             </a>
@@ -146,7 +146,7 @@ export function VerkaeuferKontaktBox({ listing }: Props) {
 
       {/* Brand-Icon-Buttons: WhatsApp · Mail · LinkedIn */}
       {hasAnyButton && (
-        <div className="flex items-center justify-center gap-3 mt-2">
+        <div className="flex items-center gap-3 pt-1">
           {whatsappHref && (
             <BrandIconButton
               href={whatsappHref}
