@@ -67,6 +67,13 @@ export const CURRENT_STEP = {
 export const UPDATES: Update[] = [
   {
     date: '2026-04-30',
+    type: 'design',
+    titel: 'Pakete-Vergleichsliste passt auf einen Bildschirm · Marktplatz-Knopf in jedem Bereich',
+    beschreibung:
+      'Die Pakete-Übersicht im letzten Schritt vor der Bezahlung ist jetzt deutlich kompakter — kleinere Abstände, schmalere Symbole, kürzere Texte. Auf dem Desktop sieht man alle drei Pakete mit allen Vorteilen ohne scrollen. Im Käufer-, Verkäufer- und Admin-Bereich gibt es jetzt einen «Marktplatz»-Knopf oben in der Leiste — zurück zur öffentlichen Börse mit einem Klick, kein Logout mehr nötig.',
+  },
+  {
+    date: '2026-04-30',
     type: 'feature',
     titel: 'Drag & Drop für alle Bilder · Stärken bearbeitbar · Google/LinkedIn-Profil wird übernommen',
     beschreibung:

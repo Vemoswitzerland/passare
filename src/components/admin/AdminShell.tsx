@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Menu, X, Search } from 'lucide-react';
+import { Menu, X, Search, Store } from 'lucide-react';
 import { AdminSidebar } from './AdminSidebar';
 import { SidebarUserFooter } from './SidebarUserFooter';
 import { ImpersonationBanner } from './ImpersonationBanner';
@@ -69,6 +69,18 @@ export function AdminShell({ email, fullName, badges, children }: Props) {
             />
           </div>
         </form>
+
+        {/* Sprung zum öffentlichen Marktplatz — gleicher Knopf wie in den
+            Verkäufer- und Käufer-Bereichen, damit der Admin nicht erst
+            ausloggen muss um die Site aus User-Sicht zu sehen. */}
+        <Link
+          href="/"
+          className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-soft text-[12px] font-medium text-muted hover:text-navy hover:bg-stone/40 transition-colors ml-auto lg:ml-2"
+          title="Zum öffentlichen Marktplatz"
+        >
+          <Store className="w-3.5 h-3.5" strokeWidth={1.5} />
+          Marktplatz
+        </Link>
       </header>
 
       <ImpersonationBanner />

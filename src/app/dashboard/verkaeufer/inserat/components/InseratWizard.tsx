@@ -2006,17 +2006,20 @@ function PaketeVergleichsListe({
   }
 
   return (
+    // Cyrill: «Pakete-Liste geht zu tief — auf 1 Bildschirm-Ansicht (Desktop)».
+    // Header & Zellen kompakter: Padding p-5/p-3.5 → p-3/p-2, Preis 1.85rem → 1.35rem,
+    // Feature-Icons 6 → 5, kleinere Zeilen-Höhe. Spart ~40 % Höhe.
     <div className="max-w-5xl mx-auto rounded-card border border-stone bg-paper overflow-hidden">
-      {/* ── Badge-Reihe — eigene Zeile mit fixer Höhe ──────────── */}
-      <div className="grid grid-cols-[1.6fr_1fr_1fr_1fr] bg-cream/50 border-b border-stone">
+      {/* ── Badge-Reihe (kompakt) ──────────────────────────────── */}
+      <div className="grid grid-cols-[1.4fr_1fr_1fr_1fr] bg-cream/50 border-b border-stone">
         <div />
         {pakete.map((p) => {
           const badge = badgeFor(p);
           return (
-            <div key={p.id} className="border-l border-stone h-10 flex items-center justify-center px-2 overflow-hidden">
+            <div key={p.id} className="border-l border-stone h-7 flex items-center justify-center px-2 overflow-hidden">
               {badge && (
                 <span className={cn(
-                  'inline-flex items-center px-3 py-1 rounded-pill text-caption font-medium tracking-wide whitespace-nowrap',
+                  'inline-flex items-center px-2 py-0.5 rounded-pill text-[10px] uppercase tracking-wider font-medium whitespace-nowrap',
                   badge.cls,
                 )}>
                   {badge.label}
@@ -2027,15 +2030,13 @@ function PaketeVergleichsListe({
         })}
       </div>
 
-      {/* ── Header: Label + Preis ──────────────────────────────── */}
-      <div className="grid grid-cols-[1.6fr_1fr_1fr_1fr] border-b border-stone">
-        <div className="p-5">
-          <p className="overline text-bronze-ink mb-2">Vergleich</p>
-          <p className="text-caption text-muted leading-snug">
-            {laufzeit === 12
-              ? 'Preise inkl. 20 % Laufzeit-Rabatt gegenüber 6 Monaten.'
-              : 'Standard-Laufzeit · 6 Monate.'}
-            {klein && <><br /><span className="text-bronze-ink">Klein-Inserat-Rabatt 25 % aktiv.</span></>}
+      {/* ── Header: Label + Preis (kompakt) ─────────────────────── */}
+      <div className="grid grid-cols-[1.4fr_1fr_1fr_1fr] border-b border-stone">
+        <div className="p-3">
+          <p className="overline text-bronze-ink mb-1">Vergleich</p>
+          <p className="text-[11px] text-muted leading-snug">
+            {laufzeit === 12 ? '6-Mt-Standard, 12-Mt = −20 %' : '6-Mt-Standard'}
+            {klein && <><br /><span className="text-bronze-ink">−25 % Klein-Inserat</span></>}
           </p>
         </div>
         {pakete.map((p) => {
@@ -2049,22 +2050,22 @@ function PaketeVergleichsListe({
               type="button"
               onClick={() => onSelect(p.id)}
               className={cn(
-                'p-5 text-center border-l border-stone transition-all',
+                'p-3 text-center border-l border-stone transition-all',
                 isSelected ? 'bg-bronze/5' : 'bg-paper hover:bg-cream/40',
               )}
             >
-              <p className={cn('overline mb-3', isSelected ? 'text-bronze-ink' : 'text-quiet')}>
+              <p className={cn('overline mb-1.5', isSelected ? 'text-bronze-ink' : 'text-quiet')}>
                 {p.label}
               </p>
-              <p className="font-serif text-[1.85rem] text-navy font-light font-tabular leading-none">
+              <p className="font-serif text-[1.35rem] text-navy font-light font-tabular leading-none">
                 CHF {formatCHSwiss(preis)}
               </p>
               {klein && (
-                <p className="font-mono text-caption line-through text-quiet mt-1">
+                <p className="font-mono text-[10px] line-through text-quiet mt-0.5">
                   CHF {formatCHSwiss(preisRegulaer)}
                 </p>
               )}
-              <p className="text-caption text-quiet mt-2">
+              <p className="text-[10px] text-quiet mt-1">
                 ≈ CHF {Math.round(proMonat).toLocaleString('de-CH')} / Mt
               </p>
             </button>
@@ -2072,25 +2073,25 @@ function PaketeVergleichsListe({
         })}
       </div>
 
-      {/* ── Feature-Zeilen mit grün/rot ─────────────────────────── */}
+      {/* ── Feature-Zeilen (kompakt) ────────────────────────────── */}
       {FEATURES_VERGLEICH.map((row, i) => (
         <div
           key={row.key}
           className={cn(
-            'grid grid-cols-[1.6fr_1fr_1fr_1fr]',
+            'grid grid-cols-[1.4fr_1fr_1fr_1fr]',
             i !== FEATURES_VERGLEICH.length - 1 && 'border-b border-stone/60',
             i % 2 === 1 && 'bg-cream/30',
           )}
         >
-          <div className="p-3.5 text-body-sm text-ink">{row.label}</div>
+          <div className="px-3 py-2 text-[13px] leading-snug text-ink">{row.label}</div>
           {(['light', 'pro', 'premium'] as const).map((tier) => (
             <FeatureCell key={tier} value={row.values[tier]} highlighted={selectedId === tier} />
           ))}
         </div>
       ))}
 
-      {/* ── Auswahl-Footer ──────────────────────────────────────── */}
-      <div className="grid grid-cols-[1.6fr_1fr_1fr_1fr] border-t border-stone bg-cream/40">
+      {/* ── Auswahl-Footer (kompakt) ────────────────────────────── */}
+      <div className="grid grid-cols-[1.4fr_1fr_1fr_1fr] border-t border-stone bg-cream/40">
         <div />
         {pakete.map((p) => {
           const isSelected = selectedId === p.id;
@@ -2100,7 +2101,7 @@ function PaketeVergleichsListe({
               type="button"
               onClick={() => onSelect(p.id)}
               className={cn(
-                'p-4 border-l border-stone text-body-sm font-medium transition-all inline-flex items-center justify-center gap-1.5',
+                'py-2.5 px-2 border-l border-stone text-caption font-medium transition-all inline-flex items-center justify-center gap-1.5',
                 isSelected
                   ? 'bg-bronze text-cream'
                   : 'text-navy hover:bg-bronze/10',
@@ -2108,7 +2109,7 @@ function PaketeVergleichsListe({
             >
               {isSelected ? (
                 <>
-                  <Check className="w-4 h-4" strokeWidth={2.5} />
+                  <Check className="w-3.5 h-3.5" strokeWidth={2.5} />
                   Ausgewählt
                 </>
               ) : (
@@ -2126,26 +2127,26 @@ function FeatureCell({ value, highlighted }: { value: boolean | string; highligh
   let content: React.ReactNode;
   if (value === true) {
     content = (
-      <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-success/15 text-success">
-        <Check className="w-4 h-4" strokeWidth={2.5} />
+      <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-success/15 text-success">
+        <Check className="w-3.5 h-3.5" strokeWidth={2.5} />
       </span>
     );
   } else if (value === false) {
     content = (
-      <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-danger/10 text-danger">
-        <span className="text-base leading-none font-bold">×</span>
+      <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-danger/10 text-danger">
+        <span className="text-sm leading-none font-bold">×</span>
       </span>
     );
   } else {
     content = (
-      <span className="inline-flex items-center px-2.5 py-1 rounded-pill bg-success/10 text-success text-caption font-mono font-medium">
+      <span className="inline-flex items-center px-2 py-0.5 rounded-pill bg-success/10 text-success text-[11px] font-mono font-medium whitespace-nowrap">
         ✓ {value}
       </span>
     );
   }
   return (
     <div className={cn(
-      'p-3.5 border-l border-stone flex items-center justify-center transition-colors',
+      'px-2 py-2 border-l border-stone flex items-center justify-center transition-colors',
       highlighted && 'bg-bronze/5',
     )}>
       {content}

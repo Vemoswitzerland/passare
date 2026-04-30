@@ -83,6 +83,18 @@ export function VerkaeuferTopbar({
       </div>
 
       <div className="flex items-center gap-2 ml-auto">
+        {/* Schneller Sprung zur öffentlichen Börse — Pattern wie LinkedIn /
+            Stripe («View public site»). Cyrill: «aus dem Bereich kein Weg
+            zur Börse — gibt mir einen Knopf». */}
+        <Link
+          href="/"
+          className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-soft text-caption font-medium text-muted hover:text-navy hover:bg-stone/40 transition-colors"
+          title="Zum öffentlichen Marktplatz"
+        >
+          <Store className="w-4 h-4" strokeWidth={1.5} />
+          Marktplatz
+        </Link>
+
         <button
           type="button"
           className="hidden sm:flex relative w-9 h-9 items-center justify-center rounded-soft hover:bg-stone/40 transition-colors"
