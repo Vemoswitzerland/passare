@@ -67,6 +67,13 @@ export const CURRENT_STEP = {
 export const UPDATES: Update[] = [
   {
     date: '2026-04-30',
+    type: 'feature',
+    titel: 'Drag & Drop für alle Bilder · Stärken bearbeitbar · Google/LinkedIn-Profil wird übernommen',
+    beschreibung:
+      'Titelbild, Galerie-Bilder und Profilbild kann man jetzt einfach reinziehen statt in einem Datei-Browser herumklicken — Klicken geht weiterhin. Die Stärken-Punkte sind nicht nur per Drag & Drop in der Reihenfolge änderbar, sondern direkt im Feld bearbeitbar. Wer sich mit Google oder LinkedIn registriert hat, sieht in der «Voll offen»-Sichtbarkeitsstufe Vorname, Nachname und Profilfoto bereits vorausgefüllt — alles bleibt editierbar.',
+  },
+  {
+    date: '2026-04-30',
     type: 'fix',
     titel: 'Inserat-Wizard: Gründungsjahr & Co. immer sichtbar, Profilbild-Upload geht wieder',
     beschreibung:

@@ -791,6 +791,8 @@ function Step3Cover({
 }) {
   const [tab, setTab] = useState<'stockfoto' | 'upload'>(data.cover_source === 'upload' ? 'upload' : 'stockfoto');
   const [uploading, setUploading] = useState(false);
+  // Drag & Drop visual state — Cyrill: «ich will reinziehen können, nicht klicken & Ordner»
+  const [isDragOver, setIsDragOver] = useState(false);
 
   const stockfotoKey = data.branche_id ? BRANCHE_TO_STOCKFOTO_KEY[data.branche_id] : null;
   const stockfotos = stockfotoKey && STOCKFOTOS_BY_BRANCHE[stockfotoKey]
@@ -883,7 +885,29 @@ function Step3Cover({
         </div>
       ) : (
         <div>
-          <label className="relative block">
+          <label
+            className="relative block"
+            onDragOver={(e) => {
+              e.preventDefault();
+              if (!uploading) setIsDragOver(true);
+            }}
+            onDragLeave={(e) => {
+              e.preventDefault();
+              setIsDragOver(false);
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              setIsDragOver(false);
+              if (uploading) return;
+              const file = e.dataTransfer.files?.[0];
+              if (!file) return;
+              if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+                alert('Nur JPG, PNG oder WebP erlaubt');
+                return;
+              }
+              handleUpload(file);
+            }}
+          >
             <input
               type="file"
               accept="image/jpeg,image/png,image/webp"
@@ -896,15 +920,19 @@ function Step3Cover({
             />
             <div className={cn(
               'rounded-card border-2 border-dashed p-12 text-center transition-all cursor-pointer',
-              uploading ? 'border-bronze bg-bronze/5' : 'border-stone hover:border-bronze/40 hover:bg-bronze/5',
+              uploading
+                ? 'border-bronze bg-bronze/5'
+                : isDragOver
+                  ? 'border-bronze bg-bronze/10 scale-[1.01]'
+                  : 'border-stone hover:border-bronze/40 hover:bg-bronze/5',
             )}>
               {uploading ? (
                 <Loader2 className="w-10 h-10 mx-auto text-bronze animate-spin mb-3" strokeWidth={1.5} />
               ) : (
-                <UploadIcon className="w-10 h-10 mx-auto text-quiet mb-3" strokeWidth={1.5} />
+                <UploadIcon className={cn('w-10 h-10 mx-auto mb-3 transition-colors', isDragOver ? 'text-bronze' : 'text-quiet')} strokeWidth={1.5} />
               )}
               <p className="text-body text-navy font-medium mb-1">
-                {uploading ? 'Wird hochgeladen …' : 'Klicken zum Auswählen'}
+                {uploading ? 'Wird hochgeladen …' : isDragOver ? 'Bild loslassen' : 'Bild hierher ziehen oder klicken'}
               </p>
               <p className="text-caption text-quiet">JPG, PNG, WebP · max 5 MB · empfohlen 1600×1000</p>
             </div>
@@ -931,6 +959,7 @@ function GalerieSection({ inseratId }: { inseratId: string }) {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -1008,9 +1037,31 @@ function GalerieSection({ inseratId }: { inseratId: string }) {
         </div>
       )}
 
-      {/* Upload-Slot */}
+      {/* Upload-Slot — D&D + Klick. Cyrill: «reinziehen, nicht klicken». */}
       {items.length < 8 && (
-        <label className="block cursor-pointer">
+        <label
+          className="block cursor-pointer"
+          onDragOver={(e) => {
+            e.preventDefault();
+            if (!uploading) setIsDragOver(true);
+          }}
+          onDragLeave={(e) => {
+            e.preventDefault();
+            setIsDragOver(false);
+          }}
+          onDrop={(e) => {
+            e.preventDefault();
+            setIsDragOver(false);
+            if (uploading) return;
+            const file = e.dataTransfer.files?.[0];
+            if (!file) return;
+            if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+              setErr('Nur JPG, PNG oder WebP');
+              return;
+            }
+            handleUpload(file);
+          }}
+        >
           <input
             type="file"
             accept="image/jpeg,image/png,image/webp"
@@ -1022,14 +1073,21 @@ function GalerieSection({ inseratId }: { inseratId: string }) {
             className="sr-only"
             disabled={uploading}
           />
-          <div className="border-2 border-dashed border-stone hover:border-bronze/50 rounded-card p-6 text-center transition-colors">
+          <div className={cn(
+            'border-2 border-dashed rounded-card p-6 text-center transition-all',
+            uploading
+              ? 'border-bronze bg-bronze/5'
+              : isDragOver
+                ? 'border-bronze bg-bronze/10 scale-[1.01]'
+                : 'border-stone hover:border-bronze/50',
+          )}>
             {uploading ? (
               <Loader2 className="w-6 h-6 mx-auto text-bronze animate-spin mb-2" strokeWidth={1.5} />
             ) : (
-              <Plus className="w-6 h-6 mx-auto text-quiet mb-2" strokeWidth={1.5} />
+              <Plus className={cn('w-6 h-6 mx-auto mb-2 transition-colors', isDragOver ? 'text-bronze' : 'text-quiet')} strokeWidth={1.5} />
             )}
             <p className="text-body-sm text-navy font-medium">
-              {uploading ? 'Wird hochgeladen …' : 'Bild hinzufügen'}
+              {uploading ? 'Wird hochgeladen …' : isDragOver ? 'Bild loslassen' : 'Bild hierher ziehen oder klicken'}
             </p>
             <p className="text-caption text-quiet mt-1">
               {items.length} von 8 Bildern
@@ -1115,6 +1173,9 @@ function Step4Strengths({
   }
   function removePoint(i: number) {
     update({ sales_points: points.filter((_, j) => j !== i) });
+  }
+  function editPoint(i: number, value: string) {
+    update({ sales_points: points.map((p, j) => (j === i ? value.slice(0, 80) : p)) });
   }
 
   // ── Drag & Drop für Highlights (HTML5 native) ──────────────────
@@ -1325,9 +1386,24 @@ function Step4Strengths({
                 !isOver && !isDragged && 'border-stone',
               )}
             >
-              <span className="text-quiet text-caption select-none" aria-hidden>⋮⋮</span>
+              {/* Drag-Handle (links) — bewusst NICHT auf das ganze li,
+                  damit das Input-Feld klickbar bleibt. */}
+              <span
+                className="text-quiet text-caption select-none cursor-grab active:cursor-grabbing"
+                aria-hidden
+                title="Reihenfolge ändern"
+              >⋮⋮</span>
               <span className="font-mono text-caption text-bronze-ink font-medium w-6">{i + 1}.</span>
-              <span className="flex-1 text-body text-ink select-none">{p}</span>
+              {/* Inline-Edit — Cyrill: «nicht nur verschieben, auch bearbeiten». */}
+              <input
+                type="text"
+                value={p}
+                onChange={(e) => editPoint(i, e.target.value)}
+                maxLength={80}
+                draggable={false}
+                onDragStart={(e) => e.stopPropagation()}
+                className="flex-1 bg-transparent text-body text-ink focus:outline-none focus:bg-cream/50 px-1.5 py-0.5 -mx-1.5 -my-0.5 rounded-soft transition-colors cursor-text"
+              />
               <button
                 type="button"
                 onClick={() => removePoint(i)}
@@ -1776,10 +1852,15 @@ function KontaktFotoUpload({
 }) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   async function handleFile(file: File) {
     setError(null);
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      setError('Nur JPG, PNG oder WebP');
+      return;
+    }
     setUploading(true);
     try {
       const fd = new FormData();
@@ -1800,8 +1881,28 @@ function KontaktFotoUpload({
 
   return (
     <div>
-      <span className="text-caption text-quiet block mb-2">Profilbild (optional)</span>
-      <div className="flex items-center gap-4">
+      <span className="text-caption text-quiet block mb-2">Profilbild (optional · auch reinziehen möglich)</span>
+      <div
+        className={cn(
+          'flex items-center gap-4 rounded-card border-2 border-dashed p-3 transition-all',
+          isDragOver ? 'border-bronze bg-bronze/10' : 'border-transparent',
+        )}
+        onDragOver={(e) => {
+          e.preventDefault();
+          if (!uploading) setIsDragOver(true);
+        }}
+        onDragLeave={(e) => {
+          e.preventDefault();
+          setIsDragOver(false);
+        }}
+        onDrop={(e) => {
+          e.preventDefault();
+          setIsDragOver(false);
+          if (uploading) return;
+          const file = e.dataTransfer.files?.[0];
+          if (file) handleFile(file);
+        }}
+      >
         <div className="w-20 h-20 rounded-full overflow-hidden bg-stone flex items-center justify-center flex-shrink-0 border border-stone">
           {currentUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -1832,10 +1933,15 @@ function KontaktFotoUpload({
                 <Loader2 className="w-4 h-4 animate-spin" strokeWidth={1.5} />
                 Lade hoch …
               </>
+            ) : isDragOver ? (
+              <>
+                <UploadIcon className="w-4 h-4" strokeWidth={1.5} />
+                Bild loslassen
+              </>
             ) : (
               <>
                 <UploadIcon className="w-4 h-4" strokeWidth={1.5} />
-                {currentUrl ? 'Anderes Bild wählen' : 'Bild hochladen'}
+                {currentUrl ? 'Anderes Bild wählen' : 'Bild hochladen oder hier reinziehen'}
               </>
             )}
           </button>

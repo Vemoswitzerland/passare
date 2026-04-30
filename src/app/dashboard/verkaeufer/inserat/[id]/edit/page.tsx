@@ -85,6 +85,20 @@ export default async function EditInseratPage({ params, searchParams }: Props) {
     }
   }
 
+  // ── OAUTH-AUTO-FILL (Google + LinkedIn) ─────────────────────────
+  // Cyrill: «wenn jemand sich über LinkedIn/Google registriert hat, sollen
+  // die Daten von dort direkt übernommen werden — bearbeitbar».
+  // user_metadata ist von Supabase Auth → bei OAuth bekommen wir full_name,
+  // given_name, family_name, avatar_url (Google) bzw. picture (LinkedIn).
+  // Wir nehmen die Werte NUR als Fallback wenn das jeweilige Feld noch
+  // nie gespeichert wurde — User-Eingaben werden NIE überschrieben.
+  const meta = (userData.user.user_metadata ?? {}) as Record<string, unknown>;
+  const fullNameMeta = (meta.full_name ?? meta.name ?? '') as string;
+  const givenName = (meta.given_name as string | undefined) ?? (fullNameMeta ? fullNameMeta.split(' ')[0] : null);
+  const familyName = (meta.family_name as string | undefined) ?? (fullNameMeta ? fullNameMeta.split(' ').slice(1).join(' ') || null : null);
+  const avatarUrl = (meta.avatar_url ?? meta.picture) as string | undefined;
+  const linkedinFromMeta = (meta.linkedin_url ?? meta.url) as string | undefined;
+
   // DB-Spaltennamen → Wizard-Type (Frontend nutzt branche_id/jahr/uebergabe_grund,
   // DB hat branche/gruendungsjahr/grund)
   const inserat = {
@@ -119,16 +133,17 @@ export default async function EditInseratPage({ params, searchParams }: Props) {
     cover_source: row.cover_source ?? null,
     sales_points: row.sales_points ?? [],
     website_url: row.website_url ?? null,
-    linkedin_url: row.linkedin_url ?? null,
+    linkedin_url: row.linkedin_url ?? linkedinFromMeta ?? null,
     paket: row.paket,
     paid_at: row.paid_at ?? null,
     anonymitaet_level: row.anonymitaet_level ?? 'voll_anonym',
     whatsapp_enabled: row.whatsapp_enabled ?? false,
     live_chat_enabled: row.live_chat_enabled ?? false,
-    kontakt_vorname: row.kontakt_vorname ?? null,
-    kontakt_nachname: row.kontakt_nachname ?? null,
+    // Auto-Fill aus OAuth-Provider — User kann jederzeit editieren.
+    kontakt_vorname: row.kontakt_vorname ?? givenName ?? null,
+    kontakt_nachname: row.kontakt_nachname ?? familyName ?? null,
     kontakt_funktion: row.kontakt_funktion ?? null,
-    kontakt_foto_url: row.kontakt_foto_url ?? null,
+    kontakt_foto_url: row.kontakt_foto_url ?? avatarUrl ?? null,
     kontakt_email_public: row.kontakt_email_public ?? null,
     kontakt_whatsapp_nr: row.kontakt_whatsapp_nr ?? null,
   };
