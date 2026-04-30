@@ -179,10 +179,12 @@ function buildWhatsAppHref(raw: string | null): string | null {
   return `https://wa.me/${intl}`;
 }
 
-/** Sicheres Normalisieren von URLs (LinkedIn, etc.) — ergänzt https:// falls fehlt. */
+/** Sicheres Normalisieren von URLs (LinkedIn, etc.) — ergänzt https:// falls fehlt.
+ *  Schutz: lehnt `javascript:`/`data:`/`vbscript:`/`file:`-Schemas ab. */
 function normalizeUrl(raw: string): string | null {
   const trimmed = raw.trim();
   if (!trimmed) return null;
+  if (/^(javascript|data|vbscript|file):/i.test(trimmed)) return null;
   if (/^https?:\/\//i.test(trimmed)) return trimmed;
   return `https://${trimmed}`;
 }
