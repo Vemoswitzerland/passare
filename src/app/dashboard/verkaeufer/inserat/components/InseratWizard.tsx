@@ -1932,11 +1932,11 @@ function PaketeVergleichsListe({
   klein: boolean;
   empfohlenId: string;
 }) {
-  // Helper: Badge-Slot — IMMER gleiche Höhe für alle Spalten,
-  // auch wenn keine Badge → kein Layout-Sprung, kein Überlappen.
+  // Helper: NUR EIN Badge pro Spalte (Empfohlen > Beliebt).
+  // Kurze Texte + whitespace-nowrap → Pille bleibt 1-zeilig.
   function badgeFor(p: PaketLight): { label: string; cls: string } | null {
-    if (empfohlenId === p.id) return { label: 'Für dich empfohlen', cls: 'bg-bronze text-cream' };
-    if (p.highlight) return { label: 'Beliebteste Wahl', cls: 'bg-navy text-cream' };
+    if (empfohlenId === p.id) return { label: 'Empfohlen', cls: 'bg-bronze text-cream' };
+    if (p.highlight) return { label: 'Beliebteste', cls: 'bg-navy text-cream' };
     return null;
   }
 
@@ -1948,10 +1948,10 @@ function PaketeVergleichsListe({
         {pakete.map((p) => {
           const badge = badgeFor(p);
           return (
-            <div key={p.id} className="border-l border-stone h-9 flex items-center justify-center px-3">
+            <div key={p.id} className="border-l border-stone h-10 flex items-center justify-center px-2 overflow-hidden">
               {badge && (
                 <span className={cn(
-                  'inline-flex items-center px-3 py-1 rounded-pill text-caption font-medium tracking-wide',
+                  'inline-flex items-center px-3 py-1 rounded-pill text-caption font-medium tracking-wide whitespace-nowrap',
                   badge.cls,
                 )}>
                   {badge.label}

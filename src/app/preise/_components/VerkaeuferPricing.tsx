@@ -112,10 +112,10 @@ export function VerkaeuferPricing() {
           <div className="grid grid-cols-[1.5fr_1fr_1fr_1fr] bg-cream/50 border-b border-stone">
             <div />
             {PAKETE_LIST.map((p) => (
-              <div key={p.id} className="border-l border-stone h-9 flex items-center justify-center px-3">
+              <div key={p.id} className="border-l border-stone h-10 flex items-center justify-center px-2 overflow-hidden">
                 {p.highlight && (
-                  <span className="inline-flex items-center px-3 py-1 rounded-pill bg-navy text-cream text-caption font-medium tracking-wide">
-                    Beliebteste Wahl
+                  <span className="inline-flex items-center px-3 py-1 rounded-pill bg-navy text-cream text-caption font-medium tracking-wide whitespace-nowrap">
+                    Beliebteste
                   </span>
                 )}
               </div>
