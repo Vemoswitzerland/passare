@@ -144,15 +144,6 @@ export function VerkaeuferSidebar({
           );
         })}
       </nav>
-
-      <div className="p-4 border-t border-stone bg-paper/50">
-        <Link
-          href="/verkaufen"
-          className="block text-caption text-quiet hover:text-navy transition-colors"
-        >
-          Über passare →
-        </Link>
-      </div>
     </aside>
   );
 }
