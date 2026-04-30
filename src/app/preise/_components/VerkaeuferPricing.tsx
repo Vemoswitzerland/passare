@@ -6,12 +6,17 @@
 // 3 Pakete (Light/Pro/Premium) × 2 Laufzeiten (12M/6M)
 //   + optionaler Klein-Inserat-Rabatt (25 % bei Verkaufspreis < 500k)
 //   + 3 Powerups (Apple-Style Cards)
+//
+// Layout:
+//   - Badge-Slot oben in eigener Zeile (kein Überlappen)
+//   - Header zentriert mit Preis + Strike-Through bei Klein-Rabatt
+//   - Feature-Zeilen mit grünem ✓ / rotem × / grüner Pille mit Wert
+//   - Footer mit "Wählen"-Buttons
 // ════════════════════════════════════════════════════════════════════
 
 import { useState } from 'react';
-import { Check, Zap, Mail, Clock } from 'lucide-react';
+import { Check, X, Zap, Mail, Clock } from 'lucide-react';
 import {
-  PAKETE,
   PAKETE_LIST,
   POWERUPS,
   KLEIN_INSERAT_SCHWELLE_CHF,
@@ -26,42 +31,15 @@ const FEATURES_ROWS: Array<{
   label: string;
   values: Record<PaketTier, string | boolean>;
 }> = [
-  {
-    label: '1 Inserat live',
-    values: { light: true, pro: true, premium: true },
-  },
-  {
-    label: 'Anfragen empfangen',
-    values: { light: true, pro: true, premium: true },
-  },
-  {
-    label: 'In-App-Chat mit Käufern',
-    values: { light: true, pro: true, premium: true },
-  },
-  {
-    label: 'Vollständige Statistik (Charts, Conversion)',
-    values: { light: true, pro: true, premium: true },
-  },
-  {
-    label: 'Datenraum',
-    values: { light: false, pro: true, premium: true },
-  },
-  {
-    label: 'Hervorhebung (Seite 1 + Top Branchenfilter)',
-    values: { light: false, pro: '4× / Jahr', premium: '12× / Jahr' },
-  },
-  {
-    label: 'Positionierung im Newsletter',
-    values: { light: false, pro: false, premium: '2× / Jahr' },
-  },
-  {
-    label: 'Mehrere Mitarbeiter onboarden',
-    values: { light: false, pro: false, premium: 'bis 3' },
-  },
-  {
-    label: 'Käuferprofil-Einsicht bei Anfragen',
-    values: { light: false, pro: false, premium: true },
-  },
+  { label: '1 Inserat live', values: { light: true, pro: true, premium: true } },
+  { label: 'Anfragen empfangen', values: { light: true, pro: true, premium: true } },
+  { label: 'In-App-Chat mit Käufern', values: { light: true, pro: true, premium: true } },
+  { label: 'Vollständige Statistik (Charts, Conversion)', values: { light: true, pro: true, premium: true } },
+  { label: 'Datenraum', values: { light: false, pro: true, premium: true } },
+  { label: 'Hervorhebung (Seite 1 + Top Branchenfilter)', values: { light: false, pro: '4× / Jahr', premium: '12× / Jahr' } },
+  { label: 'Positionierung im Newsletter', values: { light: false, pro: false, premium: '2× / Jahr' } },
+  { label: 'Mehrere Mitarbeiter onboarden', values: { light: false, pro: false, premium: 'bis 3' } },
+  { label: 'Käuferprofil-Einsicht bei Anfragen', values: { light: false, pro: false, premium: true } },
 ];
 
 export function VerkaeuferPricing() {
@@ -130,39 +108,72 @@ export function VerkaeuferPricing() {
       {/* ── Paket-Tabelle ────────────────────────────────────────── */}
       <Reveal delay={0.1}>
         <div className="border border-stone rounded-card overflow-hidden bg-paper">
-          {/* Header */}
-          <div className="grid grid-cols-[1.5fr_1fr_1fr_1fr] border-b border-stone">
-            <div className="p-6"></div>
+          {/* Badge-Reihe — eigene Zeile mit fixer Höhe, kein Überlappen */}
+          <div className="grid grid-cols-[1.5fr_1fr_1fr_1fr] bg-cream/50 border-b border-stone">
+            <div />
             {PAKETE_LIST.map((p) => (
-              <PlanHeader
-                key={p.id}
-                name={p.label}
-                price={`CHF ${(klein ? p.preisKlein[laufzeit] : p.preis[laufzeit]).toLocaleString('de-CH')}`}
-                note={`${laufzeit} Monate`}
-                strike={klein ? `CHF ${p.preis[laufzeit].toLocaleString('de-CH')}` : null}
-                highlight={p.highlight}
-              />
+              <div key={p.id} className="border-l border-stone h-9 flex items-center justify-center px-3">
+                {p.highlight && (
+                  <span className="inline-flex items-center px-3 py-1 rounded-pill bg-navy text-cream text-caption font-medium tracking-wide">
+                    Beliebteste Wahl
+                  </span>
+                )}
+              </div>
             ))}
           </div>
 
-          {/* Feature-Rows */}
-          {FEATURES_ROWS.map((r, i) => (
+          {/* Header: Label + Preis */}
+          <div className="grid grid-cols-[1.5fr_1fr_1fr_1fr] border-b border-stone">
+            <div className="p-5">
+              <p className="overline text-bronze-ink mb-2">Vergleich</p>
+              <p className="text-caption text-muted leading-snug">
+                {laufzeit === 12
+                  ? 'Preise inkl. 20 % Laufzeit-Rabatt gegenüber 6 Monaten.'
+                  : 'Standard-Laufzeit · 6 Monate.'}
+                {klein && <><br /><span className="text-bronze-ink">Klein-Inserat-Rabatt 25 % aktiv.</span></>}
+              </p>
+            </div>
+            {PAKETE_LIST.map((p) => {
+              const preis = klein ? p.preisKlein[laufzeit] : p.preis[laufzeit];
+              const preisRegulaer = p.preis[laufzeit];
+              const proMonat = preis / laufzeit;
+              return (
+                <div key={p.id} className="p-5 text-center border-l border-stone">
+                  <p className="overline text-quiet mb-3">{p.label}</p>
+                  <p className="font-serif text-[1.85rem] text-navy font-light font-tabular leading-none">
+                    CHF {preis.toLocaleString('de-CH')}
+                  </p>
+                  {klein && (
+                    <p className="font-mono text-caption line-through text-quiet mt-1">
+                      CHF {preisRegulaer.toLocaleString('de-CH')}
+                    </p>
+                  )}
+                  <p className="text-caption text-quiet mt-2">
+                    ≈ CHF {Math.round(proMonat).toLocaleString('de-CH')} / Mt
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Feature-Zeilen mit grün/rot */}
+          {FEATURES_ROWS.map((row, i) => (
             <div
-              key={r.label}
+              key={row.label}
               className={`grid grid-cols-[1.5fr_1fr_1fr_1fr] ${
-                i !== FEATURES_ROWS.length - 1 ? 'border-b border-stone' : ''
+                i !== FEATURES_ROWS.length - 1 ? 'border-b border-stone/60' : ''
               } ${i % 2 === 1 ? 'bg-cream/30' : ''}`}
             >
-              <div className="p-4 text-body-sm text-ink">{r.label}</div>
+              <div className="p-3.5 text-body-sm text-ink">{row.label}</div>
               {PAKETE_LIST.map((p) => (
-                <Cell key={p.id} value={r.values[p.id]} highlight={p.highlight} />
+                <FeatureCell key={p.id} value={row.values[p.id]} />
               ))}
             </div>
           ))}
 
-          {/* CTA */}
-          <div className="grid grid-cols-[1.5fr_1fr_1fr_1fr] border-t border-stone bg-cream/50">
-            <div className="p-4"></div>
+          {/* CTA-Footer */}
+          <div className="grid grid-cols-[1.5fr_1fr_1fr_1fr] border-t border-stone bg-cream/40">
+            <div />
             {PAKETE_LIST.map((p) => (
               <div key={p.id} className="p-4 border-l border-stone">
                 <Button
@@ -219,58 +230,29 @@ export function VerkaeuferPricing() {
 
 // ── Sub-Components ──────────────────────────────────────────────────
 
-function PlanHeader({
-  name,
-  price,
-  note,
-  strike,
-  highlight,
-}: {
-  name: string;
-  price: string;
-  note: string;
-  strike: string | null;
-  highlight?: boolean;
-}) {
-  return (
-    <div className={`p-6 border-l border-stone ${highlight ? 'bg-navy text-cream' : ''}`}>
-      {highlight && (
-        <p className="font-mono text-[10px] uppercase tracking-widest text-bronze mb-1">Beliebt</p>
-      )}
-      <p className={`font-mono text-[11px] uppercase tracking-widest ${highlight ? 'text-cream/60' : 'text-quiet'} mb-1.5`}>
-        Paket
-      </p>
-      <p className={`font-serif text-head-md ${highlight ? 'text-cream' : 'text-navy'} font-normal`}>{name}</p>
-      <div className="mt-3 flex items-baseline gap-2 flex-wrap">
-        <p className={`font-serif text-display-sm ${highlight ? 'text-cream' : 'text-navy'} font-light font-tabular`}>
-          {price}
-        </p>
-        {strike && (
-          <p className={`font-mono text-caption line-through ${highlight ? 'text-cream/50' : 'text-quiet'}`}>
-            {strike}
-          </p>
-        )}
-      </div>
-      <p className={`font-mono text-[11px] uppercase tracking-widest ${highlight ? 'text-cream/60' : 'text-quiet'} mt-1`}>
-        {note}
-      </p>
-    </div>
-  );
-}
-
-function Cell({ value, highlight }: { value: string | boolean; highlight?: boolean }) {
+function FeatureCell({ value }: { value: string | boolean }) {
   let content: React.ReactNode;
-  if (typeof value === 'boolean') {
-    content = value ? <Check className="w-4 h-4 inline-block text-bronze" strokeWidth={2.5} /> : <span className="text-quiet">—</span>;
+  if (value === true) {
+    content = (
+      <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-success/15 text-success">
+        <Check className="w-4 h-4" strokeWidth={2.5} />
+      </span>
+    );
+  } else if (value === false) {
+    content = (
+      <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-danger/10 text-danger">
+        <X className="w-3.5 h-3.5" strokeWidth={3} />
+      </span>
+    );
   } else {
-    content = value;
+    content = (
+      <span className="inline-flex items-center px-2.5 py-1 rounded-pill bg-success/10 text-success text-caption font-mono font-medium">
+        ✓ {value}
+      </span>
+    );
   }
   return (
-    <div
-      className={`p-4 border-l border-stone text-center font-mono text-[13px] ${
-        highlight ? 'text-navy font-medium bg-cream/40' : 'text-muted'
-      }`}
-    >
+    <div className="p-3.5 border-l border-stone flex items-center justify-center">
       {content}
     </div>
   );
