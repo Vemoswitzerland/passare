@@ -1932,21 +1932,49 @@ function PaketeVergleichsListe({
   klein: boolean;
   empfohlenId: string;
 }) {
+  // Helper: Badge-Slot — IMMER gleiche Höhe für alle Spalten,
+  // auch wenn keine Badge → kein Layout-Sprung, kein Überlappen.
+  function badgeFor(p: PaketLight): { label: string; cls: string } | null {
+    if (empfohlenId === p.id) return { label: 'Für dich empfohlen', cls: 'bg-bronze text-cream' };
+    if (p.highlight) return { label: 'Beliebteste Wahl', cls: 'bg-navy text-cream' };
+    return null;
+  }
+
   return (
-    <div className="max-w-4xl mx-auto rounded-card border border-stone bg-paper overflow-hidden">
-      {/* Header mit Paket-Namen + Preisen */}
+    <div className="max-w-5xl mx-auto rounded-card border border-stone bg-paper overflow-hidden">
+      {/* ── Badge-Reihe — eigene Zeile mit fixer Höhe ──────────── */}
+      <div className="grid grid-cols-[1.6fr_1fr_1fr_1fr] bg-cream/50 border-b border-stone">
+        <div />
+        {pakete.map((p) => {
+          const badge = badgeFor(p);
+          return (
+            <div key={p.id} className="border-l border-stone h-9 flex items-center justify-center px-3">
+              {badge && (
+                <span className={cn(
+                  'inline-flex items-center px-3 py-1 rounded-pill text-caption font-medium tracking-wide',
+                  badge.cls,
+                )}>
+                  {badge.label}
+                </span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* ── Header: Label + Preis ──────────────────────────────── */}
       <div className="grid grid-cols-[1.6fr_1fr_1fr_1fr] border-b border-stone">
         <div className="p-5">
-          <p className="overline text-quiet">Vergleich</p>
-          <p className="text-caption text-muted mt-2 leading-snug">
+          <p className="overline text-bronze-ink mb-2">Vergleich</p>
+          <p className="text-caption text-muted leading-snug">
             {laufzeit === 12
-              ? 'Preise inkl. 20 % Laufzeit-Rabatt'
-              : 'Standard-Laufzeit · 6 Monate'}
+              ? 'Preise inkl. 20 % Laufzeit-Rabatt gegenüber 6 Monaten.'
+              : 'Standard-Laufzeit · 6 Monate.'}
+            {klein && <><br /><span className="text-bronze-ink">Klein-Inserat-Rabatt 25 % aktiv.</span></>}
           </p>
         </div>
         {pakete.map((p) => {
           const isSelected = selectedId === p.id;
-          const isRecommended = empfohlenId === p.id;
           const preis = klein ? p.preisKlein[laufzeit] : p.preis[laufzeit];
           const preisRegulaer = p.preis[laufzeit];
           const proMonat = preis / laufzeit;
@@ -1956,49 +1984,37 @@ function PaketeVergleichsListe({
               type="button"
               onClick={() => onSelect(p.id)}
               className={cn(
-                'p-5 text-left border-l border-stone relative transition-all',
-                isSelected
-                  ? 'bg-bronze/5'
-                  : 'bg-paper hover:bg-cream/40',
+                'p-5 text-center border-l border-stone transition-all',
+                isSelected ? 'bg-bronze/5' : 'bg-paper hover:bg-cream/40',
               )}
             >
-              {(p.highlight || isRecommended) && (
-                <span className={cn(
-                  'absolute -top-px left-0 right-0 text-center text-caption font-medium py-0.5',
-                  isRecommended ? 'bg-bronze text-cream' : 'bg-navy text-cream',
-                )}>
-                  {isRecommended ? 'Empfohlen' : 'Beliebteste'}
-                </span>
-              )}
-              <p className={cn('overline mt-2', isSelected ? 'text-bronze-ink' : 'text-quiet')}>{p.label}</p>
-              <div className="mt-2">
-                <div className="flex items-baseline gap-2 flex-wrap">
-                  <p className="font-serif text-[1.75rem] text-navy font-light font-tabular leading-none">
-                    CHF {formatCHSwiss(preis)}
-                  </p>
-                  {klein && (
-                    <p className="font-mono text-caption line-through text-quiet">
-                      {formatCHSwiss(preisRegulaer)}
-                    </p>
-                  )}
-                </div>
-                <p className="text-caption text-quiet mt-1">
-                  ≈ CHF {Math.round(proMonat).toLocaleString('de-CH')} / Mt
+              <p className={cn('overline mb-3', isSelected ? 'text-bronze-ink' : 'text-quiet')}>
+                {p.label}
+              </p>
+              <p className="font-serif text-[1.85rem] text-navy font-light font-tabular leading-none">
+                CHF {formatCHSwiss(preis)}
+              </p>
+              {klein && (
+                <p className="font-mono text-caption line-through text-quiet mt-1">
+                  CHF {formatCHSwiss(preisRegulaer)}
                 </p>
-              </div>
+              )}
+              <p className="text-caption text-quiet mt-2">
+                ≈ CHF {Math.round(proMonat).toLocaleString('de-CH')} / Mt
+              </p>
             </button>
           );
         })}
       </div>
 
-      {/* Feature-Zeilen mit grün/rot */}
+      {/* ── Feature-Zeilen mit grün/rot ─────────────────────────── */}
       {FEATURES_VERGLEICH.map((row, i) => (
         <div
           key={row.key}
           className={cn(
             'grid grid-cols-[1.6fr_1fr_1fr_1fr]',
             i !== FEATURES_VERGLEICH.length - 1 && 'border-b border-stone/60',
-            i % 2 === 1 && 'bg-cream/40',
+            i % 2 === 1 && 'bg-cream/30',
           )}
         >
           <div className="p-3.5 text-body-sm text-ink">{row.label}</div>
@@ -2008,9 +2024,9 @@ function PaketeVergleichsListe({
         </div>
       ))}
 
-      {/* Auswahl-Footer */}
-      <div className="grid grid-cols-[1.6fr_1fr_1fr_1fr] border-t border-stone bg-cream/50">
-        <div className="p-3.5"></div>
+      {/* ── Auswahl-Footer ──────────────────────────────────────── */}
+      <div className="grid grid-cols-[1.6fr_1fr_1fr_1fr] border-t border-stone bg-cream/40">
+        <div />
         {pakete.map((p) => {
           const isSelected = selectedId === p.id;
           return (
@@ -2019,7 +2035,7 @@ function PaketeVergleichsListe({
               type="button"
               onClick={() => onSelect(p.id)}
               className={cn(
-                'p-3.5 border-l border-stone text-body-sm font-medium transition-all flex items-center justify-center gap-1.5',
+                'p-4 border-l border-stone text-body-sm font-medium transition-all inline-flex items-center justify-center gap-1.5',
                 isSelected
                   ? 'bg-bronze text-cream'
                   : 'text-navy hover:bg-bronze/10',
