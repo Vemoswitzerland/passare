@@ -67,6 +67,13 @@ export const CURRENT_STEP = {
 export const UPDATES: Update[] = [
   {
     date: '2026-04-30',
+    type: 'design',
+    titel: 'Inserat-Wizard runder: Sichtbarkeit, Pakete, Boosts, Welcome-Animation',
+    beschreibung:
+      'Im Inserat-Wizard wurde die Sichtbarkeits-Sektion neu strukturiert: bei «Voll anonym» bleibt es minimal, bei «Vorname + Funktion» können Vorname und Funktion eingetippt werden, bei «Voll offen» gibts Felder für Profilbild, Vor-/Nachname, Funktion, E-Mail, WhatsApp und LinkedIn — alles optional. Live-Chat ist immer aktiv (kein Toggle mehr), WhatsApp-Quick-Contact wird automatisch aktiv sobald die Nummer ausgefüllt ist. Highlights können jetzt per Drag & Drop in der Reihenfolge geändert werden. Der Pakete-Schritt zeigt einen 12/6-Monate-Toggle, alle drei Pakete nebeneinander mit Vorteils-Liste und Preis pro Monat — der Klein-Inserat-Rabatt von 25 % wird automatisch erkannt. Die drei Boosts (Hervorhebung, Newsletter-Slot, +6 Monate Laufzeit) erscheinen jetzt als grosse Apple-Style-Karten mit Icon und klarem Wert. Der Übergang ins Dashboard nach erfolgreicher Bezahlung ist jetzt eine kurze Premium-Animation mit zentralem Logo, weichem Bronze-Glow und drei Bestätigungs-Schritten — danach landet man im Dashboard. Die «Vorschau» aus dem Seiten-Menü wurde entfernt, weil sie unter «Mein Inserat» bereits prominent zu finden ist. Das Layout der «Mein Inserat»-Seite zeigt jetzt immer die Sidebar (vorher manchmal versteckt im Tunnel-Modus).',
+  },
+  {
+    date: '2026-04-30',
     type: 'fix',
     titel: 'Endlos-Schleife nach Google-Login beim Inserat-Erstellen behoben',
     beschreibung:

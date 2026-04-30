@@ -28,9 +28,8 @@ export function CheckoutForm({ inseratId, paketId, powerupIds, total }: Props) {
         setPaying(false);
         return;
       }
-      // Hard-Redirect — bypassed Tunnel-Mode auch wenn etwas mit dem
-      // Layout-Cache hickt
-      window.location.href = `/dashboard/verkaeufer?paid=1`;
+      // Premium-Übergang via Welcome-Animation, dann ins Dashboard
+      window.location.href = `/dashboard/verkaeufer/welcome?paid=1&next=${encodeURIComponent('/dashboard/verkaeufer?paid=1')}`;
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Unbekannter Fehler');
       setPaying(false);

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useTransition, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, ArrowLeft, Check, Loader2, AlertTriangle, Image as ImageIcon, Upload as UploadIcon, Sparkles, Trash2, Plus } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Check, Loader2, AlertTriangle, Image as ImageIcon, Upload as UploadIcon, Sparkles, Trash2, Plus, Zap, Mail, Clock } from 'lucide-react';
 import { saveStep, mockPaketKaufen, submitForReview } from '../actions';
 import { BRANCHEN_LIST } from '@/data/branchen-multiples';
 import { STOCKFOTOS_BY_BRANCHE } from '@/data/branchen-stockfotos';
@@ -56,7 +56,16 @@ const UEBERGABE_GRUENDE: Array<[string, string]> = [
 ];
 
 // Pakete + Powerups kommen aus src/data/pakete.ts (Single-Source)
-import { PAKETE_LIST as NEW_PAKETE, POWERUPS as NEW_POWERUPS, recommendPaket, getCompanymarketDifference } from '@/data/pakete';
+import {
+  PAKETE_LIST as NEW_PAKETE,
+  POWERUPS as NEW_POWERUPS,
+  recommendPaket,
+  getCompanymarketDifference,
+  isKleinInserat,
+  KLEIN_INSERAT_SCHWELLE_CHF,
+  KLEIN_INSERAT_RABATT_PCT,
+  type Laufzeit,
+} from '@/data/pakete';
 
 type Inserat = {
   id: string;
@@ -101,6 +110,13 @@ type Inserat = {
   anonymitaet_level: 'voll_anonym' | 'vorname_funktion' | 'voll_offen' | null;
   whatsapp_enabled: boolean;
   live_chat_enabled: boolean;
+  // Kontakt-Felder (je nach anonymitaet_level sichtbar)
+  kontakt_vorname: string | null;
+  kontakt_nachname: string | null;
+  kontakt_funktion: string | null;
+  kontakt_foto_url: string | null;
+  kontakt_email_public: string | null;
+  kontakt_whatsapp_nr: string | null;
   // Paket
   paket: string | null;
   paid_at: string | null;
@@ -281,11 +297,23 @@ function buildStepPayload(step: number, d: Inserat): Record<string, unknown> {
     return { cover_url: d.cover_url, cover_source: d.cover_source };
   }
   if (step === 4) {
+    const level = d.anonymitaet_level ?? 'voll_anonym';
+    // Live-Chat ist immer aktiv. WhatsApp-Quick-Contact automatisch aktiv
+    // wenn Level 'voll_offen' UND WhatsApp-Nr ausgefüllt ist.
+    const whatsappAuto = level === 'voll_offen' && Boolean(d.kontakt_whatsapp_nr?.trim());
     return {
       sales_points: d.sales_points,
-      anonymitaet_level: d.anonymitaet_level ?? 'voll_anonym',
-      whatsapp_enabled: d.whatsapp_enabled ? 'true' : 'false',
-      live_chat_enabled: d.live_chat_enabled ? 'true' : 'false',
+      anonymitaet_level: level,
+      whatsapp_enabled: whatsappAuto ? 'true' : 'false',
+      live_chat_enabled: 'true',
+      // Kontakt-Felder je nach Level (bei voll_anonym alle null)
+      kontakt_vorname: level === 'voll_anonym' ? null : (d.kontakt_vorname ?? null),
+      kontakt_nachname: level === 'voll_offen' ? (d.kontakt_nachname ?? null) : null,
+      kontakt_funktion: level === 'voll_anonym' ? null : (d.kontakt_funktion ?? null),
+      kontakt_foto_url: level === 'voll_offen' ? (d.kontakt_foto_url ?? null) : null,
+      kontakt_email_public: level === 'voll_offen' ? (d.kontakt_email_public ?? null) : null,
+      kontakt_whatsapp_nr: level === 'voll_offen' ? (d.kontakt_whatsapp_nr ?? null) : null,
+      linkedin_url: level === 'voll_offen' ? (d.linkedin_url ?? null) : d.linkedin_url,
     };
   }
   return {};
@@ -1125,6 +1153,20 @@ function Step4Strengths({
     update({ sales_points: points.filter((_, j) => j !== i) });
   }
 
+  // ── Drag & Drop für Highlights (HTML5 native) ──────────────────
+  const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
+  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
+
+  function reorderPoints(from: number, to: number) {
+    if (from === to || from < 0 || to < 0 || from >= points.length || to >= points.length) return;
+    const next = [...points];
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
+    update({ sales_points: next });
+  }
+
+  const level = data.anonymitaet_level ?? 'voll_anonym';
+
   return (
     <div className="space-y-10 animate-fade-up">
       <div>
@@ -1137,11 +1179,11 @@ function Step4Strengths({
         <p className="overline text-bronze-ink mb-3">Wer du bist <span className="text-quiet font-sans normal-case tracking-normal">— wähle dein Anonymitäts-Level</span></p>
         <div className="grid md:grid-cols-3 gap-3">
           {([
-            ['voll_anonym', 'Voll Anonym', 'Käufer sieht nur «Anfragen» — empfohlen für Standard-Verkauf', '🎭'],
-            ['vorname_funktion', 'Vorname + Funktion', 'z.B. «Marc, Inhaber» — etwas persönlicher, immer noch anonym', '👤'],
-            ['voll_offen', 'Voll offen', 'Name, Foto, LinkedIn — für Berater und Premium-Mandate', '🆔'],
+            ['voll_anonym', 'Voll Anonym', 'Käufer sieht nur «Anfragen» — empfohlen für Standard-Verkauf'],
+            ['vorname_funktion', 'Vorname + Funktion', 'z.B. «Marc, Inhaber» — etwas persönlicher, immer noch anonym'],
+            ['voll_offen', 'Voll offen', 'Name, Foto, LinkedIn, WhatsApp — für Berater und Premium-Mandate'],
           ] as const).map(([id, label, desc]) => {
-            const sel = (data.anonymitaet_level ?? 'voll_anonym') === id;
+            const sel = level === id;
             return (
               <button
                 key={id}
@@ -1166,60 +1208,187 @@ function Step4Strengths({
         </div>
       </div>
 
-      {/* ── Erreichbarkeit-Toggles ─────────────────────────────── */}
-      <div className="space-y-3">
-        <p className="overline text-bronze-ink">Erreichbarkeit <span className="text-quiet font-sans normal-case tracking-normal">— optional</span></p>
-        <label className="flex items-start gap-3 cursor-pointer p-4 bg-paper border border-stone rounded-soft hover:border-bronze/40 transition-colors">
-          <input
-            type="checkbox"
-            checked={data.whatsapp_enabled}
-            onChange={(e) => update({ whatsapp_enabled: e.target.checked })}
-            className="h-4 w-4 accent-bronze mt-1"
-          />
-          <div className="flex-1">
-            <p className="text-body-sm text-navy font-medium">WhatsApp-Quick-Contact</p>
-            <p className="text-caption text-quiet leading-snug">
-              Käufer können dich mit einem Klick direkt via WhatsApp anschreiben — auch ohne NDA.
-              Nur Vorname wird sichtbar.
-            </p>
+      {/* ── Kontakt-Felder je nach Level ───────────────────────── */}
+      {level === 'vorname_funktion' && (
+        <div className="space-y-3 animate-fade-up">
+          <p className="overline text-bronze-ink">Deine Daten <span className="text-quiet font-sans normal-case tracking-normal">— Käufer sehen «{data.kontakt_vorname || 'Vorname'}, {data.kontakt_funktion || 'Funktion'}»</span></p>
+          <div className="grid md:grid-cols-2 gap-3">
+            <label className="block">
+              <span className="text-caption text-quiet block mb-1.5">Vorname</span>
+              <input
+                type="text"
+                value={data.kontakt_vorname ?? ''}
+                onChange={(e) => update({ kontakt_vorname: e.target.value })}
+                placeholder="z.B. Marc"
+                maxLength={50}
+                className="w-full px-4 py-3 bg-paper border border-stone rounded-soft text-body focus:outline-none focus:border-bronze focus:shadow-focus transition-all"
+              />
+            </label>
+            <label className="block">
+              <span className="text-caption text-quiet block mb-1.5">Funktion</span>
+              <input
+                type="text"
+                value={data.kontakt_funktion ?? ''}
+                onChange={(e) => update({ kontakt_funktion: e.target.value })}
+                placeholder="z.B. Inhaber, CEO, CFO"
+                maxLength={50}
+                className="w-full px-4 py-3 bg-paper border border-stone rounded-soft text-body focus:outline-none focus:border-bronze focus:shadow-focus transition-all"
+              />
+            </label>
           </div>
-        </label>
-        <label className="flex items-start gap-3 cursor-pointer p-4 bg-paper border border-stone rounded-soft hover:border-bronze/40 transition-colors">
-          <input
-            type="checkbox"
-            checked={data.live_chat_enabled}
-            onChange={(e) => update({ live_chat_enabled: e.target.checked })}
-            className="h-4 w-4 accent-bronze mt-1"
-          />
-          <div className="flex-1">
-            <p className="text-body-sm text-navy font-medium">Live-Chat aktivieren</p>
-            <p className="text-caption text-quiet leading-snug">
-              Aktive Käufer können dir im Inserat eine Sofort-Nachricht schicken. Du bekommst Push-Notifications.
-            </p>
+        </div>
+      )}
+
+      {level === 'voll_offen' && (
+        <div className="space-y-5 animate-fade-up">
+          <p className="overline text-bronze-ink">Deine Daten <span className="text-quiet font-sans normal-case tracking-normal">— alles optional, fülle aus was Käufer sehen sollen</span></p>
+
+          {/* Profilbild */}
+          <div className="flex items-start gap-4">
+            <div className="w-20 h-20 rounded-full overflow-hidden bg-stone flex items-center justify-center flex-shrink-0 border border-stone">
+              {data.kontakt_foto_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={data.kontakt_foto_url} alt="" className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-quiet text-caption">Foto</span>
+              )}
+            </div>
+            <label className="flex-1">
+              <span className="text-caption text-quiet block mb-1.5">Profilbild-URL (optional)</span>
+              <input
+                type="url"
+                value={data.kontakt_foto_url ?? ''}
+                onChange={(e) => update({ kontakt_foto_url: e.target.value })}
+                placeholder="https://..."
+                className="w-full px-4 py-3 bg-paper border border-stone rounded-soft text-body focus:outline-none focus:border-bronze focus:shadow-focus transition-all"
+              />
+            </label>
           </div>
-        </label>
-      </div>
+
+          {/* Name + Funktion */}
+          <div className="grid md:grid-cols-3 gap-3">
+            <label className="block">
+              <span className="text-caption text-quiet block mb-1.5">Vorname</span>
+              <input
+                type="text"
+                value={data.kontakt_vorname ?? ''}
+                onChange={(e) => update({ kontakt_vorname: e.target.value })}
+                placeholder="Marc"
+                maxLength={50}
+                className="w-full px-4 py-3 bg-paper border border-stone rounded-soft text-body focus:outline-none focus:border-bronze focus:shadow-focus transition-all"
+              />
+            </label>
+            <label className="block">
+              <span className="text-caption text-quiet block mb-1.5">Nachname</span>
+              <input
+                type="text"
+                value={data.kontakt_nachname ?? ''}
+                onChange={(e) => update({ kontakt_nachname: e.target.value })}
+                placeholder="Müller"
+                maxLength={50}
+                className="w-full px-4 py-3 bg-paper border border-stone rounded-soft text-body focus:outline-none focus:border-bronze focus:shadow-focus transition-all"
+              />
+            </label>
+            <label className="block">
+              <span className="text-caption text-quiet block mb-1.5">Funktion</span>
+              <input
+                type="text"
+                value={data.kontakt_funktion ?? ''}
+                onChange={(e) => update({ kontakt_funktion: e.target.value })}
+                placeholder="Inhaber, CEO"
+                maxLength={50}
+                className="w-full px-4 py-3 bg-paper border border-stone rounded-soft text-body focus:outline-none focus:border-bronze focus:shadow-focus transition-all"
+              />
+            </label>
+          </div>
+
+          {/* Direkt-Kontakte */}
+          <div className="grid md:grid-cols-2 gap-3">
+            <label className="block">
+              <span className="text-caption text-quiet block mb-1.5">E-Mail (öffentlich sichtbar)</span>
+              <input
+                type="email"
+                value={data.kontakt_email_public ?? ''}
+                onChange={(e) => update({ kontakt_email_public: e.target.value })}
+                placeholder="kontakt@firma.ch"
+                className="w-full px-4 py-3 bg-paper border border-stone rounded-soft text-body focus:outline-none focus:border-bronze focus:shadow-focus transition-all"
+              />
+            </label>
+            <label className="block">
+              <span className="text-caption text-quiet block mb-1.5">WhatsApp-Nummer</span>
+              <input
+                type="tel"
+                value={data.kontakt_whatsapp_nr ?? ''}
+                onChange={(e) => update({ kontakt_whatsapp_nr: e.target.value })}
+                placeholder="+41 79 123 45 67"
+                className="w-full px-4 py-3 bg-paper border border-stone rounded-soft text-body focus:outline-none focus:border-bronze focus:shadow-focus transition-all"
+              />
+            </label>
+          </div>
+
+          {/* LinkedIn */}
+          <label className="block">
+            <span className="text-caption text-quiet block mb-1.5">LinkedIn-Profil (optional)</span>
+            <input
+              type="url"
+              value={data.linkedin_url ?? ''}
+              onChange={(e) => update({ linkedin_url: e.target.value })}
+              placeholder="https://linkedin.com/in/..."
+              className="w-full px-4 py-3 bg-paper border border-stone rounded-soft text-body focus:outline-none focus:border-bronze focus:shadow-focus transition-all"
+            />
+          </label>
+
+          <p className="text-caption text-quiet leading-relaxed">
+            <span className="text-bronze-ink">Hinweis:</span> WhatsApp-Quick-Contact ist automatisch aktiv sobald du eine WhatsApp-Nummer einträgst.
+            Live-Chat ist immer aktiv.
+          </p>
+        </div>
+      )}
 
       {/* ── Sales-Points / Stärken ─────────────────────────────── */}
       <div>
-        <p className="overline text-bronze-ink mb-3">Highlights <span className="text-quiet font-sans normal-case tracking-normal">— 3 bis 5 Punkte, die Käufer sofort überzeugen</span></p>
+        <p className="overline text-bronze-ink mb-3">Highlights <span className="text-quiet font-sans normal-case tracking-normal">— 3 bis 5 Punkte, die Käufer sofort überzeugen · Reihenfolge per Drag &amp; Drop ändern</span></p>
       </div>
 
       <ul className="space-y-2">
-        {points.map((p, i) => (
-          <li key={i} className="flex items-center gap-3 rounded-soft bg-paper border border-stone px-4 py-3">
-            <span className="font-mono text-caption text-bronze-ink font-medium w-6">{i + 1}.</span>
-            <span className="flex-1 text-body text-ink">{p}</span>
-            <button
-              type="button"
-              onClick={() => removePoint(i)}
-              className="text-quiet hover:text-danger p-1 -mr-1 transition-colors"
-              aria-label="Entfernen"
+        {points.map((p, i) => {
+          const isDragged = draggedIdx === i;
+          const isOver = dragOverIdx === i;
+          return (
+            <li
+              key={`${p}-${i}`}
+              draggable
+              onDragStart={() => setDraggedIdx(i)}
+              onDragEnd={() => { setDraggedIdx(null); setDragOverIdx(null); }}
+              onDragOver={(e) => { e.preventDefault(); setDragOverIdx(i); }}
+              onDragLeave={() => setDragOverIdx((cur) => cur === i ? null : cur)}
+              onDrop={(e) => {
+                e.preventDefault();
+                if (draggedIdx !== null) reorderPoints(draggedIdx, i);
+                setDraggedIdx(null);
+                setDragOverIdx(null);
+              }}
+              className={cn(
+                'flex items-center gap-3 rounded-soft bg-paper border px-4 py-3 cursor-grab active:cursor-grabbing transition-all',
+                isDragged && 'opacity-40',
+                isOver && !isDragged && 'border-bronze bg-bronze/5 -translate-y-0.5 shadow-subtle',
+                !isOver && !isDragged && 'border-stone',
+              )}
             >
-              <Trash2 className="w-4 h-4" strokeWidth={1.5} />
-            </button>
-          </li>
-        ))}
+              <span className="text-quiet text-caption select-none" aria-hidden>⋮⋮</span>
+              <span className="font-mono text-caption text-bronze-ink font-medium w-6">{i + 1}.</span>
+              <span className="flex-1 text-body text-ink select-none">{p}</span>
+              <button
+                type="button"
+                onClick={() => removePoint(i)}
+                className="text-quiet hover:text-danger p-1 -mr-1 transition-colors"
+                aria-label="Entfernen"
+              >
+                <Trash2 className="w-4 h-4" strokeWidth={1.5} />
+              </button>
+            </li>
+          );
+        })}
       </ul>
 
       {points.length < 5 && (
@@ -1293,6 +1462,14 @@ function Step5Paket({
 
   const [selectedPaket, setSelectedPaket] = useState<string>(empfohlenId);
   const [selectedPowerups, setSelectedPowerups] = useState<Set<string>>(new Set());
+  const [laufzeit, setLaufzeit] = useState<Laufzeit>(12);
+
+  // Klein-Inserat-Rabatt automatisch erkannt aus Kaufpreis
+  const klein = isKleinInserat({
+    kaufpreis_chf: typeof data.kaufpreis_chf === 'number' ? data.kaufpreis_chf : Number(data.kaufpreis_chf) || null,
+    kaufpreis_max_chf: typeof data.kaufpreis_max_chf === 'number' ? data.kaufpreis_max_chf : Number(data.kaufpreis_max_chf) || null,
+    kaufpreis_vhb: data.kaufpreis_vhb,
+  });
 
   if (data.paid_at) {
     return (
@@ -1328,12 +1505,14 @@ function Step5Paket({
     router.push(`/dashboard/verkaeufer/checkout?${params.toString()}`);
   }
 
-  // Total berechnen
+  // Total berechnen — abhängig von Laufzeit + Klein-Rabatt
   const paket = NEW_PAKETE.find((p) => p.id === selectedPaket) ?? NEW_PAKETE[1];
+  const paketPreis = klein ? paket.preisKlein[laufzeit] : paket.preis[laufzeit];
+  const paketPreisRegulaer = paket.preis[laufzeit];
   const powerupsSum = NEW_POWERUPS
     .filter((p) => selectedPowerups.has(p.id))
     .reduce((s, p) => s + p.preis, 0);
-  const subtotal = paket.preisDefault + powerupsSum;
+  const subtotal = paketPreis + powerupsSum;
   const mwst = Math.round(subtotal * 0.081 * 100) / 100;
   const total = Math.round((subtotal + mwst) * 100) / 100;
 
@@ -1358,61 +1537,105 @@ function Step5Paket({
 
       {/* ── FRAME 1: Paket wählen ──────────────────────────────── */}
       {subFrame === 1 && (
-        <div className="space-y-10 animate-fade-up">
+        <div className="space-y-8 animate-fade-up">
           <div className="text-center">
             <p className="overline text-bronze-ink mb-3">Schritt 1 von 3</p>
             <h2 className="font-serif text-display-md text-navy font-light tracking-tight mb-3">
               Welches Paket passt zu dir?
             </h2>
             <p className="text-body-lg text-muted max-w-prose mx-auto">
-              {verkaufswert
-                ? <>Bei einem Verkaufswert von <span className="font-mono text-navy">CHF {(verkaufswert / 1000).toFixed(0)}K</span> empfehlen wir das <strong className="text-bronze-ink">{NEW_PAKETE.find(p => p.id === empfohlenId)?.label}-Paket</strong>.</>
-                : 'Wir haben für jeden Verkaufswert das passende Paket — pauschal, ohne Folgekosten.'}
+              Drei Pakete · Features sichtbar · 0 % Erfolgsprovision · keine Auto-Verlängerung.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
+          {/* Laufzeit-Toggle 12M / 6M */}
+          <div className="flex justify-center">
+            <div className="inline-flex items-center gap-1 p-1 rounded-pill border border-stone bg-paper">
+              {([12, 6] as Laufzeit[]).map((l) => (
+                <button
+                  key={l}
+                  type="button"
+                  onClick={() => setLaufzeit(l)}
+                  className={cn(
+                    'px-5 py-2 rounded-pill text-body-sm transition-all',
+                    laufzeit === l ? 'bg-navy text-cream font-medium' : 'text-muted hover:text-navy',
+                  )}
+                >
+                  {l} Monate {l === 6 && <span className="text-caption opacity-70">+20 % / Mt</span>}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Klein-Rabatt-Hinweis (auto) */}
+          {klein && (
+            <div className="max-w-3xl mx-auto bg-bronze/5 border border-bronze/30 rounded-card p-4 flex items-start gap-3">
+              <span className="text-bronze-ink text-lg">🎁</span>
+              <div className="flex-1">
+                <p className="text-body-sm text-bronze-ink font-medium">Klein-Inserat-Rabatt {KLEIN_INSERAT_RABATT_PCT} % automatisch aktiv</p>
+                <p className="text-caption text-muted mt-0.5">
+                  Dein Verkaufspreis liegt unter CHF {KLEIN_INSERAT_SCHWELLE_CHF.toLocaleString('de-CH')} —
+                  alle Pakete sind günstiger. Hinweis: spätere Erhöhung über die Schwelle erfordert Upgrade.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* 3 Paket-Karten */}
+          <div className="grid md:grid-cols-3 gap-4 max-w-5xl mx-auto">
             {NEW_PAKETE.map((p) => {
               const isSelected = selectedPaket === p.id;
               const isRecommended = empfohlenId === p.id;
+              const preis = klein ? p.preisKlein[laufzeit] : p.preis[laufzeit];
+              const preisRegulaer = p.preis[laufzeit];
+              const proMonat = preis / laufzeit;
               return (
                 <button
                   key={p.id}
                   type="button"
                   onClick={() => setSelectedPaket(p.id)}
                   className={cn(
-                    'text-left rounded-card border-2 p-6 md:p-7 flex flex-col relative transition-all',
+                    'text-left rounded-card border-2 p-6 flex flex-col relative transition-all',
                     isSelected
                       ? 'border-bronze shadow-lift bg-paper -translate-y-1'
-                      : 'border-stone bg-paper hover:border-bronze/40 hover:-translate-y-0.5',
+                      : p.highlight
+                        ? 'border-navy/30 bg-paper hover:border-bronze/40 hover:-translate-y-0.5'
+                        : 'border-stone bg-paper hover:border-bronze/40 hover:-translate-y-0.5',
                   )}
                 >
-                  {isRecommended && (
-                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 inline-flex items-center px-3 py-0.5 rounded-pill bg-bronze text-cream text-caption font-medium whitespace-nowrap">
-                      Für dich empfohlen
+                  {(p.highlight || isRecommended) && (
+                    <span className={cn(
+                      'absolute -top-3 left-1/2 -translate-x-1/2 inline-flex items-center px-3 py-0.5 rounded-pill text-caption font-medium whitespace-nowrap',
+                      isRecommended ? 'bg-bronze text-cream' : 'bg-navy text-cream',
+                    )}>
+                      {isRecommended ? 'Für dich empfohlen' : 'Beliebteste Wahl'}
                     </span>
                   )}
-                  {p.highlight && !isRecommended && (
-                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 inline-flex items-center px-3 py-0.5 rounded-pill bg-navy text-cream text-caption font-medium">
-                      Beliebt
-                    </span>
-                  )}
-                  <div className="flex items-baseline justify-between gap-3 mb-1">
-                    <p className="overline text-quiet">{p.label}</p>
-                    {/* Bewertungsbereich */}
-                    <p className="text-caption text-quiet font-mono whitespace-nowrap">
-                      {p.bewertungsbereich.max
-                        ? `bis CHF ${formatCHSwiss(p.bewertungsbereich.max / 1000)}K`
-                        : `> CHF 10 Mio`}
+
+                  <p className="overline text-quiet mb-2">{p.label}</p>
+
+                  {/* Preis-Block */}
+                  <div className="mb-1">
+                    <div className="flex items-baseline gap-2 flex-wrap">
+                      <p className="font-serif text-[2.5rem] text-navy font-light font-tabular leading-none">
+                        CHF {formatCHSwiss(preis)}
+                      </p>
+                      {klein && (
+                        <p className="font-mono text-caption line-through text-quiet">
+                          CHF {formatCHSwiss(preisRegulaer)}
+                        </p>
+                      )}
+                    </div>
+                    <p className="text-caption text-quiet mt-1.5">
+                      = CHF {Math.round(proMonat).toLocaleString('de-CH')} / Monat · {laufzeit} Monate
                     </p>
                   </div>
-                  <p className="font-serif text-[3rem] text-navy font-light font-tabular leading-none mb-2">
-                    CHF {formatCHSwiss(p.preisDefault)}
+
+                  <p className="text-caption text-bronze-ink font-medium mb-5 mt-2">
+                    {p.tagline}
                   </p>
-                  <p className="text-caption text-quiet mb-6">
-                    Pauschalpreis · {p.laufzeitMonate} Monate
-                  </p>
-                  <ul className="space-y-2.5 mb-6 flex-1">
+
+                  <ul className="space-y-2.5 mb-5 flex-1">
                     {p.featuresList.map((f) => (
                       <li key={f} className="text-body-sm text-muted flex items-start gap-2 leading-snug">
                         <Check className="w-3.5 h-3.5 text-bronze flex-shrink-0 mt-0.5" strokeWidth={2} />
@@ -1420,24 +1643,43 @@ function Step5Paket({
                       </li>
                     ))}
                   </ul>
-                  {isSelected && (
-                    <div className="inline-flex items-center gap-1.5 text-caption text-bronze-ink font-medium">
-                      <Check className="w-3.5 h-3.5" strokeWidth={2.5} />
-                      Ausgewählt
-                    </div>
-                  )}
+
+                  {/* Auswahl-Indikator */}
+                  <div className={cn(
+                    'mt-auto inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-soft text-body-sm font-medium border-2 transition-all',
+                    isSelected
+                      ? 'bg-bronze border-bronze text-cream'
+                      : 'border-stone bg-paper text-muted',
+                  )}>
+                    {isSelected ? (
+                      <>
+                        <Check className="w-4 h-4" strokeWidth={2.5} />
+                        Ausgewählt
+                      </>
+                    ) : (
+                      <>Auswählen</>
+                    )}
+                  </div>
                 </button>
               );
             })}
           </div>
 
-          <div className="flex justify-center pt-4">
+          {/* Gemeinsame Trust-Footer */}
+          <div className="max-w-5xl mx-auto flex flex-wrap justify-center gap-x-6 gap-y-2 text-caption text-quiet">
+            <span>✓ 0 % Erfolgsprovision</span>
+            <span>✓ Keine Auto-Verlängerung</span>
+            <span>✓ Schweizer Datenschutz</span>
+            <span>✓ MwSt 8.1 % wird im Checkout ausgewiesen</span>
+          </div>
+
+          <div className="flex justify-center pt-2">
             <button
               type="button"
               onClick={() => setSubFrame(2)}
               className="inline-flex items-center gap-2 px-8 py-4 rounded-soft text-body font-medium bg-navy text-cream hover:bg-ink shadow-card hover:shadow-lift hover:-translate-y-px transition-all"
             >
-              Weiter zu den Powerups →
+              Weiter zu den Boosts →
             </button>
           </div>
         </div>
@@ -1449,62 +1691,82 @@ function Step5Paket({
           <div className="text-center">
             <p className="overline text-bronze-ink mb-3">Schritt 2 von 3</p>
             <h2 className="font-serif text-display-md text-navy font-light tracking-tight mb-3">
-              Mehr Reichweite gefällig?
+              Boosts dazubuchen
             </h2>
             <p className="text-body-lg text-muted max-w-prose mx-auto">
-              Optional: einzeln dazubuchbar. Du kannst Powerups auch später jederzeit hinzufügen.
+              Drei optionale Boosts. Einzeln zubuchbar, jederzeit aktivierbar — auch später aus dem Dashboard.
             </p>
           </div>
 
-          {(['sichtbarkeit', 'reichweite', 'service'] as const).map((kat) => {
-            const items = NEW_POWERUPS.filter((p) => p.kategorie === kat);
-            if (!items.length) return null;
-            const titel = {
-              sichtbarkeit: 'Sichtbarkeit',
-              reichweite: 'Reichweite',
-              service: 'Service',
-            }[kat];
-            return (
-              <div key={kat} className="max-w-5xl mx-auto">
-                <h3 className="font-serif text-head-md text-navy font-light mb-4">{titel}</h3>
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {items.map((pu) => {
-                    const isSelected = selectedPowerups.has(pu.id);
-                    return (
-                      <button
-                        key={pu.id}
-                        type="button"
-                        onClick={() => togglePowerup(pu.id)}
-                        className={cn(
-                          'text-left p-5 rounded-card border-2 transition-all',
-                          isSelected
-                            ? 'border-bronze bg-bronze/5 shadow-subtle'
-                            : 'border-stone bg-paper hover:border-bronze/40',
-                        )}
-                      >
-                        <div className="flex items-start justify-between gap-3 mb-2">
-                          <p className="text-body text-navy font-medium leading-tight">{pu.label}</p>
-                          <p className="text-body font-mono text-navy whitespace-nowrap">
-                            CHF {pu.preis}
-                          </p>
-                        </div>
-                        <p className="text-body-sm text-muted leading-relaxed mb-2">{pu.beschreibung}</p>
-                        <p className="text-caption text-quiet">{pu.einheit}</p>
-                        {isSelected && (
-                          <div className="mt-3 inline-flex items-center gap-1.5 text-caption text-bronze-ink font-medium">
-                            <Check className="w-3 h-3" strokeWidth={2.5} />
-                            Hinzugefügt
-                          </div>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })}
+          {/* 3 Apple-Style Boost-Cards */}
+          <div className="grid md:grid-cols-3 gap-5 max-w-5xl mx-auto">
+            {NEW_POWERUPS.map((pu) => {
+              const isSelected = selectedPowerups.has(pu.id);
+              return (
+                <button
+                  key={pu.id}
+                  type="button"
+                  onClick={() => togglePowerup(pu.id)}
+                  className={cn(
+                    'text-left rounded-card border-2 p-7 flex flex-col transition-all relative',
+                    isSelected
+                      ? 'border-bronze bg-bronze/5 shadow-lift -translate-y-1'
+                      : 'border-stone bg-paper hover:border-bronze/40 hover:-translate-y-0.5 hover:shadow-subtle',
+                  )}
+                >
+                  {/* Icon-Bubble */}
+                  <div className={cn(
+                    'w-12 h-12 rounded-card flex items-center justify-center mb-5 transition-colors',
+                    isSelected ? 'bg-bronze text-cream' : 'bg-bronze/10 text-bronze-ink',
+                  )}>
+                    {pu.icon === 'Zap' && <Zap className="w-5 h-5" strokeWidth={1.75} />}
+                    {pu.icon === 'Mail' && <Mail className="w-5 h-5" strokeWidth={1.75} />}
+                    {pu.icon === 'Clock' && <Clock className="w-5 h-5" strokeWidth={1.75} />}
+                  </div>
 
-          <div className="flex items-center justify-between max-w-5xl mx-auto pt-6">
+                  <h4 className="font-serif text-head-sm text-navy font-normal mb-1">{pu.label}</h4>
+                  <p className="text-caption text-quiet mb-4">{pu.einheit}</p>
+
+                  <p className="text-body-sm text-muted leading-relaxed mb-6 flex-1">
+                    {pu.beschreibung}
+                  </p>
+
+                  <div className="flex items-baseline justify-between mt-auto pt-5 border-t border-stone/60">
+                    <p className="font-serif text-head-md text-navy font-light font-tabular">
+                      CHF {pu.preis}
+                    </p>
+                    <p className="text-caption text-quiet">einmalig</p>
+                  </div>
+
+                  {/* Auswahl-Indikator unten */}
+                  <div className={cn(
+                    'mt-4 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-soft text-body-sm font-medium border-2 transition-all',
+                    isSelected
+                      ? 'bg-bronze border-bronze text-cream'
+                      : 'border-stone bg-paper text-muted',
+                  )}>
+                    {isSelected ? (
+                      <>
+                        <Check className="w-4 h-4" strokeWidth={2.5} />
+                        Hinzugefügt
+                      </>
+                    ) : (
+                      <>+ Dazu buchen</>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Trust-Footer */}
+          <div className="max-w-5xl mx-auto flex flex-wrap justify-center gap-x-6 gap-y-2 text-caption text-quiet">
+            <span>✓ Boosts sind optional</span>
+            <span>✓ Auch später aus dem Dashboard zubuchbar</span>
+            <span>✓ Keine Vertragsbindung</span>
+          </div>
+
+          <div className="flex items-center justify-between max-w-5xl mx-auto pt-2">
             <button
               type="button"
               onClick={() => setSubFrame(1)}
@@ -1517,7 +1779,7 @@ function Step5Paket({
               onClick={() => setSubFrame(3)}
               className="inline-flex items-center gap-2 px-8 py-4 rounded-soft text-body font-medium bg-navy text-cream hover:bg-ink shadow-card hover:shadow-lift hover:-translate-y-px transition-all"
             >
-              {selectedPowerups.size > 0 ? `Mit ${selectedPowerups.size} Powerup${selectedPowerups.size === 1 ? '' : 's'} weiter` : 'Ohne Powerups weiter'} →
+              {selectedPowerups.size > 0 ? `Mit ${selectedPowerups.size} Boost${selectedPowerups.size === 1 ? '' : 's'} weiter` : 'Ohne Boosts weiter'} →
             </button>
           </div>
         </div>

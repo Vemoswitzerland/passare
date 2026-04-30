@@ -125,6 +125,12 @@ export default async function EditInseratPage({ params, searchParams }: Props) {
     anonymitaet_level: row.anonymitaet_level ?? 'voll_anonym',
     whatsapp_enabled: row.whatsapp_enabled ?? false,
     live_chat_enabled: row.live_chat_enabled ?? false,
+    kontakt_vorname: row.kontakt_vorname ?? null,
+    kontakt_nachname: row.kontakt_nachname ?? null,
+    kontakt_funktion: row.kontakt_funktion ?? null,
+    kontakt_foto_url: row.kontakt_foto_url ?? null,
+    kontakt_email_public: row.kontakt_email_public ?? null,
+    kontakt_whatsapp_nr: row.kontakt_whatsapp_nr ?? null,
   };
 
   const initialStep = sp.step ? Number(sp.step) : sp.from === 'pre-reg' ? 2 : 1;

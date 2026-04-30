@@ -116,6 +116,11 @@ const config: Config = {
         'fade-up-slow': 'fadeUp 1000ms cubic-bezier(0.16, 1, 0.3, 1) both',
         'pulse-dot': 'pulseDot 2.2s ease-in-out infinite',
         'progress-slide': 'progressSlide 1.6s cubic-bezier(0.65, 0, 0.35, 1) infinite',
+        // Welcome / Premium-Übergangs-Animation
+        'welcome-glow': 'welcomeGlow 4s ease-in-out infinite',
+        'welcome-glow-slow': 'welcomeGlow 6s ease-in-out infinite reverse',
+        'welcome-logo-in': 'welcomeLogoIn 900ms cubic-bezier(0.16, 1, 0.3, 1) both',
+        'welcome-text-in': 'welcomeTextIn 800ms cubic-bezier(0.16, 1, 0.3, 1) both',
       },
 
       keyframes: {
@@ -134,6 +139,19 @@ const config: Config = {
         progressSlide: {
           '0%': { transform: 'translateX(-150%)' },
           '100%': { transform: 'translateX(450%)' },
+        },
+        welcomeGlow: {
+          '0%, 100%': { opacity: '0.4', transform: 'translate(-50%, -50%) scale(1)' },
+          '50%': { opacity: '0.8', transform: 'translate(-50%, -50%) scale(1.15)' },
+        },
+        welcomeLogoIn: {
+          '0%': { opacity: '0', transform: 'scale(0.85) translateY(8px)', filter: 'blur(8px)' },
+          '60%': { opacity: '1', filter: 'blur(0)' },
+          '100%': { opacity: '1', transform: 'scale(1) translateY(0)', filter: 'blur(0)' },
+        },
+        welcomeTextIn: {
+          '0%': { opacity: '0', transform: 'translateY(12px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
         },
       },
     },

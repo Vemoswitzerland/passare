@@ -121,18 +121,21 @@ export default async function VerkaeuferLayout({ children }: { children: React.R
     }
   }
 
-  // ── TUNNEL-MODE für /inserat und /checkout vor Bezahlung ────────
-  // Wenn noch nicht bezahlt UND der User aktuell IM Wizard ist
-  // (/inserat oder /checkout), zeigen wir die schlanke Tunnel-Shell
-  // ohne Sidebar — fokussiert. Sonstige Verkäufer-Bereiche bleiben
-  // erreichbar (z.B. wenn User zwischendrin verlässt → Dashboard mit
-  // "Inserat fortsetzen"-Banner).
+  // ── TUNNEL-MODE NUR für Wizard-Routes vor Bezahlung ─────────────
+  // Tunnel-Shell (ohne Sidebar) zeigen wir NUR im aktiven Wizard:
+  //   • /inserat/new  (Neuer Entwurf)
+  //   • /inserat/[id]/edit  (Wizard-Bearbeitung)
+  //   • /checkout
+  //
+  // Die /inserat-ÜBERSICHT bekommt IMMER die normale Sidebar-Shell —
+  // dort sieht der Verkäufer Status, Vorschau, Bearbeiten-Button.
   const h = await headers();
   const currentPath = h.get('x-pathname') ?? '';
-  const isInTunnelRoute =
-    currentPath.includes('/dashboard/verkaeufer/inserat') ||
-    currentPath.includes('/dashboard/verkaeufer/checkout');
-  const showTunnelShell = !paidAt && !isAdmin && isInTunnelRoute;
+  const isInWizardRoute =
+    /\/dashboard\/verkaeufer\/inserat\/[a-f0-9-]{36}\/edit/.test(currentPath) ||
+    currentPath.startsWith('/dashboard/verkaeufer/inserat/new') ||
+    currentPath.startsWith('/dashboard/verkaeufer/checkout');
+  const showTunnelShell = !paidAt && !isAdmin && isInWizardRoute;
 
   if (showTunnelShell) {
     return (

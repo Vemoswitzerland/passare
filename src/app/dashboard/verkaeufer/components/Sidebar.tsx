@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, FileText, MessageSquare, FileSignature,
-  FolderOpen, BarChart3, Package, Eye, Settings, X,
+  FolderOpen, BarChart3, Package, Settings, X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -65,13 +65,6 @@ export function VerkaeuferSidebar({
   ];
 
   const secondary = [
-    {
-      href: inseratId ? `/dashboard/verkaeufer/preview/${inseratId}` : '#',
-      icon: Eye,
-      label: 'Vorschau',
-      external: true,
-      disabled: !inseratId,
-    },
     { href: '/dashboard/verkaeufer/settings', icon: Settings, label: 'Einstellungen' },
   ];
 
@@ -135,38 +128,19 @@ export function VerkaeuferSidebar({
         <div className="border-t border-stone my-4" />
 
         {secondary.map((item) => {
-          const isActive = !item.disabled && path === item.href;
-          if (item.external && !item.disabled) {
-            return (
-              <a
-                key={item.href}
-                href={item.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-3 px-3 py-2.5 rounded-soft text-body-sm text-muted hover:bg-stone/40 hover:text-navy transition-colors"
-              >
-                <item.icon className="w-4 h-4 flex-shrink-0" strokeWidth={1.5} />
-                <span className="flex-1">{item.label}</span>
-                <span className="text-caption text-quiet">↗</span>
-              </a>
-            );
-          }
+          const isActive = path === item.href;
           return (
             <Link
               key={item.href}
-              href={item.disabled ? '#' : item.href}
-              aria-disabled={item.disabled}
-              onClick={(e) => {
-                if (item.disabled) e.preventDefault();
-                else onClose?.();
+              href={item.href}
+              onClick={() => {
+                onClose?.();
               }}
               className={cn(
                 'flex items-center gap-3 px-3 py-2.5 rounded-soft text-body-sm transition-all',
-                item.disabled
-                  ? 'text-quiet/50 cursor-not-allowed'
-                  : isActive
-                    ? 'bg-bronze/10 text-navy font-medium'
-                    : 'text-muted hover:bg-stone/40 hover:text-navy',
+                isActive
+                  ? 'bg-bronze/10 text-navy font-medium'
+                  : 'text-muted hover:bg-stone/40 hover:text-navy',
               )}
             >
               <item.icon className="w-4 h-4 flex-shrink-0" strokeWidth={1.5} />
