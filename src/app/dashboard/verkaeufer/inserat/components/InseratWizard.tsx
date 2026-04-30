@@ -432,10 +432,15 @@ function Step2Basis({ data, update }: { data: Inserat; update: (p: Partial<Inser
     ? 'EBITDA kann nicht höher sein als der Umsatz. Bitte korrigieren.'
     : null;
 
-  // Pre-Reg-Daten kompakt zeigen, falls schon erfasst (Branche/Kanton/Jahr/MA/Umsatz/EBITDA)
+  // Pre-Reg-Daten kompakt zeigen, falls schon erfasst.
+  // WICHTIG: jahr UND mitarbeitende müssen mitgeprüft werden — sonst
+  // werden die Felder versteckt obwohl sie noch fehlen, und der User
+  // kommt im canProceed nicht weiter (Bug "Gründungsjahr nicht aus
+  // Handelsregister übernommen" — Field war gar nicht sichtbar).
   const preRegDataComplete = Boolean(
     data.branche_id && data.kanton &&
-    data.umsatz_chf != null && data.ebitda_chf != null,
+    data.umsatz_chf != null && data.ebitda_chf != null &&
+    data.jahr != null && data.mitarbeitende != null,
   );
 
   return (

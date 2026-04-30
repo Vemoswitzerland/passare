@@ -126,12 +126,12 @@ export function FirmaOnboarding() {
     }
     if (draft.step === 2) return Boolean(draft.branche_id && draft.kanton);
     if (draft.step === 3) {
-      // Pflicht: Umsatz + EBITDA — diese braucht die Bewertungsformel.
-      // Mitarbeitende und Gründungsjahr sind nice-to-have und können
-      // später ergänzt werden — wir setzen sinnvolle Defaults für die
-      // Bewertung wenn leer.
+      // Pflicht: Umsatz + EBITDA + Gründungsjahr — alles drei braucht
+      // die Bewertungsformel und das Käufer-Trust-Signal.
+      // Mitarbeitende ist nice-to-have und bleibt optional.
       return draft.umsatz != null && draft.umsatz > 0
-        && draft.ebitda != null;
+        && draft.ebitda != null
+        && draft.jahr != null && draft.jahr >= 1800 && draft.jahr <= new Date().getFullYear();
     }
     if (draft.step === 4) return Boolean(draft.valuation);
     return true;
@@ -142,6 +142,7 @@ export function FirmaOnboarding() {
   if (draft.step === 3) {
     if (!draft.umsatz || draft.umsatz <= 0) step3Missing.push('Jahresumsatz');
     if (draft.ebitda == null) step3Missing.push('EBITDA');
+    if (!draft.jahr || draft.jahr < 1800 || draft.jahr > new Date().getFullYear()) step3Missing.push('Gründungsjahr');
   }
 
   return (
@@ -737,7 +738,7 @@ function Step3Finanzen({ draft, update }: { draft: Draft; update: (p: Partial<Dr
           />
         </Field>
 
-        <Field label="Gründungsjahr" optional>
+        <Field label="Gründungsjahr">
           <input
             type="text"
             inputMode="numeric"
@@ -749,6 +750,9 @@ function Step3Finanzen({ draft, update }: { draft: Draft; update: (p: Partial<Dr
             placeholder="1987"
             className="w-full px-4 py-3 bg-paper border border-stone rounded-soft text-body font-mono focus:outline-none focus:border-bronze focus:shadow-focus transition-all"
           />
+          <p className="text-caption text-quiet mt-1.5">
+            Falls aus dem Handelsregister nicht automatisch übernommen — bitte ergänzen.
+          </p>
         </Field>
       </div>
     </div>

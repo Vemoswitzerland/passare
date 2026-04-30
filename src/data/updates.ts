@@ -67,6 +67,13 @@ export const CURRENT_STEP = {
 export const UPDATES: Update[] = [
   {
     date: '2026-04-30',
+    type: 'fix',
+    titel: 'Gründungsjahr wird nicht mehr versteckt + Pflicht-Feld im Funnel',
+    beschreibung:
+      'Das Gründungsjahr wurde manchmal nicht aus dem Handelsregister übernommen — und obendrein wurde das Eingabe-Feld im Inserat-Wizard versteckt, weil eine zu schwache «Pre-Onboarding komplett»-Prüfung dachte alles wäre erfasst. Jetzt prüft die Logik auch Gründungsjahr und Mitarbeitende mit — fehlt eines, erscheint das Feld zum Nachtragen. Zusätzlich ist im Pre-Reg-Funnel das Gründungsjahr jetzt Pflichtfeld (vorher als optional markiert).',
+  },
+  {
+    date: '2026-04-30',
     type: 'design',
     titel: 'Inserat-Wizard runder: Sichtbarkeit, Pakete, Boosts, Welcome-Animation',
     beschreibung:
