@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { hasTable } from '@/lib/db/has-table';
 import { cn } from '@/lib/utils';
 
-export const metadata = { title: 'Anfragen — Käufer · passare', robots: { index: false, follow: false } };
+export const metadata = { title: 'Nachrichten — Käufer · passare', robots: { index: false, follow: false } };
 
 type Anfrage = {
   id: string;
@@ -37,12 +37,12 @@ export default async function AnfragenPage() {
   return (
     <div className="space-y-6 max-w-content">
       <div>
-        <p className="overline text-bronze mb-2">Inbox · Verkäufer-Antworten</p>
+        <p className="overline text-bronze mb-2">Posteingang</p>
         <h1 className="font-serif text-display-sm md:text-head-lg text-navy font-light">
-          Anfragen<span className="text-bronze">.</span>
+          Nachrichten<span className="text-bronze">.</span>
         </h1>
         <p className="text-body-sm text-muted mt-2 max-w-2xl">
-          Alle Dossier-Anfragen die du gestellt hast, mit den Antworten der Verkäufer und dem aktuellen Status.
+          Alle Dossier-Anfragen mit den Antworten der Verkäufer plus Nachrichten vom passare-Team — an einem Ort.
         </p>
       </div>
 

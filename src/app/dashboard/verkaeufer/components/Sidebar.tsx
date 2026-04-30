@@ -39,7 +39,7 @@ export function VerkaeuferSidebar({
     {
       href: '/dashboard/verkaeufer/anfragen',
       icon: MessageSquare,
-      label: 'Anfragen',
+      label: 'Nachrichten',
       counter: counts.anfragenNeu || undefined,
     },
     // NDA-Eintrag entfernt — Cyrill: «das werden wir dann und dann nicht abbilden».

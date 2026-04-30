@@ -34,7 +34,7 @@ const SECTIONS: Section[] = [
     items: [
       { label: 'Inserate', href: '/admin/inserate', icon: FileText },
       { label: 'User', href: '/admin/users', icon: Users },
-      { label: 'Anfragen', href: '/admin/anfragen', icon: MessageSquare },
+      { label: 'Nachrichten', href: '/admin/anfragen', icon: MessageSquare },
     ],
   },
   {

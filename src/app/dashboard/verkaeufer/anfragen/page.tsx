@@ -5,7 +5,7 @@ import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { hasTable } from '@/lib/db/has-table';
 import { AnfragenList } from './AnfragenList';
 
-export const metadata = { title: 'Anfragen — passare Verkäufer' };
+export const metadata = { title: 'Nachrichten — passare Verkäufer' };
 
 type Props = { searchParams: Promise<{ filter?: string }> };
 
@@ -110,12 +110,12 @@ export default async function AnfragenPage({ searchParams }: Props) {
     <div className="px-6 md:px-10 py-8 md:py-12">
       <div className="max-w-content mx-auto">
         <div className="mb-8">
-          <p className="overline text-bronze-ink mb-2">Anfragen</p>
+          <p className="overline text-bronze-ink mb-2">Nachrichten</p>
           <h1 className="font-serif text-display-sm text-navy font-light tracking-tight">
-            Eingehende Käufer-Anfragen
+            Posteingang
           </h1>
           <p className="text-body text-muted mt-2">
-            {anfragen?.length ?? 0} Anfragen für «{inserat.titel ?? 'Inserat'}»
+            Käufer-Anfragen und Nachrichten vom passare-Team — alles an einem Ort.
           </p>
         </div>
 

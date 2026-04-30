@@ -26,7 +26,6 @@ import {
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { StatusBadge } from '@/components/admin/StatusBadge';
 import { InseratAuditPanel } from '@/components/admin/InseratAuditPanel';
-import { InseratAuditThread } from '@/components/admin/InseratAuditThread';
 import { QuickApproveButton } from '@/components/admin/QuickApproveButton';
 import { InseratZefixWarning } from '@/components/admin/InseratZefixWarning';
 import {
@@ -656,16 +655,13 @@ export default async function AdminInseratDetailPage({
             )}
           </section>
 
-          {/* Audit-Konversation */}
-          <section className="bg-paper border border-stone rounded-soft p-4">
-            <h3 className="text-[11px] uppercase tracking-wide font-medium text-quiet mb-3">
-              Audit-Konversation
-            </h3>
-            <InseratAuditThread
-              inseratId={listing.id}
-              emptyHint="Noch keine Konversation. Stelle eine Rückfrage oder gib das Inserat frei."
-            />
-          </section>
+          {/* Audit-Konversation entfernt — Cyrill 30.04.2026: «macht keinen
+              Sinn dort unten, soll bei Anfragen auftauchen, also ein Chat
+              öffnen». Die Konversation läuft jetzt in /admin/anfragen
+              (Nachrichten) als Chat-Thread, nicht mehr im Inserat-Detail.
+              Inline-Aktionen Freigeben/Rückfrage/Nachricht bleiben im
+              Aside-Panel rechts (InseratAuditPanel) — das sind administra-
+              tive Quick-Actions, keine Konversation. */}
         </div>
 
         <aside className="space-y-4">

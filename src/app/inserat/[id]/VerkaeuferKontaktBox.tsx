@@ -212,7 +212,7 @@ function BrandIconButton({
       rel={external ? 'noopener noreferrer' : undefined}
       aria-label={label}
       title={label}
-      className={`${bgColor} text-white w-11 h-11 rounded-full inline-flex items-center justify-center transition-colors shadow-subtle hover:shadow-lift`}
+      className={`${bgColor} text-white w-9 h-9 rounded-full inline-flex items-center justify-center transition-colors shadow-subtle hover:shadow-lift`}
     >
       {children}
     </a>
