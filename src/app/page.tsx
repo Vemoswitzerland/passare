@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import {
   ArrowRight, Search, TrendingUp,
-  FileLock2, Filter, Eye, LayoutDashboard, ChevronDown,
+  Filter, Eye, LayoutDashboard, ChevronDown,
 } from 'lucide-react';
 import { Container, Section } from '@/components/ui/container';
 import { Button } from '@/components/ui/button';
@@ -471,21 +471,6 @@ function Marketplace({
               />
             ) : (
               <>
-                <Reveal delay={0.1}>
-                  <div className="bg-bronze/5 border border-bronze/20 rounded-card px-5 py-4 mb-6 flex items-center gap-4 flex-wrap">
-                    <FileLock2 className="w-5 h-5 text-bronze flex-shrink-0" strokeWidth={1.5} />
-                    <p className="text-body-sm text-muted flex-1 min-w-[240px]">
-                      <span className="text-navy font-medium">Teaser sind öffentlich.</span> Für Dossier-Anfrage, NDA-Signatur und Datenraum-Zugriff ist eine kostenlose Registrierung nötig.
-                    </p>
-                    <Link
-                      href="/auth/register?role=kaeufer"
-                      className="font-mono text-[11px] uppercase tracking-widest text-navy hover:text-bronze inline-flex items-center gap-1"
-                    >
-                      Käufer werden <ArrowRight className="w-3 h-3" strokeWidth={1.5} />
-                    </Link>
-                  </div>
-                </Reveal>
-
                 <div className="grid md:grid-cols-2 gap-5">
                   {listings.map((l, i) => (
                     <Reveal key={l.id} delay={i * 0.03}>
