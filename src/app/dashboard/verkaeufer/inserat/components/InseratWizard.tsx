@@ -1333,7 +1333,7 @@ function Step5Paket({
   const powerupsSum = NEW_POWERUPS
     .filter((p) => selectedPowerups.has(p.id))
     .reduce((s, p) => s + p.preis, 0);
-  const subtotal = paket.preis + powerupsSum;
+  const subtotal = paket.preisDefault + powerupsSum;
   const mwst = Math.round(subtotal * 0.081 * 100) / 100;
   const total = Math.round((subtotal + mwst) * 100) / 100;
 
@@ -1407,13 +1407,13 @@ function Step5Paket({
                     </p>
                   </div>
                   <p className="font-serif text-[3rem] text-navy font-light font-tabular leading-none mb-2">
-                    CHF {formatCHSwiss(p.preis)}
+                    CHF {formatCHSwiss(p.preisDefault)}
                   </p>
                   <p className="text-caption text-quiet mb-6">
-                    Pauschalpreis · {p.laufzeitMonate ? `${p.laufzeitMonate} Monate` : 'aktiv bis Verkauf'}
+                    Pauschalpreis · {p.laufzeitMonate} Monate
                   </p>
                   <ul className="space-y-2.5 mb-6 flex-1">
-                    {p.features.map((f) => (
+                    {p.featuresList.map((f) => (
                       <li key={f} className="text-body-sm text-muted flex items-start gap-2 leading-snug">
                         <Check className="w-3.5 h-3.5 text-bronze flex-shrink-0 mt-0.5" strokeWidth={2} />
                         <span>{f}</span>
@@ -1456,13 +1456,12 @@ function Step5Paket({
             </p>
           </div>
 
-          {(['sichtbarkeit', 'reichweite', 'tools', 'service'] as const).map((kat) => {
+          {(['sichtbarkeit', 'reichweite', 'service'] as const).map((kat) => {
             const items = NEW_POWERUPS.filter((p) => p.kategorie === kat);
             if (!items.length) return null;
             const titel = {
               sichtbarkeit: 'Sichtbarkeit',
               reichweite: 'Reichweite',
-              tools: 'Tools',
               service: 'Service',
             }[kat];
             return (
@@ -1542,10 +1541,10 @@ function Step5Paket({
                 <p className="text-caption text-quiet mb-1">Paket</p>
                 <p className="text-body-lg text-navy font-medium">Inserat {paket.label}</p>
                 <p className="text-caption text-quiet mt-1">
-                  {paket.laufzeitMonate ? `${paket.laufzeitMonate} Monate` : 'Aktiv bis zum Verkauf'}
+                  {paket.laufzeitMonate} Monate
                 </p>
               </div>
-              <p className="text-body-lg font-mono text-navy">CHF {paket.preis}</p>
+              <p className="text-body-lg font-mono text-navy">CHF {paket.preisDefault}</p>
             </div>
 
             {/* Powerups-Block */}

@@ -1,313 +1,404 @@
 // ════════════════════════════════════════════════════════════════════
-// passare.ch — Inserat-Pakete + Powerups
+// passare.ch — Verkäufer-Pakete + Powerups
 // ────────────────────────────────────────────────────────────────────
-// Smart-Auto-Tier-Pricing: aus dem Pre-Reg-Funnel kennen wir den
-// Verkaufswert bereits. Statt 6 verwirrende Pakete wie bei
-// Companymarket schlagen wir AUTOMATISCH das richtige vor.
+// Drei Pakete: Light / Pro / Premium.
+// Zwei Laufzeiten: 12 oder 6 Monate (6 Monate = +20 % Aufschlag pro
+// Monat — kürzer kostet relativ mehr).
+// Klein-Inserat-Rabatt: 25 % bei Verkaufspreis < CHF 500'000
+// (gleiche Schwelle wie companymarket).
 //
-// Strategie: ÜBERALL leicht günstiger als Companymarket, aber smarter
-// (Auto-Tier, transparente Powerups, "Bis Verkauf" als Default).
+// Decoy-Logik: Light → Pro nur 180 CHF Sprung (= "Pull zu Pro"),
+// Pro → Premium 1'000 CHF Sprung (= klares Power-Tier).
+// Pro liegt psychologisch unter 1'000 CHF.
 // ════════════════════════════════════════════════════════════════════
 
-export type PaketTier = 'mini' | 'standard' | 'premium' | 'enterprise';
+export type PaketTier = 'light' | 'pro' | 'premium';
+export type Laufzeit = 6 | 12; // Monate
+
+// ── Klein-Inserat-Rabatt ────────────────────────────────────────────
+/** Schwellenwert für Klein-Inserat-Rabatt (gleich wie companymarket). */
+export const KLEIN_INSERAT_SCHWELLE_CHF = 500_000;
+/** Rabatt in Prozent für Klein-Inserate. */
+export const KLEIN_INSERAT_RABATT_PCT = 25;
+
+// ── Paket-Features (Was ist drin?) ──────────────────────────────────
+export type PaketFeatures = {
+  inseratLive: boolean;
+  anfragenEmpfangen: boolean;
+  inAppChat: boolean;
+  vollStatistik: boolean;
+  datenraum: boolean;
+  /** Wie viele Hervorhebungen (Seite 1 + Top Branchenfilter) pro Jahr inklusive */
+  hervorhebungProJahr: number;
+  /** Wie viele Newsletter-Slots pro Jahr inklusive */
+  newsletterProJahr: number;
+  /** Wie viele zusätzliche Mitarbeiter-Logins erlaubt */
+  mitarbeiterSeats: number;
+  /** Verkäufer sieht Käuferprofil-Eckdaten bei Anfrage */
+  kaeuferprofilEinsicht: boolean;
+};
 
 export type Paket = {
   id: PaketTier;
   label: string;
-  /** "Bei Verkaufswert X bis Y" */
-  bewertungsbereich: { min: number; max: number | null };
-  preis: number;
-  preisRefCompanymarket: number;
-  /** Laufzeit in Monaten — null = unbegrenzt bis Verkauf */
-  laufzeitMonate: number | null;
-  features: string[];
+  /** Tagline für Marketing-Karten */
+  tagline: string;
+  /** Reguläre Preise pro Laufzeit (NEU) */
+  preis: Record<Laufzeit, number>;
+  /** Klein-Inserat-Rabatt-Preise (25 % unter regulär) */
+  preisKlein: Record<Laufzeit, number>;
+  /** Strukturierte Features (NEU) */
+  features: PaketFeatures;
+  /** "Beliebtester"-Anchor für UI */
   highlight?: boolean;
+
+  // ── BACKWARDS-COMPAT (deprecated, für InseratWizard.tsx) ─────────
+  /** @deprecated Default-Preis = 12M-Variante. Nutze paket.preis[12]. */
+  preisDefault: number;
+  /** @deprecated Standard-Laufzeit = 12 Monate. Nutze direkt 12. */
+  laufzeitMonate: number;
+  /** @deprecated Bewertungsbereich-Stub für alten Wizard. */
+  bewertungsbereich: { min: number; max: number | null };
+  /** @deprecated Feature-Liste (string-basiert) für alten Wizard. */
+  featuresList: string[];
+  /** @deprecated CM-Vergleichspreis. Nutze getCompanymarketReferenz(). */
+  preisRefCompanymarket: number;
 };
 
-// Verkaufspsychologie:
-//  - Charm-Pricing (.49 / .99 / .9 endings)
-//  - Standard ist der ANCHOR + "Beliebtester"-Badge
-//  - Abnehmende Aufschläge zwischen Tiers (höher der Tier, kleinerer
-//    relativer Sprung) — User spürt "Premium ist nur ein bisschen mehr"
-//  - Enterprise knapp unter Companymarket-Komplett-Paket-Preis
-//    (0.1% Differenz wirkt psychologisch wie "gleich, aber günstiger")
+// ── Pakete ──────────────────────────────────────────────────────────
 export const PAKETE: Record<PaketTier, Paket> = {
-  mini: {
-    id: 'mini',
-    label: 'Mini',
-    bewertungsbereich: { min: 0, max: 250_000 },
-    preis: 249,                                  // 249 vs CM 275 (−9%)
-    preisRefCompanymarket: 275,
-    laufzeitMonate: null,
-    features: [
-      'Inserat live bis zum Verkauf',           // CM: nur 6 Monate
-      'Smart-Bewertung mit Faktoren-Analyse',
-      'Anfragen-Inbox mit Käufer-Scoring',
-      'NDA-Pipeline',
-      'Datenraum mit Audit-Log',
+  light: {
+    id: 'light',
+    label: 'Light',
+    tagline: 'Inserier deine Firma unkompliziert.',
+    preis: { 12: 710, 6: 425 },
+    preisKlein: { 12: 535, 6: 320 },
+    features: {
+      inseratLive: true,
+      anfragenEmpfangen: true,
+      inAppChat: true,
+      vollStatistik: true,
+      datenraum: false,
+      hervorhebungProJahr: 0,
+      newsletterProJahr: 0,
+      mitarbeiterSeats: 0,
+      kaeuferprofilEinsicht: false,
+    },
+    // Backwards-Compat
+    preisDefault: 710,
+    laufzeitMonate: 12,
+    bewertungsbereich: { min: 0, max: 500_000 },
+    featuresList: [
+      'Inserat live · 12 Monate',
+      'Anfragen empfangen · In-App-Chat',
+      'Vollständige Statistik · Charts + Conversion',
       'Pauschalpreis · keine Folgekosten',
-      'KMU-Rabatt automatisch erkannt',
+      '0 % Erfolgsprovision',
     ],
-  },
-  standard: {
-    id: 'standard',
-    label: 'Standard',
-    bewertungsbereich: { min: 250_000, max: 2_000_000 },
-    preis: 449,                                  // 449 vs CM 550 (−18%)
     preisRefCompanymarket: 550,
-    laufzeitMonate: null,
-    features: [
-      'Inserat live bis zum Verkauf',
-      'KI-Teaser-Generator',
-      'Anfragen-Scoring + Drawer',
-      'NDA-Pipeline mit Versionierung',
-      'Datenraum + Käufer-Audit',
-      'Mehrsprachiges Inserat (DE/EN/FR/IT)',
+  },
+  pro: {
+    id: 'pro',
+    label: 'Pro',
+    tagline: 'Verkauf wie ein Profi — mit Datenraum und Hervorhebung.',
+    preis: { 12: 890, 6: 535 },
+    preisKlein: { 12: 670, 6: 400 },
+    features: {
+      inseratLive: true,
+      anfragenEmpfangen: true,
+      inAppChat: true,
+      vollStatistik: true,
+      datenraum: true,
+      hervorhebungProJahr: 4,
+      newsletterProJahr: 0,
+      mitarbeiterSeats: 0,
+      kaeuferprofilEinsicht: false,
+    },
+    highlight: true, // ANCHOR — "Beliebteste Wahl"
+    // Backwards-Compat
+    preisDefault: 890,
+    laufzeitMonate: 12,
+    bewertungsbereich: { min: 500_000, max: 5_000_000 },
+    featuresList: [
+      'Alles aus Light',
+      'Datenraum mit Audit-Log',
+      'Hervorhebung 4× pro Jahr · Seite 1 + Top Branchenfilter',
       'Pauschalpreis · keine Folgekosten',
     ],
-    highlight: true,                             // ANCHOR / "Beliebtester"
+    preisRefCompanymarket: 900,
   },
   premium: {
     id: 'premium',
     label: 'Premium',
-    bewertungsbereich: { min: 2_000_000, max: 10_000_000 },
-    preis: 699,                                  // 699 vs CM 900 (−22%)
-    preisRefCompanymarket: 900,
-    laufzeitMonate: null,
-    features: [
-      'Alles aus Standard',
-      'PDF-Exposé-Generator (KI) inklusive',
-      'Featured-Listing Goldrand 30 Tage',
-      'Top-3-Boost 1× pro Quartal',
-      'Priority-Anfragen-Routing',
+    tagline: 'Maximaler Schaufenster-Effekt — wir pushen dich.',
+    preis: { 12: 1_890, 6: 1_140 },
+    preisKlein: { 12: 1_420, 6: 855 },
+    features: {
+      inseratLive: true,
+      anfragenEmpfangen: true,
+      inAppChat: true,
+      vollStatistik: true,
+      datenraum: true,
+      hervorhebungProJahr: 12,
+      newsletterProJahr: 2,
+      mitarbeiterSeats: 3,
+      kaeuferprofilEinsicht: true,
+    },
+    // Backwards-Compat
+    preisDefault: 1_890,
+    laufzeitMonate: 12,
+    bewertungsbereich: { min: 5_000_000, max: null },
+    featuresList: [
+      'Alles aus Pro',
+      'Hervorhebung 12× pro Jahr',
+      'Newsletter-Slot 2× pro Jahr',
+      'Bis 3 Mitarbeiter onboarden',
+      'Käuferprofil-Einsicht bei Anfragen',
     ],
-  },
-  enterprise: {
-    id: 'enterprise',
-    label: 'Enterprise',
-    bewertungsbereich: { min: 10_000_000, max: null },
-    preis: 949,                                  // 949 vs CM 1'000 (−5%)
     preisRefCompanymarket: 1_000,
-    laufzeitMonate: null,
-    features: [
-      'Alles aus Premium',
-      'NDA-Generator (Schweizer Recht, KI-personalisiert)',
-      'Letter-of-Interest-Generator',
-      'Persönlicher Konzierge-Service',
-      'Newsletter-Erwähnung MAX-Käufer',
-      'Featured-Listing 90 Tage',
-    ],
   },
 };
-// Sprünge: Mini 249 → Standard 449 (+80%) → Premium 699 (+56%) →
-// Enterprise 949 (+36%). Abnehmende Aufschläge — psychologisch sauber.
 
 export const PAKETE_LIST: Paket[] = [
-  PAKETE.mini,
-  PAKETE.standard,
+  PAKETE.light,
+  PAKETE.pro,
   PAKETE.premium,
-  PAKETE.enterprise,
 ];
 
+// ── Helpers: Pricing-Logik ──────────────────────────────────────────
+
 /**
- * Smart-Auto-Tier: empfiehlt das passende Paket basierend auf dem
- * eingewerteten Verkaufspreis (aus Pre-Reg-Smart-Bewertung).
+ * Prüft ob ein Inserat als Klein-Inserat gilt (Rabatt-berechtigt).
+ * Bei VHB-Range zählt das obere Range-Ende.
+ */
+export function isKleinInserat(input: {
+  kaufpreis_chf?: number | null;
+  kaufpreis_max_chf?: number | null;
+  kaufpreis_vhb?: boolean;
+}): boolean {
+  // Bei Range: oberes Ende ausschlaggebend
+  if (input.kaufpreis_max_chf && input.kaufpreis_max_chf > 0) {
+    return input.kaufpreis_max_chf < KLEIN_INSERAT_SCHWELLE_CHF;
+  }
+  // Bei festem Preis
+  if (input.kaufpreis_chf && input.kaufpreis_chf > 0) {
+    return input.kaufpreis_chf < KLEIN_INSERAT_SCHWELLE_CHF;
+  }
+  // Bei VHB ohne Wert: kein Rabatt (nicht eindeutig klein)
+  return false;
+}
+
+/**
+ * Berechnet den effektiven Preis für ein Paket basierend auf Laufzeit
+ * und Klein-Inserat-Status.
+ */
+export function getPaketPreis(
+  tier: PaketTier,
+  laufzeit: Laufzeit,
+  klein: boolean,
+): number {
+  const paket = PAKETE[tier];
+  return klein ? paket.preisKlein[laufzeit] : paket.preis[laufzeit];
+}
+
+/**
+ * Berechnet wie viele Hervorhebungen pro Laufzeit inklusive sind.
+ * Bei 6 Monaten anteilig (halbiert).
+ */
+export function getInkludierteHervorhebungen(
+  tier: PaketTier,
+  laufzeit: Laufzeit,
+): number {
+  const proJahr = PAKETE[tier].features.hervorhebungProJahr;
+  return laufzeit === 12 ? proJahr : Math.floor(proJahr / 2);
+}
+
+/**
+ * Berechnet wie viele Newsletter-Slots pro Laufzeit inklusive sind.
+ * Bei 6 Monaten anteilig (halbiert).
+ */
+export function getInkludierteNewsletterSlots(
+  tier: PaketTier,
+  laufzeit: Laufzeit,
+): number {
+  const proJahr = PAKETE[tier].features.newsletterProJahr;
+  return laufzeit === 12 ? proJahr : Math.floor(proJahr / 2);
+}
+
+/**
+ * Smart-Empfehlung: welches Paket schlagen wir vor?
+ * Default = Pro (Mittelpaket, Decoy-Anker).
+ * Bei sehr grossen Firmen (>5 Mio Verkaufswert) → Premium.
  */
 export function recommendPaket(verkaufswertChf: number | null | undefined): PaketTier {
-  if (!verkaufswertChf || verkaufswertChf <= 0) return 'standard';
-  if (verkaufswertChf < 250_000) return 'mini';
-  if (verkaufswertChf < 2_000_000) return 'standard';
-  if (verkaufswertChf < 10_000_000) return 'premium';
-  return 'enterprise';
+  if (verkaufswertChf && verkaufswertChf > 5_000_000) return 'premium';
+  return 'pro';
 }
 
 // ════════════════════════════════════════════════════════════════════
-// POWERUPS — einzeln dazubuchbar, transparent
+// POWERUPS — drei Boosts, einzeln zubuchbar
 // ────────────────────────────────────────────────────────────────────
-export type PowerupKategorie = 'sichtbarkeit' | 'reichweite' | 'tools' | 'service';
+
+export type PowerupKategorie = 'sichtbarkeit' | 'reichweite' | 'service';
 
 export type Powerup = {
   id: string;
   label: string;
-  kategorie: PowerupKategorie;
-  preis: number;
-  preisRefCompanymarket: number | null;
+  /** Marketing-Tagline (kurz) */
+  tagline: string;
+  /** Vollständige Beschreibung */
   beschreibung: string;
+  preis: number;
+  /** Sichtbares Einheits-Label ("7 Tage", "einmalig", "+6 Monate") */
   einheit: string;
-  icon: string; // Lucide-Name
-  premiumOnly?: boolean;
+  /** Laufzeit in Tagen — null = einmalig ohne Verfall */
+  laufzeitTage: number | null;
+  /** Lucide-Icon-Name */
+  icon: string;
+  /** Kategorie für Wizard-Gruppierung (Backwards-Compat) */
+  kategorie: PowerupKategorie;
+  /**
+   * Bei "verlaengerung_6m": addiert 180 Tage zu inserat.expires_at
+   * Bei "hervorhebung": setzt featured_until = now + 7 Tage
+   * Bei "newsletter_slot": legt Eintrag in newsletter_queue an
+   */
+  effekt: 'hervorhebung' | 'newsletter_slot' | 'verlaengerung_6m';
 };
 
 export const POWERUPS: Powerup[] = [
-  // ── Sichtbarkeit ────────────────────────────────────────────────
   {
-    id: 'top3_boost',
-    label: 'Top-3-Boost',
-    kategorie: 'sichtbarkeit',
-    preis: 79,
-    preisRefCompanymarket: null,
-    beschreibung: 'Dein Inserat erscheint 7 Tage lang in den Top-3 der Marktplatz-Liste — egal ob neu oder älter.',
+    id: 'hervorhebung',
+    label: 'Hervorhebung',
+    tagline: '7 Tage Top-Position im Marktplatz.',
+    beschreibung:
+      '7 Tage auf Seite 1 und Top-Position im Branchenfilter — sichtbar für jeden Käufer der im Marktplatz stöbert.',
+    preis: 49,
     einheit: '7 Tage',
-    icon: 'Rocket',
-  },
-  {
-    id: 'featured_goldrand',
-    label: 'Featured-Listing',
+    laufzeitTage: 7,
+    icon: 'Zap',
     kategorie: 'sichtbarkeit',
-    preis: 179,
-    preisRefCompanymarket: null,
-    beschreibung: 'Goldrand-Hervorhebung im Marktplatz, 5× mehr Klicks im Schnitt.',
-    einheit: '30 Tage',
-    icon: 'Sparkles',
-  },
-
-  // ── Reichweite ──────────────────────────────────────────────────
-  {
-    id: 'leaderboard',
-    label: 'Leaderboard-Banner',
-    kategorie: 'reichweite',
-    preis: 449,
-    preisRefCompanymarket: 500,
-    beschreibung: 'Volle Bildschirmbreite oben auf der Marktplatz-Hauptseite — eine Woche prominent.',
-    einheit: '1 Woche',
-    icon: 'TrendingUp',
+    effekt: 'hervorhebung',
   },
   {
-    id: 'rechteckbanner',
-    label: 'Rechteck-Banner',
-    kategorie: 'reichweite',
-    preis: 249,
-    preisRefCompanymarket: 275,
-    beschreibung: 'Rechteck-Banner in der Marktplatz-Sidebar.',
-    einheit: '30 Tage',
-    icon: 'Square',
-  },
-  {
-    id: 'skyscraper',
-    label: 'Skyscraper-Banner',
-    kategorie: 'reichweite',
-    preis: 39,
-    preisRefCompanymarket: 50,
-    beschreibung: 'Schmaler Banner seitlich — günstige Dauer-Sichtbarkeit.',
-    einheit: '7 Tage',
-    icon: 'Tower',
-  },
-  {
-    id: 'newsletter_max',
-    label: 'MAX-Käufer Newsletter',
-    kategorie: 'reichweite',
-    preis: 129,
-    preisRefCompanymarket: null,
-    beschreibung: 'Eintrag im wöchentlichen Newsletter an alle MAX-abonnierten Käufer.',
-    einheit: '1 Newsletter',
+    id: 'newsletter_slot',
+    label: 'Newsletter-Slot',
+    tagline: 'Eine prominente Erwähnung im Wochen-Newsletter.',
+    beschreibung:
+      'Eine prominente Erwähnung im nächsten passare-Wochen-Newsletter. Erreicht alle aktiven Käufer mit passendem Suchprofil.',
+    preis: 86,
+    einheit: 'einmalig',
+    laufzeitTage: null,
     icon: 'Mail',
+    kategorie: 'reichweite',
+    effekt: 'newsletter_slot',
   },
-
-  // ── Tools (alle Generators — KI-personalisiert, kein Template) ──
   {
-    id: 'pdf_expose',
-    label: 'PDF-Exposé-Generator',
-    kategorie: 'tools',
-    preis: 49,
-    preisRefCompanymarket: 50,
-    beschreibung: 'Auf Knopfdruck KI-generiertes 1-Pager-Exposé mit allen Eckdaten — perfekt formatiert für Käufer-Versand.',
+    id: 'laufzeit_6m',
+    label: '+6 Monate Laufzeit',
+    tagline: 'Inserat bleibt 6 Monate länger online.',
+    beschreibung:
+      'Verlängere dein Inserat um 6 Monate — ohne Neu-Veröffentlichung, ohne Datenverlust. Statistik, Anfragen und Datenraum laufen einfach weiter.',
+    preis: 490,
     einheit: 'einmalig',
-    icon: 'FileText',
-  },
-  {
-    id: 'nda_generator',
-    label: 'NDA-Generator',
-    kategorie: 'tools',
-    preis: 49,
-    preisRefCompanymarket: 50,
-    beschreibung: 'KI-personalisierter NDA nach Schweizer Recht — auf deine Firma + Käufer-Profil zugeschnitten.',
-    einheit: 'einmalig',
-    icon: 'FileSignature',
-  },
-  {
-    id: 'loi_generator',
-    label: 'Letter-of-Interest-Generator',
-    kategorie: 'tools',
-    preis: 49,
-    preisRefCompanymarket: null,
-    beschreibung: 'KI-generierter LoI für ernsthafte Käufer — formelles Interesse-Bekenntnis vor NDA-Phase.',
-    einheit: 'einmalig',
-    icon: 'Handshake',
-  },
-
-  // ── Service ─────────────────────────────────────────────────────
-  {
-    id: 'video_tour',
-    label: '1-Min Video-Tour',
+    laufzeitTage: 180,
+    icon: 'Clock',
     kategorie: 'service',
-    preis: 179,
-    preisRefCompanymarket: null,
-    beschreibung: 'Wir produzieren ein 1-Minuten-Video deiner Firma (KI-Voiceover + B-Roll).',
-    einheit: 'einmalig',
-    icon: 'Video',
-  },
-  {
-    id: 'concierge_session',
-    label: 'Konzierge-Beratung',
-    kategorie: 'service',
-    preis: 249,
-    preisRefCompanymarket: null,
-    beschreibung: '60-Minuten 1:1-Call mit einem M&A-Experten zur Inserat-Optimierung.',
-    einheit: '1 Session',
-    icon: 'Users',
+    effekt: 'verlaengerung_6m',
   },
 ];
 
 // ════════════════════════════════════════════════════════════════════
-// BERATER-ABO
+// BERATER-ABO (Phase 2 — kommt später)
 // ────────────────────────────────────────────────────────────────────
+// Vorbereitet aber im UI noch nicht aktiv. Für Broker-Registrierung
+// auf der Verkaufen-Seite.
+
 export type BeraterTier = {
-  id: 'solo' | 'pro';
+  id: 'starter' | 'pro';
   label: string;
   preisJahr: number;
-  preisRefCompanymarket: number;
+  preisMonat: number;
   inserateMax: number | 'unlimited';
+  teamSeats: number;
   features: string[];
 };
 
 export const BERATER_TIERS: BeraterTier[] = [
   {
-    id: 'solo',
-    label: 'Berater Solo',
-    preisJahr: 2_490,
-    preisRefCompanymarket: 3_000,
-    inserateMax: 10,
+    id: 'starter',
+    label: 'Broker Starter',
+    preisJahr: 2_900,
+    preisMonat: 290,
+    inserateMax: 5,
+    teamSeats: 0,
     features: [
-      '10 aktive Inserate gleichzeitig',
-      'Beliebige Verkaufspreise',
-      'Übersichtliche Mandanten-Verwaltung',
-      'Sammel-Anfragen-Inbox',
-      'Priority-Support per E-Mail',
+      'Bis 5 aktive Inserate',
+      'Multi-Mandat-Dashboard',
+      'Brand-Profil mit Logo',
+      'Eigene Profil-URL /broker/[slug]',
+      'Agentur-Badge auf Inseraten',
+      'Kombinierte Anfragen-Inbox',
     ],
   },
   {
     id: 'pro',
-    label: 'Berater Pro',
-    preisJahr: 4_490,
-    preisRefCompanymarket: 5_000,
-    inserateMax: 'unlimited',
+    label: 'Broker Pro',
+    preisJahr: 8_900,
+    preisMonat: 890,
+    inserateMax: 25,
+    teamSeats: 5,
     features: [
-      'Unbegrenzt Inserate',
-      'White-Label-Profilseite',
-      'Eigene Subdomain möglich',
-      'API-Zugang für Mandanten-Sync',
-      'Telefon-Priority-Support',
-      'Konzierge-Onboarding für Erstinseraten',
+      'Bis 25 aktive Inserate',
+      'Bis 5 Team-Mitglieder',
+      'White-Label-Option (eigene Domain)',
+      'Featured-Badge auf allen Inseraten',
+      'Atlas-Highlight auf allen Inseraten',
+      'Monatlicher Push-Boost (alle Inserate)',
+      'Erweiterte Analytics + CSV-Export',
+      'Prioritärer Account-Kontakt',
     ],
   },
 ];
 
 // ════════════════════════════════════════════════════════════════════
-// HELPER: Preis-Vergleich für UI
+// HELPER: companymarket-Vergleich für Marketing-Anker
 // ────────────────────────────────────────────────────────────────────
+// CM-Referenzpreise (Stand 04.2026):
+//  - Small Business <250k: CHF 275
+//  - Standard >250k: CHF 550 (+ 12M "Suche")
+//  - Unlimitiert bis Verkauf: CHF 900
+//  - Komplett-Paket: CHF 1'000
+
+export const COMPANYMARKET_PREISE = {
+  smallBusiness: 275,
+  standard: 550,
+  unlimitiert: 900,
+  komplett: 1_000,
+} as const;
+
+/**
+ * Findet den passenden CM-Referenzpreis für ein passare-Paket+Laufzeit.
+ * Konservative Mappings:
+ *   Light 12M → CM Standard (550)
+ *   Pro 12M → CM Unlimitiert (900)
+ *   Premium 12M → CM Komplett (1'000)
+ */
+export function getCompanymarketReferenz(tier: PaketTier, _laufzeit: Laufzeit): number {
+  switch (tier) {
+    case 'light':
+      return COMPANYMARKET_PREISE.standard;
+    case 'pro':
+      return COMPANYMARKET_PREISE.unlimitiert;
+    case 'premium':
+      return COMPANYMARKET_PREISE.komplett;
+  }
+}
+
+/**
+ * Marketing-String "X % günstiger als companymarket" (oder null wenn passare teurer).
+ */
 export function getCompanymarketDifference(passarePreis: number, cmPreis: number | null): string | null {
   if (!cmPreis || cmPreis <= passarePreis) return null;
-  const diff = cmPreis - passarePreis;
-  const pct = Math.round((diff / cmPreis) * 100);
-  return `Bei Companymarket CHF ${cmPreis} — ${pct} % günstiger`;
+  const pct = Math.round(((cmPreis - passarePreis) / cmPreis) * 100);
+  return `Bei companymarket CHF ${cmPreis.toLocaleString('de-CH')} — ${pct} % günstiger`;
 }

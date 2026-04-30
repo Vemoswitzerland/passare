@@ -4,11 +4,12 @@ import { Container, Section } from '@/components/ui/container';
 import { Button } from '@/components/ui/button';
 import { Divider } from '@/components/ui/divider';
 import { Reveal } from '@/components/ui/reveal';
+import { VerkaeuferPricing } from './_components/VerkaeuferPricing';
 
 export const metadata = {
   title: 'Preise — passare',
   description:
-    'Transparente Pakete für Verkäufer (Light CHF 290, Pro CHF 890, Premium CHF 1\'890) und Käufer (Basic gratis oder MAX CHF 199/Monat). Pauschalpreise.',
+    'Transparente Pakete für Verkäufer (Light CHF 710, Pro CHF 890, Premium CHF 1\'890 — alle 12 Monate). Klein-Inserat-Rabatt 25 % bei Verkaufspreis < CHF 500\'000. Käufer Basic gratis oder Professional CHF 49/Monat. Keine Auto-Verlängerung.',
   robots: { index: false, follow: false },
 };
 
@@ -58,82 +59,16 @@ function Hero() {
 
 /* ─────────────────────────────── */
 function VerkaeuferTable() {
-  const rows = [
-    { feature: 'Laufzeit', light: '3 Monate', pro: '6 Monate', premium: '12 Monate' },
-    { feature: 'Bilder', light: '5', pro: '20 + Videos', premium: 'Unbegrenzt' },
-    { feature: 'PDFs im Datenraum', light: '2', pro: 'Unbegrenzt', premium: 'Unbegrenzt' },
-    { feature: 'Wasserzeichen PDF-Downloads', light: '—', pro: '✓', premium: '✓' },
-    { feature: 'NDA-Gate mit eSign', light: '✓', pro: '✓', premium: '✓' },
-    { feature: 'KI-Teaser-Generator', light: '✓', pro: '✓', premium: '✓' },
-    { feature: 'Käuferprofil-Matching', light: '—', pro: '✓', premium: '✓' },
-    { feature: 'Newsletter-Feature', light: '—', pro: '1× einmalig', premium: 'Monatlich' },
-    { feature: 'Homepage-Feature', light: '—', pro: '—', premium: '1 Woche / Monat' },
-    { feature: 'Mehrsprachige Inseratversion', light: '—', pro: '—', premium: 'FR / IT / EN' },
-    { feature: 'Statistiken & Conversion', light: 'Basis', pro: 'Detail', premium: 'Detail + Export' },
-    { feature: 'Persönliche Beratung', light: '—', pro: '—', premium: '2h inklusive' },
-    { feature: 'Support', light: 'E-Mail', pro: 'E-Mail', premium: 'Priorisiert' },
-    { feature: 'Verlängerung', light: '+CHF 190/3M', pro: '+CHF 490/6M', premium: '+CHF 990/12M' },
-  ];
-
   return (
     <Section>
       <Container>
-        <Reveal>
-          <div className="mb-10 max-w-prose">
-            <div className="flex items-center gap-4 mb-5">
-              <span className="overline text-navy">Für Verkäufer</span>
-              <span className="h-px flex-1 bg-stone" />
-              <span className="font-mono text-[11px] text-quiet">einmalige Paketgebühr</span>
-            </div>
-            <h2 className="font-serif text-display-md text-navy font-light">
-              Inserat Light · Pro · Premium.
-            </h2>
-          </div>
-        </Reveal>
-
-        <Reveal delay={0.1}>
-          <div className="border border-stone rounded-card overflow-hidden bg-paper">
-            {/* Header */}
-            <div className="grid grid-cols-[1.5fr_1fr_1fr_1fr] border-b border-stone">
-              <div className="p-6"></div>
-              <PlanHeader name="Light" price="CHF 290" note="3 Monate" />
-              <PlanHeader name="Pro" price="CHF 890" note="6 Monate" highlight />
-              <PlanHeader name="Premium" price="CHF 1'890" note="12 Monate" />
-            </div>
-            {/* Rows */}
-            {rows.map((r, i) => (
-              <div
-                key={i}
-                className={`grid grid-cols-[1.5fr_1fr_1fr_1fr] ${
-                  i !== rows.length - 1 ? 'border-b border-stone' : ''
-                } ${i % 2 === 1 ? 'bg-cream/30' : ''}`}
-              >
-                <div className="p-4 text-body-sm text-ink">{r.feature}</div>
-                <Cell>{r.light}</Cell>
-                <Cell highlight>{r.pro}</Cell>
-                <Cell>{r.premium}</Cell>
-              </div>
-            ))}
-            {/* CTA */}
-            <div className="grid grid-cols-[1.5fr_1fr_1fr_1fr] border-t border-stone bg-cream/50">
-              <div className="p-4"></div>
-              <div className="p-4 border-l border-stone">
-                <Button href="/auth/register" variant="secondary" size="sm" className="w-full justify-center">Light wählen</Button>
-              </div>
-              <div className="p-4 border-l border-stone">
-                <Button href="/auth/register" size="sm" className="w-full justify-center">Pro wählen</Button>
-              </div>
-              <div className="p-4 border-l border-stone">
-                <Button href="/auth/register" variant="secondary" size="sm" className="w-full justify-center">Premium wählen</Button>
-              </div>
-            </div>
-          </div>
-        </Reveal>
+        <VerkaeuferPricing />
       </Container>
     </Section>
   );
 }
 
+// ── Helper für Käufer-Tabelle (Verkäufer-Tabelle hat eigene in VerkaeuferPricing) ──
 function PlanHeader({ name, price, note, highlight }: { name: string; price: string; note: string; highlight?: boolean }) {
   return (
     <div className={`p-6 border-l border-stone ${highlight ? 'bg-navy text-cream' : ''}`}>

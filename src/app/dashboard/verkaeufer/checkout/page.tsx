@@ -20,6 +20,8 @@ type Props = {
     inserat?: string;
     paket?: string;
     powerups?: string;
+    laufzeit?: string;
+    klein?: string;
   }>;
 };
 
@@ -30,17 +32,20 @@ export default async function CheckoutPage({ searchParams }: Props) {
   if (!u.user) redirect('/auth/login?next=/dashboard/verkaeufer/checkout');
 
   const inseratId = sp.inserat;
-  const paketId = (sp.paket ?? 'standard') as keyof typeof PAKETE;
+  const paketId = (sp.paket ?? 'pro') as keyof typeof PAKETE;
   const powerupIds = (sp.powerups ?? '').split(',').filter(Boolean);
+  const laufzeit = (sp.laufzeit === '6' ? 6 : 12) as 6 | 12;
+  const isKlein = sp.klein === '1';
 
   if (!inseratId) {
     redirect('/dashboard/verkaeufer/inserat');
   }
 
-  const paket = PAKETE[paketId] ?? PAKETE.standard;
+  const paket = PAKETE[paketId] ?? PAKETE.pro;
   const selectedPowerups = POWERUPS.filter((p) => powerupIds.includes(p.id));
 
-  const subtotal = paket.preis + selectedPowerups.reduce((s, p) => s + p.preis, 0);
+  const paketPreis = isKlein ? paket.preisKlein[laufzeit] : paket.preis[laufzeit];
+  const subtotal = paketPreis + selectedPowerups.reduce((s, p) => s + p.preis, 0);
   const mwst = Math.round(subtotal * 0.081 * 100) / 100;
   const total = Math.round((subtotal + mwst) * 100) / 100;
 
@@ -61,11 +66,11 @@ export default async function CheckoutPage({ searchParams }: Props) {
             <div>
               <p className="text-body text-navy font-medium">Inserat {paket.label}</p>
               <p className="text-caption text-quiet mt-1">
-                {paket.laufzeitMonate ? `${paket.laufzeitMonate} Monate` : 'Aktiv bis zum Verkauf'}
+                {laufzeit} Monate {isKlein && '· Klein-Inserat-Rabatt 25 %'}
               </p>
             </div>
             <p className="text-body font-mono text-ink">
-              CHF {paket.preis}
+              CHF {paketPreis.toLocaleString('de-CH')}
             </p>
           </div>
 

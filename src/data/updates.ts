@@ -67,6 +67,13 @@ export const CURRENT_STEP = {
 export const UPDATES: Update[] = [
   {
     date: '2026-04-30',
+    type: 'feature',
+    titel: 'Neues Verkäufer-Pricing live: Light · Pro · Premium',
+    beschreibung:
+      'Drei Pakete mit klarer Logik: Light CHF 710, Pro CHF 890 (am beliebtesten), Premium CHF 1\'890 — alle 12 Monate Laufzeit. Wahlweise 6 Monate Laufzeit mit 20 % Aufschlag pro Monat. Klein-Inserat-Rabatt 25 % für Firmen mit Verkaufspreis unter CHF 500\'000. Drei optionale Boosts: Hervorhebung CHF 49 (7 Tage Top-Position), Newsletter-Slot CHF 86 (eine prominente Erwähnung), +6 Monate Laufzeit CHF 490. Keine Auto-Verlängerung, 0 % Erfolgsprovision auf Deals.',
+  },
+  {
+    date: '2026-04-30',
     type: 'design',
     titel: 'Marktplatz-Filter kompakter — wichtigste 4 sichtbar, Rest klappbar',
     beschreibung:
