@@ -67,6 +67,13 @@ export const CURRENT_STEP = {
 export const UPDATES: Update[] = [
   {
     date: '2026-04-30',
+    type: 'feature',
+    titel: 'Benachrichtigungs-Zentrum: Du wählst, wann du E-Mails bekommst',
+    beschreibung:
+      'In den Einstellungen (Verkäufer) und im Käufer-Profil gibt es jetzt einen eigenen Bereich mit Schaltern für jede Mail-Art — neue Anfrage, Chat-Nachricht, Status-Wechsel beim Inserat, Wochen-Statistik, tägliches Digest, neue Treffer im Suchprofil, Antwort vom Verkäufer, Login von neuem Gerät, Rechnungen und Plattform-News. Jeder Schalter speichert sofort. Standardmässig ist alles aktiv. Sicherheits-relevante Mails (Login-Bestätigung, Passwort-Reset, Rechnungen) gehen unabhängig von der Auswahl raus — gesetzlich vorgeschrieben.',
+  },
+  {
+    date: '2026-04-30',
     type: 'design',
     titel: 'Profil & Ausloggen jetzt unten im Menü statt oben rechts',
     beschreibung:

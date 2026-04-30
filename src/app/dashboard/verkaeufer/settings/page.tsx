@@ -1,5 +1,6 @@
-import { Settings } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
+import { getNotificationPrefs } from '@/app/dashboard/settings-actions';
+import { NotificationCenter } from '@/components/settings/NotificationCenter';
 
 export const metadata = { title: 'Einstellungen — passare Verkäufer' };
 
@@ -8,16 +9,19 @@ export default async function SettingsPage() {
   const { data: userData } = await supabase.auth.getUser();
   if (!userData.user) return null;
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('full_name, kanton, sprache, phone, verified_phone, verified_kyc')
-    .eq('id', userData.user.id)
-    .maybeSingle();
+  const [{ data: profile }, notifPrefs] = await Promise.all([
+    supabase
+      .from('profiles')
+      .select('full_name, kanton, sprache, phone, verified_phone, verified_kyc')
+      .eq('id', userData.user.id)
+      .maybeSingle(),
+    getNotificationPrefs(),
+  ]);
 
   return (
     <div className="px-6 md:px-10 py-8 md:py-12">
-      <div className="max-w-2xl mx-auto">
-        <div className="mb-8">
+      <div className="max-w-2xl mx-auto space-y-10">
+        <div>
           <p className="overline text-bronze-ink mb-2">Einstellungen</p>
           <h1 className="font-serif text-display-sm text-navy font-light tracking-tight">
             Mein Profil
@@ -46,6 +50,12 @@ export default async function SettingsPage() {
             </p>
           </div>
         </div>
+
+        {/* ── Benachrichtigungs-Zentrum ─────────────────────── */}
+        <NotificationCenter
+          initialPrefs={notifPrefs}
+          showGroups={['verkaeufer', 'plattform']}
+        />
       </div>
     </div>
   );

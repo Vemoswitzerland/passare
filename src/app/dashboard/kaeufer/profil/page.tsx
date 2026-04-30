@@ -9,6 +9,8 @@ import { getBranchen } from '@/lib/branchen';
 import { ProfilForm } from './ProfilForm';
 import { ProfilPreview } from './ProfilPreview';
 import { toggleProfilSichtbarkeitAction } from './actions';
+import { getNotificationPrefs } from '@/app/dashboard/settings-actions';
+import { NotificationCenter } from '@/components/settings/NotificationCenter';
 import { cn } from '@/lib/utils';
 
 export const metadata = { title: 'Käufer-Profil — passare', robots: { index: false, follow: false } };
@@ -48,7 +50,7 @@ export default async function ProfilPage() {
     kaeuferProfil = data;
   }
 
-  const branchen = await getBranchen();
+  const [branchen, notifPrefs] = await Promise.all([getBranchen(), getNotificationPrefs()]);
 
   return (
     <div className="space-y-8 max-w-content">
@@ -218,6 +220,14 @@ export default async function ProfilPage() {
             Konto löschen
           </button>
         </div>
+      </section>
+
+      {/* ─── Benachrichtigungs-Zentrum ─── */}
+      <section>
+        <NotificationCenter
+          initialPrefs={notifPrefs}
+          showGroups={['kaeufer', 'plattform']}
+        />
       </section>
     </div>
   );
