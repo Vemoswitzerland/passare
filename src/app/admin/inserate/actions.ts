@@ -194,6 +194,38 @@ export async function rejectInseratAction(input: { id: string; reason: string })
   return { ok: true };
 }
 
+/**
+ * Admin: status-neutrale Nachricht an Verkäufer senden — KEIN Status-Wechsel.
+ *
+ * Cyrill 30.04.2026: «Wenn ein Inserat live ist, muss man trotzdem bei Admin
+ * noch mal über das Inserat mit dem User schreiben können». Damit lebende
+ * Inserate nicht zwangsläufig in 'rueckfrage' gerissen werden, sobald der
+ * Admin eine Frage hat. Posted nur einen Audit-Thread-Kommentar.
+ */
+export async function sendInseratMessageAction(input: { id: string; message: string }) {
+  const adminUserId = await assertAdmin();
+  const id = IdSchema.parse(input.id);
+  const message = PflichtMessageSchema.parse(input.message);
+
+  await postAuditMessage({
+    inseratId: id,
+    fromUser: adminUserId,
+    fromRole: 'admin',
+    kind: 'kommentar',
+    message,
+  });
+
+  await logAuditEvent({
+    type: 'inserat_kommentar',
+    beschreibung: `Kommentar zu Inserat ${id.slice(0, 8)}`,
+    metadata: { inserat_id: id, message_preview: message.slice(0, 120) },
+  });
+
+  revalidatePath(`/admin/inserate/${id}`);
+  revalidatePath('/dashboard/verkaeufer/inserat');
+  return { ok: true };
+}
+
 /** Admin: Inserat pausieren → status='pausiert' + optional Begründung. */
 export async function pauseInseratAction(input: { id: string; reason?: string }) {
   const adminUserId = await assertAdmin();

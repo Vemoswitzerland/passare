@@ -20,6 +20,7 @@ import {
   pauseInseratAction,
   setInseratStatusAction,
   deleteInseratAction,
+  sendInseratMessageAction,
 } from '@/app/admin/inserate/actions';
 import { cn } from '@/lib/utils';
 
@@ -34,7 +35,7 @@ type Status =
   | 'abgelaufen'
   | 'abgelehnt';
 
-type ActionMode = null | 'rueckfrage' | 'ablehnen' | 'pausieren';
+type ActionMode = null | 'rueckfrage' | 'ablehnen' | 'pausieren' | 'nachricht';
 
 /**
  * Audit-Aktions-Panel für Admin-Detail-Page eines Inserats.
@@ -100,6 +101,8 @@ export function InseratAuditPanel({
         res = await rejectInseratAction({ id, reason: trimmed });
       } else if (mode === 'pausieren') {
         res = await pauseInseratAction({ id, reason: trimmed || undefined });
+      } else if (mode === 'nachricht') {
+        res = await sendInseratMessageAction({ id, message: trimmed });
       }
       if (res.ok) {
         setMsg({ kind: 'ok', text: 'Aktualisiert.' });
@@ -199,6 +202,23 @@ export function InseratAuditPanel({
           </Button>
         )}
 
+        {/* Cyrill 30.04.2026: «Wenn ein Inserat live ist, muss man trotzdem
+            beim Admin noch über das Inserat mit dem User schreiben können».
+            Status-neutrale Nachricht — landet beim Verkäufer als Anfrage-
+            artiger Eintrag im Anfragen-Bereich, ohne den Inserat-Status zu
+            ändern. Verfügbar in jedem Status, weil Admin und User auch nach
+            der Freigabe Klärungsbedarf haben können. */}
+        <Button
+          size="sm"
+          variant="secondary"
+          onClick={() => setMode('nachricht')}
+          disabled={pending}
+          className="w-full"
+        >
+          <MessageCircle className="w-3.5 h-3.5" strokeWidth={1.5} />
+          Nachricht an Verkäufer
+        </Button>
+
         <button
           type="button"
           onClick={handleDelete}
@@ -239,6 +259,7 @@ export function InseratAuditPanel({
                 {mode === 'rueckfrage' && 'Rückfrage an Verkäufer'}
                 {mode === 'ablehnen' && 'Inserat ablehnen'}
                 {mode === 'pausieren' && 'Inserat pausieren'}
+                {mode === 'nachricht' && 'Nachricht an Verkäufer'}
               </h4>
               <button
                 type="button"
@@ -256,6 +277,8 @@ export function InseratAuditPanel({
                 'Begründe die Ablehnung. Der Verkäufer sieht den Grund. Status wird «abgelehnt» (final).'}
               {mode === 'pausieren' &&
                 'Optional: kurzer Hinweis warum pausiert. Verkäufer sieht den Status «pausiert».'}
+              {mode === 'nachricht' &&
+                'Status-neutraler Kommentar — der Verkäufer sieht ihn in seinen Anfragen als Nachricht zum Inserat. Der Inserat-Status bleibt unverändert.'}
             </p>
 
             <textarea
@@ -268,7 +291,9 @@ export function InseratAuditPanel({
                   ? 'z. B. «Bitte präzisiere den Umsatz — die Bandbreite ist zu weit»'
                   : mode === 'ablehnen'
                     ? 'z. B. «Inserat enthält irreführende Angaben zum Umsatz»'
-                    : 'z. B. «Auf Wunsch des Verkäufers pausiert»'
+                    : mode === 'nachricht'
+                      ? 'z. B. «Hast du noch eine Bilanz für 2024 für den Datenraum?»'
+                      : 'z. B. «Auf Wunsch des Verkäufers pausiert»'
               }
               className="w-full px-2.5 py-2 bg-cream border border-stone rounded-soft text-[13px] focus:outline-none focus:border-bronze resize-y mb-3"
             />
@@ -297,7 +322,9 @@ export function InseratAuditPanel({
                     ? 'Rückfrage senden'
                     : mode === 'ablehnen'
                       ? 'Endgültig ablehnen'
-                      : 'Pausieren'}
+                      : mode === 'nachricht'
+                        ? 'Nachricht senden'
+                        : 'Pausieren'}
               </Button>
             </div>
           </div>

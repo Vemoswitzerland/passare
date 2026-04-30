@@ -1,6 +1,7 @@
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { MessageSquare, Inbox, Clock, Check, X as XIcon, FileSignature, ArrowRight } from 'lucide-react';
-import { createClient } from '@/lib/supabase/server';
+import { MessageSquare, Inbox, Clock, Check, X as XIcon, FileSignature, ArrowRight, Sparkles } from 'lucide-react';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { hasTable } from '@/lib/db/has-table';
 import { AnfragenList } from './AnfragenList';
 
@@ -24,13 +25,17 @@ export default async function AnfragenPage({ searchParams }: Props) {
     );
   }
 
-  const { data: inserat } = await supabase
+  // Alle Inserate des Users laden — wir aggregieren die Audit-Messages über
+  // alle, damit Cyrill (oder ein Verkäufer mit mehreren Inseraten) alle
+  // passare-Team-Nachrichten an einem Ort sieht. Für die Käufer-Anfragen-
+  // Tabelle nehmen wir weiterhin das jüngste Inserat als Fokus (legacy UX).
+  const { data: alleInserate } = await supabase
     .from('inserate')
-    .select('id, titel')
+    .select('id, titel, status')
     .eq('verkaeufer_id', userData.user.id)
-    .order('updated_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .order('updated_at', { ascending: false });
+
+  const inserat = alleInserate?.[0] ?? null;
 
   if (!inserat) {
     return (
@@ -40,6 +45,53 @@ export default async function AnfragenPage({ searchParams }: Props) {
         <p className="text-body text-muted">Erstelle zuerst ein Inserat, dann kommen hier Anfragen rein.</p>
       </div>
     );
+  }
+
+  // ── passare-Team-Nachrichten (über alle eigenen Inserate aggregiert) ──
+  // Cyrill 30.04.2026: «Anfragen vom Admin sollen im Chat-Bereich landen,
+  // nicht jedes Mal ein neuer Chat — alles im gleichen Bereich, mit
+  // Inserat-Tag falls Inserat-bezogen.»
+  type PassareMsg = {
+    id: string;
+    inserat_id: string;
+    inserat_titel: string | null;
+    inserat_status: string | null;
+    message: string;
+    kind: string;
+    created_at: string;
+  };
+  let passareMessages: PassareMsg[] = [];
+  if ((alleInserate ?? []).length > 0 && (await hasTable('inserat_audit_messages'))) {
+    const inseratIds = (alleInserate ?? []).map((i: { id: string }) => i.id);
+    const inseratLookup = new Map<string, { titel: string | null; status: string | null }>();
+    for (const i of alleInserate ?? []) {
+      inseratLookup.set(i.id as string, {
+        titel: (i.titel as string | null) ?? null,
+        status: (i.status as string | null) ?? null,
+      });
+    }
+    // Service-Role: RLS ist auf Verkäufer-Sicht restriktiv, wir haben hier
+    // den Owner-Check schon über alleInserate gemacht.
+    const adminClient = createAdminClient();
+    const { data: rawMsgs } = await adminClient
+      .from('inserat_audit_messages')
+      .select('id, inserat_id, message, kind, created_at, from_role')
+      .in('inserat_id', inseratIds)
+      .eq('from_role', 'admin')
+      .order('created_at', { ascending: false })
+      .limit(10);
+    passareMessages = (rawMsgs ?? []).map((m: Record<string, unknown>) => {
+      const meta = inseratLookup.get(m.inserat_id as string);
+      return {
+        id: m.id as string,
+        inserat_id: m.inserat_id as string,
+        inserat_titel: meta?.titel ?? null,
+        inserat_status: meta?.status ?? null,
+        message: m.message as string,
+        kind: m.kind as string,
+        created_at: m.created_at as string,
+      };
+    });
   }
 
   let q = supabase
@@ -67,6 +119,56 @@ export default async function AnfragenPage({ searchParams }: Props) {
           </p>
         </div>
 
+        {/* ── Nachrichten vom passare-Team (aggregiert über alle eigenen
+              Inserate) — Cyrill: alles im gleichen Chat-Bereich, mit
+              Inserat-Tag falls Inserat-bezogen ─────────────────────────── */}
+        {passareMessages.length > 0 && (
+          <div className="mb-6 rounded-card bg-bronze/5 border border-bronze/30 overflow-hidden">
+            <header className="px-5 py-3 border-b border-bronze/20 bg-bronze/10 flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-bronze" strokeWidth={1.5} />
+              <h2 className="text-body-sm text-navy font-medium">
+                Nachrichten vom passare-Team
+              </h2>
+              <span className="font-mono text-caption text-bronze-ink ml-1">
+                {passareMessages.length}
+              </span>
+            </header>
+            <ul className="divide-y divide-bronze/15">
+              {passareMessages.map((m) => (
+                <li key={m.id}>
+                  <Link
+                    href={`/dashboard/verkaeufer/inserat`}
+                    className="block px-5 py-3 hover:bg-bronze/10 transition-colors"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <span className="font-mono text-[10px] uppercase tracking-wide text-bronze-ink font-medium">
+                            {kindLabel(m.kind)}
+                          </span>
+                          {m.inserat_titel && (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-soft text-[10px] font-medium bg-paper border border-stone text-navy">
+                              <span className="text-quiet">Inserat:</span>
+                              <span className="truncate max-w-[220px]">{m.inserat_titel}</span>
+                            </span>
+                          )}
+                          <span className="font-mono text-[10px] text-quiet ml-auto whitespace-nowrap">
+                            {formatRelative(m.created_at)}
+                          </span>
+                        </div>
+                        <p className="text-body-sm text-ink leading-snug line-clamp-2">
+                          {m.message}
+                        </p>
+                      </div>
+                      <ArrowRight className="w-4 h-4 text-quiet mt-1 flex-shrink-0" strokeWidth={1.5} />
+                    </div>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-2">
           <FilterPill href="/dashboard/verkaeufer/anfragen" active={!filter} label="Alle" />
           <FilterPill href="/dashboard/verkaeufer/anfragen?filter=neu" active={filter === 'neu'} label="Neu" />
@@ -78,6 +180,44 @@ export default async function AnfragenPage({ searchParams }: Props) {
       </div>
     </div>
   );
+}
+
+/** Audit-Kind in lesbares Label übersetzen (für die passare-Team-Liste). */
+function kindLabel(kind: string): string {
+  switch (kind) {
+    case 'rueckfrage':
+      return 'Rückfrage';
+    case 'kommentar':
+      return 'Nachricht';
+    case 'freigabe':
+      return 'Freigegeben';
+    case 'ablehnung':
+      return 'Abgelehnt';
+    case 'pause':
+      return 'Pausiert';
+    case 'antwort':
+      return 'Antwort';
+    default:
+      return kind;
+  }
+}
+
+/** Relative Zeit in Schweizer Schreibweise (heute, gestern, vor X Tagen). */
+function formatRelative(iso: string): string {
+  const then = new Date(iso).getTime();
+  const diffMin = Math.floor((Date.now() - then) / 60_000);
+  if (diffMin < 1) return 'soeben';
+  if (diffMin < 60) return `vor ${diffMin} min`;
+  const diffH = Math.floor(diffMin / 60);
+  if (diffH < 24) return `vor ${diffH} h`;
+  const diffD = Math.floor(diffH / 24);
+  if (diffD === 1) return 'gestern';
+  if (diffD < 7) return `vor ${diffD} Tagen`;
+  return new Date(iso).toLocaleDateString('de-CH', {
+    day: '2-digit',
+    month: '2-digit',
+    year: '2-digit',
+  });
 }
 
 function FilterPill({ href, active, label }: { href: string; active: boolean; label: string }) {

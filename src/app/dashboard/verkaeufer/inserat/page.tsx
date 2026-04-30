@@ -206,14 +206,13 @@ export default async function InseratIndexPage() {
           />
         </div>
 
-        {/* ─── CHAT mit passare-Team (nur bei Status mit Konversation) ── */}
-        {(['rueckfrage', 'pending', 'zur_pruefung', 'abgelehnt'] as const).includes(
-          inserat.status as 'rueckfrage' | 'pending' | 'zur_pruefung' | 'abgelehnt',
-        ) && (
-          <div className="mb-6">
-            {await renderChat(inserat.id, inserat.status)}
-          </div>
-        )}
+        {/* ─── CHAT mit passare-Team ─────────────────────────────
+            Cyrill 30.04.2026: Auch bei live-Inseraten muss der Chat sichtbar
+            sein — der Admin kann jederzeit eine Frage zum Inserat stellen
+            ohne den Status zu wechseln. renderChat returnt null wenn weder
+            Nachrichten existieren noch ein Workflow-Status aktiv ist.
+            ----------------------------------------------------- */}
+        {await renderChat(inserat.id, inserat.status)}
 
         {/* ─── KPI-STRIP ───────────────────────────────────────── */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
@@ -459,13 +458,29 @@ async function renderChat(inseratId: string, status: string) {
     };
   });
 
+  // Cyrill 30.04.2026: Verkäufer kann immer antworten — der Admin kann auch
+  // bei live-Inseraten Fragen stellen. Nur bei finalen/inaktiven Status
+  // (entwurf, verkauft, abgelehnt, abgelaufen) gesperrt.
+  const canReply = !['entwurf', 'abgelehnt', 'verkauft', 'abgelaufen'].includes(status);
+
+  // Wenn 0 Nachrichten UND Status nicht in einem aktiven Workflow-Schritt,
+  // gar nichts rendern — kein leerer Chat-Container im Mein-Inserat.
+  if (
+    enriched.length === 0 &&
+    !['rueckfrage', 'pending', 'zur_pruefung', 'abgelehnt'].includes(status)
+  ) {
+    return null;
+  }
+
   return (
-    <InseratChat
-      inseratId={inseratId}
-      messages={enriched}
-      status={status}
-      canReply={status === 'rueckfrage'}
-    />
+    <div className="mb-6">
+      <InseratChat
+        inseratId={inseratId}
+        messages={enriched}
+        status={status}
+        canReply={canReply}
+      />
+    </div>
   );
 }
 

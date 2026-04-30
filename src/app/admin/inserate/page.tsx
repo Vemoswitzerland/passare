@@ -21,6 +21,12 @@ export const metadata = {
   robots: { index: false, follow: false },
 };
 
+// Cyrill 30.04.2026: «zweimal geprüft» — in den Status-Labels haben
+// pending UND zur_pruefung beide das Label «In Prüfung». Wir behandeln
+// den Filter «pending» als Sammler für beide echten DB-Status, damit nicht
+// zwei Reiter mit demselben Wort und unterschiedlichen Inseraten zu sehen
+// sind. zur_pruefung kommt nicht mehr als eigener Filter — wer im Detail
+// schaut sieht den präzisen Status weiterhin.
 const STATUS_FILTERS: { value: InseratStatus | 'alle'; label: string }[] = [
   { value: 'alle', label: 'Alle' },
   { value: 'pending', label: 'In Prüfung' },
@@ -46,6 +52,9 @@ const VALID_STATUS = [
 
 const PRUEFBAR = ['pending', 'zur_pruefung', 'rueckfrage'];
 
+// «In Prüfung»-Filter sammelt pending + zur_pruefung zusammen.
+const PENDING_GROUP = ['pending', 'zur_pruefung'];
+
 export default async function AdminInseratePage({
   searchParams,
 }: {
@@ -65,9 +74,11 @@ export default async function AdminInseratePage({
     .order('created_at', { ascending: false });
 
   const filteredQuery =
-    statusFilter !== 'alle' && VALID_STATUS.includes(statusFilter)
-      ? listQuery.eq('status', statusFilter)
-      : listQuery;
+    statusFilter === 'pending'
+      ? listQuery.in('status', PENDING_GROUP)
+      : statusFilter !== 'alle' && VALID_STATUS.includes(statusFilter)
+        ? listQuery.eq('status', statusFilter)
+        : listQuery;
 
   const [{ data: list }, { data: allRows }] = await Promise.all([
     filteredQuery,
@@ -76,13 +87,18 @@ export default async function AdminInseratePage({
 
   const inserate = (list ?? []) as AdminInserat[];
 
-  // Counts
+  // Counts — pending sammelt pending + zur_pruefung zusammen, damit der
+  // Filter-Counter zur tatsächlichen Tabelle passt (sonst Verwirrung).
   const counts: Record<string, number> = { alle: 0 };
   for (const f of STATUS_FILTERS) counts[f.value] = 0;
   for (const r of allRows ?? []) {
     counts.alle = (counts.alle ?? 0) + 1;
     const s = r.status as string;
-    counts[s] = (counts[s] ?? 0) + 1;
+    if (PENDING_GROUP.includes(s)) {
+      counts.pending = (counts.pending ?? 0) + 1;
+    } else {
+      counts[s] = (counts[s] ?? 0) + 1;
+    }
   }
 
   const buildHref = (status: string) =>

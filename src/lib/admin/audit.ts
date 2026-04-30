@@ -15,6 +15,7 @@ export type AuditEventType =
   | 'inserat_rueckfrage'
   | 'inserat_abgelehnt'
   | 'inserat_pausiert'
+  | 'inserat_kommentar'
   | 'inserat_verkaeufer_geantwortet'
   | 'anfrage_create'
   | 'anfrage_status_change'
