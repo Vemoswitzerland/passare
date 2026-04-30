@@ -68,6 +68,20 @@ export const UPDATES: Update[] = [
   {
     date: '2026-04-30',
     type: 'feature',
+    titel: 'Anfragen-Pro: Käufer-Profil ansehen, Dossier anfordern, Datenraum freigeben',
+    beschreibung:
+      'Ab dem Pro-Paket öffnet sich beim Klick auf eine Anfrage eine eigene Detail-Seite mit dem kompletten Käufer-Profil — Investor-Typ, Budget, gewünschte Regionen und Branchen, Timing, Erfahrung, persönliche Beschreibung, LinkedIn, MAX-Status und Verifikations-Badges (Telefon, Finanzierung, KYC). Zwei prominente Knöpfe rechts: «Käuferdossier anfordern» (mit optionaler Begleit-Nachricht — der Käufer bekommt eine Mail und lädt sein PDF-Dossier hoch) und «Datenraum freigeben» (gibt diesem Käufer Zugriff auf den geschützten Datenraum). So kann der Verkäufer den Käufer prüfen bevor er den Chat startet — er bleibt anonym solange er will.',
+  },
+  {
+    date: '2026-04-30',
+    type: 'feature',
+    titel: 'Verkäufer-Kontakt sauber sichtbar wenn nicht-anonym',
+    beschreibung:
+      'Wenn ein Verkäufer im Inserat-Wizard «Voll offen» wählt (Foto, Name, Funktion, E-Mail, WhatsApp, LinkedIn) oder «Vorname + Funktion» (z.B. «Marc, Inhaber»), erscheint diese Info jetzt automatisch oben in der Kontakt-Box auf der Inserat-Detail-Seite. Bei «Voll offen» kann der Käufer mit einem Klick direkt per WhatsApp, E-Mail oder LinkedIn schreiben — oder darunter wie gewohnt das Anfrage-Formular mit Textfeld nutzen. Bei «Halb-Anonym» sieht der Käufer nur Vorname + Funktion und schreibt über das Formular. Bei «Voll Anonym» bleibt alles wie vorher.',
+  },
+  {
+    date: '2026-04-30',
+    type: 'feature',
     titel: 'Benachrichtigungs-Zentrum: Du wählst, wann du E-Mails bekommst',
     beschreibung:
       'In den Einstellungen (Verkäufer) und im Käufer-Profil gibt es jetzt einen eigenen Bereich mit Schaltern für jede Mail-Art — neue Anfrage, Chat-Nachricht, Status-Wechsel beim Inserat, Wochen-Statistik, tägliches Digest, neue Treffer im Suchprofil, Antwort vom Verkäufer, Login von neuem Gerät, Rechnungen und Plattform-News. Jeder Schalter speichert sofort. Standardmässig ist alles aktiv. Sicherheits-relevante Mails (Login-Bestätigung, Passwort-Reset, Rechnungen) gehen unabhängig von der Auswahl raus — gesetzlich vorgeschrieben.',

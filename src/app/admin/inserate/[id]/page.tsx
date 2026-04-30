@@ -10,12 +10,18 @@ import {
   TrendingUp,
   Wallet,
   Mail,
+  Phone,
   Eye,
   ExternalLink,
   EyeOff,
   Globe,
   MessageSquare,
   CheckCircle2,
+  Star,
+  Clock,
+  FileText,
+  Languages,
+  Tag,
 } from 'lucide-react';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { StatusBadge } from '@/components/admin/StatusBadge';
@@ -169,23 +175,98 @@ export default async function AdminInseratDetailPage({
   const listing = inseratData as FullInserat;
   const anfragen = (anfrData ?? []) as AdminAnfrage[];
 
-  // Verkäufer-Profil laden (parallel ist hier nur 1 Query also egal)
-  let verkaeufer: { id: string; full_name: string | null; email: string | null; phone: string | null } | null = null;
-  if (listing.verkaeufer_id) {
-    const { data: profile } = await admin
-      .from('profiles')
-      .select('id, full_name, email, phone')
-      .eq('id', listing.verkaeufer_id)
-      .maybeSingle();
+  // Verkäufer-Profil + andere Inserate dieses Verkäufers + Anfragen-Total parallel
+  type VerkaeuferProfile = {
+    id: string;
+    full_name: string | null;
+    email: string | null;
+    phone: string | null;
+    kanton: string | null;
+    sprache: string | null;
+    verified_phone: boolean;
+    verified_kyc: boolean;
+    qualitaets_score: number | null;
+    avg_response_time_hours: number | null;
+    tags: string[] | null;
+    admin_notes: string | null;
+    created_at: string | null;
+  };
+  type InseratPeer = {
+    id: string;
+    public_id: string | null;
+    titel: string | null;
+    status: string;
+    paket: string | null;
+    created_at: string;
+  };
+
+  let verkaeufer: VerkaeuferProfile | null = null;
+  let andereInserate: InseratPeer[] = [];
+  let anfragenTotalVerkaeufer = 0;
+
+  // DB-Spalte heisst `owner_id` (siehe verkaeufer-Migration); der TypeScript-
+  // Type referenziert `verkaeufer_id`. Wir akzeptieren beides als Quelle —
+  // der echte Wert liegt unter owner_id.
+  const listingRaw = listing as unknown as Record<string, unknown>;
+  const verkaeuferUserId =
+    (listingRaw.owner_id as string | null | undefined) ??
+    listing.verkaeufer_id ??
+    null;
+
+  if (verkaeuferUserId) {
+    const [{ data: profile }, { data: peerInserate }] = await Promise.all([
+      admin
+        .from('profiles')
+        .select(
+          'id, full_name, email, phone, kanton, sprache, verified_phone, verified_kyc, qualitaets_score, avg_response_time_hours, tags, admin_notes, created_at',
+        )
+        .eq('id', verkaeuferUserId)
+        .maybeSingle(),
+      admin
+        .from('inserate')
+        .select('id, public_id, titel, status, paket, created_at')
+        .eq('owner_id', verkaeuferUserId)
+        .order('created_at', { ascending: false })
+        .limit(20),
+    ]);
+
     if (profile) {
+      const tagsRaw = (profile as Record<string, unknown>).tags;
       verkaeufer = {
         id: profile.id as string,
         full_name: (profile.full_name as string | null) ?? null,
         email: (profile.email as string | null) ?? null,
         phone: (profile.phone as string | null) ?? null,
+        kanton: (profile.kanton as string | null) ?? null,
+        sprache: (profile.sprache as string | null) ?? null,
+        verified_phone: Boolean(profile.verified_phone),
+        verified_kyc: Boolean(profile.verified_kyc),
+        qualitaets_score: (profile.qualitaets_score as number | null) ?? null,
+        avg_response_time_hours: (profile.avg_response_time_hours as number | null) ?? null,
+        tags: Array.isArray(tagsRaw) ? (tagsRaw as string[]) : null,
+        admin_notes: (profile.admin_notes as string | null) ?? null,
+        created_at: (profile.created_at as string | null) ?? null,
       };
     }
+
+    andereInserate = (peerInserate ?? []) as InseratPeer[];
+
+    // Anfragen-Total über alle Inserate des Verkäufers
+    if (andereInserate.length > 0) {
+      const ids = andereInserate.map((i) => i.id);
+      const { count } = await admin
+        .from('anfragen')
+        .select('id', { count: 'exact', head: true })
+        .in('inserat_id', ids);
+      anfragenTotalVerkaeufer = count ?? 0;
+    }
   }
+
+  // Position dieses Inserats unter allen Inseraten des Verkäufers (1-basiert).
+  // Liste ist nach created_at DESC sortiert — Position = neuestes ist 1.
+  const inseratPosition =
+    andereInserate.length > 0 ? andereInserate.findIndex((i) => i.id === listing.id) + 1 || 1 : 1;
+  const inseratTotalVerkaeufer = andereInserate.length || 1;
 
   const isPruefbar = ['pending', 'zur_pruefung', 'rueckfrage'].includes(listing.status);
   const ebitdaPct =
@@ -590,29 +671,187 @@ export default async function AdminInseratDetailPage({
         <aside className="space-y-4">
           <InseratAuditPanel id={listing.id} currentStatus={listing.status} />
 
-          <section className="bg-paper border border-stone rounded-soft p-4">
-            <h3 className="text-[11px] uppercase tracking-wide font-medium text-quiet mb-3">
-              Verkäufer
-            </h3>
-            {verkaeufer ? (
-              <Link
-                href={`/admin/users/${verkaeufer.id}`}
-                className="block hover:bg-cream/60 -mx-2 px-2 py-1.5 rounded-soft transition-colors"
-              >
-                <p className="text-[13px] text-ink mb-0.5">{verkaeufer.full_name ?? '— ohne Namen'}</p>
-                {verkaeufer.email && (
-                  <p className="text-[11px] text-quiet font-mono break-all flex items-center gap-1">
-                    <Mail className="w-3 h-3" strokeWidth={1.5} />
-                    {verkaeufer.email}
-                  </p>
-                )}
-                {verkaeufer.phone && (
-                  <p className="text-[11px] text-quiet font-mono mt-0.5">{verkaeufer.phone}</p>
-                )}
-                <p className="text-[11px] text-bronze-ink mt-1.5">User-Profil öffnen →</p>
-              </Link>
+          {/* ═══════════════════════════════════════════════════════════════
+              VERKÄUFER — alle Profil-Infos ausgeklappt zum direkten Abgleich.
+              Cyrill: «rechts alle Infos vom Verkäufer schön ausgeklappt».
+              ═══════════════════════════════════════════════════════════════ */}
+          <section className="bg-paper border border-stone rounded-soft overflow-hidden">
+            <header className="px-4 py-2.5 border-b border-stone bg-stone/20 flex items-center justify-between">
+              <h3 className="text-[11px] uppercase tracking-wide font-medium text-quiet">
+                Verkäufer
+              </h3>
+              {verkaeufer && (
+                <Link
+                  href={`/admin/users/${verkaeufer.id}`}
+                  className="text-[11px] text-bronze-ink hover:underline inline-flex items-center gap-1"
+                >
+                  Volles Profil
+                  <ExternalLink className="w-2.5 h-2.5" strokeWidth={1.5} />
+                </Link>
+              )}
+            </header>
+
+            {!verkaeufer ? (
+              <div className="p-4">
+                <p className="text-[12px] text-quiet italic">Kein Verkäufer-Profil verknüpft.</p>
+              </div>
             ) : (
-              <p className="text-[12px] text-quiet italic">Kein Verkäufer-Profil verknüpft.</p>
+              <div className="p-4 space-y-4">
+                {/* Identität */}
+                <div>
+                  <p className="text-[14px] text-navy font-semibold leading-snug">
+                    {verkaeufer.full_name ?? <em className="text-quiet font-normal">— ohne Namen</em>}
+                  </p>
+                  {verkaeufer.created_at && (
+                    <p className="text-[11px] text-quiet font-mono mt-0.5">
+                      Mitglied seit {formatDate(verkaeufer.created_at)}
+                    </p>
+                  )}
+                </div>
+
+                {/* Verifikations-Badges */}
+                <div className="flex flex-wrap gap-1">
+                  <VerifyBadge ok={verkaeufer.verified_phone} label="Telefon" />
+                  <VerifyBadge ok={verkaeufer.verified_kyc} label="KYC" />
+                </div>
+
+                {/* Kontakt — alle Felder direkt sichtbar */}
+                <dl className="space-y-1.5 text-[12px] border-t border-stone/60 pt-3">
+                  {verkaeufer.email && (
+                    <SidebarRow icon={Mail} label="E-Mail">
+                      <a
+                        href={`mailto:${verkaeufer.email}`}
+                        className="font-mono text-ink hover:text-bronze-ink truncate"
+                      >
+                        {verkaeufer.email}
+                      </a>
+                    </SidebarRow>
+                  )}
+                  {verkaeufer.phone && (
+                    <SidebarRow icon={Phone} label="Telefon">
+                      <a
+                        href={`tel:${verkaeufer.phone}`}
+                        className="font-mono text-ink hover:text-bronze-ink"
+                      >
+                        {verkaeufer.phone}
+                      </a>
+                    </SidebarRow>
+                  )}
+                  {verkaeufer.kanton && (
+                    <SidebarRow icon={MapPin} label="Kanton">
+                      <span className="font-mono text-ink">{verkaeufer.kanton}</span>
+                    </SidebarRow>
+                  )}
+                  {verkaeufer.sprache && (
+                    <SidebarRow icon={Languages} label="Sprache">
+                      <span className="font-mono text-ink uppercase">{verkaeufer.sprache}</span>
+                    </SidebarRow>
+                  )}
+                </dl>
+
+                {/* Performance */}
+                {(verkaeufer.qualitaets_score != null ||
+                  verkaeufer.avg_response_time_hours != null) && (
+                  <dl className="space-y-1.5 text-[12px] border-t border-stone/60 pt-3">
+                    {verkaeufer.qualitaets_score != null && (
+                      <SidebarRow icon={Star} label="Quality-Score">
+                        <span className="font-mono text-ink">{verkaeufer.qualitaets_score} / 100</span>
+                      </SidebarRow>
+                    )}
+                    {verkaeufer.avg_response_time_hours != null && (
+                      <SidebarRow icon={Clock} label="Ø Antwortzeit">
+                        <span className="font-mono text-ink">
+                          {verkaeufer.avg_response_time_hours.toFixed(1)} h
+                        </span>
+                      </SidebarRow>
+                    )}
+                  </dl>
+                )}
+
+                {/* Aktivität: dieses Inserat innerhalb des Verkäufer-Pools + Anfragen */}
+                <dl className="space-y-1.5 text-[12px] border-t border-stone/60 pt-3">
+                  <SidebarRow icon={FileText} label="Inserate">
+                    <span className="font-mono text-ink">
+                      {/* Smart-Counter: bei genau 1 nicht «1 von 1» — das ist redundant */}
+                      {inseratTotalVerkaeufer === 1
+                        ? 'Einziges Inserat'
+                        : `${inseratPosition} von ${inseratTotalVerkaeufer}`}
+                    </span>
+                  </SidebarRow>
+                  <SidebarRow icon={MessageSquare} label="Anfragen total">
+                    <span className="font-mono text-ink">{anfragenTotalVerkaeufer}</span>
+                  </SidebarRow>
+                </dl>
+
+                {/* Andere Inserate dieses Verkäufers — kompakte Liste, max 5 */}
+                {andereInserate.length > 1 && (
+                  <div className="border-t border-stone/60 pt-3">
+                    <p className="text-[10px] uppercase tracking-wide font-medium text-quiet mb-2">
+                      Andere Inserate ({andereInserate.length - 1})
+                    </p>
+                    <ul className="space-y-1">
+                      {andereInserate
+                        .filter((i) => i.id !== listing.id)
+                        .slice(0, 5)
+                        .map((i) => (
+                          <li key={i.id}>
+                            <Link
+                              href={`/admin/inserate/${i.id}`}
+                              className="flex items-center gap-2 px-2 py-1 -mx-2 rounded-soft hover:bg-cream/60 transition-colors"
+                              title={i.titel ?? 'Ohne Titel'}
+                            >
+                              <span className="flex-shrink-0">
+                                <StatusBadge status={i.status as Parameters<typeof StatusBadge>[0]['status']} />
+                              </span>
+                              <span className="text-[12px] text-ink truncate flex-1 min-w-0">
+                                {i.titel || (
+                                  <em className="text-quiet">Ohne Titel</em>
+                                )}
+                              </span>
+                            </Link>
+                          </li>
+                        ))}
+                    </ul>
+                    {andereInserate.length - 1 > 5 && (
+                      <p className="text-[11px] text-quiet mt-1.5 italic">
+                        + {andereInserate.length - 1 - 5} weitere
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Tags */}
+                {verkaeufer.tags && verkaeufer.tags.length > 0 && (
+                  <div className="border-t border-stone/60 pt-3">
+                    <p className="text-[10px] uppercase tracking-wide font-medium text-quiet mb-1.5 flex items-center gap-1">
+                      <Tag className="w-3 h-3" strokeWidth={1.5} />
+                      Tags
+                    </p>
+                    <div className="flex flex-wrap gap-1">
+                      {verkaeufer.tags.map((tag, i) => (
+                        <span
+                          key={`${tag}-${i}`}
+                          className="inline-flex px-1.5 py-0.5 rounded-soft text-[10px] font-mono bg-stone/40 text-ink"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Admin-Notizen über den Verkäufer (separat von Inserat-Admin-Notes) */}
+                {verkaeufer.admin_notes && (
+                  <div className="border-t border-stone/60 pt-3">
+                    <p className="text-[10px] uppercase tracking-wide font-medium text-quiet mb-1">
+                      Admin-Notiz (zum Verkäufer)
+                    </p>
+                    <p className="text-[12px] text-ink whitespace-pre-wrap leading-snug">
+                      {verkaeufer.admin_notes}
+                    </p>
+                  </div>
+                )}
+              </div>
             )}
           </section>
 
@@ -726,5 +965,40 @@ function UrlRow({
         <ExternalLink className="w-2.5 h-2.5" strokeWidth={1.5} />
       </a>
     </li>
+  );
+}
+
+/* Sidebar-Detail-Zeile: Icon + Label links, Wert rechts. Eine Zeile pro Datum. */
+function SidebarRow({
+  icon: Icon,
+  label,
+  children,
+}: {
+  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-start gap-2">
+      <Icon className="w-3 h-3 text-quiet mt-0.5 flex-shrink-0" strokeWidth={1.5} />
+      <span className="text-quiet w-20 flex-shrink-0 text-[11px]">{label}</span>
+      <span className="flex-1 min-w-0 inline-flex">{children}</span>
+    </div>
+  );
+}
+
+/* Verifikations-Pille — grün bei verified, sonst grau-outline. */
+function VerifyBadge({ ok, label }: { ok: boolean; label: string }) {
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center gap-1 px-1.5 py-0.5 rounded-soft text-[10px] font-medium',
+        ok ? 'bg-success/15 text-success border border-success/30' : 'bg-stone/30 text-quiet border border-stone',
+      )}
+      title={ok ? `${label} verifiziert` : `${label} noch nicht verifiziert`}
+    >
+      <span className="text-[10px]">{ok ? '✓' : '○'}</span>
+      {label}
+    </span>
   );
 }

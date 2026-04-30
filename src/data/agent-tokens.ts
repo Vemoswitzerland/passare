@@ -67,6 +67,15 @@ export type AgentSession = {
 export const SESSIONS: AgentSession[] = [
   {
     date: '2026-04-30',
+    bereich: 'seo',
+    titel: 'Inserat-Detail: Verkäufer-Kontakt-Box je nach Anonymitäts-Level',
+    inputTokens: 620_000,
+    outputTokens: 85_000,
+    dauerMinuten: 30,
+    status: 'done',
+  },
+  {
+    date: '2026-04-30',
     bereich: 'design',
     titel: 'Globale Ladeanimationen + Loading-Skeletons systemweit',
     inputTokens: 350_000,
