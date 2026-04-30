@@ -168,7 +168,11 @@ export function InseratWizard({ inserat, initialStep, fromPreReg }: Props) {
 
   const canNext = (() => {
     if (step === 1) return Boolean(data.firma_name || data.zefix_uid);
-    if (step === 2)
+    if (step === 2) {
+      // EBITDA <= Umsatz (max 100 % Marge) — sonst nicht weiter.
+      const umsatzN = Number(data.umsatz_chf ?? 0);
+      const ebitdaN = Number(data.ebitda_chf ?? 0);
+      const ebitdaUngueltig = umsatzN > 0 && ebitdaN > umsatzN;
       return Boolean(
         data.titel && data.titel.length >= 10 &&
         data.branche_id &&
@@ -176,8 +180,10 @@ export function InseratWizard({ inserat, initialStep, fromPreReg }: Props) {
         data.jahr &&
         data.mitarbeitende &&
         data.umsatz_chf &&
-        data.ebitda_chf !== null && data.ebitda_chf !== undefined,
+        data.ebitda_chf !== null && data.ebitda_chf !== undefined &&
+        !ebitdaUngueltig,
       );
+    }
     if (step === 3) return Boolean(data.cover_url);
     if (step === 4) return data.sales_points.length > 0;
     return true;
@@ -586,37 +592,22 @@ function Step2Basis({ data, update }: { data: Inserat; update: (p: Partial<Inser
         <FormField label="Jahresumsatz" required>
           <CurrencyInput
             value={data.umsatz_chf}
-            onChange={(v) => {
-              update({ umsatz_chf: v as any });
-              // Wenn EBITDA nun grösser als neuer Umsatz → cappen.
-              if (
-                v != null && Number(v) > 0 &&
-                data.ebitda_chf != null && Number(data.ebitda_chf) > Number(v)
-              ) {
-                update({ ebitda_chf: v as any });
-              }
-            }}
+            onChange={(v) => update({ umsatz_chf: v as any })}
             placeholder="2'000'000"
           />
         </FormField>
         <FormField
           label="EBITDA"
           required
-          hint={ebitdaWarning ? undefined : 'darf höchstens dem Umsatz entsprechen (max 100 % Marge)'}
+          hint={ebitdaWarning ? undefined : 'max 100 % Marge'}
         >
           <CurrencyInput
             value={data.ebitda_chf}
-            onChange={(v) => {
-              if (v != null && umsatzNum > 0 && v > umsatzNum) {
-                update({ ebitda_chf: umsatzNum as any });
-              } else {
-                update({ ebitda_chf: v as any });
-              }
-            }}
+            onChange={(v) => update({ ebitda_chf: v as any })}
             placeholder="350'000"
           />
           {ebitdaWarning && (
-            <p className="mt-1.5 text-caption text-warn">{ebitdaWarning}</p>
+            <p className="mt-1.5 text-caption text-warn font-medium">{ebitdaWarning}</p>
           )}
         </FormField>
       </div>

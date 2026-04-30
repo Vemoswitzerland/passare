@@ -126,11 +126,13 @@ export function FirmaOnboarding() {
     }
     if (draft.step === 2) return Boolean(draft.branche_id && draft.kanton);
     if (draft.step === 3) {
-      // Pflicht: Umsatz + EBITDA + Gründungsjahr — alles drei braucht
-      // die Bewertungsformel und das Käufer-Trust-Signal.
-      // Mitarbeitende ist nice-to-have und bleibt optional.
+      // Pflicht: Umsatz + EBITDA + Gründungsjahr + Mitarbeitende —
+      // alles für Bewertung + Trust-Signal nötig.
+      // EBITDA <= Umsatz (max 100 % Marge) — sonst blockt die Weiterleitung.
       return draft.umsatz != null && draft.umsatz > 0
         && draft.ebitda != null
+        && draft.ebitda <= draft.umsatz
+        && draft.mitarbeitende != null && draft.mitarbeitende > 0
         && draft.jahr != null && draft.jahr >= 1800 && draft.jahr <= new Date().getFullYear();
     }
     if (draft.step === 4) return Boolean(draft.valuation);
@@ -142,6 +144,10 @@ export function FirmaOnboarding() {
   if (draft.step === 3) {
     if (!draft.umsatz || draft.umsatz <= 0) step3Missing.push('Jahresumsatz');
     if (draft.ebitda == null) step3Missing.push('EBITDA');
+    if (draft.umsatz != null && draft.ebitda != null && draft.ebitda > draft.umsatz) {
+      step3Missing.push('Gewinn ≤ Umsatz');
+    }
+    if (draft.mitarbeitende == null || draft.mitarbeitende <= 0) step3Missing.push('Mitarbeitende');
     if (!draft.jahr || draft.jahr < 1800 || draft.jahr > new Date().getFullYear()) step3Missing.push('Gründungsjahr');
   }
 
@@ -670,37 +676,44 @@ function Step3Finanzen({ draft, update }: { draft: Draft; update: (p: Partial<Dr
               : undefined
           }
         >
-          {margeMode === 'chf' ? (
-            <CurrencyInput
-              value={draft.ebitda}
-              onChange={(v) => {
-                // EBITDA darf physikalisch nie über dem Umsatz liegen (max 100 %
-                // Marge). Wenn der User mehr eingibt, hart auf Umsatz cappen.
-                if (v != null && draft.umsatz != null && draft.umsatz > 0 && v > draft.umsatz) {
-                  update({ ebitda: draft.umsatz });
-                } else {
-                  update({ ebitda: v });
-                }
-              }}
-              placeholder="350'000"
-            />
-          ) : (
-            <input
-              type="range"
-              min={0}
-              max={100}
-              step={0.5}
-              value={Math.min(margePct, 100)}
-              onChange={(e) => setMargePct(Number(e.target.value))}
-              className="w-full accent-bronze"
-            />
-          )}
+          {(() => {
+            const ebitdaUeberUmsatz = Boolean(
+              draft.ebitda != null && draft.umsatz != null && draft.umsatz > 0 && draft.ebitda > draft.umsatz,
+            );
+            return (
+              <>
+                {margeMode === 'chf' ? (
+                  <CurrencyInput
+                    value={draft.ebitda}
+                    onChange={(v) => update({ ebitda: v })}
+                    placeholder="350'000"
+                  />
+                ) : (
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    step={0.5}
+                    value={Math.min(margePct, 100)}
+                    onChange={(e) => setMargePct(Number(e.target.value))}
+                    className="w-full accent-bronze"
+                  />
+                )}
+                {ebitdaUeberUmsatz && (
+                  <p className="mt-2 text-caption text-warn font-medium">
+                    Der jährliche Gewinn kann nicht grösser sein als der Umsatz — bitte
+                    korrigieren (max 100 % Marge).
+                  </p>
+                )}
+              </>
+            );
+          })()}
           {peerHint && (
             <p className="mt-2 text-caption text-bronze-ink">{peerHint}</p>
           )}
         </Field>
 
-        <Field label="Mitarbeitende (FTE)" optional hint={draft.mitarbeitende ? `${draft.mitarbeitende} Personen` : undefined}>
+        <Field label="Mitarbeitende (FTE)" hint={draft.mitarbeitende ? `${draft.mitarbeitende} Personen` : undefined}>
           {/* Bucket-Buttons entfernt — Cyrill: «nicht vorausgewählte Knöpfe,
               sondern einfach ein Eingabefeld». */}
           <input
@@ -728,9 +741,6 @@ function Step3Finanzen({ draft, update }: { draft: Draft; update: (p: Partial<Dr
             placeholder="1987"
             className="w-full px-4 py-3 bg-paper border border-stone rounded-soft text-body font-mono focus:outline-none focus:border-bronze focus:shadow-focus transition-all"
           />
-          <p className="text-caption text-quiet mt-1.5">
-            Falls aus dem Handelsregister nicht automatisch übernommen — bitte ergänzen.
-          </p>
         </Field>
       </div>
     </div>
