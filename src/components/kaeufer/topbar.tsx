@@ -93,6 +93,16 @@ export function KaeuferTopbar({ email, fullName, isMax, isAdmin, onMenuToggle }:
       </div>
 
       <div className="flex items-center gap-2 ml-auto">
+        {/* Schneller Sprung zurück zur öffentlichen Börse — Pattern wie
+            LinkedIn («Visit profile»), Stripe («View public site»). */}
+        <Link
+          href="/"
+          className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-soft text-caption font-medium text-muted hover:text-navy hover:bg-stone/40 transition-colors"
+          title="Zum öffentlichen Marktplatz"
+        >
+          <Store className="w-4 h-4" strokeWidth={1.5} />
+          Marktplatz
+        </Link>
         {/* Notifications-Bell (Stub) */}
         <button
           type="button"

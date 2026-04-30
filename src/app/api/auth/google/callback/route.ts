@@ -165,9 +165,31 @@ export async function GET(req: NextRequest) {
     return r;
   }
 
-  // Wiederkehrer ODER hat schon Inserate → direkt ins Dashboard
+  // Wiederkehrer ODER hat schon Inserate → rolle-basiert ins richtige Dashboard.
+  //
+  // VORHER (Bug): hart auf /dashboard/verkaeufer für ALLE Wiederkehrer —
+  // Admins (info@vemo.ch) landeten dadurch nach jedem Google-Login fälschlich
+  // im Verkäufer-Bereich. Jetzt prüfen wir die Profil-Rolle direkt:
+  //   admin       → /admin
+  //   kaeufer     → /dashboard/kaeufer
+  //   verkaeufer  → /dashboard/verkaeufer
+  //   null + hasInserat → /dashboard/verkaeufer (Verkäufer-Default)
+  //   sonst       → /dashboard (Fallback-Router)
   if (isWiederkehrer || hasInserat) {
-    return buildFinalRedirect(`${siteUrl(req)}/dashboard/verkaeufer`, true);
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('rolle')
+      .eq('id', u.user.id)
+      .maybeSingle();
+
+    const targetPath =
+      profile?.rolle === 'admin' ? '/admin'
+      : profile?.rolle === 'kaeufer' ? '/dashboard/kaeufer'
+      : profile?.rolle === 'verkaeufer' ? '/dashboard/verkaeufer'
+      : hasInserat ? '/dashboard/verkaeufer'
+      : '/dashboard';
+
+    return buildFinalRedirect(`${siteUrl(req)}${targetPath}`, true);
   }
 
   // Kein Pre-Reg-Flow → einfacher Redirect zur next-URL
