@@ -97,7 +97,8 @@ export default async function StatistikPage({ searchParams }: Props) {
           <Tile icon={Eye} label="Views (Total)" value={(inserat.views ?? 0).toString()} />
           <Tile icon={TrendingUp} label={`Views (${days} Tage)`} value={totalViews.toString()} />
           <Tile icon={MessageSquare} label="Anfragen Total" value={Object.values(funnel).reduce((a, b) => a + b, 0).toString()} />
-          <Tile icon={FileSignature} label="NDA-Conversion" value={`${ndaConvPct}%`} />
+          {/* NDA-Conversion-Tile entfernt — NDA wird nicht abgebildet (Cyrill). */}
+          <Tile icon={FileSignature} label="Datenraum-Freigabe" value={`${funnel.released} / ${funnel.akzeptiert}`} />
         </div>
 
         {/* Views Chart */}
@@ -217,10 +218,10 @@ function ViewsChart({ data }: { data: Array<{ date: string; count: number }> }) 
 }
 
 function FunnelChart({ data }: { data: Record<string, number> }) {
+  // NDA-Stage entfernt — Cyrill: NDA wird nicht abgebildet.
   const stages = [
     { id: 'neu', label: 'Eingang', count: data.neu },
     { id: 'akzeptiert', label: 'Akzeptiert', count: data.akzeptiert },
-    { id: 'nda_signed', label: 'NDA signiert', count: data.nda_signed },
     { id: 'released', label: 'Datenraum', count: data.released },
   ];
   const max = Math.max(...stages.map((s) => s.count), 1);

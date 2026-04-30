@@ -10,7 +10,8 @@ import { hasTable } from '@/lib/db/has-table';
 import { submitForReview } from './actions';
 import { formatCHFShort } from '@/lib/valuation';
 import { InseratStatusBanner } from '@/components/verkaeufer/InseratStatusBanner';
-import { InseratAuditThread } from '@/components/admin/InseratAuditThread';
+import { InseratChat, type ChatMessage } from '@/components/verkaeufer/InseratChat';
+import { createAdminClient } from '@/lib/supabase/server';
 
 export const metadata = { title: 'Mein Inserat — passare Verkäufer' };
 
@@ -205,19 +206,13 @@ export default async function InseratIndexPage() {
           />
         </div>
 
-        {/* ─── KONVERSATION mit Admin (nur bei Rückfrage etc.) ── */}
+        {/* ─── CHAT mit passare-Team (nur bei Status mit Konversation) ── */}
         {(['rueckfrage', 'pending', 'zur_pruefung', 'abgelehnt'] as const).includes(
           inserat.status as 'rueckfrage' | 'pending' | 'zur_pruefung' | 'abgelehnt',
         ) && (
-          <section className="mb-6 bg-paper border border-stone rounded-soft p-4">
-            <h3 className="text-[11px] uppercase tracking-wide font-medium text-quiet mb-3">
-              Konversation mit dem passare-Team
-            </h3>
-            <InseratAuditThread
-              inseratId={inserat.id}
-              emptyHint="Noch keine Nachricht. Sobald das Team eine Rückfrage stellt, erscheint sie hier."
-            />
-          </section>
+          <div className="mb-6">
+            {await renderChat(inserat.id, inserat.status)}
+          </div>
         )}
 
         {/* ─── KPI-STRIP ───────────────────────────────────────── */}
@@ -398,6 +393,79 @@ export default async function InseratIndexPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * Lädt die Audit-Nachrichten für den Chat-Container.
+ * Service-Role-Client umgeht RLS — Owner-Check wurde oben in der Page schon
+ * gemacht über inserat.verkaeufer_id == auth.uid().
+ */
+async function renderChat(inseratId: string, status: string) {
+  const admin = createAdminClient();
+  const { data: rawMessages } = await admin
+    .from('inserat_audit_messages')
+    .select('id, from_user, from_role, kind, message, created_at')
+    .eq('inserat_id', inseratId)
+    .order('created_at', { ascending: true });
+
+  const messages = (rawMessages ?? []) as Array<{
+    id: string;
+    from_user: string;
+    from_role: 'admin' | 'verkaeufer';
+    kind: 'rueckfrage' | 'antwort' | 'ablehnung' | 'freigabe' | 'kommentar' | 'pause';
+    message: string;
+    created_at: string;
+  }>;
+
+  // Author-Profile nachladen
+  const userIds = Array.from(new Set(messages.map((m) => m.from_user)));
+  const profileMap = new Map<string, { name: string | null; email: string | null }>();
+  if (userIds.length > 0) {
+    const { data: profiles } = await admin
+      .from('profiles')
+      .select('id, full_name, email')
+      .in('id', userIds);
+    for (const p of profiles ?? []) {
+      profileMap.set(p.id as string, {
+        name: (p.full_name as string | null) ?? null,
+        email: (p.email as string | null) ?? null,
+      });
+    }
+  }
+
+  const enriched: ChatMessage[] = messages.map((m) => {
+    const profile = profileMap.get(m.from_user);
+    const display = profile?.name ?? profile?.email ?? null;
+    const initials = display
+      ? display
+          .split(/[\s@]/)
+          .map((s) => s[0])
+          .filter(Boolean)
+          .slice(0, 2)
+          .join('')
+          .toUpperCase()
+      : m.from_role === 'admin'
+        ? 'PT'
+        : 'VK';
+    return {
+      id: m.id,
+      from_role: m.from_role,
+      kind: m.kind,
+      message: m.message,
+      created_at: m.created_at,
+      author_name: m.from_role === 'admin' ? 'passare-Team' : display,
+      author_initials: initials,
+    };
+  });
+
+  return (
+    <InseratChat
+      inseratId={inseratId}
+      messages={enriched}
+      status={status}
+      canReply={status === 'rueckfrage'}
+    />
   );
 }
 
