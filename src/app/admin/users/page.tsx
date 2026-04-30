@@ -5,7 +5,6 @@ import { DataTable, Td } from '@/components/admin/DataTable';
 import { RowLink } from '@/components/admin/RowLink';
 import { UsersFilterBar } from '@/components/admin/UsersFilterBar';
 import { PageHeader, EmptyState } from '@/components/admin/PageHeader';
-import { UserRowDeleteButton } from '@/components/admin/UserRowDeleteButton';
 import { formatDate } from '@/lib/admin/types';
 
 export const metadata = {
@@ -114,7 +113,6 @@ export default async function AdminUsersPage({
           {profiles.map((u) => {
             const rolle = u.rolle ? ROLLE_DISPLAY[u.rolle] : null;
             const abo = u.subscription_tier ? ABO_DISPLAY[u.subscription_tier] : null;
-            const displayName = u.full_name || u.email || 'Ohne Namen';
             return (
               <RowLink key={u.id} href={`/admin/users/${u.id}`}>
                 <Td className="text-ink">
@@ -154,10 +152,7 @@ export default async function AdminUsersPage({
                   {formatDate(u.created_at)}
                 </Td>
                 <Td align="right">
-                  <div className="flex items-center gap-1 justify-end">
-                    <UserRowDeleteButton userId={u.id} userName={displayName} />
-                    <ChevronRight className="w-4 h-4 text-quiet" strokeWidth={1.5} />
-                  </div>
+                  <ChevronRight className="w-4 h-4 text-quiet" strokeWidth={1.5} />
                 </Td>
               </RowLink>
             );
