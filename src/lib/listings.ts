@@ -96,6 +96,20 @@ export type InseratDetail = InseratPublic & {
   facebook_url: string | null;
   /** Verkäufer-ID (für Anfrage-Routing). NICHT öffentlich anzeigen. */
   owner_id: string;
+  /**
+   * Anonymitäts-Level vom Verkäufer im Wizard gewählt.
+   * - `voll_anonym`: nur Anfrage-Form, keine Kontakt-Daten sichtbar
+   * - `vorname_funktion`: «Vorname, Funktion» sichtbar (halb-öffentlich)
+   * - `voll_offen`: Foto, Name, Funktion, E-Mail, WhatsApp, LinkedIn sichtbar
+   */
+  anonymitaet_level: 'voll_anonym' | 'vorname_funktion' | 'voll_offen' | null;
+  whatsapp_enabled: boolean;
+  kontakt_vorname: string | null;
+  kontakt_nachname: string | null;
+  kontakt_funktion: string | null;
+  kontakt_foto_url: string | null;
+  kontakt_email_public: string | null;
+  kontakt_whatsapp_nr: string | null;
 };
 
 /* ──────────────────────────────────────────────────────────────────────
@@ -242,7 +256,10 @@ export const getListingById = cache(async (idOrSlug: string): Promise<InseratDet
        grund, uebergabe_zeitpunkt, cover_url, sales_points, paket,
        featured_until, published_at, views, art, kategorie, immobilien, finanzierung,
        wir_anteil_moeglich, rechtsform_typ, firma_name,
-       website_url, linkedin_url, twitter_url, facebook_url, verkaeufer_id, status`,
+       website_url, linkedin_url, twitter_url, facebook_url, verkaeufer_id, status,
+       anonymitaet_level, whatsapp_enabled,
+       kontakt_vorname, kontakt_nachname, kontakt_funktion,
+       kontakt_foto_url, kontakt_email_public, kontakt_whatsapp_nr`,
     )
     .match(filter)
     .eq('status', 'live')
@@ -299,6 +316,14 @@ export const getListingById = cache(async (idOrSlug: string): Promise<InseratDet
     twitter_url: row.twitter_url as string | null,
     facebook_url: row.facebook_url as string | null,
     owner_id: row.verkaeufer_id as string,
+    anonymitaet_level: (row.anonymitaet_level as InseratDetail['anonymitaet_level']) ?? null,
+    whatsapp_enabled: Boolean(row.whatsapp_enabled),
+    kontakt_vorname: row.kontakt_vorname as string | null,
+    kontakt_nachname: row.kontakt_nachname as string | null,
+    kontakt_funktion: row.kontakt_funktion as string | null,
+    kontakt_foto_url: row.kontakt_foto_url as string | null,
+    kontakt_email_public: row.kontakt_email_public as string | null,
+    kontakt_whatsapp_nr: row.kontakt_whatsapp_nr as string | null,
   };
 });
 

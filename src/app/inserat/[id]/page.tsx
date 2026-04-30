@@ -1,8 +1,8 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import {
-  ArrowLeft, Calendar, CheckCircle2, Mail,
-  MapPin, MessageSquare, Phone, Shield, TrendingUp, Users,
+  ArrowLeft, Calendar, CheckCircle2,
+  MapPin, MessageSquare, Shield, TrendingUp, Users,
 } from 'lucide-react';
 import { Container, Section } from '@/components/ui/container';
 import { Reveal } from '@/components/ui/reveal';
@@ -17,39 +17,15 @@ import {
 } from '@/lib/listings';
 import { getBrancheById } from '@/lib/branchen';
 import { uebergabeGrundLabel } from '@/lib/constants';
-import { createClient } from '@/lib/supabase/server';
 import { SiteHeader, SiteFooter } from '../../page';
 import { InlineAnfrageForm } from './InlineAnfrageForm';
 import { LikeShareActions } from './LikeShareActions';
+import { VerkaeuferKontaktBox } from './VerkaeuferKontaktBox';
 
 type Params = {
   params: Promise<{ id: string }>;
   searchParams: Promise<{ anfrage?: string }>;
 };
-
-/** Öffentlich sichtbarer Kontakt aus `inserat_kontakte` (anonym=false). */
-type PublicKontakt = {
-  rolle: string | null;
-  name: string | null;
-  email: string | null;
-  telefon: string | null;
-  sortierung: number;
-};
-
-async function getPublicKontakte(inseratId: string): Promise<PublicKontakt[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from('inserat_kontakte')
-    .select('rolle, name, email, telefon, anonym, sortierung')
-    .eq('inserat_id', inseratId)
-    .eq('anonym', false)
-    .order('sortierung', { ascending: true });
-  if (error) {
-    console.error('[inserat:detail] getPublicKontakte failed:', error.message);
-    return [];
-  }
-  return (data ?? []) as PublicKontakt[];
-}
 
 export async function generateMetadata({ params }: Params) {
   const { id } = await params;
@@ -72,10 +48,7 @@ export default async function InseratDetailPage({ params, searchParams }: Params
   const listing = await getListingById(id);
   if (!listing) notFound();
 
-  const [branche, kontakte] = await Promise.all([
-    getBrancheById(listing.branche_id),
-    getPublicKontakte(listing.id),
-  ]);
+  const branche = await getBrancheById(listing.branche_id);
   const brancheLabel = branche?.label_de ?? listing.branche_id ?? '—';
 
   return (
@@ -83,7 +56,7 @@ export default async function InseratDetailPage({ params, searchParams }: Params
       <SiteHeader />
       {anfrage === 'ok' && <AnfrageErfolgBanner />}
       <DetailHero listing={listing} brancheLabel={brancheLabel} />
-      <DetailBody listing={listing} brancheLabel={brancheLabel} kontakte={kontakte} />
+      <DetailBody listing={listing} brancheLabel={brancheLabel} />
       <SiteFooter />
     </main>
   );
@@ -177,11 +150,9 @@ function DetailHero({ listing, brancheLabel }: { listing: InseratDetail; branche
 function DetailBody({
   listing,
   brancheLabel,
-  kontakte,
 }: {
   listing: InseratDetail;
   brancheLabel: string;
-  kontakte: PublicKontakt[];
 }) {
   const grundLabel = uebergabeGrundLabel(listing.uebergabe_grund);
   const umsatzStr = formatUmsatz({ umsatz_chf: listing.umsatz_chf, umsatz_bucket: listing.umsatz_bucket });
@@ -270,7 +241,7 @@ function DetailBody({
           {/* ─── Rechte Spalte: Kontakt-Sidebar ─── */}
           <aside className="lg:sticky lg:top-24 lg:self-start">
             <Reveal delay={0.1}>
-              <ContactPanel listing={listing} brancheLabel={brancheLabel} kontakte={kontakte} />
+              <ContactPanel listing={listing} brancheLabel={brancheLabel} />
             </Reveal>
           </aside>
         </div>
@@ -331,14 +302,19 @@ function InfoTile({
 function ContactPanel({
   listing,
   brancheLabel,
-  kontakte,
 }: {
   listing: InseratDetail;
   brancheLabel: string;
-  kontakte: PublicKontakt[];
 }) {
-  const hasPublicKontakt = kontakte.length > 0;
   const umsatzStr = formatUmsatz({ umsatz_chf: listing.umsatz_chf, umsatz_bucket: listing.umsatz_bucket });
+  const level = listing.anonymitaet_level;
+  const hatDirektKontakt =
+    level === 'voll_offen' &&
+    Boolean(
+      listing.kontakt_email_public?.trim() ||
+        (listing.whatsapp_enabled && listing.kontakt_whatsapp_nr?.trim()) ||
+        listing.linkedin_url?.trim(),
+    );
 
   return (
     <div className="bg-paper border border-stone rounded-card p-6 space-y-5">
@@ -349,6 +325,14 @@ function ContactPanel({
         </h2>
       </div>
 
+      <VerkaeuferKontaktBox listing={listing} />
+
+      {hatDirektKontakt && (
+        <p className="font-mono text-[10px] uppercase tracking-widest text-quiet text-center -mt-1">
+          Oder Nachricht direkt schreiben
+        </p>
+      )}
+
       <InlineAnfrageForm listing={listing} />
 
       <LikeShareActions
@@ -358,62 +342,6 @@ function ContactPanel({
         kanton={listing.kanton ?? '—'}
         umsatz={umsatzStr}
       />
-
-      {hasPublicKontakt && <DirektkontaktBox kontakte={kontakte} firmaName={listing.firma_name} />}
-    </div>
-  );
-}
-
-function DirektkontaktBox({
-  kontakte,
-  firmaName,
-}: {
-  kontakte: PublicKontakt[];
-  firmaName: string | null;
-}) {
-  // Erster öffentlicher Kontakt (sortierung asc) — restliche Kontakte werden
-  // bewusst nicht angezeigt, um die Sidebar kompakt zu halten.
-  const k = kontakte[0];
-  if (!k) return null;
-  if (!k.email && !k.telefon) return null;
-
-  return (
-    <div className="pt-5 border-t border-stone">
-      <p className="font-mono text-[10px] uppercase tracking-widest text-quiet mb-3">
-        Lieber direkt? Verkäufer hat sein Profil öffentlich gestellt
-      </p>
-      <div className="flex items-center gap-3 mb-3">
-        <div className="w-10 h-10 rounded-full bg-bronze/15 text-bronze-ink flex items-center justify-center flex-shrink-0 font-serif text-base">
-          {(k.name ?? '?').slice(0, 1)}
-        </div>
-        <div className="min-w-0">
-          <p className="font-serif text-body-sm text-navy truncate leading-tight">{k.name ?? '—'}</p>
-          <p className="text-caption text-quiet leading-snug truncate">
-            {k.rolle ?? 'Kontakt'}
-            {firmaName ? ` · ${firmaName}` : ''}
-          </p>
-        </div>
-      </div>
-      <div className="space-y-1.5">
-        {k.email && (
-          <a
-            href={`mailto:${k.email}`}
-            className="flex items-center gap-2.5 text-body-sm text-ink hover:text-bronze transition-colors"
-          >
-            <Mail className="w-3.5 h-3.5 text-bronze flex-shrink-0" strokeWidth={1.5} />
-            <span className="truncate font-mono text-[12px]">{k.email}</span>
-          </a>
-        )}
-        {k.telefon && (
-          <a
-            href={`tel:${k.telefon.replace(/\s/g, '')}`}
-            className="flex items-center gap-2.5 text-body-sm text-ink hover:text-bronze transition-colors"
-          >
-            <Phone className="w-3.5 h-3.5 text-bronze flex-shrink-0" strokeWidth={1.5} />
-            <span className="font-mono text-[12px]">{k.telefon}</span>
-          </a>
-        )}
-      </div>
     </div>
   );
 }
