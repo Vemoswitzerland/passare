@@ -67,6 +67,13 @@ export const CURRENT_STEP = {
 export const UPDATES: Update[] = [
   {
     date: '2026-04-30',
+    type: 'design',
+    titel: 'Pakete-Vergleich neu, Profilbild-Upload, Pricing-Logik umgekehrt',
+    beschreibung:
+      'Im Inserat-Wizard sieht man die drei Pakete jetzt als breite Vergleichs-Liste mit allen Features pro Zeile — grüner Haken für «vorhanden» und rotes Kreuz für «nicht vorhanden», Sonderwerte wie «4× / Jahr» als grüne Pille. Sales-tauglicher als die alten Karten. Beim Profilbild (Anonymitäts-Stufe «Voll offen») kann jetzt direkt eine Datei hochgeladen werden statt eine URL einzutippen — JPG/PNG/WebP bis 3 MB. Pricing-Logik wurde umgekehrt: 6 Monate ist die Standard-Laufzeit, bei 12 Monaten gibt es 20 % Rabatt (vorher als «6M = +20 % pro Monat» dargestellt — irreführend). Preise: Light 6M CHF 445 / 12M CHF 710, Pro 6M CHF 555 / 12M CHF 890, Premium 6M CHF 1\'180 / 12M CHF 1\'890. Klein-Inserat-Rabatt 25 % bleibt zusätzlich aktiv. Trust-Footer-Text und Tagline-Hinweise im Pakete-Step entfernt — sauberer Look. CTA-Knopf heisst jetzt einfach «Weiter».',
+  },
+  {
+    date: '2026-04-30',
     type: 'fix',
     titel: 'Gründungsjahr wird nicht mehr versteckt + Pflicht-Feld im Funnel',
     beschreibung:

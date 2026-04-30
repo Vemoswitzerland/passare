@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useTransition, useCallback } from 'react';
+import { useState, useEffect, useTransition, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowRight, ArrowLeft, Check, Loader2, AlertTriangle, Image as ImageIcon, Upload as UploadIcon, Sparkles, Trash2, Plus, Zap, Mail, Clock } from 'lucide-react';
 import { saveStep, mockPaketKaufen, submitForReview } from '../actions';
@@ -200,7 +200,7 @@ export function InseratWizard({ inserat, initialStep, fromPreReg }: Props) {
         {step === 1 && <Step1Zefix data={data} />}
         {step === 2 && <Step2Basis data={data} update={update} />}
         {step === 3 && <Step3Cover data={data} update={update} inseratId={inserat.id} />}
-        {step === 4 && <Step4Strengths data={data} update={update} />}
+        {step === 4 && <Step4Strengths data={data} update={update} inseratId={inserat.id} />}
         {step === 5 && (
           <Step5Paket
             data={data}
@@ -1134,8 +1134,8 @@ function GalerieSection({ inseratId }: { inseratId: string }) {
 
 /* ─── STEP 4: STRENGTHS ─── */
 function Step4Strengths({
-  data, update,
-}: { data: Inserat; update: (p: Partial<Inserat>) => void }) {
+  data, update, inseratId,
+}: { data: Inserat; update: (p: Partial<Inserat>) => void; inseratId: string }) {
   const [draft, setDraft] = useState('');
   const points = data.sales_points ?? [];
 
@@ -1248,27 +1248,13 @@ function Step4Strengths({
         <div className="space-y-5 animate-fade-up">
           <p className="overline text-bronze-ink">Deine Daten <span className="text-quiet font-sans normal-case tracking-normal">— alles optional, fülle aus was Käufer sehen sollen</span></p>
 
-          {/* Profilbild */}
-          <div className="flex items-start gap-4">
-            <div className="w-20 h-20 rounded-full overflow-hidden bg-stone flex items-center justify-center flex-shrink-0 border border-stone">
-              {data.kontakt_foto_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={data.kontakt_foto_url} alt="" className="w-full h-full object-cover" />
-              ) : (
-                <span className="text-quiet text-caption">Foto</span>
-              )}
-            </div>
-            <label className="flex-1">
-              <span className="text-caption text-quiet block mb-1.5">Profilbild-URL (optional)</span>
-              <input
-                type="url"
-                value={data.kontakt_foto_url ?? ''}
-                onChange={(e) => update({ kontakt_foto_url: e.target.value })}
-                placeholder="https://..."
-                className="w-full px-4 py-3 bg-paper border border-stone rounded-soft text-body focus:outline-none focus:border-bronze focus:shadow-focus transition-all"
-              />
-            </label>
-          </div>
+          {/* Profilbild — File-Upload */}
+          <KontaktFotoUpload
+            inseratId={inseratId}
+            currentUrl={data.kontakt_foto_url}
+            onUploaded={(url) => update({ kontakt_foto_url: url })}
+            onRemoved={() => update({ kontakt_foto_url: null })}
+          />
 
           {/* Name + Funktion */}
           <div className="grid md:grid-cols-3 gap-3">
@@ -1548,25 +1534,30 @@ function Step5Paket({
             <h2 className="font-serif text-display-md text-navy font-light tracking-tight mb-3">
               Welches Paket passt zu dir?
             </h2>
-            <p className="text-body-lg text-muted max-w-prose mx-auto">
-              Drei Pakete · Features sichtbar · 0 % Erfolgsprovision · keine Auto-Verlängerung.
-            </p>
           </div>
 
-          {/* Laufzeit-Toggle 12M / 6M */}
+          {/* Laufzeit-Toggle: 12M = Rabatt-Variante */}
           <div className="flex justify-center">
             <div className="inline-flex items-center gap-1 p-1 rounded-pill border border-stone bg-paper">
-              {([12, 6] as Laufzeit[]).map((l) => (
+              {([6, 12] as Laufzeit[]).map((l) => (
                 <button
                   key={l}
                   type="button"
                   onClick={() => setLaufzeit(l)}
                   className={cn(
-                    'px-5 py-2 rounded-pill text-body-sm transition-all',
+                    'px-5 py-2 rounded-pill text-body-sm transition-all inline-flex items-center gap-2',
                     laufzeit === l ? 'bg-navy text-cream font-medium' : 'text-muted hover:text-navy',
                   )}
                 >
-                  {l} Monate {l === 6 && <span className="text-caption opacity-70">+20 % / Mt</span>}
+                  {l} Monate
+                  {l === 12 && (
+                    <span className={cn(
+                      'text-caption font-medium px-2 py-0.5 rounded-pill',
+                      laufzeit === l ? 'bg-bronze text-cream' : 'bg-bronze/15 text-bronze-ink',
+                    )}>
+                      −20 % Rabatt
+                    </span>
+                  )}
                 </button>
               ))}
             </div>
@@ -1580,111 +1571,29 @@ function Step5Paket({
                 <p className="text-body-sm text-bronze-ink font-medium">Klein-Inserat-Rabatt {KLEIN_INSERAT_RABATT_PCT} % automatisch aktiv</p>
                 <p className="text-caption text-muted mt-0.5">
                   Dein Verkaufspreis liegt unter CHF {KLEIN_INSERAT_SCHWELLE_CHF.toLocaleString('de-CH')} —
-                  alle Pakete sind günstiger. Hinweis: spätere Erhöhung über die Schwelle erfordert Upgrade.
+                  alle Pakete sind günstiger. Spätere Erhöhung über die Schwelle erfordert Upgrade.
                 </p>
               </div>
             </div>
           )}
 
-          {/* 3 Paket-Karten */}
-          <div className="grid md:grid-cols-3 gap-4 max-w-5xl mx-auto">
-            {NEW_PAKETE.map((p) => {
-              const isSelected = selectedPaket === p.id;
-              const isRecommended = empfohlenId === p.id;
-              const preis = klein ? p.preisKlein[laufzeit] : p.preis[laufzeit];
-              const preisRegulaer = p.preis[laufzeit];
-              const proMonat = preis / laufzeit;
-              return (
-                <button
-                  key={p.id}
-                  type="button"
-                  onClick={() => setSelectedPaket(p.id)}
-                  className={cn(
-                    'text-left rounded-card border-2 p-6 flex flex-col relative transition-all',
-                    isSelected
-                      ? 'border-bronze shadow-lift bg-paper -translate-y-1'
-                      : p.highlight
-                        ? 'border-navy/30 bg-paper hover:border-bronze/40 hover:-translate-y-0.5'
-                        : 'border-stone bg-paper hover:border-bronze/40 hover:-translate-y-0.5',
-                  )}
-                >
-                  {(p.highlight || isRecommended) && (
-                    <span className={cn(
-                      'absolute -top-3 left-1/2 -translate-x-1/2 inline-flex items-center px-3 py-0.5 rounded-pill text-caption font-medium whitespace-nowrap',
-                      isRecommended ? 'bg-bronze text-cream' : 'bg-navy text-cream',
-                    )}>
-                      {isRecommended ? 'Für dich empfohlen' : 'Beliebteste Wahl'}
-                    </span>
-                  )}
-
-                  <p className="overline text-quiet mb-2">{p.label}</p>
-
-                  {/* Preis-Block */}
-                  <div className="mb-1">
-                    <div className="flex items-baseline gap-2 flex-wrap">
-                      <p className="font-serif text-[2.5rem] text-navy font-light font-tabular leading-none">
-                        CHF {formatCHSwiss(preis)}
-                      </p>
-                      {klein && (
-                        <p className="font-mono text-caption line-through text-quiet">
-                          CHF {formatCHSwiss(preisRegulaer)}
-                        </p>
-                      )}
-                    </div>
-                    <p className="text-caption text-quiet mt-1.5">
-                      = CHF {Math.round(proMonat).toLocaleString('de-CH')} / Monat · {laufzeit} Monate
-                    </p>
-                  </div>
-
-                  <p className="text-caption text-bronze-ink font-medium mb-5 mt-2">
-                    {p.tagline}
-                  </p>
-
-                  <ul className="space-y-2.5 mb-5 flex-1">
-                    {p.featuresList.map((f) => (
-                      <li key={f} className="text-body-sm text-muted flex items-start gap-2 leading-snug">
-                        <Check className="w-3.5 h-3.5 text-bronze flex-shrink-0 mt-0.5" strokeWidth={2} />
-                        <span>{f}</span>
-                      </li>
-                    ))}
-                  </ul>
-
-                  {/* Auswahl-Indikator */}
-                  <div className={cn(
-                    'mt-auto inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-soft text-body-sm font-medium border-2 transition-all',
-                    isSelected
-                      ? 'bg-bronze border-bronze text-cream'
-                      : 'border-stone bg-paper text-muted',
-                  )}>
-                    {isSelected ? (
-                      <>
-                        <Check className="w-4 h-4" strokeWidth={2.5} />
-                        Ausgewählt
-                      </>
-                    ) : (
-                      <>Auswählen</>
-                    )}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Gemeinsame Trust-Footer */}
-          <div className="max-w-5xl mx-auto flex flex-wrap justify-center gap-x-6 gap-y-2 text-caption text-quiet">
-            <span>✓ 0 % Erfolgsprovision</span>
-            <span>✓ Keine Auto-Verlängerung</span>
-            <span>✓ Schweizer Datenschutz</span>
-            <span>✓ MwSt 8.1 % wird im Checkout ausgewiesen</span>
-          </div>
+          {/* Pakete als VERGLEICHS-LISTE — sales-tauglich, grün/rot */}
+          <PaketeVergleichsListe
+            pakete={NEW_PAKETE}
+            selectedId={selectedPaket}
+            onSelect={setSelectedPaket}
+            laufzeit={laufzeit}
+            klein={klein}
+            empfohlenId={empfohlenId}
+          />
 
           <div className="flex justify-center pt-2">
             <button
               type="button"
               onClick={() => setSubFrame(2)}
-              className="inline-flex items-center gap-2 px-8 py-4 rounded-soft text-body font-medium bg-navy text-cream hover:bg-ink shadow-card hover:shadow-lift hover:-translate-y-px transition-all"
+              className="inline-flex items-center gap-2 px-10 py-4 rounded-soft text-body font-medium bg-navy text-cream hover:bg-ink shadow-card hover:shadow-lift hover:-translate-y-px transition-all"
             >
-              Weiter zu den Boosts →
+              Weiter →
             </button>
           </div>
         </div>
@@ -1889,6 +1798,276 @@ function FormField({
         {hint && <span className="text-caption font-mono text-quiet">{hint}</span>}
       </div>
       {children}
+    </div>
+  );
+}
+
+
+/* ─── KontaktFotoUpload ─── Profilbild-Upload für Step4 voll_offen ── */
+function KontaktFotoUpload({
+  inseratId,
+  currentUrl,
+  onUploaded,
+  onRemoved,
+}: {
+  inseratId: string;
+  currentUrl: string | null;
+  onUploaded: (url: string) => void;
+  onRemoved: () => void;
+}) {
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  async function handleFile(file: File) {
+    setError(null);
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('inserat_id', inseratId);
+      const res = await fetch('/api/inserate/upload-kontakt-foto', { method: 'POST', body: fd });
+      const json = await res.json();
+      if (!res.ok || !json.url) {
+        throw new Error(json.error ?? 'Upload fehlgeschlagen');
+      }
+      onUploaded(json.url);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Unbekannter Fehler');
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  return (
+    <div>
+      <span className="text-caption text-quiet block mb-2">Profilbild (optional)</span>
+      <div className="flex items-center gap-4">
+        <div className="w-20 h-20 rounded-full overflow-hidden bg-stone flex items-center justify-center flex-shrink-0 border border-stone">
+          {currentUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={currentUrl} alt="" className="w-full h-full object-cover" />
+          ) : (
+            <span className="text-quiet text-caption">Foto</span>
+          )}
+        </div>
+        <div className="flex-1 flex items-center gap-3 flex-wrap">
+          <input
+            ref={inputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) handleFile(f);
+            }}
+            className="hidden"
+          />
+          <button
+            type="button"
+            onClick={() => inputRef.current?.click()}
+            disabled={uploading}
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-paper border border-stone hover:border-bronze/40 rounded-soft text-body-sm transition-all disabled:opacity-60"
+          >
+            {uploading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" strokeWidth={1.5} />
+                Lade hoch …
+              </>
+            ) : (
+              <>
+                <UploadIcon className="w-4 h-4" strokeWidth={1.5} />
+                {currentUrl ? 'Anderes Bild wählen' : 'Bild hochladen'}
+              </>
+            )}
+          </button>
+          {currentUrl && !uploading && (
+            <button
+              type="button"
+              onClick={onRemoved}
+              className="text-caption text-quiet hover:text-danger transition-colors"
+            >
+              entfernen
+            </button>
+          )}
+        </div>
+      </div>
+      {error && <p className="text-caption text-danger mt-2">{error}</p>}
+      <p className="text-caption text-quiet mt-2">JPG / PNG / WebP · max. 3 MB</p>
+    </div>
+  );
+}
+
+/* ─── PaketeVergleichsListe ─── Sales-Liste mit Features grün/rot ── */
+type PaketLight = (typeof NEW_PAKETE)[number];
+
+const FEATURES_VERGLEICH: Array<{
+  key: string;
+  label: string;
+  // pro Paket: true (✓) | false (✗) | string (z.B. "4× / Jahr")
+  values: { light: boolean | string; pro: boolean | string; premium: boolean | string };
+}> = [
+  { key: 'inserat', label: '1 Inserat live', values: { light: true, pro: true, premium: true } },
+  { key: 'anfragen', label: 'Anfragen empfangen', values: { light: true, pro: true, premium: true } },
+  { key: 'chat', label: 'In-App-Chat mit Käufern', values: { light: true, pro: true, premium: true } },
+  { key: 'stats', label: 'Vollständige Statistik (Charts, Conversion)', values: { light: true, pro: true, premium: true } },
+  { key: 'datenraum', label: 'Datenraum mit Versionierung', values: { light: false, pro: true, premium: true } },
+  { key: 'hervorhebung', label: 'Hervorhebung (Seite 1 + Top Branchenfilter)', values: { light: false, pro: '4× / Jahr', premium: '12× / Jahr' } },
+  { key: 'newsletter', label: 'Positionierung im Newsletter', values: { light: false, pro: false, premium: '2× / Jahr' } },
+  { key: 'team', label: 'Mehrere Mitarbeiter onboarden', values: { light: false, pro: false, premium: 'bis 3' } },
+  { key: 'kaeufer', label: 'Käuferprofil-Einsicht bei Anfragen', values: { light: false, pro: false, premium: true } },
+];
+
+function PaketeVergleichsListe({
+  pakete,
+  selectedId,
+  onSelect,
+  laufzeit,
+  klein,
+  empfohlenId,
+}: {
+  pakete: readonly PaketLight[];
+  selectedId: string;
+  onSelect: (id: string) => void;
+  laufzeit: 6 | 12;
+  klein: boolean;
+  empfohlenId: string;
+}) {
+  return (
+    <div className="max-w-4xl mx-auto rounded-card border border-stone bg-paper overflow-hidden">
+      {/* Header mit Paket-Namen + Preisen */}
+      <div className="grid grid-cols-[1.6fr_1fr_1fr_1fr] border-b border-stone">
+        <div className="p-5">
+          <p className="overline text-quiet">Vergleich</p>
+          <p className="text-caption text-muted mt-2 leading-snug">
+            {laufzeit === 12
+              ? 'Preise inkl. 20 % Laufzeit-Rabatt'
+              : 'Standard-Laufzeit · 6 Monate'}
+          </p>
+        </div>
+        {pakete.map((p) => {
+          const isSelected = selectedId === p.id;
+          const isRecommended = empfohlenId === p.id;
+          const preis = klein ? p.preisKlein[laufzeit] : p.preis[laufzeit];
+          const preisRegulaer = p.preis[laufzeit];
+          const proMonat = preis / laufzeit;
+          return (
+            <button
+              key={p.id}
+              type="button"
+              onClick={() => onSelect(p.id)}
+              className={cn(
+                'p-5 text-left border-l border-stone relative transition-all',
+                isSelected
+                  ? 'bg-bronze/5'
+                  : 'bg-paper hover:bg-cream/40',
+              )}
+            >
+              {(p.highlight || isRecommended) && (
+                <span className={cn(
+                  'absolute -top-px left-0 right-0 text-center text-caption font-medium py-0.5',
+                  isRecommended ? 'bg-bronze text-cream' : 'bg-navy text-cream',
+                )}>
+                  {isRecommended ? 'Empfohlen' : 'Beliebteste'}
+                </span>
+              )}
+              <p className={cn('overline mt-2', isSelected ? 'text-bronze-ink' : 'text-quiet')}>{p.label}</p>
+              <div className="mt-2">
+                <div className="flex items-baseline gap-2 flex-wrap">
+                  <p className="font-serif text-[1.75rem] text-navy font-light font-tabular leading-none">
+                    CHF {formatCHSwiss(preis)}
+                  </p>
+                  {klein && (
+                    <p className="font-mono text-caption line-through text-quiet">
+                      {formatCHSwiss(preisRegulaer)}
+                    </p>
+                  )}
+                </div>
+                <p className="text-caption text-quiet mt-1">
+                  ≈ CHF {Math.round(proMonat).toLocaleString('de-CH')} / Mt
+                </p>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Feature-Zeilen mit grün/rot */}
+      {FEATURES_VERGLEICH.map((row, i) => (
+        <div
+          key={row.key}
+          className={cn(
+            'grid grid-cols-[1.6fr_1fr_1fr_1fr]',
+            i !== FEATURES_VERGLEICH.length - 1 && 'border-b border-stone/60',
+            i % 2 === 1 && 'bg-cream/40',
+          )}
+        >
+          <div className="p-3.5 text-body-sm text-ink">{row.label}</div>
+          {(['light', 'pro', 'premium'] as const).map((tier) => (
+            <FeatureCell key={tier} value={row.values[tier]} highlighted={selectedId === tier} />
+          ))}
+        </div>
+      ))}
+
+      {/* Auswahl-Footer */}
+      <div className="grid grid-cols-[1.6fr_1fr_1fr_1fr] border-t border-stone bg-cream/50">
+        <div className="p-3.5"></div>
+        {pakete.map((p) => {
+          const isSelected = selectedId === p.id;
+          return (
+            <button
+              key={p.id}
+              type="button"
+              onClick={() => onSelect(p.id)}
+              className={cn(
+                'p-3.5 border-l border-stone text-body-sm font-medium transition-all flex items-center justify-center gap-1.5',
+                isSelected
+                  ? 'bg-bronze text-cream'
+                  : 'text-navy hover:bg-bronze/10',
+              )}
+            >
+              {isSelected ? (
+                <>
+                  <Check className="w-4 h-4" strokeWidth={2.5} />
+                  Ausgewählt
+                </>
+              ) : (
+                'Auswählen'
+              )}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function FeatureCell({ value, highlighted }: { value: boolean | string; highlighted: boolean }) {
+  let content: React.ReactNode;
+  if (value === true) {
+    content = (
+      <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-success/15 text-success">
+        <Check className="w-4 h-4" strokeWidth={2.5} />
+      </span>
+    );
+  } else if (value === false) {
+    content = (
+      <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-danger/10 text-danger">
+        <span className="text-base leading-none font-bold">×</span>
+      </span>
+    );
+  } else {
+    content = (
+      <span className="inline-flex items-center px-2.5 py-1 rounded-pill bg-success/10 text-success text-caption font-mono font-medium">
+        ✓ {value}
+      </span>
+    );
+  }
+  return (
+    <div className={cn(
+      'p-3.5 border-l border-stone flex items-center justify-center transition-colors',
+      highlighted && 'bg-bronze/5',
+    )}>
+      {content}
     </div>
   );
 }

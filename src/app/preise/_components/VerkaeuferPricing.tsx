@@ -89,16 +89,23 @@ export function VerkaeuferPricing() {
         <div className="flex flex-col md:flex-row md:items-center gap-6 mb-8">
           {/* Laufzeit */}
           <div className="inline-flex items-center gap-1 p-1 rounded-pill border border-stone bg-paper">
-            {([12, 6] as Laufzeit[]).map((l) => (
+            {([6, 12] as Laufzeit[]).map((l) => (
               <button
                 key={l}
                 type="button"
                 onClick={() => setLaufzeit(l)}
-                className={`px-5 py-2 rounded-pill text-body-sm transition-all ${
+                className={`px-5 py-2 rounded-pill text-body-sm transition-all inline-flex items-center gap-2 ${
                   laufzeit === l ? 'bg-navy text-cream font-medium' : 'text-muted hover:text-navy'
                 }`}
               >
-                {l} Monate {l === 6 && <span className="text-caption opacity-70">+20 %</span>}
+                {l} Monate
+                {l === 12 && (
+                  <span className={`text-caption font-medium px-2 py-0.5 rounded-pill ${
+                    laufzeit === l ? 'bg-bronze text-cream' : 'bg-bronze/15 text-bronze-ink'
+                  }`}>
+                    −20 % Rabatt
+                  </span>
+                )}
               </button>
             ))}
           </div>

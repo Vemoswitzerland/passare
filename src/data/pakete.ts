@@ -2,8 +2,12 @@
 // passare.ch — Verkäufer-Pakete + Powerups
 // ────────────────────────────────────────────────────────────────────
 // Drei Pakete: Light / Pro / Premium.
-// Zwei Laufzeiten: 12 oder 6 Monate (6 Monate = +20 % Aufschlag pro
-// Monat — kürzer kostet relativ mehr).
+// Zwei Laufzeiten: 6 oder 12 Monate. Marketing-Framing:
+//   • 6 Monate = Standard-Preis
+//   • 12 Monate = 20 % Rabatt im Vergleich zu 2× 6-Monate
+//
+// Beispiel Pro: 6M = CHF 555 → 12M wäre 1'110, mit 20 % Rabatt → CHF 890.
+//
 // Klein-Inserat-Rabatt: 25 % bei Verkaufspreis < CHF 500'000
 // (gleiche Schwelle wie companymarket).
 //
@@ -71,8 +75,10 @@ export const PAKETE: Record<PaketTier, Paket> = {
     id: 'light',
     label: 'Light',
     tagline: 'Inserier deine Firma unkompliziert.',
-    preis: { 12: 710, 6: 425 },
-    preisKlein: { 12: 535, 6: 320 },
+    // 12M = 20 % Rabatt gegenüber 2× 6M:  445 × 2 × 0.8 ≈ 710
+    preis: { 12: 710, 6: 445 },
+    // Klein-Rabatt 25 %:  710 × 0.75 ≈ 535,  445 × 0.75 ≈ 335
+    preisKlein: { 12: 535, 6: 335 },
     features: {
       inseratLive: true,
       anfragenEmpfangen: true,
@@ -101,8 +107,10 @@ export const PAKETE: Record<PaketTier, Paket> = {
     id: 'pro',
     label: 'Pro',
     tagline: 'Verkauf wie ein Profi — mit Datenraum und Hervorhebung.',
-    preis: { 12: 890, 6: 535 },
-    preisKlein: { 12: 670, 6: 400 },
+    // 12M = 20 % Rabatt gegenüber 2× 6M:  555 × 2 × 0.8 ≈ 888 → 890
+    preis: { 12: 890, 6: 555 },
+    // Klein-Rabatt 25 %:  890 × 0.75 ≈ 670,  555 × 0.75 ≈ 415
+    preisKlein: { 12: 670, 6: 415 },
     features: {
       inseratLive: true,
       anfragenEmpfangen: true,
@@ -131,8 +139,10 @@ export const PAKETE: Record<PaketTier, Paket> = {
     id: 'premium',
     label: 'Premium',
     tagline: 'Maximaler Schaufenster-Effekt — wir pushen dich.',
-    preis: { 12: 1_890, 6: 1_140 },
-    preisKlein: { 12: 1_420, 6: 855 },
+    // 12M = 20 % Rabatt gegenüber 2× 6M:  1180 × 2 × 0.8 ≈ 1888 → 1890
+    preis: { 12: 1_890, 6: 1_180 },
+    // Klein-Rabatt 25 %:  1890 × 0.75 ≈ 1420,  1180 × 0.75 ≈ 885
+    preisKlein: { 12: 1_420, 6: 885 },
     features: {
       inseratLive: true,
       anfragenEmpfangen: true,
