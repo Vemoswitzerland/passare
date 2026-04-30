@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { getNotificationPrefs } from '@/app/dashboard/settings-actions';
 import { NotificationCenter } from '@/components/settings/NotificationCenter';
+import { NameEdit } from './NameEdit';
 
 export const metadata = { title: 'Einstellungen — passare Verkäufer' };
 
@@ -29,7 +30,10 @@ export default async function SettingsPage() {
         </div>
 
         <div className="rounded-card bg-paper border border-stone p-6 md:p-8 space-y-6">
-          <Field label="Name" value={profile?.full_name ?? '—'} />
+          <div className="grid grid-cols-[140px_1fr] gap-4 items-center">
+            <p className="overline text-quiet text-caption">Name</p>
+            <NameEdit initial={profile?.full_name ?? ''} />
+          </div>
           <Field label="E-Mail" value={userData.user.email ?? '—'} mono />
           <Field label="Kanton" value={profile?.kanton ?? '—'} />
           <Field label="Sprache" value={(profile?.sprache ?? 'de').toUpperCase()} />

@@ -141,10 +141,11 @@ export function DatenraumClient({ inseratId, files, accessLog }: Props) {
             <label
               htmlFor="datenraum-upload"
               className={cn(
-                'px-4 py-1.5 bg-navy text-cream rounded-soft text-caption font-medium cursor-pointer hover:bg-ink transition-colors',
+                'inline-flex items-center gap-1.5 px-4 py-1.5 bg-bronze text-cream rounded-soft text-caption font-medium cursor-pointer hover:bg-bronze-ink transition-colors',
                 uploading && 'opacity-50 cursor-not-allowed',
               )}
             >
+              <Upload className="w-3.5 h-3.5" strokeWidth={1.5} />
               Dateien wählen
             </label>
           </div>
