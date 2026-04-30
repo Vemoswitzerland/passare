@@ -214,11 +214,11 @@ export default async function VerkaeuferDashboard({ searchParams }: Props) {
             icon={MessageSquare}
           />
           <KPITile
-            label="NDA-Conversion"
-            value={`${ndaConvPct}%`}
-            sub={`${ndaSigned} von ${anfragenTotal}`}
+            label="Datenraum"
+            value={datenraumCount.toString()}
+            sub={datenraumCount === 0 ? 'Noch keine Dokumente' : `Dokument${datenraumCount === 1 ? '' : 'e'} hochgeladen`}
+            tone={datenraumCount >= 3 ? 'success' : 'default'}
             icon={FileSignature}
-            progressPct={ndaConvPct}
           />
         </div>
 
@@ -276,7 +276,7 @@ export default async function VerkaeuferDashboard({ searchParams }: Props) {
             href="/dashboard/verkaeufer/statistik"
             icon={Sparkles}
             title="Statistik ansehen"
-            desc="Views, Anfragen, NDA-Conversion über Zeit"
+            desc="Views und Anfragen über Zeit"
           />
         </div>
 

@@ -164,14 +164,28 @@ export default async function InseratIndexPage() {
           </div>
           <div className="flex items-center gap-3 flex-shrink-0">
             <StatusBadge status={inserat.status} />
-            <Link
-              href={`/dashboard/verkaeufer/preview/${inserat.id}`}
-              target="_blank"
-              className="inline-flex items-center gap-1.5 px-3 py-2 border border-stone hover:border-navy/40 text-navy rounded-soft text-body-sm font-medium transition-all"
-            >
-              <Eye className="w-4 h-4" strokeWidth={1.5} />
-              Vorschau
-            </Link>
+            {/* Cyrill 30.04.2026: bei nicht-live → Vorschau, bei live → Public-
+                Inserat (so wie es Käufer sehen). isLive prüft auf status==='live'. */}
+            {isLive ? (
+              <Link
+                href={`/inserat/${inserat.public_id ?? inserat.id}`}
+                target="_blank"
+                rel="noopener"
+                className="inline-flex items-center gap-1.5 px-3 py-2 border border-stone hover:border-navy/40 text-navy rounded-soft text-body-sm font-medium transition-all"
+              >
+                <Eye className="w-4 h-4" strokeWidth={1.5} />
+                Live-Inserat
+              </Link>
+            ) : (
+              <Link
+                href={`/dashboard/verkaeufer/preview/${inserat.id}`}
+                target="_blank"
+                className="inline-flex items-center gap-1.5 px-3 py-2 border border-stone hover:border-navy/40 text-navy rounded-soft text-body-sm font-medium transition-all"
+              >
+                <Eye className="w-4 h-4" strokeWidth={1.5} />
+                Vorschau
+              </Link>
+            )}
             <Link
               href={`/dashboard/verkaeufer/inserat/${inserat.id}/edit`}
               className="inline-flex items-center gap-1.5 px-3 py-2 bg-navy text-cream rounded-soft text-body-sm font-medium hover:bg-ink shadow-subtle transition-all"
@@ -243,11 +257,17 @@ export default async function InseratIndexPage() {
               <div className="flex items-center justify-between mb-3">
                 <p className="overline text-bronze-ink">Wie Käufer es sehen</p>
                 <Link
-                  href={`/dashboard/verkaeufer/preview/${inserat.id}`}
+                  href={
+                    isLive
+                      ? `/inserat/${inserat.public_id ?? inserat.id}`
+                      : `/dashboard/verkaeufer/preview/${inserat.id}`
+                  }
                   target="_blank"
+                  rel={isLive ? 'noopener' : undefined}
                   className="text-caption text-navy hover:text-bronze inline-flex items-center gap-1"
                 >
-                  Volle Detail-Seite <ArrowRight className="w-3 h-3" strokeWidth={1.5} />
+                  {isLive ? 'Live-Inserat' : 'Volle Detail-Seite'}{' '}
+                  <ArrowRight className="w-3 h-3" strokeWidth={1.5} />
                 </Link>
               </div>
               <h2 className="font-serif text-head-md text-navy font-light leading-tight mb-2">
