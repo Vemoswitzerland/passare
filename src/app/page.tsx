@@ -120,8 +120,12 @@ function parseFiltersFromSearchParams(sp: SearchParams) {
 
 /* ════════════════════════ Header & Footer ════════════════════════ */
 export async function SiteHeader({ activeSell = false }: { activeSell?: boolean } = {}) {
-  // Login-Status server-side checken — eingeloggte User sehen «Mein Bereich»
-  // statt Anmelden/Registrieren.
+  // Kontext-abhängige Navigation:
+  // - activeSell = true (Verkäufer-Marketing: /verkaufen, /preise) zeigt
+  //   «Firma inserieren» (aktiv) + «Inserat-Preise». Käufer-MAX-Link bleibt aus.
+  // - activeSell = false (Plattform/Käufer-Sicht: /, /inserat/*, /pro) zeigt
+  //   «Firma inserieren» + «Pro». «Inserat-Preise» ist hier raus, weil sie
+  //   für Käufer auf der Plattform nicht zur Sache gehört.
   const supabase = await createClient();
   const { data: u } = await supabase.auth.getUser();
   let dashboardHref: string | null = null;
@@ -158,12 +162,19 @@ export async function SiteHeader({ activeSell = false }: { activeSell?: boolean 
             >
               Firma inserieren
             </Link>
-            <Link href="/preise" className="text-[0.8125rem] font-medium text-muted hover:text-ink">
-              Inserat-Preise
+            {activeSell && (
+              <Link href="/preise" className="text-[0.8125rem] font-medium text-muted hover:text-ink">
+                Inserat-Preise
+              </Link>
+            )}
+            <Link href="/broker" className="text-[0.8125rem] font-medium text-muted hover:text-ink">
+              Broker
             </Link>
-            <Link href="/max" className="text-[0.8125rem] font-medium text-muted hover:text-ink">
-              Käufer MAX
-            </Link>
+            {!activeSell && (
+              <Link href="/pro" className="text-[0.8125rem] font-medium text-muted hover:text-ink">
+                Pro
+              </Link>
+            )}
           </nav>
           <div className="flex items-center gap-3">
             {dashboardHref ? (
@@ -181,7 +192,7 @@ export async function SiteHeader({ activeSell = false }: { activeSell?: boolean 
                   size="sm"
                   className="hidden md:inline-flex"
                 >
-                  Registrieren
+                  {activeSell ? 'Bewerten & inserieren' : 'Registrieren'}
                 </Button>
               </>
             )}
@@ -192,7 +203,7 @@ export async function SiteHeader({ activeSell = false }: { activeSell?: boolean 
   );
 }
 
-export function SiteFooter() {
+export function SiteFooter({ activeSell = false }: { activeSell?: boolean } = {}) {
   return (
     <footer className="border-t border-stone pt-16 pb-10 bg-cream">
       <Container>
@@ -210,8 +221,13 @@ export function SiteFooter() {
             <ul className="space-y-3 text-body-sm text-muted">
               <li><Link className="hover:text-navy" href="/">Firmen entdecken</Link></li>
               <li><Link className="hover:text-navy" href="/verkaufen">Firma inserieren</Link></li>
-              <li><Link className="hover:text-navy" href="/preise">Inserat-Preise</Link></li>
-              <li><Link className="hover:text-navy" href="/max">Käufer MAX</Link></li>
+              {activeSell && (
+                <li><Link className="hover:text-navy" href="/preise">Inserat-Preise</Link></li>
+              )}
+              <li><Link className="hover:text-navy" href="/broker">Broker</Link></li>
+              {!activeSell && (
+                <li><Link className="hover:text-navy" href="/pro">Pro</Link></li>
+              )}
             </ul>
           </div>
           <div>
@@ -428,14 +444,14 @@ function Marketplace({
                   </Link>
                 </div>
 
-                {/* MAX-Upsell — eigene Käufer-Vorteile-Seite */}
+                {/* Pro-Upsell — eigene Käufer-Vorteile-Seite */}
                 <div className="bg-navy text-cream rounded-soft p-4 -mx-2 mt-6">
-                  <p className="overline text-bronze mb-2">Käufer MAX</p>
+                  <p className="overline text-bronze mb-2">Käufer Pro</p>
                   <p className="font-serif text-body text-cream mb-3 leading-snug">
                     7 Tage Frühzugang &amp; Echtzeit-Alerts
                   </p>
-                  <Link href="/max" className="font-mono text-[11px] uppercase tracking-widest text-bronze inline-flex items-center gap-1 hover:gap-2 transition-all">
-                    MAX ansehen <ArrowRight className="w-3 h-3" strokeWidth={1.5} />
+                  <Link href="/pro" className="font-mono text-[11px] uppercase tracking-widest text-bronze inline-flex items-center gap-1 hover:gap-2 transition-all">
+                    Pro ansehen <ArrowRight className="w-3 h-3" strokeWidth={1.5} />
                   </Link>
                 </div>
               </form>
@@ -490,15 +506,15 @@ function Marketplace({
                 <div className="mt-16 text-center p-10 border border-dashed border-stone rounded-card">
                   <p className="overline mb-3 text-bronze-ink">Weitere Inserate</p>
                   <h3 className="font-serif text-head-lg text-navy mb-3 font-normal">
-                    Mit Käufer MAX sehen Sie alles zuerst.
+                    Mit Käufer Pro sehen Sie alles zuerst.
                   </h3>
                   <p className="text-body-sm text-muted mb-6 max-w-md mx-auto">
-                    Neue Inserate sind 7 Tage lang nur für MAX-Mitglieder sichtbar,
+                    Neue Inserate sind 7 Tage lang nur für Pro-Mitglieder sichtbar,
                     bevor sie öffentlich werden. Plus: alle Filter, unbegrenzte Anfragen,
                     Echtzeit-Alerts.
                   </p>
-                  <Button href="/max" variant="secondary" size="md">
-                    MAX ab CHF 199/Monat <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
+                  <Button href="/pro" variant="secondary" size="md">
+                    Pro ab CHF 199/Monat <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
                   </Button>
                 </div>
               </Reveal>
@@ -604,7 +620,10 @@ function ListingCard({ listing, branchen }: { listing: InseratPublic; branchen: 
 
       {/* ─── Body ─── */}
       <div className="p-6 flex flex-col flex-1">
-        <h3 className="font-serif text-head-md text-navy leading-tight font-normal mb-5 min-h-[3.9rem] group-hover:text-bronze-ink transition-colors">
+        <h3
+          lang="de"
+          className="font-serif text-head-md text-navy leading-tight font-normal mb-5 h-[3.9rem] hyphens-auto break-words line-clamp-2 group-hover:text-bronze-ink transition-colors"
+        >
           {listing.titel}<span className="text-bronze">.</span>
         </h3>
 

@@ -24,7 +24,7 @@ export const maxDuration = 15;
 const Input = z.object({
   name: z.string().trim().min(2).max(120),
   email: z.string().trim().toLowerCase().email().max(200),
-  nachricht: z.string().trim().min(5).max(2000),
+  nachricht: z.string().trim().min(5).max(8000),
   listing_id: z.string().min(1).max(60),
 });
 

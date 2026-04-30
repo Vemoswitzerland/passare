@@ -179,11 +179,11 @@ export function AnfrageProActions({
                 value={dossierMessage}
                 onChange={(e) => setDossierMessage(e.target.value)}
                 rows={3}
-                maxLength={500}
+                maxLength={4000}
                 placeholder="z. B. «Bitte ein kurzes Profil mit Branchen-Erfahrung und Finanzierung»"
                 className="w-full px-3 py-2 bg-cream border border-stone rounded-soft text-body-sm focus:outline-none focus:border-bronze resize-none"
               />
-              <span className="text-caption text-quiet font-mono">{dossierMessage.length} / 500</span>
+              <span className="text-caption text-quiet font-mono">{dossierMessage.length} / 4000</span>
             </label>
 
             <div className="flex justify-end gap-2 pt-2 border-t border-stone">
