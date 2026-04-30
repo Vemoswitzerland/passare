@@ -67,6 +67,13 @@ export const CURRENT_STEP = {
 export const UPDATES: Update[] = [
   {
     date: '2026-04-30',
+    type: 'fix',
+    titel: '«Mein Inserat»-Cockpit: jetzt wirklich sichtbar + EBITDA/Preis-Korrektur',
+    beschreibung:
+      'Bei «Mein Inserat» ist man bisher direkt im Bearbeitungs-Wizard gelandet weil eine Datenbank-Abfrage scheiterte (verbundene Branchen-Tabelle nicht erreichbar). Behoben — die Verwaltungsseite mit Status, Vorschau, Kennzahlen, Sektionen-Liste, Konversations-Thread mit dem passare-Team und Submit-CTA zur Prüfung erscheint jetzt korrekt. Zusätzlich wurde ein Daten-Glitch in einem Inserat korrigiert (jährlicher Gewinn überschritt den Umsatz, Kaufpreis war dadurch unrealistisch hoch — auf 100 % Marge gekappt und Kaufpreis auf VHB gesetzt).',
+  },
+  {
+    date: '2026-04-30',
     type: 'feature',
     titel: 'Admin-Inserat-Review: Verkäufer-Profil ausgeklappt + Handelsregister-Alarm',
     beschreibung:

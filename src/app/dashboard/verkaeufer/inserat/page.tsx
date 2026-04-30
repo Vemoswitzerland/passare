@@ -42,16 +42,33 @@ export default async function InseratIndexPage() {
     return <NoTableYet />;
   }
 
-  const { data: inserat } = await supabase
+  // Inserat laden + Branchen-Label separat (nested-Join via FK ist
+  // unzuverlässig wenn die FK-Beziehung im Schema nicht garantiert ist).
+  const { data: inserat, error: inseratErr } = await supabase
     .from('inserate')
-    .select('*, branchen(label_de)')
+    .select('*')
     .eq('verkaeufer_id', userData.user.id)
     .order('updated_at', { ascending: false })
     .limit(1)
     .maybeSingle();
 
+  if (inseratErr) {
+    console.warn('[mein-inserat] query failed:', inseratErr.message);
+  }
+
   if (!inserat) {
     redirect('/dashboard/verkaeufer/inserat/new');
+  }
+
+  // Branche-Label nachladen (defensive)
+  let brancheLabel: string | null = null;
+  if (inserat.branche) {
+    const { data: branche } = await supabase
+      .from('branchen')
+      .select('label_de')
+      .eq('id', inserat.branche)
+      .maybeSingle();
+    brancheLabel = (branche?.label_de as string | undefined) ?? null;
   }
 
   // ── KPIs parallel laden — 3 Roundtrips in einem Rutsch ──────────
@@ -237,7 +254,7 @@ export default async function InseratIndexPage() {
                 {inserat.titel || 'Noch kein Titel'}
               </h2>
               <div className="flex flex-wrap gap-x-5 gap-y-1.5 mb-4 text-caption">
-                <Detail label="Branche" value={inserat.branchen?.label_de ?? '—'} />
+                <Detail label="Branche" value={brancheLabel ?? '—'} />
                 <Detail label="Kanton" value={inserat.kanton ?? '—'} />
                 <Detail label="MA" value={inserat.mitarbeitende?.toString() ?? '—'} />
                 <Detail label="Gegründet" value={inserat.gruendungsjahr?.toString() ?? '—'} />
