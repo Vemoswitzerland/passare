@@ -48,6 +48,16 @@ export default async function InseratDetailPage({ params, searchParams }: Params
   const listing = await getListingById(id);
   if (!listing) notFound();
 
+  // TEMP DEBUG: Zeigt welche Anonymitäts-Felder in `listing` ankommen
+  console.log('[inserat-detail-debug]', JSON.stringify({
+    id: listing.id,
+    anonymitaet_level: listing.anonymitaet_level,
+    kontakt_vorname: listing.kontakt_vorname,
+    kontakt_email_public: listing.kontakt_email_public,
+    whatsapp_enabled: listing.whatsapp_enabled,
+    linkedin_url: listing.linkedin_url,
+  }));
+
   const branche = await getBrancheById(listing.branche_id);
   const brancheLabel = branche?.label_de ?? listing.branche_id ?? '—';
 
