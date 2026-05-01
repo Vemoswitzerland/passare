@@ -66,6 +66,13 @@ export const CURRENT_STEP = {
  */
 export const UPDATES: Update[] = [
   {
+    date: '2026-05-01',
+    type: 'feature',
+    titel: 'Experten-System: Beratungs-Termine direkt im Verkäufer-Bereich buchen',
+    beschreibung:
+      'Komplett neues Modul für Berater-Buchungen — inspiriert vom app.vemo-Calendly-System. Im Verwaltungsbereich kann der Admin Experten-Profile anlegen mit Profilbild, Bio, Funktion, Expertise-Tags und Stunden-Honorar in CHF; pro Experte werden auch die Verfügbarkeit (Wochentage, Tagesstart/-ende, Slot-Dauer und -Intervall) und die Sortierung gepflegt. Im Verkäufer-Bereich gibt es einen neuen Sidebar-Eintrag «Experten»: links eine Liste der eigenen anstehenden Termine mit Status-Badge, darunter alle aktiven Experten als Karten mit Foto, Bio, Tags und Stundensatz. Klick auf eine Karte führt zu einem 3-Schritt-Buchungs-Wizard: (1) Datum aus einem Monats-Kalender wählen (Wochentag/Vorlauf/Sperrtage werden automatisch ausgeblendet), dann einen freien Slot picken (bereits gebuchte Slots sind durchgestrichen und nicht klickbar); (2) Kontakt-Daten ausfüllen (Name/Mail/Telefon werden aus dem Profil vorausgefüllt) plus optionales Thema und Notizen; (3) Bezahlung mit Honorar-Übersicht — vorerst Mock-Pay zur Termin-Bestätigung, mit Stripe-Anbindung in nächster Etappe. Termine landen in der DB mit Status pending → paid → confirmed → completed/cancelled. RLS sichert dass Verkäufer nur eigene Termine sehen, Admin alles. Drei Beispiel-Profile sind als Seed angelegt: Diego Berchtold (M&A), Cyrill Lüchinger (Strategie), Anastasia Müller (Steuern & Recht).',
+  },
+  {
     date: '2026-04-30',
     type: 'feature',
     titel: 'Chat erweitert: Unterlagen senden + Action-Karten + Inbox in Käufer + Admin',

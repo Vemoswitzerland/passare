@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, FileText, MessageSquare,
-  FolderOpen, BarChart3, Package, Settings, X,
+  FolderOpen, BarChart3, Package, Settings, X, Sparkles,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -50,6 +50,13 @@ export function VerkaeuferSidebar({
       counter: counts.datenraumFiles || undefined,
     },
     { href: '/dashboard/verkaeufer/statistik', icon: BarChart3, label: 'Statistik' },
+    {
+      // Cyrill 01.05.2026: «Experten-Reiter — Berater-Profile vom Admin
+      // gepflegt, Verkäufer bucht direkt einen Termin.»
+      href: '/dashboard/verkaeufer/experten',
+      icon: Sparkles,
+      label: 'Experten',
+    },
     {
       href: '/dashboard/verkaeufer/paket',
       icon: Package,

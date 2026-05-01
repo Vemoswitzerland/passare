@@ -66,6 +66,15 @@ export type AgentSession = {
  */
 export const SESSIONS: AgentSession[] = [
   {
+    date: '2026-05-01',
+    bereich: 'verkaeufer',
+    titel: 'Experten-System komplett: Admin-CRUD + Verkäufer-Buchungs-Wizard mit Calendly-Slot-Picker',
+    inputTokens: 1_100_000,
+    outputTokens: 240_000,
+    dauerMinuten: 75,
+    status: 'done',
+  },
+  {
     date: '2026-04-30',
     bereich: 'verkaeufer',
     titel: 'Chat: Unterlagen-Anhänge + Action-Karten + Inbox in Käufer + Admin-Bereich',

@@ -10,6 +10,7 @@ import {
   Activity,
   Settings,
   Newspaper,
+  Sparkles,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -35,6 +36,9 @@ const SECTIONS: Section[] = [
       { label: 'Inserate', href: '/admin/inserate', icon: FileText },
       { label: 'User', href: '/admin/users', icon: Users },
       { label: 'Nachrichten', href: '/admin/anfragen', icon: MessageSquare },
+      // Cyrill 01.05.2026: «Experten-System wie bei app.vemo —
+      // Admin pflegt Profile + Honorar, Verkäufer bucht Termine.»
+      { label: 'Experten', href: '/admin/experten', icon: Sparkles },
     ],
   },
   {
