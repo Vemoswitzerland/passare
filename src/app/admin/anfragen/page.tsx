@@ -33,28 +33,43 @@ export default async function AdminAnfragenPage({ searchParams }: Props) {
   const meId = userData.user.id;
 
   // ── Alle Käufer-Anfragen laden (plattformweit) ─────────────────
+  // Cyrill 01.05.2026: «steht nur noch keine Konversationen» — Bug war
+  // dass die Page früh aussteigt wenn keine Käufer-Anfragen existieren.
+  // passare↔Verkäufer-Threads sollen aber AUCH ohne Käufer-Anfragen
+  // sichtbar sein. Daher hier KEIN Early-Return mehr — wir aggregieren
+  // alle Quellen und zeigen den Empty-State erst nach der Threads-Liste.
   const { data: allAnfragen } = await adminClient
     .from('anfragen')
     .select('id, kaeufer_id, inserat_id, status, nachricht, created_at, updated_at')
     .order('updated_at', { ascending: false });
 
-  if (!allAnfragen || allAnfragen.length === 0) {
-    return (
-      <div className="h-[calc(100vh-3.5rem)] md:h-[calc(100vh-4rem)] px-3 py-3 md:px-4 md:py-4 flex items-center justify-center">
-        <div className="rounded-card bg-paper border border-stone p-12 text-center max-w-md">
-          <Inbox className="w-10 h-10 mx-auto text-quiet mb-3" strokeWidth={1.5} />
-          <h3 className="font-serif text-head-sm text-navy mb-1">Noch keine Konversationen</h3>
-          <p className="text-body-sm text-muted">Sobald Käufer Anfragen stellen oder das passare-Team mit Verkäufern schreibt, erscheint es hier.</p>
-        </div>
-      </div>
-    );
+  const anfrageList = (allAnfragen ?? []) as Array<Record<string, unknown>>;
+  const anfrageIds = anfrageList.map((a) => a.id as string);
+  // Inserat-IDs aus Anfragen — werden gleich um Audit-Inserate ergänzt
+  const inseratIdsSet = new Set<string>(anfrageList.map((a) => a.inserat_id as string));
+
+  // Audit-Messages zuerst — daraus kommen weitere Inserat-IDs (passare-Threads
+  // ohne Käufer-Anfragen). Cyrill 01.05.2026: «steht nur noch keine
+  // Konversationen» wenn nur passare↔Verkäufer-Threads existieren.
+  const passareLastByInserat = new Map<string, { message: string; created_at: string }>();
+  const { data: auditRaw } = await adminClient
+    .from('inserat_audit_messages')
+    .select('inserat_id, message, created_at')
+    .order('created_at', { ascending: false });
+  for (const m of (auditRaw ?? []) as Array<Record<string, unknown>>) {
+    const iid = m.inserat_id as string;
+    inseratIdsSet.add(iid);
+    if (!passareLastByInserat.has(iid)) {
+      passareLastByInserat.set(iid, {
+        message: m.message as string,
+        created_at: m.created_at as string,
+      });
+    }
   }
 
-  const anfrageList = allAnfragen as Array<Record<string, unknown>>;
-  const anfrageIds = anfrageList.map((a) => a.id as string);
-  const inseratIds: string[] = Array.from(new Set(anfrageList.map((a) => a.inserat_id as string)));
+  const inseratIds = Array.from(inseratIdsSet);
 
-  // Alle Inserate (Titel + Verkäufer)
+  // Inserate (Titel + Verkäufer + Status) für ALLE relevanten Inserate
   const { data: insRows } = await adminClient
     .from('inserate')
     .select('id, titel, verkaeufer_id, status')
@@ -90,35 +105,21 @@ export default async function AdminAnfragenPage({ searchParams }: Props) {
   // Last-Message pro Käufer-Thread
   type LastMsg = { anfrage_id: string; message: string; created_at: string };
   const lastMsgsByAnfrage = new Map<string, LastMsg>();
-  const { data: rawLasts } = await adminClient
-    .from('anfrage_messages')
-    .select('anfrage_id, message, created_at')
-    .in('anfrage_id', anfrageIds)
-    .order('created_at', { ascending: false });
-  for (const m of (rawLasts ?? []) as Array<Record<string, unknown>>) {
-    const aid = m.anfrage_id as string;
-    if (!lastMsgsByAnfrage.has(aid)) {
-      lastMsgsByAnfrage.set(aid, {
-        anfrage_id: aid,
-        message: m.message as string,
-        created_at: m.created_at as string,
-      });
-    }
-  }
-
-  // Last passare-Team-Message pro Inserat (audit-messages)
-  const passareLastByInserat = new Map<string, { message: string; created_at: string }>();
-  const { data: auditRaw } = await adminClient
-    .from('inserat_audit_messages')
-    .select('inserat_id, message, created_at')
-    .order('created_at', { ascending: false });
-  for (const m of (auditRaw ?? []) as Array<Record<string, unknown>>) {
-    const iid = m.inserat_id as string;
-    if (!passareLastByInserat.has(iid)) {
-      passareLastByInserat.set(iid, {
-        message: m.message as string,
-        created_at: m.created_at as string,
-      });
+  if (anfrageIds.length > 0) {
+    const { data: rawLasts } = await adminClient
+      .from('anfrage_messages')
+      .select('anfrage_id, message, created_at')
+      .in('anfrage_id', anfrageIds)
+      .order('created_at', { ascending: false });
+    for (const m of (rawLasts ?? []) as Array<Record<string, unknown>>) {
+      const aid = m.anfrage_id as string;
+      if (!lastMsgsByAnfrage.has(aid)) {
+        lastMsgsByAnfrage.set(aid, {
+          anfrage_id: aid,
+          message: m.message as string,
+          created_at: m.created_at as string,
+        });
+      }
     }
   }
 
@@ -170,6 +171,21 @@ export default async function AdminAnfragenPage({ searchParams }: Props) {
   const threads = [...kaeuferThreads, ...passareThreads].sort(
     (a, b) => new Date(b.lastAt).getTime() - new Date(a.lastAt).getTime(),
   );
+
+  if (threads.length === 0) {
+    return (
+      <div className="h-[calc(100vh-3.5rem)] md:h-[calc(100vh-4rem)] px-3 py-3 md:px-4 md:py-4 flex items-center justify-center">
+        <div className="rounded-card bg-paper border border-stone p-12 text-center max-w-md">
+          <Inbox className="w-10 h-10 mx-auto text-quiet mb-3" strokeWidth={1.5} />
+          <h3 className="font-serif text-head-sm text-navy mb-1">Noch keine Konversationen</h3>
+          <p className="text-body-sm text-muted">
+            Sobald Käufer Anfragen stellen oder du als passare-Team einem
+            Verkäufer schreibst, erscheint es hier.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   // ── Aktiven Thread laden ───────────────────────────────────────
   const activeThreadId = threadParam ?? threads[0]?.id ?? null;

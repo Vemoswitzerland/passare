@@ -202,16 +202,17 @@ export function InseratAuditPanel({
           </Button>
         )}
 
-        {/* Cyrill 30.04.2026: «Wenn ein Inserat live ist, muss man trotzdem
-            beim Admin noch über das Inserat mit dem User schreiben können».
-            Status-neutrale Nachricht — landet beim Verkäufer als Anfrage-
-            artiger Eintrag im Anfragen-Bereich, ohne den Inserat-Status zu
-            ändern. Verfügbar in jedem Status, weil Admin und User auch nach
-            der Freigabe Klärungsbedarf haben können. */}
+        {/* Cyrill 01.05.2026: «Ich soll auf das Inserat gehen können, dann
+            Nachricht an den Verkäufer machen und es soll direkt auf
+            Nachrichten gehen und dort einen neuen Chat öffnen mit dem
+            Verkäufer mit der gleichen Chat-Ansicht». Statt Modal: direkt
+            zur Inbox navigieren mit aktivem passare-Thread für dieses
+            Inserat. Im Chat dort schreibt der Admin in der gleichen UI
+            wie der Verkäufer/Käufer. */}
         <Button
           size="sm"
           variant="secondary"
-          onClick={() => setMode('nachricht')}
+          onClick={() => router.push(`/admin/anfragen?thread=p:${id}`)}
           disabled={pending}
           className="w-full"
         >
