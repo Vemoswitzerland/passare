@@ -75,7 +75,7 @@ export default async function KaeuferDashboardPage({ searchParams }: Props) {
           <div className="flex items-center gap-2 mb-3">
             <Sparkles className="w-4 h-4 text-bronze" strokeWidth={1.5} />
             <p className="overline text-bronze">
-              {welcome === 'max' ? 'Käufer MAX aktiv' : 'Willkommen'}
+              {welcome === 'max' ? 'Käufer+ aktiv' : 'Willkommen'}
             </p>
           </div>
           <h1 className="font-serif text-display-sm md:text-head-lg text-cream font-light leading-tight mb-3">

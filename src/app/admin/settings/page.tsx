@@ -107,7 +107,7 @@ export default function AdminSettingsPage() {
           </div>
           <div className="bg-paper border border-stone rounded-soft p-3">
             <p className="text-caption text-quiet uppercase tracking-wide font-medium mb-1">
-              Käufer MAX
+              Käufer+
             </p>
             <p className="text-base text-navy font-semibold tabular-nums">CHF 199 / Monat</p>
             <p className="text-caption text-quiet">oder CHF 1&apos;990 / Jahr</p>

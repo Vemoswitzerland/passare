@@ -71,7 +71,7 @@ export default async function ExperteDetailPage({ params }: Props) {
             slot_intervall_min: Number(experte.slot_intervall_min),
             blocked_dates: Array.isArray(experte.blocked_dates) ? (experte.blocked_dates as string[]) : [],
           }}
-          belegteSlots={(belegteSlots ?? []).map((s) => ({
+          belegteSlots={((belegteSlots ?? []) as Array<Record<string, unknown>>).map((s) => ({
             start_at: s.start_at as string,
             dauer_min: s.dauer_min as number,
           }))}

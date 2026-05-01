@@ -122,10 +122,10 @@ function parseFiltersFromSearchParams(sp: SearchParams) {
 export async function SiteHeader({ activeSell = false }: { activeSell?: boolean } = {}) {
   // Kontext-abhängige Navigation:
   // - activeSell = true (Verkäufer-Marketing: /verkaufen, /preise) zeigt
-  //   «Firma inserieren» (aktiv) + «Inserat-Preise». Käufer-MAX-Link bleibt aus.
-  // - activeSell = false (Plattform/Käufer-Sicht: /, /inserat/*, /pro) zeigt
-  //   «Firma inserieren» + «Pro». «Inserat-Preise» ist hier raus, weil sie
-  //   für Käufer auf der Plattform nicht zur Sache gehört.
+  //   «Firma inserieren» (aktiv) + «Inserat-Preise». Käufer+-Link bleibt aus.
+  // - activeSell = false (Plattform/Käufer-Sicht: /, /inserat/*, /plus) zeigt
+  //   «Firma inserieren» + «Käufer+» + «Broker». «Inserat-Preise» ist hier raus,
+  //   weil sie für Käufer auf der Plattform nicht zur Sache gehört.
   const supabase = await createClient();
   const { data: u } = await supabase.auth.getUser();
   let dashboardHref: string | null = null;
@@ -171,8 +171,8 @@ export async function SiteHeader({ activeSell = false }: { activeSell?: boolean 
               Broker
             </Link>
             {!activeSell && (
-              <Link href="/pro" className="text-[0.8125rem] font-medium text-muted hover:text-ink">
-                Pro
+              <Link href="/plus" className="text-[0.8125rem] font-medium text-muted hover:text-ink inline-flex items-center gap-1">
+                Käufer<span className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-bronze text-cream font-mono text-[10px] leading-none">+</span>
               </Link>
             )}
           </nav>
@@ -226,7 +226,7 @@ export function SiteFooter({ activeSell = false }: { activeSell?: boolean } = {}
               )}
               <li><Link className="hover:text-navy" href="/broker">Broker</Link></li>
               {!activeSell && (
-                <li><Link className="hover:text-navy" href="/pro">Pro</Link></li>
+                <li><Link className="hover:text-navy" href="/plus">Käufer+</Link></li>
               )}
             </ul>
           </div>
@@ -444,14 +444,16 @@ function Marketplace({
                   </Link>
                 </div>
 
-                {/* Pro-Upsell — eigene Käufer-Vorteile-Seite */}
+                {/* Plus-Upsell — eigene Käufer-Vorteile-Seite */}
                 <div className="bg-navy text-cream rounded-soft p-4 -mx-2 mt-6">
-                  <p className="overline text-bronze mb-2">Käufer Pro</p>
+                  <p className="overline text-bronze mb-2 inline-flex items-center gap-1">
+                    Käufer<span className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-bronze text-navy font-mono text-[10px] leading-none">+</span>
+                  </p>
                   <p className="font-serif text-body text-cream mb-3 leading-snug">
                     7 Tage Frühzugang &amp; Echtzeit-Alerts
                   </p>
-                  <Link href="/pro" className="font-mono text-[11px] uppercase tracking-widest text-bronze inline-flex items-center gap-1 hover:gap-2 transition-all">
-                    Pro ansehen <ArrowRight className="w-3 h-3" strokeWidth={1.5} />
+                  <Link href="/plus" className="font-mono text-[11px] uppercase tracking-widest text-bronze inline-flex items-center gap-1 hover:gap-2 transition-all">
+                    Käufer+ ansehen <ArrowRight className="w-3 h-3" strokeWidth={1.5} />
                   </Link>
                 </div>
               </form>
@@ -506,15 +508,15 @@ function Marketplace({
                 <div className="mt-16 text-center p-10 border border-dashed border-stone rounded-card">
                   <p className="overline mb-3 text-bronze-ink">Weitere Inserate</p>
                   <h3 className="font-serif text-head-lg text-navy mb-3 font-normal">
-                    Mit Käufer Pro sehen Sie alles zuerst.
+                    Mit Käufer+ sehen Sie alles zuerst.
                   </h3>
                   <p className="text-body-sm text-muted mb-6 max-w-md mx-auto">
-                    Neue Inserate sind 7 Tage lang nur für Pro-Mitglieder sichtbar,
-                    bevor sie öffentlich werden. Plus: alle Filter, unbegrenzte Anfragen,
+                    Neue Inserate sind 7 Tage lang nur für Käufer+-Mitglieder sichtbar,
+                    bevor sie öffentlich werden. Plus alle Filter, unbegrenzte Anfragen,
                     Echtzeit-Alerts.
                   </p>
-                  <Button href="/pro" variant="secondary" size="md">
-                    Pro ab CHF 199/Monat <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
+                  <Button href="/plus" variant="secondary" size="md">
+                    Käufer+ ab CHF 199/Monat <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
                   </Button>
                 </div>
               </Reveal>

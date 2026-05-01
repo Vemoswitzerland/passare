@@ -4,9 +4,15 @@
  * Pure Function — keine DB-Calls hier drin. Multiples werden vom Caller
  * geladen (kmu_multiples-Tabelle).
  *
- * Für die interne Smart-Bewertung (verkaufsfertig, mit Size/Age/Owner-Mods)
- * existiert separat src/lib/valuation.ts. Hier bleibt es bewusst simpel:
- * öffentliche Tool-User sollen die Logik nachvollziehen können.
+ * Erweitert (Mai 2026): Neben den Basis-Inputs (Branche, Mitarbeitende,
+ * Umsatz, EBITDA, Wachstum, Standort) berücksichtigt die Engine jetzt
+ * vier qualitative Detail-Faktoren — wiederkehrender Umsatzanteil,
+ * Kundenkonzentration (Top-3), Inhaberabhängigkeit und Firmenalter.
+ * Jeder Faktor moduliert das Multiple zwischen −20 % und +20 %, damit
+ * die Range realistischer wird, ohne in den Black-Box-Modus zu kippen.
+ *
+ * Für die interne Smart-Bewertung (Inserat-Funnel) existiert separat
+ * src/lib/valuation.ts. Hier bleibt es bewusst nachvollziehbar.
  */
 
 export type Multiples = {
@@ -18,6 +24,8 @@ export type Multiples = {
   quelle: string | null;
 };
 
+export type Inhaberabhaengigkeit = 'low' | 'mid' | 'high';
+
 export type CalcInput = {
   branche: string;
   mitarbeitende: number;
@@ -26,6 +34,12 @@ export type CalcInput = {
   kanton: string;
   wachstum_pct: number;      // p.a. in %
   multiples: Multiples;
+
+  // Optionale Detail-Faktoren (alle sind safe-defaults wenn weggelassen).
+  recurring_pct?: number;             // 0–100 — Anteil wiederkehrender Umsätze
+  top3_kunden_pct?: number;           // 0–100 — Anteil Top-3-Kunden am Umsatz
+  inhaberabhaengigkeit?: Inhaberabhaengigkeit;  // 'low' | 'mid' | 'high'
+  alter_jahre?: number;               // Firmenalter in Jahren
 };
 
 export type CalcResult = {
@@ -35,6 +49,13 @@ export type CalcResult = {
   multiple_min_used: number;
   multiple_max_used: number;
   growth_factor: number;
+  detail_factor: number;            // kombinierter Faktor aus den 4 Detail-Inputs
+  detail_breakdown: {
+    recurring: number;              // ±, z.B. 0.12 = +12 %
+    konzentration: number;          // ±
+    inhaber: number;                // ±
+    alter: number;                  // ±
+  };
   quelle: string;
   warning?: string;
 };
@@ -46,6 +67,44 @@ function clamp(v: number, lo: number, hi: number) {
 function roundToNearestThousand(n: number) {
   return Math.round(n / 1000) * 1000;
 }
+
+/* ─────────────── Detail-Modifier ─────────────── */
+
+/** Recurring Revenue — bis +20 % bei 80 % wiederkehrendem Umsatz. */
+function recurringMod(pct: number | undefined): number {
+  if (pct == null || pct <= 0) return 0;
+  // 0 % → 0, 80 % → +0.20 (linear gedeckelt)
+  return clamp((pct / 80) * 0.20, 0, 0.20);
+}
+
+/** Klumpenrisiko — Abschlag wenn Top-3 > 30 % vom Umsatz. */
+function konzentrationMod(pct: number | undefined): number {
+  if (pct == null || pct <= 30) return 0;
+  if (pct >= 70) return -0.20;
+  if (pct >= 50) return -0.12;
+  return -0.06;
+}
+
+/** Inhaberabhängigkeit. */
+function inhaberMod(level: Inhaberabhaengigkeit | undefined): number {
+  switch (level) {
+    case 'low':  return  0.08;   // läuft ohne Inhaber
+    case 'high': return -0.15;   // Inhaber = Firma
+    case 'mid':
+    default:     return  0;
+  }
+}
+
+/** Firmenalter — Aufschlag bei langer Historie, Abschlag bei <5 Jahren. */
+function alterMod(jahre: number | undefined): number {
+  if (jahre == null) return 0;
+  if (jahre < 3) return -0.10;
+  if (jahre < 5) return -0.05;
+  if (jahre >= 30) return 0.05;
+  return 0;
+}
+
+/* ─────────────── Hauptberechnung ─────────────── */
 
 export function calculateBewertung(input: CalcInput): CalcResult {
   const ebitda = Math.max(0, input.umsatz_chf * (input.ebitda_pct / 100));
@@ -62,11 +121,20 @@ export function calculateBewertung(input: CalcInput): CalcResult {
     max = Math.min(max, umsatzMax);
   }
 
-  // Wachstums-Adjustment: ±15% (für >10% growth +15%, <0% -15%)
-  // Linear zwischen wachstum=5% (Faktor 1.0) und wachstum=15% (Faktor 1.15)
+  // Wachstums-Adjustment: ±15 % (für >10 % growth +15 %, <0 % -15 %)
   const growthFactor = 1 + clamp((input.wachstum_pct - 5) / 100 * 1.5, -0.15, 0.15);
   min = min * growthFactor;
   max = max * growthFactor;
+
+  // Detail-Faktoren — werden additiv summiert, dann auf ±0.30 gedeckelt
+  const recurring = recurringMod(input.recurring_pct);
+  const konzentration = konzentrationMod(input.top3_kunden_pct);
+  const inhaber = inhaberMod(input.inhaberabhaengigkeit);
+  const alter = alterMod(input.alter_jahre);
+  const detailSum = recurring + konzentration + inhaber + alter;
+  const detailFactor = 1 + clamp(detailSum, -0.30, 0.30);
+  min = min * detailFactor;
+  max = max * detailFactor;
 
   // Mindest-Range-Spreizung garantieren
   if (max - min < min * 0.15) {
@@ -77,9 +145,11 @@ export function calculateBewertung(input: CalcInput): CalcResult {
 
   let warning: string | undefined;
   if (input.ebitda_pct < 3) {
-    warning = 'EBITDA-Marge unter 3% — Bewertung mit erhöhter Unsicherheit.';
+    warning = 'EBITDA-Marge unter 3 % — Bewertung mit erhöhter Unsicherheit.';
   } else if (input.umsatz_chf < 200_000) {
     warning = 'Umsatz unter CHF 200\'000 — Multiple-Bewertung nur bedingt aussagekräftig.';
+  } else if (inhaber <= -0.10 && (input.top3_kunden_pct ?? 0) >= 50) {
+    warning = 'Hohe Inhaberabhängigkeit kombiniert mit Klumpenrisiko — Käufer werden hier deutlich mehr Earn-out und Übergangs-Phase verlangen.';
   }
 
   return {
@@ -89,6 +159,13 @@ export function calculateBewertung(input: CalcInput): CalcResult {
     multiple_min_used: input.multiples.ebitda_multiple_min,
     multiple_max_used: input.multiples.ebitda_multiple_max,
     growth_factor: Number(growthFactor.toFixed(3)),
+    detail_factor: Number(detailFactor.toFixed(3)),
+    detail_breakdown: {
+      recurring: Number(recurring.toFixed(3)),
+      konzentration: Number(konzentration.toFixed(3)),
+      inhaber: Number(inhaber.toFixed(3)),
+      alter: Number(alter.toFixed(3)),
+    },
     quelle: input.multiples.quelle ?? 'passare-Multiples-DB',
     warning,
   };

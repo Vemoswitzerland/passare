@@ -111,10 +111,10 @@ export default async function PaketPage({ searchParams }: Props) {
               <Crown className="w-5 h-5 text-bronze flex-shrink-0 mt-0.5" strokeWidth={1.5} />
               <div>
                 <p className="text-navy font-medium text-body-sm mb-1">
-                  Bei deinem Profil empfehlen wir Käufer MAX.
+                  Bei deinem Profil empfehlen wir Käufer+.
                 </p>
                 <p className="text-caption text-muted leading-relaxed">
-                  Family Offices und strategische Käufer schließen Deals oft in den ersten 7 Tagen ab — genau da, wo MAX dir Frühzugang gibt. Ohne MAX siehst du Top-Inserate eine Woche zu spät.
+                  Family Offices und strategische Käufer schließen Deals oft in den ersten 7 Tagen ab — genau da, wo Käufer+ dir Frühzugang gibt. Ohne Käufer+ siehst du Top-Inserate eine Woche zu spät.
                 </p>
               </div>
             </div>
@@ -171,7 +171,7 @@ export default async function PaketPage({ searchParams }: Props) {
                 <FeatureRow text="Alerts wöchentlich per E-Mail" />
                 <FeatureRow text="1 Suchprofil" />
                 <FeatureRow text="Anfragen senden + Detail-Dossier nach Freigabe" />
-                <FeatureRow text="MAX-Features" available={false} />
+                <FeatureRow text="Käufer+-Features" available={false} />
               </ul>
 
               <form action={continueWithBasicAction} className="mt-auto">
@@ -185,7 +185,7 @@ export default async function PaketPage({ searchParams }: Props) {
               </form>
             </div>
 
-            {/* ─── MAX ─── */}
+            {/* ─── Käufer+ ─── */}
             <div className="bg-paper border-2 border-bronze rounded-card p-7 md:p-9 flex flex-col shadow-card relative overflow-hidden">
               <span className="absolute top-0 right-0 bg-bronze text-cream font-mono text-[11px] uppercase tracking-widest px-4 py-1.5 rounded-bl-card">
                 {isHighValue ? 'Empfohlen für dich' : 'Empfohlen'}
@@ -193,7 +193,7 @@ export default async function PaketPage({ searchParams }: Props) {
 
               <div className="flex items-center gap-2 mb-2">
                 <Crown className="w-4 h-4 text-bronze" strokeWidth={1.5} />
-                <h2 className="font-serif text-head-lg text-navy font-normal">Käufer MAX</h2>
+                <h2 className="font-serif text-head-lg text-navy font-normal">Käufer+</h2>
               </div>
               <p className="text-body-sm text-muted mb-6">
                 Für ernsthafte Käufer, die nichts verpassen wollen.
@@ -229,7 +229,7 @@ export default async function PaketPage({ searchParams }: Props) {
                   Lohnt sich das?
                 </p>
                 <p className="text-caption text-muted leading-snug">
-                  Ein verpasster Deal kostet schnell CHF 50&apos;000 oder mehr. MAX kostet CHF{' '}
+                  Ein verpasster Deal kostet schnell CHF 50&apos;000 oder mehr. Käufer+ kostet CHF{' '}
                   {interval === 'yearly' ? '1\'990' : '2\'388'} pro Jahr.
                 </p>
               </div>
@@ -242,7 +242,7 @@ export default async function PaketPage({ searchParams }: Props) {
                   type="submit"
                   className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 bg-bronze text-cream rounded-soft text-body-sm font-medium hover:bg-bronze-ink hover:-translate-y-[1px] hover:shadow-lift transition-all"
                 >
-                  Mit MAX starten
+                  Mit Käufer+ starten
                   <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
                 </button>
                 <p className="text-caption text-quiet text-center mt-3">
@@ -256,12 +256,12 @@ export default async function PaketPage({ searchParams }: Props) {
           <div className="max-w-4xl mx-auto mt-12 grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <FeatureVisual icon={Zap} title="Frühzugang" desc="7 Tage vor allen anderen" />
             <FeatureVisual icon={Bell} title="WhatsApp-Alerts" desc="In unter 5 Minuten" />
-            <FeatureVisual icon={MessageSquare} title="Direkt-Anfrage" desc="Verkäufer sehen «MAX»-Badge" />
+            <FeatureVisual icon={MessageSquare} title="Direkt-Anfrage" desc="Verkäufer sehen «Käufer+»-Badge" />
             <FeatureVisual icon={FileLock2} title="Datenraum-Share" desc="Berater zeitlich begrenzt rein" />
           </div>
 
           <p className="text-center text-caption text-quiet mt-12">
-            Du kannst MAX jederzeit pausieren oder kündigen. Dein Käufer-Profil bleibt aktiv.
+            Du kannst Käufer+ jederzeit pausieren oder kündigen. Dein Käufer-Profil bleibt aktiv.
           </p>
         </Container>
       </section>

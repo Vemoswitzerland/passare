@@ -38,14 +38,14 @@ export function KaeuferTopbar({ email: _email, fullName: _fullName, isMax, isAdm
         passare<span className="text-bronze">.</span>
       </Link>
 
-      {/* MAX-Badge nur als Auszeichnung wenn der User wirklich MAX hat */}
+      {/* Käufer+-Badge nur als Auszeichnung wenn der User wirklich Käufer+ hat */}
       {isMax && (
         <span className={cn(
           'hidden sm:inline-flex items-center gap-1 px-1.5 py-0.5 rounded-soft text-[10px] uppercase tracking-widest font-mono font-medium leading-none',
           'bg-bronze-soft text-bronze-ink border border-bronze/30',
         )}>
           <Crown className="w-2.5 h-2.5" strokeWidth={2} />
-          MAX
+          Käufer+
         </span>
       )}
 

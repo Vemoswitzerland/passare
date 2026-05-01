@@ -142,14 +142,14 @@ export function SuchprofilForm({ isMax, branchen }: Props) {
             icon={MessageCircle}
             label="WhatsApp · in unter 5 Minuten bei einem Match"
             disabled={!isMax}
-            note={!isMax ? 'Nur mit MAX-Abo' : undefined}
+            note={!isMax ? 'Nur mit Käufer+-Abo' : undefined}
           />
           <CheckboxRow
             name="push_alert"
             icon={Smartphone}
             label="Push-Notification · sofort"
             disabled={!isMax}
-            note={!isMax ? 'Nur mit MAX-Abo' : undefined}
+            note={!isMax ? 'Nur mit Käufer+-Abo' : undefined}
           />
         </div>
         {!isMax && (

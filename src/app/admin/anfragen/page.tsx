@@ -50,8 +50,9 @@ export default async function AdminAnfragenPage({ searchParams }: Props) {
     );
   }
 
-  const anfrageIds = allAnfragen.map((a) => a.id as string);
-  const inseratIds = Array.from(new Set(allAnfragen.map((a) => a.inserat_id as string)));
+  const anfrageList = allAnfragen as Array<Record<string, unknown>>;
+  const anfrageIds = anfrageList.map((a) => a.id as string);
+  const inseratIds: string[] = Array.from(new Set(anfrageList.map((a) => a.inserat_id as string)));
 
   // Alle Inserate (Titel + Verkäufer)
   const { data: insRows } = await adminClient
@@ -69,7 +70,7 @@ export default async function AdminAnfragenPage({ searchParams }: Props) {
 
   // Profile (Käufer + Verkäufer)
   const allUserIds = Array.from(new Set([
-    ...allAnfragen.map((a) => a.kaeufer_id as string),
+    ...anfrageList.map((a) => a.kaeufer_id as string),
     ...Array.from(insMap.values()).map((i) => i.verkaeufer_id),
   ]));
   const profMap = new Map<string, { name: string | null; email: string | null }>();
@@ -122,7 +123,7 @@ export default async function AdminAnfragenPage({ searchParams }: Props) {
   }
 
   // ── Threads bauen ──────────────────────────────────────────────
-  const kaeuferThreads: InboxThread[] = allAnfragen.map((a) => {
+  const kaeuferThreads: InboxThread[] = anfrageList.map((a) => {
     const last = lastMsgsByAnfrage.get(a.id as string);
     const ins = insMap.get(a.inserat_id as string);
     const kaeuferProf = profMap.get(a.kaeufer_id as string);

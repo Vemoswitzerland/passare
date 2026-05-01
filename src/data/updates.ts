@@ -67,10 +67,17 @@ export const CURRENT_STEP = {
 export const UPDATES: Update[] = [
   {
     date: '2026-05-01',
-    type: 'feature',
-    titel: 'Experten-System: Beratungs-Termine direkt im Verkäufer-Bereich buchen',
+    type: 'design',
+    titel: 'Header schlanker, Broker als eigener Menüpunkt, Käufer+ statt Käufer MAX',
     beschreibung:
-      'Komplett neues Modul für Berater-Buchungen — inspiriert vom app.vemo-Calendly-System. Im Verwaltungsbereich kann der Admin Experten-Profile anlegen mit Profilbild, Bio, Funktion, Expertise-Tags und Stunden-Honorar in CHF; pro Experte werden auch die Verfügbarkeit (Wochentage, Tagesstart/-ende, Slot-Dauer und -Intervall) und die Sortierung gepflegt. Im Verkäufer-Bereich gibt es einen neuen Sidebar-Eintrag «Experten»: links eine Liste der eigenen anstehenden Termine mit Status-Badge, darunter alle aktiven Experten als Karten mit Foto, Bio, Tags und Stundensatz. Klick auf eine Karte führt zu einem 3-Schritt-Buchungs-Wizard: (1) Datum aus einem Monats-Kalender wählen (Wochentag/Vorlauf/Sperrtage werden automatisch ausgeblendet), dann einen freien Slot picken (bereits gebuchte Slots sind durchgestrichen und nicht klickbar); (2) Kontakt-Daten ausfüllen (Name/Mail/Telefon werden aus dem Profil vorausgefüllt) plus optionales Thema und Notizen; (3) Bezahlung mit Honorar-Übersicht — vorerst Mock-Pay zur Termin-Bestätigung, mit Stripe-Anbindung in nächster Etappe. Termine landen in der DB mit Status pending → paid → confirmed → completed/cancelled. RLS sichert dass Verkäufer nur eigene Termine sehen, Admin alles. Drei Beispiel-Profile sind als Seed angelegt: Diego Berchtold (M&A), Cyrill Lüchinger (Strategie), Anastasia Müller (Steuern & Recht).',
+      'Drei Änderungen am Hauptmenü und an der Wording-Welt: (1) Auf der Plattform-Sicht (Marktplatz, Inserat-Detail, Käuferseiten) ist «Inserat-Preise» aus Header und Footer raus — dort gehört es nicht hin, und der Header bleibt schlanker. Wer im Verkäufer-Bereich landet (z.B. «Firma inserieren») sieht «Inserat-Preise» weiterhin im Menü, dort hat es einen klaren Platz. (2) Neuer Menüpunkt «Broker» überall im Header und Footer — eigene Landingpage mit Plädoyer für M&A-Berater, Treuhänder und Broker (sechs Argumente, zwei typische Mandats-Szenarien, Roadmap zum dedizierten Broker-Tier). (3) Das Käufer-Tier «MAX» heisst neu «Käufer+» mit Plus-Symbol — auf der Marketingseite, im Onboarding, im Käufer-Dashboard, im Sidebar-Menü, im Upsell-Banner und in der Topbar. Der bisherige Pfad /max bleibt als Redirect, die neue Hauptadresse ist /plus.',
+  },
+  {
+    date: '2026-05-01',
+    type: 'feature',
+    titel: 'Bewertungstool: vier neue Detail-Faktoren für eine intensivere Einwertung',
+    beschreibung:
+      'Das Gratis-Bewertungstool /bewerten geht jetzt deutlich tiefer: Nach den Basis-Inputs (Branche, Mitarbeitende, Umsatz, EBITDA, Standort, Wachstum) folgt ein Verfeinerungs-Schritt mit vier optionalen Faktoren — Anteil wiederkehrender Umsätze (bis +20 % auf Multiple), Kundenkonzentration der Top-3 (bis −20 % bei Klumpenrisiko), Inhaberabhängigkeit (niedrig/mittel/hoch — Käufer mögen delegierte Strukturen) und Alter der Firma (Junggesellen-Abschlag bei < 5 Jahren, Marken-Bonus ab 30 Jahren). Im Ergebnis wird der kombinierte Detail-Faktor angezeigt und es gibt eine Aufschlüsselung welcher Faktor wieviel Prozent gemacht hat. So sieht der Verkäufer sofort, wo seine Firma stark steht und wo Käufer typischerweise einen Earn-out fordern werden.',
   },
   {
     date: '2026-04-30',

@@ -511,7 +511,8 @@ function Footer() {
               <li><Link className="hover:text-navy" href="/verkaufen">Firma inserieren</Link></li>
               <li><Link className="hover:text-navy" href="/preise">Inserat-Preise</Link></li>
               <li><Link className="hover:text-navy" href="/">Firmen entdecken</Link></li>
-              <li><Link className="hover:text-navy" href="/max">Käufer MAX</Link></li>
+              <li><Link className="hover:text-navy" href="/broker">Broker</Link></li>
+              <li><Link className="hover:text-navy" href="/plus">Käufer+</Link></li>
             </ul>
           </div>
           <div>

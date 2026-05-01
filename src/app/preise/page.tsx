@@ -140,13 +140,13 @@ function KaeuferHinweis() {
                 </h3>
                 <p className="text-body text-muted max-w-prose leading-relaxed">
                   Käufer browsen den Marktplatz gratis. Wer alles früher sehen will und
-                  unbegrenzt anfragen möchte, bucht <strong className="font-medium text-navy">Käufer MAX</strong> —
+                  unbegrenzt anfragen möchte, bucht <strong className="font-medium text-navy">Käufer+</strong> —
                   die Vorteile, der Vergleich und die Käufer-FAQ liegen auf der eigenen Seite.
                 </p>
               </div>
               <div className="flex flex-col gap-3 md:items-end">
-                <Button href="/max" size="md">
-                  Käufer-MAX ansehen <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
+                <Button href="/plus" size="md">
+                  Käufer+ ansehen <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
                 </Button>
                 <Button href="/" variant="ghost" size="sm">
                   Zum Marktplatz
@@ -213,7 +213,8 @@ function Footer() {
               <li><Link className="hover:text-navy" href="/verkaufen">Firma inserieren</Link></li>
               <li><Link className="hover:text-navy" href="/preise">Inserat-Preise</Link></li>
               <li><Link className="hover:text-navy" href="/">Firmen entdecken</Link></li>
-              <li><Link className="hover:text-navy" href="/max">Käufer MAX</Link></li>
+              <li><Link className="hover:text-navy" href="/broker">Broker</Link></li>
+              <li><Link className="hover:text-navy" href="/plus">Käufer+</Link></li>
             </ul>
           </div>
           <div>

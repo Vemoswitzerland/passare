@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/server';
 import { hasTable } from '@/lib/db/has-table';
 import { cn } from '@/lib/utils';
 
-export const metadata = { title: 'MAX-Abo — Käufer · passare', robots: { index: false, follow: false } };
+export const metadata = { title: 'Käufer+-Abo — passare', robots: { index: false, follow: false } };
 
 export default async function AboPage() {
   const supabase = await createClient();
@@ -39,7 +39,7 @@ export default async function AboPage() {
       <div>
         <p className="overline text-bronze mb-2">Abonnement · Zahlungen · Rechnungen</p>
         <h1 className="font-serif text-display-sm md:text-head-lg text-navy font-light">
-          MAX-Abo<span className="text-bronze">.</span>
+          Käufer+-Abo<span className="text-bronze">.</span>
         </h1>
         <p className="text-body-sm text-muted mt-2 max-w-2xl">
           Hier verwaltest du dein Käufer-Abonnement, siehst alle Zahlungen und kannst jederzeit upgraden, downgraden oder pausieren.
@@ -62,7 +62,7 @@ export default async function AboPage() {
             <h2 className={cn('font-serif text-head-lg font-normal',
               isMax ? 'text-cream' : 'text-navy',
             )}>
-              {isMax ? 'Käufer MAX' : 'Käufer Basic'}<span className="text-bronze">.</span>
+              {isMax ? 'Käufer+' : 'Käufer Basic'}<span className="text-bronze">.</span>
             </h2>
             <p className={cn('text-body-sm mt-2', isMax ? 'text-cream/80' : 'text-muted')}>
               {isMax

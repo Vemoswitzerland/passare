@@ -32,7 +32,7 @@ const HAUPTMENU: NavItem[] = [
 ];
 
 const ACCOUNT: NavItem[] = [
-  { label: 'MAX-Abo',           href: '/dashboard/kaeufer/abo',          icon: CreditCard },
+  { label: 'Käufer+-Abo',       href: '/dashboard/kaeufer/abo',          icon: CreditCard },
   { label: 'Käufer-Profil',     href: '/dashboard/kaeufer/profil',       icon: User },
 ];
 

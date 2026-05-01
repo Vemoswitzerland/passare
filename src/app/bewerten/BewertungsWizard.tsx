@@ -1,10 +1,15 @@
 'use client';
 
 import * as React from 'react';
-import { ArrowRight, ArrowLeft, RotateCcw, CheckCircle2, AlertCircle, Mail } from 'lucide-react';
+import {
+  ArrowRight, ArrowLeft, RotateCcw, CheckCircle2, AlertCircle, Mail,
+  Repeat, Users2, UserCog, Calendar,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
-import { formatCHF, formatCHFShort, type CalcResult } from './calc';
+import {
+  formatCHF, formatCHFShort, type CalcResult, type Inhaberabhaengigkeit,
+} from './calc';
 
 type Branche = {
   branche: string;
@@ -25,6 +30,11 @@ type FormState = {
   ebitda_pct: string;
   kanton: string;
   wachstum_pct: string;
+  // Detail-Faktoren (Schritt 7)
+  recurring_pct: string;
+  top3_kunden_pct: string;
+  inhaberabhaengigkeit: Inhaberabhaengigkeit | '';
+  alter_jahre: string;
   email: string;
 };
 
@@ -35,6 +45,7 @@ const STEPS = [
   { id: 'ebitda',        label: 'EBITDA-Marge' },
   { id: 'standort',      label: 'Standort' },
   { id: 'wachstum',      label: 'Wachstum' },
+  { id: 'detail',        label: 'Verfeinerung' },
   { id: 'ergebnis',      label: 'Ergebnis' },
 ] as const;
 
@@ -45,6 +56,10 @@ const initial: FormState = {
   ebitda_pct: '',
   kanton: '',
   wachstum_pct: '5',
+  recurring_pct: '',
+  top3_kunden_pct: '',
+  inhaberabhaengigkeit: '',
+  alter_jahre: '',
   email: '',
 };
 
@@ -56,6 +71,11 @@ function formatThousands(s: string): string {
 
 function parseNumber(s: string): number {
   return Number(s.replace(/[^\d.-]/g, '')) || 0;
+}
+
+function parseOptional(s: string): number | undefined {
+  const n = parseNumber(s);
+  return s.trim() === '' ? undefined : n;
 }
 
 export default function BewertungsWizard({ branchen, kantone }: Props) {
@@ -74,6 +94,7 @@ export default function BewertungsWizard({ branchen, kantone }: Props) {
       case 'ebitda':        return form.ebitda_pct !== '' && Number(form.ebitda_pct) >= -50 && Number(form.ebitda_pct) <= 80;
       case 'standort':      return form.kanton !== '';
       case 'wachstum':      return form.wachstum_pct !== '';
+      case 'detail':        return true; // alle Detail-Felder sind optional
       default:              return true;
     }
   }, [step, form]);
@@ -84,7 +105,7 @@ export default function BewertungsWizard({ branchen, kantone }: Props) {
       setStep((s) => s + 1);
       return;
     }
-    // Letzter Input-Step: berechnen
+    // Letzter Input-Step (Verfeinerung): jetzt rechnen
     setSubmitting(true);
     try {
       const res = await fetch('/api/bewertung', {
@@ -97,6 +118,10 @@ export default function BewertungsWizard({ branchen, kantone }: Props) {
           ebitda_pct: Number(form.ebitda_pct),
           kanton: form.kanton,
           wachstum_pct: Number(form.wachstum_pct),
+          recurring_pct: parseOptional(form.recurring_pct),
+          top3_kunden_pct: parseOptional(form.top3_kunden_pct),
+          inhaberabhaengigkeit: form.inhaberabhaengigkeit || undefined,
+          alter_jahre: parseOptional(form.alter_jahre),
           email: null,
         }),
       });
@@ -129,6 +154,10 @@ export default function BewertungsWizard({ branchen, kantone }: Props) {
           ebitda_pct: Number(form.ebitda_pct),
           kanton: form.kanton,
           wachstum_pct: Number(form.wachstum_pct),
+          recurring_pct: parseOptional(form.recurring_pct),
+          top3_kunden_pct: parseOptional(form.top3_kunden_pct),
+          inhaberabhaengigkeit: form.inhaberabhaengigkeit || undefined,
+          alter_jahre: parseOptional(form.alter_jahre),
           email: form.email,
         }),
       });
@@ -147,6 +176,7 @@ export default function BewertungsWizard({ branchen, kantone }: Props) {
   };
 
   const back = () => setStep((s) => Math.max(0, s - 1));
+  const totalInputSteps = STEPS.length - 1;
 
   return (
     <div className="bg-paper border border-stone rounded-card overflow-hidden">
@@ -179,7 +209,7 @@ export default function BewertungsWizard({ branchen, kantone }: Props) {
         {/* Step-Content */}
         {STEPS[step].id === 'branche' && (
           <Step
-            ueberline="Schritt 1 / 6"
+            ueberline={`Schritt 1 / ${totalInputSteps}`}
             frage="In welcher Branche ist Ihre Firma tätig?"
             hinweis="Wählen Sie die nächstliegende Branche. Die Multiples sind aus Schweizer M&A-Reports 2025."
           >
@@ -209,7 +239,7 @@ export default function BewertungsWizard({ branchen, kantone }: Props) {
         )}
 
         {STEPS[step].id === 'mitarbeitende' && (
-          <Step ueberline="Schritt 2 / 6" frage="Wie viele Mitarbeitende beschäftigen Sie?" hinweis="Vollzeit-Äquivalente (FTE).">
+          <Step ueberline={`Schritt 2 / ${totalInputSteps}`} frage="Wie viele Mitarbeitende beschäftigen Sie?" hinweis="Vollzeit-Äquivalente (FTE).">
             <Label htmlFor="ma">Mitarbeitende</Label>
             <Input
               id="ma"
@@ -226,7 +256,7 @@ export default function BewertungsWizard({ branchen, kantone }: Props) {
         )}
 
         {STEPS[step].id === 'umsatz' && (
-          <Step ueberline="Schritt 3 / 6" frage="Wie hoch ist der Jahresumsatz?" hinweis="Letzter abgeschlossener Geschäftsjahr-Umsatz in CHF.">
+          <Step ueberline={`Schritt 3 / ${totalInputSteps}`} frage="Wie hoch ist der Jahresumsatz?" hinweis="Letzter abgeschlossener Geschäftsjahr-Umsatz in CHF.">
             <Label htmlFor="umsatz">Umsatz (CHF)</Label>
             <Input
               id="umsatz"
@@ -241,7 +271,7 @@ export default function BewertungsWizard({ branchen, kantone }: Props) {
         )}
 
         {STEPS[step].id === 'ebitda' && (
-          <Step ueberline="Schritt 4 / 6" frage="Wie hoch ist die EBITDA-Marge?" hinweis="EBITDA in Prozent vom Umsatz. Standard CH-KMU: 8 – 20 %.">
+          <Step ueberline={`Schritt 4 / ${totalInputSteps}`} frage="Wie hoch ist die EBITDA-Marge?" hinweis="EBITDA in Prozent vom Umsatz. Standard CH-KMU: 8 – 20 %.">
             <Label htmlFor="ebitda">EBITDA-Marge (%)</Label>
             <Input
               id="ebitda"
@@ -259,7 +289,7 @@ export default function BewertungsWizard({ branchen, kantone }: Props) {
         )}
 
         {STEPS[step].id === 'standort' && (
-          <Step ueberline="Schritt 5 / 6" frage="In welchem Kanton ist Ihr Sitz?" hinweis="Beeinflusst Bewertung indirekt (Käufer-Reichweite, Steuerlast).">
+          <Step ueberline={`Schritt 5 / ${totalInputSteps}`} frage="In welchem Kanton ist Ihr Sitz?" hinweis="Beeinflusst Bewertung indirekt (Käufer-Reichweite, Steuerlast).">
             <Label htmlFor="kanton">Kanton</Label>
             <select
               id="kanton"
@@ -276,7 +306,7 @@ export default function BewertungsWizard({ branchen, kantone }: Props) {
         )}
 
         {STEPS[step].id === 'wachstum' && (
-          <Step ueberline="Schritt 6 / 6" frage="Wie wächst die Firma jährlich?" hinweis="Durchschnitt der letzten 3 Jahre, in Prozent. Minus für rückläufig.">
+          <Step ueberline={`Schritt 6 / ${totalInputSteps}`} frage="Wie wächst die Firma jährlich?" hinweis="Durchschnitt der letzten 3 Jahre, in Prozent. Minus für rückläufig.">
             <Label htmlFor="wachstum">Wachstum p.a. (%)</Label>
             <Input
               id="wachstum"
@@ -296,6 +326,10 @@ export default function BewertungsWizard({ branchen, kantone }: Props) {
               {Number(form.wachstum_pct) >= 0 && Number(form.wachstum_pct) < 10 && '→ Stabiles Wachstum — neutraler Faktor.'}
             </p>
           </Step>
+        )}
+
+        {STEPS[step].id === 'detail' && (
+          <DetailStep form={form} setForm={setForm} totalInputSteps={totalInputSteps} />
         )}
 
         {STEPS[step].id === 'ergebnis' && result && (
@@ -366,6 +400,161 @@ function Step({
   );
 }
 
+/* ─────────────── Detail-Step ─────────────── */
+
+function DetailStep({
+  form,
+  setForm,
+  totalInputSteps,
+}: {
+  form: FormState;
+  setForm: React.Dispatch<React.SetStateAction<FormState>>;
+  totalInputSteps: number;
+}) {
+  return (
+    <div>
+      <p className="overline mb-4 text-bronze-ink">Schritt 7 / {totalInputSteps} · optional</p>
+      <h3 className="font-serif text-head-lg text-navy font-normal mb-3 leading-snug">
+        Verfeinerung — vier Faktoren, die den Multiple realistisch machen.
+      </h3>
+      <p className="text-body-sm text-muted mb-8 max-w-prose">
+        Alle Felder sind optional. Aber jeder beantwortete Punkt schärft die
+        Range — und zeigt, wo Käufer typischerweise Earn-out und Übergangs-Phase
+        verlangen werden.
+      </p>
+
+      <div className="grid md:grid-cols-2 gap-5">
+        {/* Recurring Revenue */}
+        <FactorCard
+          Icon={Repeat}
+          title="Wiederkehrende Umsätze"
+          subtitle="Anteil Abos, Service-Verträge, Wartung am Umsatz"
+          help="Höhere wiederkehrende Anteile = höhere Bewertung (bis +20 %)."
+        >
+          <Label htmlFor="recurring">Anteil (%)</Label>
+          <Input
+            id="recurring"
+            type="number"
+            min={0}
+            max={100}
+            step={5}
+            inputMode="numeric"
+            value={form.recurring_pct}
+            onChange={(e) => setForm((f) => ({ ...f, recurring_pct: e.target.value }))}
+            placeholder="z.B. 35"
+          />
+        </FactorCard>
+
+        {/* Klumpenrisiko */}
+        <FactorCard
+          Icon={Users2}
+          title="Kundenkonzentration"
+          subtitle="Anteil Top-3-Kunden am Jahresumsatz"
+          help="Top-3 über 50 % = Käufer fordern Earn-out (bis −20 %)."
+        >
+          <Label htmlFor="top3">Anteil Top-3 (%)</Label>
+          <Input
+            id="top3"
+            type="number"
+            min={0}
+            max={100}
+            step={5}
+            inputMode="numeric"
+            value={form.top3_kunden_pct}
+            onChange={(e) => setForm((f) => ({ ...f, top3_kunden_pct: e.target.value }))}
+            placeholder="z.B. 28"
+          />
+        </FactorCard>
+
+        {/* Inhaberabhängigkeit */}
+        <FactorCard
+          Icon={UserCog}
+          title="Inhaberabhängigkeit"
+          subtitle="Wie stark hängt das Tagesgeschäft am Inhaber?"
+          help="Niedrig (delegiert) ergibt Aufschlag, hoch (Inhaber = Firma) ergibt Abschlag."
+        >
+          <div className="grid grid-cols-3 gap-2">
+            {(
+              [
+                { id: 'low',  label: 'Niedrig',  hint: 'Läuft ohne Inhaber' },
+                { id: 'mid',  label: 'Mittel',   hint: 'Inhaber wichtig' },
+                { id: 'high', label: 'Hoch',     hint: 'Inhaber = Firma' },
+              ] as { id: Inhaberabhaengigkeit; label: string; hint: string }[]
+            ).map((opt) => (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => setForm((f) => ({ ...f, inhaberabhaengigkeit: opt.id }))}
+                className={`p-3 rounded-soft border text-center transition-all ${
+                  form.inhaberabhaengigkeit === opt.id
+                    ? 'border-bronze bg-bronze/5 shadow-focus'
+                    : 'border-stone hover:border-bronze/50 bg-cream/40'
+                }`}
+              >
+                <p className="font-serif text-[15px] text-navy mb-0.5">{opt.label}</p>
+                <p className="font-mono text-[10px] text-quiet leading-tight">{opt.hint}</p>
+              </button>
+            ))}
+          </div>
+        </FactorCard>
+
+        {/* Firmenalter */}
+        <FactorCard
+          Icon={Calendar}
+          title="Alter der Firma"
+          subtitle="Jahre seit Gründung — etablierte Firmen haben mehr Substanz"
+          help="< 5 Jahre = leichter Abschlag, ≥ 30 Jahre = Marken-Bonus."
+        >
+          <Label htmlFor="alter">Jahre</Label>
+          <Input
+            id="alter"
+            type="number"
+            min={0}
+            max={300}
+            step={1}
+            inputMode="numeric"
+            value={form.alter_jahre}
+            onChange={(e) => setForm((f) => ({ ...f, alter_jahre: e.target.value }))}
+            placeholder="z.B. 14"
+          />
+        </FactorCard>
+      </div>
+    </div>
+  );
+}
+
+function FactorCard({
+  Icon,
+  title,
+  subtitle,
+  help,
+  children,
+}: {
+  Icon: React.ElementType;
+  title: string;
+  subtitle: string;
+  help: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="border border-stone rounded-soft bg-cream/40 p-5">
+      <div className="flex items-start gap-3 mb-4">
+        <div className="w-9 h-9 rounded-soft bg-bronze/10 flex items-center justify-center flex-shrink-0">
+          <Icon className="w-4 h-4 text-bronze" strokeWidth={1.75} />
+        </div>
+        <div className="min-w-0">
+          <p className="font-serif text-[15px] text-navy leading-tight">{title}</p>
+          <p className="font-mono text-[10px] uppercase tracking-widest text-quiet mt-0.5">{subtitle}</p>
+        </div>
+      </div>
+      {children}
+      <p className="font-mono text-[10px] text-quiet mt-3 leading-relaxed">{help}</p>
+    </div>
+  );
+}
+
+/* ─────────────── Result-Step ─────────────── */
+
 function ResultStep({
   result,
   form,
@@ -385,6 +574,13 @@ function ResultStep({
   emailSent: boolean;
   onReset: () => void;
 }) {
+  const detailRows: { label: string; pct: number }[] = [
+    { label: 'Wiederkehrende Umsätze',  pct: result.detail_breakdown.recurring },
+    { label: 'Kundenkonzentration',     pct: result.detail_breakdown.konzentration },
+    { label: 'Inhaberabhängigkeit',     pct: result.detail_breakdown.inhaber },
+    { label: 'Alter der Firma',         pct: result.detail_breakdown.alter },
+  ].filter((r) => r.pct !== 0);
+
   return (
     <div>
       <p className="overline mb-4 text-bronze-ink">Ihre Bewertung</p>
@@ -393,7 +589,8 @@ function ResultStep({
       </h3>
       <p className="text-body-sm text-muted mb-8">
         Basierend auf {form.branche}-Multiples ({result.multiple_min_used}× – {result.multiple_max_used}× EBITDA),
-        Wachstums-Faktor ×{result.growth_factor.toFixed(2)}.
+        Wachstums-Faktor ×{result.growth_factor.toFixed(2)}
+        {result.detail_factor !== 1 && <>, Detail-Faktor ×{result.detail_factor.toFixed(2)}</>}.
       </p>
 
       <div className="grid md:grid-cols-2 gap-px bg-stone border border-stone rounded-card overflow-hidden mb-8">
@@ -428,6 +625,26 @@ function ResultStep({
         </div>
       </div>
 
+      {detailRows.length > 0 && (
+        <div className="mb-8 border border-stone rounded-soft bg-cream/30 p-5">
+          <p className="overline text-bronze-ink mb-3">Detail-Faktoren</p>
+          <ul className="space-y-2">
+            {detailRows.map((r) => {
+              const positive = r.pct > 0;
+              return (
+                <li key={r.label} className="flex items-center justify-between text-body-sm">
+                  <span className="text-muted">{r.label}</span>
+                  <span className={`font-mono text-[12px] font-medium ${positive ? 'text-success' : 'text-danger'}`}>
+                    {positive ? '+' : ''}
+                    {(r.pct * 100).toFixed(0)} %
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
+
       {result.warning && (
         <div className="mb-8 p-4 bg-warn/5 border border-warn/20 rounded-soft flex items-start gap-2 text-[13px]">
           <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0 text-warn" strokeWidth={1.5} />
@@ -437,7 +654,7 @@ function ResultStep({
 
       <p className="text-body-sm text-muted mb-8 max-w-prose">
         <strong className="text-ink">Hinweis:</strong> Diese Indikation ersetzt keine professionelle Bewertung.
-        Persönliche Faktoren (Inhaber-Abhängigkeit, Klumpenrisiken, Substanz, Eigentümerstruktur) sind nicht berücksichtigt.
+        Substanz, Eigentümerstruktur und stille Reserven sind nicht berücksichtigt.
         Eine vollständige Bewertung übernimmt unser Treuhand-Netzwerk.
       </p>
 
@@ -482,8 +699,8 @@ function ResultStep({
           <RotateCcw className="w-4 h-4" strokeWidth={1.5} />
           Neue Berechnung
         </button>
-        <Button href="/verkaufen" variant="secondary" size="md">
-          Inserat erstellen <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
+        <Button href="/verkaufen/start" variant="secondary" size="md">
+          Bewerten &amp; inserieren <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
         </Button>
       </div>
     </div>

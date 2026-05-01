@@ -165,7 +165,7 @@ function StepRolle({
           subtitle="Schweizer Firmen entdecken"
           bullets={[
             'Marktplatz-Zugang gratis (Basic)',
-            'MAX-Abo für Frühzugang & alle Filter',
+            'Käufer+-Abo für Frühzugang & alle Filter',
             'Anfrage in zwei Klicks',
           ]}
         />

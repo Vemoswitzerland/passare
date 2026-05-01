@@ -12,6 +12,11 @@ const InputSchema = z.object({
   ebitda_pct: z.number().min(-50).max(80),
   kanton: z.string().length(2),
   wachstum_pct: z.number().min(-50).max(200),
+  // Detail-Faktoren — alle optional, Engine nutzt safe defaults.
+  recurring_pct: z.number().min(0).max(100).optional().nullable(),
+  top3_kunden_pct: z.number().min(0).max(100).optional().nullable(),
+  inhaberabhaengigkeit: z.enum(['low', 'mid', 'high']).optional().nullable(),
+  alter_jahre: z.number().int().min(0).max(300).optional().nullable(),
   email: z.string().email().optional().nullable(),
 });
 
@@ -64,6 +69,10 @@ export async function POST(req: Request) {
     ebitda_pct: input.ebitda_pct,
     kanton: input.kanton,
     wachstum_pct: input.wachstum_pct,
+    recurring_pct: input.recurring_pct ?? undefined,
+    top3_kunden_pct: input.top3_kunden_pct ?? undefined,
+    inhaberabhaengigkeit: input.inhaberabhaengigkeit ?? undefined,
+    alter_jahre: input.alter_jahre ?? undefined,
     multiples,
   });
 
@@ -84,6 +93,10 @@ export async function POST(req: Request) {
       ebitda_pct: input.ebitda_pct,
       kanton: input.kanton,
       wachstum_pct: input.wachstum_pct,
+      recurring_pct: input.recurring_pct ?? null,
+      top3_kunden_pct: input.top3_kunden_pct ?? null,
+      inhaberabhaengigkeit: input.inhaberabhaengigkeit ?? null,
+      alter_jahre: input.alter_jahre ?? null,
     },
     ergebnis: result,
     user_agent: userAgent,
