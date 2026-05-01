@@ -345,9 +345,9 @@ function UseCases() {
       body: 'Alle 18 Filter, unbegrenzte Suchprofile und das Featured-Profil sorgen dafür, dass Verkäufer dich kennen, bevor andere reagieren.',
     },
     {
-      tag: 'Berater oder Treuhänder',
-      title: 'Du suchst im Auftrag mehrerer Klienten parallel.',
-      body: 'Unbegrenzte Anfragen + parallele Suchprofile mit individuellen Alerts decken mehrere Mandate gleichzeitig ab. Wenn du als Broker auftrittst, schau dir auch unsere Broker-Seite an.',
+      tag: 'Family Office · Holding',
+      title: 'Du investierst privat oder fürs Family Office.',
+      body: 'Unbegrenzte Anfragen + parallele Suchprofile mit individuellen Alerts decken mehrere Investment-Themen gleichzeitig ab. Hinweis: Wer als M&A-Broker mit eigener Marke und mehreren externen Klienten arbeitet, soll sich die /broker-Seite ansehen — dafür kommt ein eigenes Broker-System.',
     },
   ];
 
@@ -408,8 +408,8 @@ function Faq() {
       a: 'Ja. Basic ist gratis und unbefristet. Du kannst jederzeit auf Käufer+ upgraden — ohne neue Registrierung, der Wechsel passiert direkt im Konto.',
     },
     {
-      q: 'Ich bin Broker — gilt Käufer+ auch für mich?',
-      a: 'Ja. Viele Broker und M&A-Berater nutzen Käufer+, um Klienten-Mandate effizient abzuwickeln. Wir arbeiten an einem dedizierten Broker-Tier — bis dahin findest du auf der /broker-Seite, was Käufer+ konkret für die Broker-Arbeit leistet.',
+      q: 'Ich bin Broker — soll ich Käufer+ buchen?',
+      a: 'Käufer+ ist für persönliche Käufer (Family Offices, Investoren mit eigenem Mandat). Für M&A-Broker, die im Auftrag mehrerer externer Klienten arbeiten, bauen wir ein eigenes Broker-System mit separatem Login, Multi-Mandant-Dashboard und Provisionsabrechnung. Mehr dazu — und das Pilot-Programm — auf der /broker-Seite.',
     },
     {
       q: 'Sind die Preise inklusive MWST?',
