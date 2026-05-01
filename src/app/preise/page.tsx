@@ -210,11 +210,14 @@ function Footer() {
           <div>
             <p className="overline mb-4">Plattform</p>
             <ul className="space-y-3 text-body-sm text-muted">
-              <li><Link className="hover:text-navy" href="/verkaufen">Firma inserieren</Link></li>
-              <li><Link className="hover:text-navy" href="/preise">Inserat-Preise</Link></li>
               <li><Link className="hover:text-navy" href="/">Firmen entdecken</Link></li>
+              <li><Link className="hover:text-navy" href="/verkaufen">Firma inserieren</Link></li>
               <li><Link className="hover:text-navy" href="/broker">Broker</Link></li>
-              <li><Link className="hover:text-navy" href="/plus">Käufer+</Link></li>
+              <li>
+                <Link className="hover:text-navy inline-flex items-baseline" href="/plus">
+                  Käufer<span className="font-serif text-bronze leading-none ml-px">+</span>
+                </Link>
+              </li>
             </ul>
           </div>
           <div>

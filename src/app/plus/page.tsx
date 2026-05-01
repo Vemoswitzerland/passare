@@ -32,15 +32,20 @@ export default function PlusPage() {
 }
 
 /* ─────────────────────────────────────────────── */
-function PlusBadge({ size = 'sm' }: { size?: 'xs' | 'sm' | 'md' }) {
-  const map = {
-    xs: 'w-3.5 h-3.5 text-[10px]',
-    sm: 'w-5 h-5 text-[13px]',
-    md: 'w-7 h-7 text-2xl',
-  } as const;
+/** «Käufer+» als Marken-Wortbild im Serif-Stil des passare-Logos.
+ *  «+» ist ein Fraunces-Glyph in Bronze — kein gold-Kreis, gleiche
+ *  Logik wie der Bronze-Punkt am «passare.»-Logo. */
+function KaeuferPlus({
+  variant = 'inherit',
+}: {
+  variant?: 'inherit' | 'cream' | 'navy';
+}) {
+  const baseColor =
+    variant === 'cream' ? 'text-cream' :
+    variant === 'navy'  ? 'text-navy'  : '';
   return (
-    <span className={`inline-flex items-center justify-center rounded-full bg-bronze text-cream font-mono leading-none ${map[size]}`}>
-      +
+    <span className={`inline-flex items-baseline ${baseColor}`}>
+      Käufer<span className="font-serif text-bronze leading-none ml-px">+</span>
     </span>
   );
 }
@@ -248,7 +253,7 @@ function Vergleich() {
               <span className="font-mono text-[11px] text-quiet">Basic gratis · Käufer+-Abo</span>
             </div>
             <h2 className="font-serif text-display-md text-navy font-light">
-              Basic oder Käufer+.
+              Basic oder <KaeuferPlus />.
             </h2>
           </div>
         </Reveal>

@@ -251,6 +251,21 @@ function Packages() {
             </Reveal>
           ))}
         </div>
+
+        <Reveal delay={0.3}>
+          <div className="mt-10 flex flex-wrap items-center gap-3">
+            <Link
+              href="/preise"
+              className="font-mono text-[11px] uppercase tracking-widest text-quiet hover:text-navy inline-flex items-center gap-2 transition-colors"
+            >
+              Pakete im Detail vergleichen <ArrowRight className="w-3.5 h-3.5" strokeWidth={1.5} />
+            </Link>
+            <span className="text-quiet">·</span>
+            <span className="font-mono text-[11px] text-quiet">
+              Powerups · 6/12-Monats-Toggle · alle Features
+            </span>
+          </div>
+        </Reveal>
       </Container>
     </Section>
   );
@@ -508,11 +523,14 @@ function Footer() {
           <div>
             <p className="overline mb-4">Plattform</p>
             <ul className="space-y-3 text-body-sm text-muted">
-              <li><Link className="hover:text-navy" href="/verkaufen">Firma inserieren</Link></li>
-              <li><Link className="hover:text-navy" href="/preise">Inserat-Preise</Link></li>
               <li><Link className="hover:text-navy" href="/">Firmen entdecken</Link></li>
+              <li><Link className="hover:text-navy" href="/verkaufen">Firma inserieren</Link></li>
               <li><Link className="hover:text-navy" href="/broker">Broker</Link></li>
-              <li><Link className="hover:text-navy" href="/plus">Käufer+</Link></li>
+              <li>
+                <Link className="hover:text-navy inline-flex items-baseline" href="/plus">
+                  Käufer<span className="font-serif text-bronze leading-none ml-px">+</span>
+                </Link>
+              </li>
             </ul>
           </div>
           <div>

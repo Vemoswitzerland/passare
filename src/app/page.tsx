@@ -120,12 +120,11 @@ function parseFiltersFromSearchParams(sp: SearchParams) {
 
 /* ════════════════════════ Header & Footer ════════════════════════ */
 export async function SiteHeader({ activeSell = false }: { activeSell?: boolean } = {}) {
-  // Kontext-abhängige Navigation:
-  // - activeSell = true (Verkäufer-Marketing: /verkaufen, /preise) zeigt
-  //   «Firma inserieren» (aktiv) + «Inserat-Preise». Käufer+-Link bleibt aus.
-  // - activeSell = false (Plattform/Käufer-Sicht: /, /inserat/*, /plus) zeigt
-  //   «Firma inserieren» + «Käufer+» + «Broker». «Inserat-Preise» ist hier raus,
-  //   weil sie für Käufer auf der Plattform nicht zur Sache gehört.
+  // Konsistente Hauptnav über alle Seiten: «Firma inserieren», «Broker»,
+  // «Käufer+». Auf /verkaufen + /preise wird «Firma inserieren» nur als
+  // aktiv hervorgehoben (activeSell=true), die Menüpunkte selber bleiben gleich.
+  // «Inserat-Preise» ist nicht im Hauptmenü — über die Pakete-Sektion auf
+  // /verkaufen erreichbar (Detailvergleich → /preise).
   const supabase = await createClient();
   const { data: u } = await supabase.auth.getUser();
   let dashboardHref: string | null = null;
@@ -162,19 +161,15 @@ export async function SiteHeader({ activeSell = false }: { activeSell?: boolean 
             >
               Firma inserieren
             </Link>
-            {activeSell && (
-              <Link href="/preise" className="text-[0.8125rem] font-medium text-muted hover:text-ink">
-                Inserat-Preise
-              </Link>
-            )}
             <Link href="/broker" className="text-[0.8125rem] font-medium text-muted hover:text-ink">
               Broker
             </Link>
-            {!activeSell && (
-              <Link href="/plus" className="text-[0.8125rem] font-medium text-muted hover:text-ink inline-flex items-center gap-1">
-                Käufer<span className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-bronze text-cream font-mono text-[10px] leading-none">+</span>
-              </Link>
-            )}
+            <Link
+              href="/plus"
+              className="text-[0.8125rem] font-medium text-muted hover:text-ink inline-flex items-baseline"
+            >
+              Käufer<span className="font-serif text-bronze leading-none ml-px">+</span>
+            </Link>
           </nav>
           <div className="flex items-center gap-3">
             {dashboardHref ? (
@@ -203,7 +198,7 @@ export async function SiteHeader({ activeSell = false }: { activeSell?: boolean 
   );
 }
 
-export function SiteFooter({ activeSell = false }: { activeSell?: boolean } = {}) {
+export function SiteFooter() {
   return (
     <footer className="border-t border-stone pt-16 pb-10 bg-cream">
       <Container>
@@ -221,13 +216,12 @@ export function SiteFooter({ activeSell = false }: { activeSell?: boolean } = {}
             <ul className="space-y-3 text-body-sm text-muted">
               <li><Link className="hover:text-navy" href="/">Firmen entdecken</Link></li>
               <li><Link className="hover:text-navy" href="/verkaufen">Firma inserieren</Link></li>
-              {activeSell && (
-                <li><Link className="hover:text-navy" href="/preise">Inserat-Preise</Link></li>
-              )}
               <li><Link className="hover:text-navy" href="/broker">Broker</Link></li>
-              {!activeSell && (
-                <li><Link className="hover:text-navy" href="/plus">Käufer+</Link></li>
-              )}
+              <li>
+                <Link className="hover:text-navy inline-flex items-baseline" href="/plus">
+                  Käufer<span className="font-serif text-bronze leading-none ml-px">+</span>
+                </Link>
+              </li>
             </ul>
           </div>
           <div>
@@ -446,8 +440,8 @@ function Marketplace({
 
                 {/* Plus-Upsell — eigene Käufer-Vorteile-Seite */}
                 <div className="bg-navy text-cream rounded-soft p-4 -mx-2 mt-6">
-                  <p className="overline text-bronze mb-2 inline-flex items-center gap-1">
-                    Käufer<span className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-bronze text-navy font-mono text-[10px] leading-none">+</span>
+                  <p className="overline text-bronze mb-2 inline-flex items-baseline">
+                    Käufer<span className="font-serif text-bronze leading-none ml-px">+</span>
                   </p>
                   <p className="font-serif text-body text-cream mb-3 leading-snug">
                     7 Tage Frühzugang &amp; Echtzeit-Alerts

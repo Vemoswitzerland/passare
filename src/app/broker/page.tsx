@@ -38,27 +38,36 @@ function Hero() {
           <Reveal>
             <p className="overline mb-6 text-bronze-ink">Für Broker · M&amp;A-Berater · Treuhänder</p>
             <h1 className="font-serif-display text-[clamp(2.5rem,4.5vw,4.5rem)] text-navy font-light mb-8 tracking-[-0.025em] leading-[1.05]">
-              Mehrere Mandate<span className="text-bronze">.</span>{' '}
+              Beide Seiten<span className="text-bronze">.</span>{' '}
               <span className="text-muted italic">Eine Plattform.</span>
             </h1>
           </Reveal>
           <Reveal delay={0.1}>
-            <p className="text-body-lg md:text-xl text-muted max-w-prose leading-relaxed mb-10">
-              passare ist die Self-Service-Plattform für die Schweizer KMU-Nachfolge.
-              Broker und M&amp;A-Berater nutzen sie heute schon — sie inserieren für
-              ihre Verkäufer-Klienten und stellen mit <strong className="font-medium text-navy">Käufer+</strong>{' '}
-              parallele Suchprofile für Käufer-Klienten.
+            <p className="text-body-lg md:text-xl text-muted max-w-prose leading-relaxed mb-6">
+              Als Broker brauchst du beides: Inserate für deine Verkäufer-Klienten
+              und Suchprofile für deine Käufer-Klienten. passare deckt beides ab —
+              und{' '}
+              <strong className="font-medium text-navy inline-flex items-baseline">
+                Käufer<span className="font-serif text-bronze leading-none ml-px">+</span>
+              </strong>{' '}
+              ist im Setup automatisch enthalten, mit allen sechs Vorteilen
+              (Frühzugang, Echtzeit-Alerts, alle Filter, unbegrenzte Anfragen,
+              parallele Suchprofile, Featured-Profil).
             </p>
           </Reveal>
           <Reveal delay={0.2}>
-            <div className="flex flex-col sm:flex-row gap-4 items-start">
-              <Button href="/plus" size="lg">
-                Käufer+ ansehen <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
+            <div className="flex flex-col sm:flex-row gap-4 items-start mb-3">
+              <Button href="/auth/register?role=kaeufer&plan=max" size="lg">
+                Käufer+ buchen <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
               </Button>
               <Button href="/verkaufen/start" variant="secondary" size="lg">
                 Klient inserieren <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
               </Button>
             </div>
+            <p className="text-caption text-quiet max-w-prose">
+              Käufer+ ist die Basis für deine Käufer-Mandate. Inserate für Verkäufer-Klienten
+              werden pro Klient pauschal abgerechnet — keine zusätzliche Broker-Gebühr.
+            </p>
           </Reveal>
         </div>
       </Container>
