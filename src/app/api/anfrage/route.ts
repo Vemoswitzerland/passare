@@ -15,7 +15,7 @@ import { z } from 'zod';
 import { createAnfrageToken } from '@/lib/anfrage-token';
 import { sendEmail } from '@/lib/email';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/server';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -47,16 +47,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: detail }, { status: 400 });
   }
 
-  // Listing aus DB nachschlagen — nur live Inserate sind anfragbar
-  const supabase = await createClient();
-  const { data: listing } = await supabase
+  // Listing aus DB nachschlagen — Service-Role umgeht RLS, sodass
+  // Inserate auch für anonyme User sichtbar sind (sonst 404 trotz live).
+  // Akzeptiert UUID oder public_id (kurze ID aus URL).
+  const admin = createAdminClient();
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(body.listing_id);
+  const filter = isUuid ? { id: body.listing_id } : { public_id: body.listing_id };
+  const { data: listing } = await admin
     .from('inserate')
-    .select('id, titel, slug, verkaeufer_id')
-    .eq('id', body.listing_id)
-    .eq('status', 'live')
+    .select('id, titel, public_id, verkaeufer_id, status')
+    .match(filter)
     .maybeSingle();
 
-  if (!listing) {
+  if (!listing || listing.status !== 'live') {
     return NextResponse.json({ error: 'Inserat nicht gefunden' }, { status: 404 });
   }
 

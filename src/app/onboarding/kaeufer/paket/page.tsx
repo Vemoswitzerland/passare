@@ -68,7 +68,8 @@ export default async function PaketPage({ searchParams }: Props) {
     (kaeuferProfil?.budget_max ?? 0) >= 5_000_000;
 
   const sp = await searchParams;
-  const interval = sp.interval === 'yearly' ? 'yearly' : 'monthly';
+  // Default: jährlich (zwei Monate gratis). Toggle erlaubt Wechsel.
+  const interval = sp.interval === 'monthly' ? 'monthly' : 'yearly';
 
   return (
     <main className="min-h-screen bg-cream">
@@ -219,18 +220,7 @@ export default async function PaketPage({ searchParams }: Props) {
                 <FeatureRow text="Geschlossene Inserate sehen" highlight />
                 <FeatureRow text="7 Tage Frühzugang auf neue Inserate" highlight />
                 <FeatureRow text="Echtzeit-E-Mail-Alerts bei Match" highlight />
-                <FeatureRow text="Eigenes Logo im Käuferprofil" highlight />
               </ul>
-
-              <div className="mb-6 p-4 bg-bronze/5 border border-bronze/20 rounded-soft">
-                <p className="text-caption text-bronze-ink font-medium mb-1">
-                  Lohnt sich das?
-                </p>
-                <p className="text-caption text-muted leading-snug">
-                  Ein verpasster Deal kostet schnell CHF 50&apos;000 oder mehr. Käufer+ kostet CHF{' '}
-                  {interval === 'yearly' ? '1\'990' : '2\'388'} pro Jahr.
-                </p>
-              </div>
 
               {/* Stripe-Form */}
               <form action="/api/stripe/create-checkout-session" method="post" className="mt-auto">
@@ -251,11 +241,10 @@ export default async function PaketPage({ searchParams }: Props) {
           </div>
 
           {/* Feature-Visuals */}
-          <div className="max-w-4xl mx-auto mt-12 grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="max-w-4xl mx-auto mt-12 grid sm:grid-cols-3 gap-4">
             <FeatureVisual icon={Zap} title="Frühzugang" desc="7 Tage vor allen anderen" />
             <FeatureVisual icon={Bell} title="Echtzeit-Alerts" desc="E-Mail bei jedem Match" />
             <FeatureVisual icon={ShieldCheck} title="Geschlossene Inserate" desc="Exklusiver Zugang" />
-            <FeatureVisual icon={Crown} title="Eigenes Logo" desc="Trust-Signal im Profil" />
           </div>
 
           <p className="text-center text-caption text-quiet mt-12">

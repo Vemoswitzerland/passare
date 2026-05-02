@@ -2,8 +2,10 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Building2, ArrowRight, Check, Globe, Phone } from 'lucide-react';
+import { Building2, ArrowRight, Check, Globe, Phone, Search } from 'lucide-react';
 import { completeBrokerOnboarding } from './actions';
+import { FirmenSuche, type FirmaHit } from '@/components/zefix/FirmenSuche';
+import { KANTONE } from '@/app/auth/constants';
 
 type Props = {
   userName: string;
@@ -24,9 +26,23 @@ export function BrokerTunnelForm({ userName, userEmail }: Props) {
     telefon: '',
     kanton: '',
     full_name: userName,
+    handelsregister_uid: '',
     paket: 'starter' as 'starter' | 'pro',
     interval: 'monthly' as 'monthly' | 'yearly',
   });
+  const [showZefix, setShowZefix] = useState(false);
+
+  function applyZefixHit(hit: FirmaHit) {
+    if (!hit.name) return;
+    setForm((f) => ({
+      ...f,
+      agentur_name: hit.name ?? f.agentur_name,
+      slug: f.slug || generateSlug(hit.name ?? ''),
+      kanton: hit.kanton ?? f.kanton,
+      handelsregister_uid: hit.uid ?? f.handelsregister_uid,
+    }));
+    setShowZefix(false);
+  }
 
   function generateSlug(name: string): string {
     return name

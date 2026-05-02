@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, Heart, MessageSquare, Bell,
-  CreditCard, User, type LucideIcon,
+  CreditCard, User, Settings, type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -32,8 +32,9 @@ const HAUPTMENU: NavItem[] = [
 ];
 
 const ACCOUNT: NavItem[] = [
-  { label: 'Käufer+-Abo',       href: '/dashboard/kaeufer/abo',          icon: CreditCard },
-  { label: 'Käufer-Profil',     href: '/dashboard/kaeufer/profil',       icon: User },
+  { label: 'Käufer-Profil',     href: '/dashboard/kaeufer/profil',         icon: User },
+  { label: 'Käufer+-Abo',       href: '/dashboard/kaeufer/abo',            icon: CreditCard },
+  { label: 'Einstellungen',     href: '/dashboard/kaeufer/einstellungen',  icon: Settings },
 ];
 
 export function SidebarNav({
@@ -129,13 +130,6 @@ export function SidebarNav({
         </ul>
       </div>
 
-      {/* Cyrill 30.04.2026: «Live-Badge wegnehmen — Verkäufer/Käufer
-          sieht ja eh dass er im Bereich ist». Footer ohne Sync-Dot. */}
-      <div className="mt-8 pt-6 border-t border-stone px-6">
-        <p className="text-caption text-quiet leading-relaxed">
-          Daily Digest jeden Morgen 7:00 Uhr.
-        </p>
-      </div>
     </nav>
   );
 }

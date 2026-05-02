@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { sendEmail } from '@/lib/email';
 
@@ -59,6 +60,9 @@ export async function GET(req: NextRequest) {
     .from('profiles')
     .update({ is_broker: true })
     .eq('id', u.user.id);
+
+  // Cache invalidieren — sonst zeigt das Layout/Sidebar den alten Tier
+  revalidatePath('/dashboard/broker', 'layout');
 
   if (u.user.email) {
     void sendEmail({

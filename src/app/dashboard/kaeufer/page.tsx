@@ -21,13 +21,17 @@ export default async function KaeuferDashboardPage({ searchParams }: Props) {
 
   const { welcome } = await searchParams;
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('full_name, subscription_tier, is_broker, created_at')
-    .eq('id', u.user.id)
-    .maybeSingle();
+  const [{ data: profile }, { data: completenessData }] = await Promise.all([
+    supabase
+      .from('profiles')
+      .select('full_name, subscription_tier, is_broker, created_at')
+      .eq('id', u.user.id)
+      .maybeSingle(),
+    supabase.rpc('profile_completeness', { p_user_id: u.user.id }),
+  ]);
 
   const isPlus = isPlusKaeufer(profile);
+  const completeness = typeof completenessData === 'number' ? completenessData : 0;
 
   // Erstes Suchprofil laden (für Daily Digest Match-Score-Badge in der Card)
   let suchprofil: Suchprofil | null = null;
@@ -111,6 +115,41 @@ export default async function KaeuferDashboardPage({ searchParams }: Props) {
           {welcome ? 'Dein Stand heute' : `Hi ${firstName || 'da'}`}<span className="text-bronze">.</span>
         </h1>
       </div>
+
+      {/* Profil-Completeness-Banner (nur wenn unter 80% — Verkäufer reagieren auf vollständige Profile) */}
+      {completeness < 80 && (
+        <div className="bg-bronze/5 border border-bronze/20 rounded-card p-5 flex items-start gap-4 flex-wrap sm:flex-nowrap">
+          <div className="relative w-14 h-14 flex-shrink-0">
+            <svg viewBox="0 0 36 36" className="w-14 h-14 -rotate-90">
+              <circle cx="18" cy="18" r="14" fill="none" stroke="currentColor" strokeWidth="3" className="text-stone" />
+              <circle
+                cx="18" cy="18" r="14" fill="none"
+                stroke="currentColor" strokeWidth="3" strokeLinecap="round"
+                strokeDasharray={`${(completeness / 100) * 87.96} 87.96`}
+                className="text-bronze transition-all duration-500"
+              />
+            </svg>
+            <span className="absolute inset-0 flex items-center justify-center font-mono text-caption text-navy font-medium">
+              {completeness}%
+            </span>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-body-sm text-navy font-medium mb-1">
+              Dein Käuferprofil ist {completeness === 0 ? 'noch nicht eingerichtet' : 'noch nicht vollständig'}.
+            </p>
+            <p className="text-caption text-muted leading-relaxed">
+              Vollständige Profile bekommen <strong className="text-navy">2× schneller</strong> Antworten von Verkäufern. Branchen, Budget und Beschreibung ergänzen — dauert 2 Minuten.
+            </p>
+          </div>
+          <Link
+            href="/dashboard/kaeufer/profil"
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-navy text-cream rounded-soft text-caption font-medium hover:bg-ink transition-colors whitespace-nowrap"
+          >
+            Profil ergänzen
+            <ArrowRight className="w-3.5 h-3.5" strokeWidth={1.5} />
+          </Link>
+        </div>
+      )}
 
       {/* Quick Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

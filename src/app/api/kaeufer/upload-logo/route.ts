@@ -12,19 +12,9 @@ export async function POST(req: NextRequest) {
   const { data: userData } = await supabase.auth.getUser();
   if (!userData.user) return NextResponse.json({ error: 'unauthenticated' }, { status: 401 });
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('subscription_tier, is_broker')
-    .eq('id', userData.user.id)
-    .maybeSingle();
-
-  const isPlus =
-    profile?.subscription_tier === 'plus' ||
-    profile?.subscription_tier === 'max' ||
-    profile?.is_broker === true;
-  if (!isPlus) {
-    return NextResponse.json({ error: 'Logo-Upload ist ein Käufer+-Feature.' }, { status: 403 });
-  }
+  // Profilbild-Upload ist für ALLE eingeloggten Käufer offen — kein
+  // Tier-Gate. (Gilt jetzt auch für Basic; Spec: "Profilbild auch für
+  // Gratis-User".)
 
   // Pre-Check: Content-Length verhindert Memory-DoS via grosse Multipart-Bodies.
   const contentLength = Number(req.headers.get('content-length') ?? 0);

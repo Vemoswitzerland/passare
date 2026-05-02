@@ -76,10 +76,18 @@ export async function toggleProfilSichtbarkeitAction(formData: FormData): Promis
   const { data: u } = await supabase.auth.getUser();
   if (!u.user) return;
 
-  await supabase
+  // upsert statt update — User ohne kaeufer_profil-Row (Skip-Tunnel)
+  // hatte sonst silent failure und der Toggle sprang zurück.
+  const { error } = await supabase
     .from('kaeufer_profil')
-    .update({ ist_oeffentlich: visible })
-    .eq('user_id', u.user.id);
+    .upsert(
+      { user_id: u.user.id, ist_oeffentlich: visible },
+      { onConflict: 'user_id' },
+    );
+
+  if (error) {
+    console.warn('[toggleProfilSichtbarkeit] upsert failed:', error.message);
+  }
 
   revalidatePath('/dashboard/kaeufer/profil');
 }

@@ -8,6 +8,10 @@ export const metadata = {
   robots: { index: false, follow: false },
 };
 
+// Layout zeigt tier + counts — die ändern sich häufig (Paket-Wechsel, neue
+// Anfrage, neues Mandat). Dynamisch rendern, sonst sieht der User Stale-Daten.
+export const dynamic = 'force-dynamic';
+
 export default async function BrokerLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
   const { data: userData } = await supabase.auth.getUser();
