@@ -84,7 +84,7 @@ export function BrokerSidebar({ tier, counts, onClose }: Props) {
       <nav className="flex-1 overflow-y-auto p-4 space-y-1">
         <p className="overline text-bronze-ink px-3 mb-3 mt-2">Broker-Bereich</p>
         {items.map((item) => {
-          const isActive = item.exact ? path === item.href : path === item.href || path.startsWith(item.href + '/');
+          const isActive = item.exact ? path === item.href : path === item.href || (path?.startsWith(item.href + '/') ?? false);
           return (
             <Link
               key={item.href}

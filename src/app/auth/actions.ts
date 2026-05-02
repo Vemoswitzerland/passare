@@ -36,7 +36,7 @@ const registerSchema = z
     accept_terms: z
       .union([z.literal('on'), z.literal('true'), z.literal(true)])
       .transform(() => true),
-    intended_role: z.enum(['kaeufer', 'verkaeufer']).optional(),
+    intended_role: z.enum(['kaeufer', 'verkaeufer', 'broker']).optional(),
     next: z.string().optional(),
   })
   .strict()
@@ -102,6 +102,8 @@ export async function registerAction(_prev: ActionResult | null, formData: FormD
   // Nach Bestätigungs-Mail-Klick wollen wir Käufer direkt in den Tunnel routen
   const callbackNext = parsed.data.intended_role === 'kaeufer'
     ? '/onboarding/kaeufer/tunnel'
+    : parsed.data.intended_role === 'broker'
+    ? '/onboarding/broker/tunnel'
     : parsed.data.next || '';
 
   const callbackUrl = `${origin}/auth/callback${callbackNext ? `?next=${encodeURIComponent(callbackNext)}` : ''}`;

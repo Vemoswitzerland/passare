@@ -24,7 +24,7 @@ export default async function BrokerAnfragenPage() {
       const ids = mandate.map((i: any) => i.id);
       const { data: a } = await supabase
         .from('anfragen')
-        .select('id, inserat_id, kaeufer_id, message, status, created_at')
+        .select('id, inserat_id, kaeufer_id, nachricht, status, created_at')
         .in('inserat_id', ids)
         .order('created_at', { ascending: false })
         .limit(50);
@@ -72,8 +72,8 @@ export default async function BrokerAnfragenPage() {
                     <p className="text-body-sm text-navy font-medium truncate">
                       Anfrage für {mandat?.firma_name || mandat?.titel || 'Mandat'}
                     </p>
-                    {a.message && (
-                      <p className="text-caption text-muted truncate mt-0.5">{a.message}</p>
+                    {a.nachricht && (
+                      <p className="text-caption text-muted truncate mt-0.5">{a.nachricht}</p>
                     )}
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">

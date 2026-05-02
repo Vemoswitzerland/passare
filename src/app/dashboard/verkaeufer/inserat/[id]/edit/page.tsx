@@ -25,7 +25,9 @@ export default async function EditInseratPage({ params, searchParams }: Props) {
     .maybeSingle();
 
   if (!row) notFound();
-  if (row.verkaeufer_id !== userData.user.id) notFound();
+  // Owner: entweder Verkäufer oder Broker (für Mandate)
+  const isOwner = row.verkaeufer_id === userData.user.id || row.broker_id === userData.user.id;
+  if (!isOwner) notFound();
 
   // ── SMART DEFAULTS ──────────────────────────────────────────────
   // Wenn der User aus dem Pre-Reg-Funnel kommt und Felder noch leer

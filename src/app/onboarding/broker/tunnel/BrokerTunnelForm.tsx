@@ -78,8 +78,8 @@ export function BrokerTunnelForm({ userName, userEmail }: Props) {
         return;
       }
 
-      // Redirect to Stripe checkout
-      router.push(`/api/stripe/broker-checkout?tier=${form.paket}&interval=${form.interval}`);
+      // Hard navigation für API-Routes mit 303-Redirects
+      window.location.href = `/api/stripe/broker-checkout?tier=${form.paket}&interval=${form.interval}`;
     });
   }
 
