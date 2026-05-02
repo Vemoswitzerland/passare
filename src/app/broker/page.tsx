@@ -181,16 +181,30 @@ function PaketeVergleich() {
 
         <Reveal delay={0.1}>
           <div className="max-w-4xl mx-auto rounded-card border border-stone bg-paper overflow-hidden">
-            {/* Header — nur Tier-Namen, ohne Preise */}
+            {/* Header — Tier-Namen mit Preisen */}
             <div className="grid grid-cols-[1.4fr_1fr_1fr] border-b border-stone">
               <div className="p-6">
                 <p className="overline text-bronze-ink">Vergleich</p>
               </div>
               <div className="p-6 text-center border-l border-stone">
-                <p className="font-serif text-head-md text-navy font-normal">Starter</p>
+                <p className="overline text-quiet mb-3">Starter</p>
+                <p className="font-serif text-[1.85rem] text-navy font-light font-tabular leading-none">
+                  CHF 290
+                </p>
+                <p className="text-caption text-quiet mt-1.5">/ Monat</p>
+                <p className="text-caption text-bronze-ink mt-3 font-mono">
+                  oder CHF 2&apos;900 / Jahr
+                </p>
               </div>
               <div className="p-6 text-center border-l border-stone bg-bronze/5">
-                <p className="font-serif text-head-md text-navy font-normal">Pro</p>
+                <p className="overline text-quiet mb-3">Pro</p>
+                <p className="font-serif text-[1.85rem] text-navy font-light font-tabular leading-none">
+                  CHF 890
+                </p>
+                <p className="text-caption text-quiet mt-1.5">/ Monat</p>
+                <p className="text-caption text-bronze-ink mt-3 font-mono">
+                  oder CHF 8&apos;900 / Jahr
+                </p>
               </div>
             </div>
 
