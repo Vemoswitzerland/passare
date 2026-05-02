@@ -182,19 +182,22 @@ export async function GET(req: NextRequest) {
       .eq('id', u.user.id)
       .maybeSingle();
 
-    // Sales-CTAs (z.B. "Käufer+ buchen") setzen einen spezifischen `next`.
-    // Wenn der zum Bereich des Wiederkehrers passt → Vorrang, sonst
-    // routen wir defensiv ins zugehörige Dashboard.
+    // Wiederkehrer mit rolle=null (z.B. alter Google-Login ohne abgeschlossenes
+    // Onboarding): wenn ein spezifischer `next` mitkam (Käufer+/Broker-CTA),
+    // hat der IMMER Vorrang — sonst landet der User wieder auf /onboarding
+    // mit dem 3-Optionen-Wähler.
+    const hasSpecificNext = next && next !== '/dashboard' && next !== '/';
     const nextMatchesRole =
-      next && next !== '/dashboard' && (
-        (profile?.rolle === 'admin' && next.startsWith('/admin')) ||
-        (profile?.rolle === 'broker' && next.startsWith('/dashboard/broker')) ||
-        (profile?.rolle === 'kaeufer' && (next.startsWith('/dashboard/kaeufer') || next.startsWith('/onboarding/kaeufer'))) ||
-        (profile?.rolle === 'verkaeufer' && (next.startsWith('/dashboard/verkaeufer') || next.startsWith('/verkaufen')))
+      hasSpecificNext && (
+        !profile?.rolle || // rolle=null → next respektieren statt 3-Optionen
+        (profile.rolle === 'admin' && next.startsWith('/admin')) ||
+        (profile.rolle === 'broker' && next.startsWith('/dashboard/broker')) ||
+        (profile.rolle === 'kaeufer' && (next.startsWith('/dashboard/kaeufer') || next.startsWith('/onboarding/kaeufer'))) ||
+        (profile.rolle === 'verkaeufer' && (next.startsWith('/dashboard/verkaeufer') || next.startsWith('/verkaufen')))
       );
 
     const targetPath = nextMatchesRole
-      ? next
+      ? next!
       : profile?.rolle === 'admin' ? '/admin'
       : profile?.rolle === 'broker' ? '/dashboard/broker'
       : profile?.rolle === 'kaeufer' ? '/dashboard/kaeufer'
