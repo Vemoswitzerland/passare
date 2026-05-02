@@ -12,7 +12,7 @@ import { SiteHeader, SiteFooter } from '../page';
 export const metadata = {
   title: 'Käufer+ — alle Inserate, Echtzeit-Alerts, 7 Tage Frühzugang — passare',
   description:
-    'Mit Käufer+ siehst du 7 Tage früher neue KMU-Inserate, bekommst Echtzeit-Alerts per WhatsApp und nutzt unbegrenzte Anfragen, alle 18 Filter und ein Featured-Käuferprofil. CHF 199 / Monat oder CHF 1\'990 / Jahr.',
+    'Mit Käufer+ siehst du auch geschlossene Inserate, hast 7 Tage Frühzugang auf neue Inserate, bekommst Echtzeit-Alerts und kannst dein Käuferprofil mit eigenem Logo aufwerten. CHF 199 / Monat oder CHF 1\'990 / Jahr.',
   robots: { index: false, follow: false },
 };
 
@@ -68,9 +68,9 @@ function Hero() {
             <Reveal delay={0.1}>
               <p className="text-body-lg md:text-xl text-muted max-w-prose leading-relaxed mb-10">
                 Die besten Schweizer KMU-Inserate werden in den ersten Tagen nach
-                Veröffentlichung weggeschnappt. Mit <strong className="font-medium text-navy">Käufer+</strong> siehst du sie 7 Tage
-                früher als alle anderen, bekommst Echtzeit-Alerts und kannst
-                unbegrenzt Anfragen senden.
+                Veröffentlichung weggeschnappt. Mit <strong className="font-medium text-navy">Käufer+</strong> siehst du auch
+                geschlossene Inserate, hast 7 Tage Frühzugang auf Neue und bekommst
+                Echtzeit-Alerts statt Wochen-Digest.
               </p>
             </Reveal>
             <Reveal delay={0.2}>
@@ -143,7 +143,7 @@ function Hero() {
                     Echtzeit-Alert
                   </p>
                   <p className="text-body-sm text-ink">
-                    Push + WhatsApp innerhalb von 30 Sekunden
+                    E-Mail innerhalb von 30 Sekunden
                   </p>
                 </div>
               </div>
@@ -169,33 +169,23 @@ function Vorteile() {
   const items = [
     {
       Icon: Eye,
+      title: 'Geschlossene Inserate sehen',
+      body: 'Inserate, die nicht öffentlich sichtbar sind, werden für Käufer+ freigeschaltet — komplett zugänglich.',
+    },
+    {
+      Icon: Plus,
       title: '7 Tage Frühzugang',
-      body: 'Du siehst neue Inserate bevor die Basic-Käufer sie überhaupt finden. Die meisten Top-Deals werden in dieser Phase weggeschnappt.',
+      body: 'Du siehst neue Inserate sieben Tage bevor sie für Basic-Käufer freigeschaltet werden. Die meisten Top-Deals werden in dieser Phase weggeschnappt.',
     },
     {
       Icon: BellRing,
       title: 'Echtzeit-Alerts',
-      body: 'E-Mail + WhatsApp innerhalb von Sekunden, sobald ein Inserat zu deinem Suchprofil passt. Keine Wartezeit auf den wöchentlichen Digest.',
-    },
-    {
-      Icon: Filter,
-      title: 'Alle 18 Filter + Custom',
-      body: 'Über die 5 Basic-Filter hinaus: EBITDA-Marge, Mitarbeiter-Bucket, Übergabegrund, Branchen-Sub-Kategorien, Kanton-Kombinationen.',
-    },
-    {
-      Icon: MessageCircle,
-      title: 'Unbegrenzte Anfragen',
-      body: 'Statt 5 pro Monat: so viele Anfragen wie du willst. Bei seriösem Mandat ein klarer Vorteil.',
+      body: 'E-Mail-Alerts innerhalb von Sekunden, sobald ein Inserat zu deinem Suchprofil passt. Basic bekommt einen wöchentlichen Digest.',
     },
     {
       Icon: Bookmark,
-      title: 'Unbegrenzte Suchprofile',
-      body: 'Mehrere parallele Suchen mit unterschiedlichen Filtern, gespeichert mit individuellem Alert-Rhythmus. Basic erlaubt 3.',
-    },
-    {
-      Icon: Plus,
-      title: 'Featured-Käuferprofil',
-      body: 'Verkäufer sehen dein Profil im Anfragen-Backlog mit Käufer+-Badge. Ernsthafte Käufer werden bevorzugt freigeschaltet.',
+      title: 'Eigenes Logo im Käuferprofil',
+      body: 'Lade dein Logo hoch — dein Käuferprofil wirkt sofort professioneller. Verkäufer erkennen seriöse Käufer schneller und schalten ihre Inserate bevorzugt frei.',
     },
   ];
 
@@ -206,11 +196,11 @@ function Vorteile() {
           <div className="mb-14 max-w-prose">
             <p className="overline mb-5">Warum Käufer+</p>
             <h2 className="font-serif text-display-md text-navy font-light">
-              Sechs Gründe, einen Schritt voraus zu sein.
+              Vier Gründe, einen Schritt voraus zu sein.
             </h2>
           </div>
         </Reveal>
-        <RevealStagger className="grid md:grid-cols-2 lg:grid-cols-3 gap-px bg-stone border border-stone rounded-card overflow-hidden">
+        <RevealStagger className="grid md:grid-cols-2 lg:grid-cols-4 gap-px bg-stone border border-stone rounded-card overflow-hidden">
           {items.map((it, i) => (
             <RevealItem key={i} className="bg-paper p-8 flex flex-col">
               <it.Icon className="w-6 h-6 text-bronze mb-6" strokeWidth={1.5} />
@@ -227,19 +217,13 @@ function Vorteile() {
 /* ─────────────────────────────────────────────── */
 function Vergleich() {
   const rows = [
-    { feature: 'Inserate durchsuchen',          basic: 'Öffentliche',     plus: 'Alle inkl. Premium' },
-    { feature: 'Frühzugang neue Inserate',      basic: '—',               plus: '7 Tage vor allen' },
-    { feature: 'Basis-Filter (5)',              basic: '✓',               plus: '✓' },
-    { feature: 'Alle Filter (18) + Custom',     basic: '—',               plus: '✓' },
-    { feature: 'Gespeicherte Suchen',           basic: '3',               plus: 'Unbegrenzt' },
-    { feature: 'E-Mail-Alerts',                 basic: 'Wöchentlich',     plus: 'Echtzeit' },
-    { feature: 'WhatsApp-Alerts',               basic: '—',               plus: '✓' },
-    { feature: 'Anfragen pro Monat',            basic: '5',               plus: 'Unbegrenzt' },
-    { feature: 'Direkt-Anfrage-Track',          basic: '—',               plus: '✓' },
-    { feature: 'Öffentliches Käuferprofil',     basic: '—',               plus: 'Featured' },
-    { feature: 'KMU-Multiples-Datenbank',       basic: '—',               plus: '✓' },
-    { feature: 'Persönlicher Ansprechpartner',  basic: '—',               plus: '✓' },
-    { feature: 'Kündigungsfrist',               basic: '—',               plus: 'Monatlich' },
+    { feature: 'Öffentliche Inserate sehen',                 basic: '✓',           plus: '✓' },
+    { feature: 'Geschlossene Inserate sehen',                basic: '—',           plus: '✓' },
+    { feature: 'Frühzugang neue Inserate',                   basic: '—',           plus: '7 Tage vor allen' },
+    { feature: 'Alle 18 Filter',                             basic: '✓',           plus: '✓' },
+    { feature: 'Gespeicherte Suchen',                        basic: '✓',           plus: '✓' },
+    { feature: 'E-Mail-Alerts',                              basic: 'Wöchentlich', plus: 'Echtzeit' },
+    { feature: 'Eigenes Logo im Käuferprofil (Trust-Boost)', basic: '—',           plus: '✓' },
   ];
 
   return (
@@ -341,13 +325,13 @@ function UseCases() {
     },
     {
       tag: 'Investor mit Mandat',
-      title: 'Du hast ein klares Mandat und willst alle passenden Inserate sehen.',
-      body: 'Alle 18 Filter, unbegrenzte Suchprofile und das Featured-Profil sorgen dafür, dass Verkäufer dich kennen, bevor andere reagieren.',
+      title: 'Du hast ein klares Mandat und willst auch geschlossene Inserate sehen.',
+      body: 'Käufer+ schaltet die Inserate frei, die nicht öffentlich sind — und mit deinem Logo im Käuferprofil erkennen Verkäufer dich sofort als ernsthaften Mandatsträger.',
     },
     {
       tag: 'Family Office · Holding',
       title: 'Du investierst privat oder fürs Family Office.',
-      body: 'Unbegrenzte Anfragen + parallele Suchprofile mit individuellen Alerts decken mehrere Investment-Themen gleichzeitig ab. Hinweis: Wer als M&A-Broker mit eigener Marke und mehreren externen Klienten arbeitet, soll sich die /broker-Seite ansehen — dafür kommt ein eigenes Broker-System.',
+      body: 'Frühzugang und Echtzeit-Alerts sorgen dafür, dass dir keine passende Übernahme-Gelegenheit durchrutscht. Wer als M&A-Broker mit eigener Marke und mehreren externen Klienten arbeitet, sollte sich die /broker-Seite ansehen — dafür gibt es das Broker-Abo.',
     },
   ];
 
@@ -385,7 +369,7 @@ function Faq() {
     },
     {
       q: 'Wo bekomme ich die Echtzeit-Alerts?',
-      a: 'In jedem Käufer+-Abo enthalten: Push- und E-Mail-Benachrichtigungen sofort, sobald ein neues Inserat einem deiner Suchprofile entspricht. WhatsApp-Alerts kannst du zusätzlich aktivieren — innert 30 Sekunden im Chat.',
+      a: 'In jedem Käufer+-Abo enthalten: E-Mail-Benachrichtigungen innerhalb von Sekunden, sobald ein neues Inserat einem deiner Suchprofile entspricht. Basic-Käufer bekommen einen wöchentlichen Digest.',
     },
     {
       q: 'Kann ich Käufer+ jederzeit kündigen?',
@@ -400,8 +384,8 @@ function Faq() {
       a: 'Sobald du eine Anfrage stellst und der Verkäufer dich freigibt, siehst du Firmenname, Detail-Dossier und ggf. den Datenraum mit weiteren Unterlagen. Mit Käufer+ wird deine Anfrage prioritär verarbeitet.',
     },
     {
-      q: 'Was ist die KMU-Multiples-Datenbank?',
-      a: 'Aktuelle Schweizer Branchen-Multiples (EBITDA, Umsatz) für deine Bewertungen — basierend auf realen M&A-Transaktionen. Nur für Käufer+-Mitglieder einsehbar.',
+      q: 'Was bringt das eigene Logo im Käuferprofil?',
+      a: 'Mit Käufer+ kannst du dein Logo hochladen — dein Käuferprofil wird damit sofort professioneller wahrgenommen. Verkäufer erkennen seriöse Käufer schneller und schalten ihre Inserate bevorzugt frei.',
     },
     {
       q: 'Kann ich Basic erst testen und später upgraden?',
@@ -456,7 +440,7 @@ function CTA() {
           </Reveal>
           <Reveal delay={0.1}>
             <p className="text-body-lg text-cream/80 max-w-prose leading-relaxed mb-10">
-              Frühzugang, Echtzeit-Alerts und unbegrenzte Anfragen. Monatlich kündbar.
+              Geschlossene Inserate, 7 Tage Frühzugang, Echtzeit-Alerts und Logo im Käuferprofil.
               Beim Jahres-Abo zwei Monate gratis.
             </p>
           </Reveal>
