@@ -5,17 +5,17 @@ import { createClient } from '@/lib/supabase/server';
 export const dynamic = 'force-dynamic';
 
 async function handle(req: NextRequest) {
+  const ctx = req.nextUrl.searchParams.get('ctx');
+  const returnPath = ctx === 'broker' ? '/dashboard/broker/paket' : '/dashboard/kaeufer/abo';
+
   const secretKey = process.env.STRIPE_SECRET_KEY;
   if (!secretKey) {
-    return NextResponse.json({ error: 'Stripe nicht konfiguriert' }, { status: 503 });
+    return NextResponse.redirect(new URL(`${returnPath}?error=stripe_not_configured`, req.url));
   }
 
   const supabase = await createClient();
   const { data: u } = await supabase.auth.getUser();
   if (!u.user) return NextResponse.redirect(new URL('/auth/login', req.url));
-
-  const ctx = req.nextUrl.searchParams.get('ctx');
-  const returnPath = ctx === 'broker' ? '/dashboard/broker/paket' : '/dashboard/kaeufer/abo';
 
   const { data: profile } = await supabase
     .from('profiles')
