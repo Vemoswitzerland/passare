@@ -67,6 +67,13 @@ export const CURRENT_STEP = {
 export const UPDATES: Update[] = [
   {
     date: '2026-05-02',
+    type: 'fix',
+    titel: 'Broker-System Audit: 16 kritische Bugs behoben',
+    beschreibung:
+      'Vier-Agent-Audit hat 16 kritische Probleme im neuen Broker-System aufgedeckt — alle behoben. Das Wichtigste: Mandate-Erstellung (Datenbank-Spalten und Aufzählungs-Werte korrigiert), Anfragen-Inbox (falsche Spalte abgefragt), Zugang zum Inserat-Wizard für Broker (vorher gesperrt), Routing nach Login (Broker-Wiederkehrer landeten in einer Sackgasse), Welcome-Banner mit Auto-Refresh statt panischem «Abo nicht aktiv» direkt nach Stripe-Zahlung, freundliche Fehler-Banner statt rohen Server-Fehlern wenn die Bezahlung noch nicht eingerichtet ist. Jetzt läuft der ganze Broker-Flow von Registrierung über Onboarding bis Mandat-Erstellung sauber durch — sobald die Stripe-Konfiguration im Backend hinterlegt ist.',
+  },
+  {
+    date: '2026-05-02',
     type: 'feature',
     titel: 'Broker-System komplett: Onboarding, Dashboard, Abo',
     beschreibung:
