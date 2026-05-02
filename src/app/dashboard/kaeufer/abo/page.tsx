@@ -6,6 +6,7 @@ import {
 import { createClient } from '@/lib/supabase/server';
 import { hasTable } from '@/lib/db/has-table';
 import { cn } from '@/lib/utils';
+import { isPlusKaeufer } from '@/lib/kaeufer/is-plus';
 
 export const metadata = { title: 'Käufer+-Abo — passare', robots: { index: false, follow: false } };
 
@@ -16,11 +17,12 @@ export default async function AboPage() {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('subscription_tier, subscription_renewed_at, subscription_cancel_at, stripe_customer_id, stripe_subscription_id')
+    .select('subscription_tier, is_broker, subscription_renewed_at, subscription_cancel_at, stripe_customer_id, stripe_subscription_id')
     .eq('id', u.user.id)
     .maybeSingle();
 
-  const isPlus = profile?.subscription_tier === 'plus';
+  const isPlus = isPlusKaeufer(profile);
+  const isBroker = profile?.is_broker === true;
 
   let zahlungen: { id: string; amount_gross: number; created_at: string; pdf_url?: string | null }[] = [];
   if (await hasTable('zahlungen')) {
@@ -65,7 +67,7 @@ export default async function AboPage() {
             </h2>
             <p className={cn('text-body-sm mt-2', isPlus ? 'text-cream/80' : 'text-muted')}>
               {isPlus
-                ? `Aktiv${profile.subscription_renewed_at ? ` seit ${new Date(profile.subscription_renewed_at).toLocaleDateString('de-CH')}` : ''}.`
+                ? `Aktiv${profile?.subscription_renewed_at ? ` seit ${new Date(profile.subscription_renewed_at).toLocaleDateString('de-CH')}` : ''}.`
                 : 'Du nutzt aktuell die kostenlose Variante.'}
             </p>
             {profile?.subscription_cancel_at && (
@@ -75,7 +77,7 @@ export default async function AboPage() {
             )}
           </div>
 
-          {isPlus && profile.stripe_customer_id ? (
+          {isPlus && profile?.stripe_customer_id ? (
             <form action="/api/stripe/customer-portal" method="post">
               <button
                 type="submit"

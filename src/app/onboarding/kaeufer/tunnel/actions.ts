@@ -137,8 +137,6 @@ export async function submitKaeuferTunnelAction(
       umsatz_min: budget_min ? Math.round(budget_min / 4) : null,
       umsatz_max: budget_max ? Math.round(budget_max / 2) : null,
       email_alert: true,
-      whatsapp_alert: false,
-      push_alert: false,
       ist_pausiert: false,
     });
     if (spErr && !/relation.*does not exist|42P01/i.test(spErr.message)) {

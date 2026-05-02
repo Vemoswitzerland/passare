@@ -14,8 +14,19 @@ export function LogoUpload({ currentUrl }: Props) {
   const [error, setError] = useState<string | null>(null);
   const ref = useRef<HTMLInputElement>(null);
 
+  const ALLOWED = ['image/jpeg', 'image/png', 'image/webp'];
+  const MAX = 3 * 1024 * 1024;
+
   const upload = async (file: File) => {
     setError(null);
+    if (!ALLOWED.includes(file.type)) {
+      setError('Nur JPG, PNG oder WebP erlaubt.');
+      return;
+    }
+    if (file.size > MAX) {
+      setError('Datei zu gross (max 3 MB).');
+      return;
+    }
     setUploading(true);
     const fd = new FormData();
     fd.append('file', file);
@@ -25,7 +36,8 @@ export function LogoUpload({ currentUrl }: Props) {
       if (!res.ok) {
         setError(json.error ?? 'Upload fehlgeschlagen');
       } else {
-        setUrl(json.url);
+        // Cache-Bust: Browser sonst unter Umständen mit altem Logo gecached.
+        setUrl(`${json.url}?v=${Date.now()}`);
       }
     } catch {
       setError('Verbindung fehlgeschlagen');
@@ -38,8 +50,13 @@ export function LogoUpload({ currentUrl }: Props) {
     setError(null);
     setUploading(true);
     try {
-      await fetch('/api/kaeufer/upload-logo', { method: 'DELETE' });
-      setUrl(null);
+      const res = await fetch('/api/kaeufer/upload-logo', { method: 'DELETE' });
+      if (res.ok) {
+        setUrl(null);
+      } else {
+        const json = await res.json().catch(() => ({}));
+        setError(json.error ?? 'Löschen fehlgeschlagen');
+      }
     } catch {
       setError('Löschen fehlgeschlagen');
     } finally {
@@ -57,7 +74,14 @@ export function LogoUpload({ currentUrl }: Props) {
           )}
         >
           {url ? (
-            <img src={url} alt="Käufer-Logo" className="w-full h-full object-contain" />
+            <img
+              src={url}
+              alt="Käufer-Logo"
+              width={80}
+              height={80}
+              loading="lazy"
+              className="w-full h-full object-contain"
+            />
           ) : (
             <ImagePlus className="w-6 h-6 text-quiet" strokeWidth={1.5} />
           )}

@@ -1,9 +1,10 @@
 import Link from 'next/link';
-import { Bell, Crown, Pause, Play, Trash2, Mail, MessageCircle, Smartphone, Plus, AlertCircle } from 'lucide-react';
+import { Bell, Crown, Pause, Play, Trash2, Mail, Plus, AlertCircle } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { hasTable } from '@/lib/db/has-table';
 import { deleteSuchprofilAction, togglePauseSuchprofilAction } from './actions';
 import { cn } from '@/lib/utils';
+import { isPlusKaeufer } from '@/lib/kaeufer/is-plus';
 
 export const metadata = { title: 'Suchprofile — Käufer · passare', robots: { index: false, follow: false } };
 
@@ -18,8 +19,6 @@ type Suchprofil = {
   ma_min: number | null;
   ma_max: number | null;
   email_alert: boolean;
-  whatsapp_alert: boolean;
-  push_alert: boolean;
   ist_pausiert: boolean;
   created_at: string;
 };
@@ -31,10 +30,10 @@ export default async function SuchprofilePage() {
 
   const { data: prof } = await supabase
     .from('profiles')
-    .select('subscription_tier')
+    .select('subscription_tier, is_broker')
     .eq('id', u.user.id)
     .maybeSingle();
-  const isPlus = prof?.subscription_tier === 'plus';
+  const isPlus = isPlusKaeufer(prof);
 
   let profile: Suchprofil[] = [];
   const profileTableExists = await hasTable('suchprofile');
@@ -74,7 +73,7 @@ export default async function SuchprofilePage() {
             Definiere deine Such-Kriterien und erhalte automatisch Alerts wenn ein neues Inserat passt.
           </p>
         </div>
-        {profile.length < 3 && profileTableExists && (
+        {profileTableExists && (
           <Link
             href="/dashboard/kaeufer/suchprofile/neu"
             className="inline-flex items-center gap-2 px-4 py-2 bg-navy text-cream rounded-soft text-caption font-medium hover:bg-ink transition-colors"

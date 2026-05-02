@@ -3,6 +3,7 @@ import { ArrowLeft } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { getBranchen } from '@/lib/branchen';
 import { SuchprofilForm } from './SuchprofilForm';
+import { isPlusKaeufer } from '@/lib/kaeufer/is-plus';
 
 export const metadata = { title: 'Neues Suchprofil — passare', robots: { index: false, follow: false } };
 
@@ -13,10 +14,10 @@ export default async function NewSuchprofilPage() {
 
   const { data: prof } = await supabase
     .from('profiles')
-    .select('subscription_tier')
+    .select('subscription_tier, is_broker')
     .eq('id', u.user.id)
     .maybeSingle();
-  const isPlus = prof?.subscription_tier === 'plus';
+  const isPlus = isPlusKaeufer(prof);
   const branchen = await getBranchen();
 
   return (

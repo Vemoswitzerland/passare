@@ -102,7 +102,7 @@ export default function AdminSettingsPage() {
             <p className="text-base text-navy font-semibold tabular-nums">CHF 0</p>
             <p className="text-caption text-quiet">unbefristet</p>
             <p className="text-caption text-muted mt-2 pt-2 border-t border-stone">
-              Öffentliche Inserate, 5 Basis-Filter, 5 Anfragen/Monat
+              Öffentliche Inserate, alle 18 Filter, gespeicherte Suchen, wöchentlicher Digest
             </p>
           </div>
           <div className="bg-paper border border-stone rounded-soft p-3">
@@ -112,7 +112,7 @@ export default function AdminSettingsPage() {
             <p className="text-base text-navy font-semibold tabular-nums">CHF 199 / Monat</p>
             <p className="text-caption text-quiet">oder CHF 1&apos;990 / Jahr</p>
             <p className="text-caption text-muted mt-2 pt-2 border-t border-stone">
-              7 Tage Frühzugang, alle Filter, unbegrenzte Anfragen, WhatsApp-Alerts
+              Geschlossene Inserate, 7 Tage Frühzugang, Echtzeit-E-Mail-Alerts, eigenes Logo
             </p>
           </div>
         </div>

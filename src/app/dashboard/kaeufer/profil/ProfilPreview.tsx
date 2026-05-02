@@ -48,7 +48,14 @@ export function ProfilPreview(p: Props) {
       <div className="bg-gradient-to-br from-navy to-ink text-cream p-6 md:p-7">
         <div className="flex items-start gap-4">
           {p.logoUrl ? (
-            <img src={p.logoUrl} alt="" className="w-14 h-14 rounded-full object-cover flex-shrink-0" />
+            <img
+              src={p.logoUrl}
+              alt={p.fullName ? `Logo ${p.fullName}` : 'Käufer-Logo'}
+              width={56}
+              height={56}
+              loading="lazy"
+              className="w-14 h-14 rounded-full object-cover flex-shrink-0"
+            />
           ) : (
             <div className="w-14 h-14 rounded-full bg-bronze text-cream flex items-center justify-center font-mono text-body-sm font-medium flex-shrink-0">
               {initials}

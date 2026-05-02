@@ -52,7 +52,7 @@ export default async function KaeuferTunnelPage() {
               Was suchst du<span className="text-bronze">?</span>
             </h1>
             <p className="text-body text-muted mt-4 max-w-md mx-auto leading-relaxed">
-              3 kurze Fragen — danach siehst du Inserate, die wirklich zu dir passen. Du kannst auch <em>überspringen</em>.
+              2 kurze Fragen — danach siehst du Inserate, die wirklich zu dir passen. Du kannst auch <em>überspringen</em>.
             </p>
           </div>
 

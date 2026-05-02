@@ -124,17 +124,12 @@ function ZweiWelten() {
               </div>
               <ul className="space-y-2.5">
                 {[
-                  'Alle Inserate inkl. Premium sichtbar',
+                  'Alle Inserate inkl. geschlossene sichtbar',
                   '7 Tage Frühzugang auf neue Inserate',
-                  'Alle 18 Filter + Custom',
-                  'Unbegrenzte gespeicherte Suchen',
-                  'E-Mail-Alerts in Echtzeit',
-                  'WhatsApp-Alerts',
-                  'Unbegrenzte Anfragen',
-                  'Direkt-Anfrage-Track',
-                  'Featured-Käuferprofil',
-                  'KMU-Multiples-Datenbank',
-                  'Persönlicher Ansprechpartner',
+                  'Alle 18 Filter',
+                  'Gespeicherte Suchen ohne Limit',
+                  'Echtzeit-E-Mail-Alerts bei jedem Match',
+                  'Eigenes Logo im Käuferprofil',
                 ].map((f) => (
                   <li key={f} className="flex items-start gap-2 text-body-sm text-ink">
                     <Check className="w-4 h-4 text-bronze flex-shrink-0 mt-0.5" strokeWidth={2} />

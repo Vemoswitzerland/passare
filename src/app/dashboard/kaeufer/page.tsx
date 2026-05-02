@@ -10,6 +10,7 @@ import { getDailyDigest, getListings } from '@/lib/listings';
 import { ListingCardMini } from '@/components/kaeufer/listing-card-mini';
 import { MaxUpsellBanner } from '@/components/kaeufer/upsell-banner';
 import { MarketplaceEmpty } from '@/components/marketplace/MarketplaceEmpty';
+import { isPlusKaeufer } from '@/lib/kaeufer/is-plus';
 
 type Props = { searchParams: Promise<{ welcome?: string }> };
 
@@ -22,11 +23,11 @@ export default async function KaeuferDashboardPage({ searchParams }: Props) {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('full_name, subscription_tier, created_at')
+    .select('full_name, subscription_tier, is_broker, created_at')
     .eq('id', u.user.id)
     .maybeSingle();
 
-  const isPlus = profile?.subscription_tier === 'plus';
+  const isPlus = isPlusKaeufer(profile);
 
   // Erstes Suchprofil laden (für Daily Digest Match-Score-Badge in der Card)
   let suchprofil: Suchprofil | null = null;
@@ -83,8 +84,8 @@ export default async function KaeuferDashboardPage({ searchParams }: Props) {
           </h1>
           <p className="text-body text-cream/80 max-w-xl mb-5 leading-relaxed">
             {welcome === 'plus'
-              ? 'Käufer+ ist freigeschaltet. Du siehst neue Inserate ab jetzt 7 Tage vor allen anderen — der nächste Daily Digest kommt morgen um 7:00 Uhr.'
-              : 'Dein Suchprofil ist aktiv. Wir scannen den Marktplatz für dich und schicken dir den Daily Digest jeden Morgen um 7:00 Uhr.'}
+              ? 'Käufer+ ist freigeschaltet. Du siehst neue Inserate 7 Tage vor allen anderen, geschlossene Inserate inklusive — und du bekommst Echtzeit-E-Mail-Alerts bei jedem Match.'
+              : 'Dein Suchprofil ist aktiv. Wir scannen den Marktplatz für dich und schicken dir wöchentlich einen Digest mit deinen neuen Treffern.'}
           </p>
           <div className="flex items-center gap-4 flex-wrap">
             <Link
@@ -155,7 +156,7 @@ export default async function KaeuferDashboardPage({ searchParams }: Props) {
         )}
       </section>
 
-      {/* MAX Upsell (nur wenn Basic) */}
+      {/* Käufer+ Upsell (nur wenn Basic) */}
       {!isPlus && (
         <MaxUpsellBanner
           variant="card"

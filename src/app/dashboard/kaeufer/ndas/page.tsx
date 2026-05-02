@@ -179,14 +179,14 @@ function NDACard({ nda }: { nda: NDA }) {
         </div>
       </dl>
       <Link
-        href={`/datenraum/${nda.inserat_id}`}
+        href={`/dashboard/kaeufer/anfragen?inserat=${nda.inserat_id}`}
         className={cn(
           'w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-soft text-caption font-medium transition-colors',
           expired ? 'bg-stone/60 text-quiet cursor-not-allowed' : 'bg-navy text-cream hover:bg-ink',
         )}
       >
         <FileLock2 className="w-3.5 h-3.5" strokeWidth={1.5} />
-        Datenraum öffnen
+        Anfrage öffnen
       </Link>
     </div>
   );

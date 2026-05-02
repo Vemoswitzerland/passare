@@ -1,9 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Stripe from 'stripe';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { sendEmail } from '@/lib/email';
 
 export const dynamic = 'force-dynamic';
 
+/**
+ * MOCKUP — Broker Checkout
+ *
+ * Aktuell läuft kein echter Stripe-Flow. Der Endpoint setzt direkt
+ * broker_profiles.subscription_status='active' + tier/mandate_limit
+ * passend zum gewählten Paket und routet zurück ins Broker-Dashboard.
+ */
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
   const tier = searchParams.get('tier') ?? 'starter';
@@ -13,67 +20,54 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(new URL('/dashboard/broker/paket?error=invalid_tier', req.url));
   }
 
-  const secretKey = process.env.STRIPE_SECRET_KEY;
-  if (!secretKey) {
-    // Statt JSON-503 lieber freundlich auf die Paket-Seite leiten —
-    // dort sieht der User einen sauberen Hinweis statt rohe API-Fehler.
-    return NextResponse.redirect(
-      new URL('/dashboard/broker/paket?error=stripe_not_configured', req.url),
-    );
-  }
-
-  const priceEnvKey = `STRIPE_PRICE_BROKER_${tier.toUpperCase()}_${interval.toUpperCase()}`;
-  const priceId = process.env[priceEnvKey];
-
-  if (!priceId) {
-    return NextResponse.redirect(
-      new URL(`/dashboard/broker/paket?error=stripe_price_missing&tier=${tier}&interval=${interval}`, req.url),
-    );
-  }
-
   const supabase = await createClient();
   const { data: u } = await supabase.auth.getUser();
   if (!u.user) return NextResponse.redirect(new URL('/auth/login', req.url));
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('stripe_customer_id, full_name')
+  const admin = createAdminClient();
+
+  // Sicherstellen dass ein broker_profiles-Row existiert
+  const { data: existing } = await admin
+    .from('broker_profiles')
+    .select('id')
     .eq('id', u.user.id)
     .maybeSingle();
 
-  const stripe = new Stripe(secretKey, { apiVersion: '2024-12-18.acacia' as Stripe.LatestApiVersion });
+  if (!existing) {
+    return NextResponse.redirect(
+      new URL('/onboarding/broker/tunnel?error=profile_missing', req.url),
+    );
+  }
 
-  let customerId = profile?.stripe_customer_id;
-  if (!customerId) {
-    const customer = await stripe.customers.create({
-      email: u.user.email ?? undefined,
-      name: profile?.full_name ?? undefined,
-      metadata: { user_id: u.user.id, role: 'broker' },
+  const mandateLimit = tier === 'pro' ? 25 : 5;
+  const teamSeats = tier === 'pro' ? 5 : 0;
+
+  await admin
+    .from('broker_profiles')
+    .update({
+      tier,
+      mandate_limit: mandateLimit,
+      team_seats_limit: teamSeats,
+      subscription_status: 'active',
+      subscription_interval: interval,
+      subscription_renewed_at: new Date().toISOString(),
+      subscription_cancel_at: null,
+    })
+    .eq('id', u.user.id);
+
+  await admin
+    .from('profiles')
+    .update({ is_broker: true })
+    .eq('id', u.user.id);
+
+  if (u.user.email) {
+    void sendEmail({
+      template: 'welcome',
+      to: u.user.email,
+      vars: { rolle: 'broker', tier: `broker_${tier}`, mock: true, interval },
+      user_id: u.user.id,
     });
-    customerId = customer.id;
-    const admin = createAdminClient();
-    await admin.from('profiles').update({ stripe_customer_id: customerId }).eq('id', u.user.id);
   }
 
-  const origin = req.nextUrl.origin;
-
-  const session = await stripe.checkout.sessions.create({
-    mode: 'subscription',
-    customer: customerId,
-    line_items: [{ price: priceId, quantity: 1 }],
-    success_url: `${origin}/dashboard/broker?welcome=1`,
-    cancel_url: `${origin}/dashboard/broker/paket?canceled=1`,
-    allow_promotion_codes: true,
-    automatic_tax: { enabled: true },
-    metadata: { user_id: u.user.id, tier: `broker_${tier}`, interval },
-    subscription_data: {
-      metadata: { user_id: u.user.id, tier: `broker_${tier}`, interval },
-    },
-  });
-
-  if (!session.url) {
-    return NextResponse.json({ error: 'Stripe-Session konnte nicht erstellt werden' }, { status: 500 });
-  }
-
-  return NextResponse.redirect(session.url, { status: 303 });
+  return NextResponse.redirect(new URL('/dashboard/broker?welcome=1', req.url), { status: 303 });
 }

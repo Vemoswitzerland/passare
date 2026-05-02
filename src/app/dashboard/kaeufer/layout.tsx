@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { hasTable } from '@/lib/db/has-table';
 import { KaeuferShell } from '@/components/kaeufer/shell';
 import type { SidebarCounts } from '@/components/kaeufer/sidebar-nav';
+import { isPlusKaeufer } from '@/lib/kaeufer/is-plus';
 
 export const metadata = {
   title: 'Käufer-Dashboard — passare',
@@ -39,8 +40,7 @@ export default async function KaeuferLayout({ children }: { children: React.Reac
   // Nur Verkäufer wegleiten — alle anderen (kaeufer, admin, null) durch
   if (profile?.rolle === 'verkaeufer') redirect('/dashboard/verkaeufer');
 
-  // Broker bekommen Käufer+-Funktionen inkludiert in ihrem Abo
-  const isPlus = profile?.subscription_tier === 'plus' || profile?.is_broker === true;
+  const isPlus = isPlusKaeufer(profile);
 
   // Phase 2: alle Count-Queries parallel — 1 Roundtrip statt 4.
   // Supabase wirft nicht — bei Schema-Drift kommt einfach {count: null, error: …}

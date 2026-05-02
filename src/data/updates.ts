@@ -68,6 +68,13 @@ export const UPDATES: Update[] = [
   {
     date: '2026-05-02',
     type: 'fix',
+    titel: 'Käufer+ Audit-Welle: 30+ Bugs behoben, Stripe als Mockup',
+    beschreibung:
+      'Zehn parallele Audit-Agents haben den ganzen Käufer+-Bereich durchleuchtet — alle gefundenen Probleme behoben. Datenbank-Update brachte den neuen «Käufer+»-Status produktiv (vorher war im Hintergrund noch der alte Name aktiv, dadurch wurden Käufer+-Funktionen nicht erkannt). Logo-Upload jetzt mit echtem Schutz: Datei-Inhalt wird geprüft (nicht nur der Name), altes Logo wird beim Ersetzen automatisch gelöscht (kein Speichermüll mehr), Browser-Cache wird umgangen damit das neue Logo sofort sichtbar ist. Bezahlung läuft jetzt überall als sauberer Mockup — sowohl Käufer+- als auch Broker-Abo werden direkt aktiviert ohne echte Stripe-Transaktion (kommt mit Stripe-Anbindung später). Inkonsistente Tier-Erkennung an sechs Stellen mit zentralem Helper vereinheitlicht — Broker werden jetzt überall korrekt als Käufer+ erkannt. Verbotene Marketing-Features (WhatsApp-Alerts, unbegrenzte Anfragen, Featured-Profil, KMU-Multiples-Datenbank, persönlicher Ansprechpartner) auf der Broker-Page, Homepage und im Admin entfernt — durch die korrekten Käufer+-Vorteile ersetzt. Tote Datenraum-Links behoben, Onboarding-Texte korrigiert (2 statt 3 Fragen, doppelte Welcome-Mail entfernt), Suchprofile-Backend von WhatsApp- und Push-Spalten gesäubert, 3-Limit für gespeicherte Suchen final entfernt.',
+  },
+  {
+    date: '2026-05-02',
+    type: 'fix',
     titel: 'Broker-System Audit: 16 kritische Bugs behoben',
     beschreibung:
       'Vier-Agent-Audit hat 16 kritische Probleme im neuen Broker-System aufgedeckt — alle behoben. Das Wichtigste: Mandate-Erstellung (Datenbank-Spalten und Aufzählungs-Werte korrigiert), Anfragen-Inbox (falsche Spalte abgefragt), Zugang zum Inserat-Wizard für Broker (vorher gesperrt), Routing nach Login (Broker-Wiederkehrer landeten in einer Sackgasse), Welcome-Banner mit Auto-Refresh statt panischem «Abo nicht aktiv» direkt nach Stripe-Zahlung, freundliche Fehler-Banner statt rohen Server-Fehlern wenn die Bezahlung noch nicht eingerichtet ist. Jetzt läuft der ganze Broker-Flow von Registrierung über Onboarding bis Mandat-Erstellung sauber durch — sobald die Stripe-Konfiguration im Backend hinterlegt ist.',

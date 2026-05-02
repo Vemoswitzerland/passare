@@ -1,6 +1,5 @@
 'use server';
 
-import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
@@ -17,10 +16,6 @@ const profilSchema = z.object({
   ma_max: z.coerce.number().int().min(0).optional(),
   email_alert: z.union([z.literal('on'), z.literal(''), z.literal('false')]).optional()
     .transform((v) => v === 'on'),
-  whatsapp_alert: z.union([z.literal('on'), z.literal(''), z.literal('false')]).optional()
-    .transform((v) => v === 'on'),
-  push_alert: z.union([z.literal('on'), z.literal(''), z.literal('false')]).optional()
-    .transform((v) => v === 'on'),
 });
 
 export async function createSuchprofilAction(formData: FormData): Promise<ActionResult> {
@@ -34,8 +29,6 @@ export async function createSuchprofilAction(formData: FormData): Promise<Action
     ma_min: formData.get('ma_min') || undefined,
     ma_max: formData.get('ma_max') || undefined,
     email_alert: formData.get('email_alert'),
-    whatsapp_alert: formData.get('whatsapp_alert'),
-    push_alert: formData.get('push_alert'),
   });
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Eingaben unvollständig' };
 
@@ -55,8 +48,6 @@ export async function createSuchprofilAction(formData: FormData): Promise<Action
     ma_max: parsed.data.ma_max ?? null,
     gruende: [],
     email_alert: parsed.data.email_alert ?? true,
-    whatsapp_alert: false,
-    push_alert: false,
     ist_pausiert: false,
   });
 

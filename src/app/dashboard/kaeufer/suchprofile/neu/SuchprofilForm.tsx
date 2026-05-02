@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Crown, Mail, MessageCircle, Smartphone, ArrowRight } from 'lucide-react';
+import { Crown, Mail, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
 import { createSuchprofilAction } from '../actions';

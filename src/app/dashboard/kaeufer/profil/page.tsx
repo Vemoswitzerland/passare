@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import {
   ShieldCheck, Phone, IdCard, FileLock2, Eye, EyeOff,
-  Linkedin, AlertCircle, Trash2, Lock, Crown, ImagePlus,
+  Linkedin, AlertCircle, Trash2, Lock, Crown,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { hasTable } from '@/lib/db/has-table';
@@ -13,6 +13,7 @@ import { getNotificationPrefs } from '@/app/dashboard/settings-actions';
 import { NotificationCenter } from '@/components/settings/NotificationCenter';
 import { cn } from '@/lib/utils';
 import { LogoUpload } from '@/components/kaeufer/logo-upload';
+import { isPlusKaeufer } from '@/lib/kaeufer/is-plus';
 
 export const metadata = { title: 'Käufer-Profil — passare', robots: { index: false, follow: false } };
 
@@ -23,9 +24,11 @@ export default async function ProfilPage() {
 
   const { data: prof } = await supabase
     .from('profiles')
-    .select('full_name, kanton, sprache, verified_phone, verified_kyc, mfa_enrolled, subscription_tier')
+    .select('full_name, kanton, sprache, verified_phone, verified_kyc, mfa_enrolled, subscription_tier, is_broker')
     .eq('id', u.user.id)
     .maybeSingle();
+
+  const isPlus = isPlusKaeufer(prof);
 
   let kaeuferProfil: {
     investor_typ: string | null;
@@ -113,7 +116,7 @@ export default async function ProfilPage() {
           erfahrung={kaeuferProfil?.erfahrung ?? null}
           timing={kaeuferProfil?.timing ?? null}
           beschreibung={kaeuferProfil?.beschreibung ?? null}
-          isPlus={prof?.subscription_tier === 'plus'}
+          isPlus={isPlus}
           logoUrl={kaeuferProfil?.logo_url}
           verified={{
             phone: !!prof?.verified_phone,
@@ -176,7 +179,7 @@ export default async function ProfilPage() {
         <h2 className="font-serif text-head-sm text-navy font-normal mb-3">
           Käufer-Logo
         </h2>
-        {prof?.subscription_tier === 'plus' ? (
+        {isPlus ? (
           <LogoUpload currentUrl={kaeuferProfil?.logo_url ?? null} />
         ) : (
           <div className="bg-bronze/5 border border-bronze/20 rounded-card p-5 flex items-start gap-3">

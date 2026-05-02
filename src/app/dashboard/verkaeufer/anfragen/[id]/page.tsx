@@ -113,7 +113,14 @@ export default async function AnfrageDetailPage({ params }: Props) {
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div className="flex items-center gap-4 min-w-0">
               {kaeuferProfil?.logo_url ? (
-                <img src={kaeuferProfil.logo_url} alt="" className="w-14 h-14 rounded-full object-cover flex-shrink-0" />
+                <img
+                  src={kaeuferProfil.logo_url}
+                  alt={profile?.full_name ? `Logo ${profile.full_name}` : 'Käufer-Logo'}
+                  width={56}
+                  height={56}
+                  loading="lazy"
+                  className="w-14 h-14 rounded-full object-cover flex-shrink-0"
+                />
               ) : (
                 <span className="w-14 h-14 rounded-full bg-navy text-cream flex items-center justify-center text-lg font-mono font-medium flex-shrink-0">
                   {initials}

@@ -14,12 +14,22 @@ export async function POST(req: NextRequest) {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('subscription_tier')
+    .select('subscription_tier, is_broker')
     .eq('id', userData.user.id)
     .maybeSingle();
 
-  if (profile?.subscription_tier !== 'plus' && profile?.subscription_tier !== 'max') {
+  const isPlus =
+    profile?.subscription_tier === 'plus' ||
+    profile?.subscription_tier === 'max' ||
+    profile?.is_broker === true;
+  if (!isPlus) {
     return NextResponse.json({ error: 'Logo-Upload ist ein Käufer+-Feature.' }, { status: 403 });
+  }
+
+  // Pre-Check: Content-Length verhindert Memory-DoS via grosse Multipart-Bodies.
+  const contentLength = Number(req.headers.get('content-length') ?? 0);
+  if (contentLength > MAX_SIZE + 65536) {
+    return NextResponse.json({ error: 'Datei zu gross (max 3 MB).' }, { status: 413 });
   }
 
   const formData = await req.formData();
@@ -33,9 +43,36 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Datei zu gross (max 3 MB).' }, { status: 413 });
   }
 
+  // Magic-Bytes-Check — verhindert MIME-Spoofing.
+  const arrayBuf = await file.arrayBuffer();
+  const bytes = new Uint8Array(arrayBuf.slice(0, 12));
+  const isJpeg = bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+  const isPng =
+    bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47;
+  const isWebp =
+    bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46 &&
+    bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50;
+  if (!isJpeg && !isPng && !isWebp) {
+    return NextResponse.json({ error: 'Datei sieht nicht wie JPG/PNG/WebP aus.' }, { status: 415 });
+  }
+
+  // Altes Logo aus Storage entfernen (sonst Speichermüll).
+  const { data: oldProfile } = await supabase
+    .from('kaeufer_profil')
+    .select('logo_url')
+    .eq('user_id', userData.user.id)
+    .maybeSingle();
+  if (oldProfile?.logo_url) {
+    try {
+      const oldPath = new URL(oldProfile.logo_url).pathname.split('/kaeufer-logos/').pop();
+      if (oldPath) await supabase.storage.from('kaeufer-logos').remove([decodeURIComponent(oldPath)]);
+    } catch {
+      // best-effort: alter Pfad nicht parsbar — egal
+    }
+  }
+
   const ext = file.type === 'image/jpeg' ? 'jpg' : file.type === 'image/png' ? 'png' : 'webp';
   const path = `${userData.user.id}/logo-${Date.now()}.${ext}`;
-  const arrayBuf = await file.arrayBuffer();
 
   const { error: upErr } = await supabase.storage
     .from('kaeufer-logos')
@@ -45,15 +82,21 @@ export async function POST(req: NextRequest) {
     });
 
   if (upErr) {
-    return NextResponse.json({ error: upErr.message }, { status: 500 });
+    console.error('[upload-logo] storage error:', upErr.message);
+    return NextResponse.json({ error: 'Upload fehlgeschlagen.' }, { status: 500 });
   }
 
   const { data: pub } = supabase.storage.from('kaeufer-logos').getPublicUrl(path);
 
-  await supabase
+  const { error: dbErr } = await supabase
     .from('kaeufer_profil')
     .update({ logo_url: pub.publicUrl })
     .eq('user_id', userData.user.id);
+
+  if (dbErr) {
+    console.error('[upload-logo] db error:', dbErr.message);
+    return NextResponse.json({ error: 'Logo gespeichert, Profil-Update fehlgeschlagen.' }, { status: 500 });
+  }
 
   return NextResponse.json({ url: pub.publicUrl, path });
 }

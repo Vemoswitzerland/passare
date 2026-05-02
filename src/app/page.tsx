@@ -512,8 +512,8 @@ function Marketplace({
                   </h3>
                   <p className="text-body-sm text-muted mb-6 max-w-md mx-auto">
                     Neue Inserate sind 7 Tage lang nur für Käufer+-Mitglieder sichtbar,
-                    bevor sie öffentlich werden. Plus alle Filter, unbegrenzte Anfragen,
-                    Echtzeit-Alerts.
+                    bevor sie öffentlich werden. Plus geschlossene Inserate, Echtzeit-Alerts
+                    und ein eigenes Logo im Käuferprofil.
                   </p>
                   <Button href="/plus" variant="secondary" size="md">
                     Käufer+ ab CHF 199/Monat <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
