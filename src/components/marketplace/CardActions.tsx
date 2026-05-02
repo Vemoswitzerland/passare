@@ -1,15 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Check, Heart, Share2 } from 'lucide-react';
 import { LoginRequiredDialog } from './LoginRequiredDialog';
 import { useAuthUser } from './use-auth-user';
+import { addFavoritAction, removeFavoritAction } from '@/app/dashboard/kaeufer/favoriten/actions';
 
 /**
  * Like + Teilen Buttons auf einer Marktplatz-Karte.
  *
  * Liken erfordert ein Konto — bei Klick als nicht-eingeloggter User öffnet sich
- * der LoginRequiredDialog (OAuth + Login/Register). Teilen ist immer offen.
+ * der LoginRequiredDialog (OAuth + Login/Register). Bei eingeloggtem User wird
+ * der Like in der `favoriten`-Tabelle persistiert (echtes Merken, nicht nur
+ * lokales React-State).
  */
 
 type Props = {
@@ -21,19 +24,36 @@ type Props = {
 };
 
 export function CardActions({ listingId, titel, branche, kanton, umsatz }: Props) {
-  const { isLoggedIn } = useAuthUser();
+  const { isLoggedIn, loading } = useAuthUser();
   const [liked, setLiked] = useState(false);
+  const [pending, setPending] = useState(false);
   const [copied, setCopied] = useState(false);
   const [loginOpen, setLoginOpen] = useState(false);
 
-  function toggleLike(e: React.MouseEvent) {
+  // Initial-Status aus DB laden (wenn eingeloggt) — damit Heart-State stimmt
+  useEffect(() => {
+    if (loading || !isLoggedIn) return;
+    fetch(`/api/favoriten/check?inserat_id=${encodeURIComponent(listingId)}`)
+      .then((r) => r.json())
+      .then((d) => setLiked(!!d.liked))
+      .catch(() => {});
+  }, [loading, isLoggedIn, listingId]);
+
+  async function toggleLike(e: React.MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
     if (!isLoggedIn) {
       setLoginOpen(true);
       return;
     }
-    setLiked((v) => !v);
+    if (pending) return;
+    setPending(true);
+    const fd = new FormData();
+    fd.set('inserat_id', listingId);
+    const action = liked ? removeFavoritAction : addFavoritAction;
+    const result = await action(fd);
+    setPending(false);
+    if (result.ok) setLiked((v) => !v);
   }
 
   async function share(e: React.MouseEvent) {
@@ -74,9 +94,10 @@ export function CardActions({ listingId, titel, branche, kanton, umsatz }: Props
       <button
         type="button"
         onClick={toggleLike}
+        disabled={pending}
         aria-pressed={liked}
         aria-label={liked ? 'Inserat gemerkt' : 'Inserat merken'}
-        className={`px-3 py-2 border rounded-soft transition-colors ${
+        className={`px-3 py-2 border rounded-soft transition-colors disabled:opacity-50 ${
           liked
             ? 'border-bronze bg-bronze/10 text-bronze-ink'
             : 'border-stone text-muted hover:border-bronze hover:text-bronze'

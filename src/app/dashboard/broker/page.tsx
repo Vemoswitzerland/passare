@@ -133,7 +133,7 @@ export default async function BrokerDashboard({ searchParams }: Props) {
           </div>
           {isActive && (
             <Link
-              href="/dashboard/broker/mandate?action=new"
+              href="/dashboard/broker/mandate/new"
               className="inline-flex items-center gap-2 px-6 py-3 bg-navy text-cream rounded-soft text-body-sm font-medium hover:bg-ink shadow-card hover:shadow-lift hover:-translate-y-px transition-all"
             >
               <Plus className="w-4 h-4" strokeWidth={1.5} />

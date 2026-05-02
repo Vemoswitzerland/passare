@@ -10,9 +10,9 @@ import { KANTON_CODES } from '@/lib/constants';
 import type { Branche } from '@/lib/branchen';
 import { cn } from '@/lib/utils';
 
-type Props = { isMax: boolean; branchen: Branche[] };
+type Props = { isMax: boolean; branchen: Branche[]; successUrl?: string };
 
-export function SuchprofilForm({ isMax, branchen }: Props) {
+export function SuchprofilForm({ isMax, branchen, successUrl }: Props) {
   const [branchenSelected, setBranchenSelected] = useState<string[]>([]);
   const [kantone, setKantone] = useState<string[]>([]);
   const [name, setName] = useState('Mein Suchprofil');
@@ -27,7 +27,7 @@ export function SuchprofilForm({ isMax, branchen }: Props) {
     const result = await createSuchprofilAction(formData);
     setPending(false);
     if (result.ok) {
-      window.location.href = '/dashboard/kaeufer/suchprofile';
+      window.location.href = successUrl ?? '/dashboard/kaeufer/suchprofile';
     } else {
       setError(result.error);
     }

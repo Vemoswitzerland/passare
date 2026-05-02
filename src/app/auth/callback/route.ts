@@ -75,24 +75,28 @@ export async function GET(req: NextRequest) {
   const hasInserat = (existingInserate?.length ?? 0) > 0;
 
   if (isWiederkehrer || hasInserat) {
-    // ── Wiederkehrer-Flow ─────────────────────────────────────────
-    // ALLE Pre-Reg-Cookies aufräumen + DIREKT zur rolle-passenden Route.
-    // Robust: Profil-Rolle ist die primäre Quelle (deckt admin/kaeufer/
-    // verkaeufer ab). Hat das Profil keine Rolle aber ein Inserat,
-    // nehmen wir verkaeufer als Default. Sonst → generisches /dashboard,
-    // das selbst nochmal rolle-routet.
-    //
-    // VORHER (zwei Bugs): alle Wiederkehrer landeten hart auf
-    // /dashboard/verkaeufer (auch Admins!) und der Zwischenschritt
-    // /dashboard ist optional fragil bei Cookie-/Cache-Issues.
     const { data: profile } = await supabase
       .from('profiles')
       .select('rolle')
       .eq('id', u.user.id)
       .maybeSingle();
 
-    const targetPath =
-      profile?.rolle === 'admin' ? '/admin'
+    // Wenn ein expliziter `next` von einem Sales-CTA mitkam und der zum
+    // Bereich des Wiederkehrers passt, hat der Vorrang. Beispiel:
+    // Käufer-Wiederkehrer klickt "Käufer+ buchen" → next=/onboarding/kaeufer/tunnel
+    // (oder /dashboard/kaeufer/abo) → soll dorthin und nicht stumpf
+    // ins Käufer-Dashboard.
+    const nextMatchesRole =
+      next && (
+        (profile?.rolle === 'admin' && next.startsWith('/admin')) ||
+        (profile?.rolle === 'broker' && next.startsWith('/dashboard/broker')) ||
+        (profile?.rolle === 'kaeufer' && (next.startsWith('/dashboard/kaeufer') || next.startsWith('/onboarding/kaeufer'))) ||
+        (profile?.rolle === 'verkaeufer' && (next.startsWith('/dashboard/verkaeufer') || next.startsWith('/verkaufen')))
+      );
+
+    const targetPath = nextMatchesRole
+      ? next
+      : profile?.rolle === 'admin' ? '/admin'
       : profile?.rolle === 'broker' ? '/dashboard/broker'
       : profile?.rolle === 'kaeufer' ? '/dashboard/kaeufer'
       : profile?.rolle === 'verkaeufer' ? '/dashboard/verkaeufer'

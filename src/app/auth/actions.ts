@@ -99,11 +99,13 @@ export async function registerAction(_prev: ActionResult | null, formData: FormD
   const supabase = await createClient();
   const origin = await getAppOrigin();
 
-  // Nach Bestätigungs-Mail-Klick wollen wir Käufer direkt in den Tunnel routen
+  // Nach Bestätigungs-Mail-Klick direkt in den passenden Tunnel routen
   const callbackNext = parsed.data.intended_role === 'kaeufer'
     ? '/onboarding/kaeufer/tunnel'
     : parsed.data.intended_role === 'broker'
     ? '/onboarding/broker/tunnel'
+    : parsed.data.intended_role === 'verkaeufer'
+    ? '/verkaufen/start'
     : parsed.data.next || '';
 
   const callbackUrl = `${origin}/auth/callback${callbackNext ? `?next=${encodeURIComponent(callbackNext)}` : ''}`;

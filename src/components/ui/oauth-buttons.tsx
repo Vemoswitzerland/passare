@@ -1,20 +1,42 @@
 'use client';
 
 import { useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 
 type Mode = 'login' | 'register';
 type Provider = 'google' | 'linkedin_oidc';
 
+/**
+ * Bestimmt das Ziel nach OAuth-Login je nach intended_role aus der URL.
+ * Wichtig: OHNE diese Logik werden Käufer/Broker nach Google-Login auf
+ * /dashboard geleitet, das fragt sie nochmal nach der Rolle ("Ich
+ * verkaufe / Ich kaufe / Ich bin Broker") — was Cyrill nicht will.
+ */
+function resolveOAuthNext(role: string | null, plan: string | null): string {
+  if (role === 'kaeufer') {
+    if (plan === 'plus') return '/onboarding/kaeufer/tunnel?plan=plus';
+    return '/onboarding/kaeufer/tunnel';
+  }
+  if (role === 'broker') return '/onboarding/broker/tunnel';
+  if (role === 'verkaeufer') return '/verkaufen/start';
+  return '/dashboard';
+}
+
 export function OAuthButtons({ mode = 'login' }: { mode?: Mode }) {
   const verb = mode === 'register' ? 'registrieren' : 'anmelden';
+  const params = useSearchParams();
+  const role = params.get('role');
+  const plan = params.get('plan');
+  const next = resolveOAuthNext(role, plan);
+
   return (
     <div className="space-y-2.5">
-      <OAuthBtn provider="google" label={`Mit Google ${verb}`}>
+      <OAuthBtn provider="google" label={`Mit Google ${verb}`} next={next}>
         <GoogleIcon />
       </OAuthBtn>
-      <OAuthBtn provider="linkedin_oidc" label={`Mit LinkedIn ${verb}`}>
+      <OAuthBtn provider="linkedin_oidc" label={`Mit LinkedIn ${verb}`} next={next}>
         <LinkedInIcon />
       </OAuthBtn>
     </div>
@@ -22,8 +44,8 @@ export function OAuthButtons({ mode = 'login' }: { mode?: Mode }) {
 }
 
 function OAuthBtn({
-  provider, label, children,
-}: { provider: Provider; label: string; children: React.ReactNode }) {
+  provider, label, next, children,
+}: { provider: Provider; label: string; next: string; children: React.ReactNode }) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -35,7 +57,7 @@ function OAuthBtn({
     // "passare.ch" statt der Supabase-Subdomain. Token-Exchange + Session-
     // Anlage passieren in /api/auth/google/callback via signInWithIdToken.
     if (provider === 'google') {
-      window.location.assign('/api/auth/google/start?next=/dashboard');
+      window.location.assign(`/api/auth/google/start?next=${encodeURIComponent(next)}`);
       return;
     }
 
@@ -46,7 +68,7 @@ function OAuthBtn({
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: `${origin}/auth/callback?next=/dashboard`,
+          redirectTo: `${origin}/auth/callback?next=${encodeURIComponent(next)}`,
         },
       });
       if (error) throw error;

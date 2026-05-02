@@ -1,19 +1,15 @@
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
-import { Plus, ArrowRight, FileText, Eye, MessageSquare } from 'lucide-react';
+import { Plus, ArrowRight, FileText, Eye } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { hasTable } from '@/lib/db/has-table';
-import { NewMandatDialog } from './NewMandatDialog';
 
 export const metadata = { title: 'Mandate — passare Broker' };
+export const dynamic = 'force-dynamic';
 
-type Props = { searchParams: Promise<{ action?: string }> };
-
-export default async function MandatePage({ searchParams }: Props) {
+export default async function MandatePage() {
   const supabase = await createClient();
   const { data: userData } = await supabase.auth.getUser();
   if (!userData.user) return null;
-  const sp = await searchParams;
 
   let mandate: any[] = [];
   let brokerProfile: any = null;
@@ -55,7 +51,7 @@ export default async function MandatePage({ searchParams }: Props) {
           </div>
           {canCreate && (
             <Link
-              href="/dashboard/broker/mandate?action=new"
+              href="/dashboard/broker/mandate/new"
               className="inline-flex items-center gap-2 px-5 py-2.5 bg-navy text-cream rounded-soft text-body-sm font-medium hover:bg-ink shadow-card hover:shadow-lift hover:-translate-y-px transition-all"
             >
               <Plus className="w-4 h-4" strokeWidth={1.5} />
@@ -74,7 +70,7 @@ export default async function MandatePage({ searchParams }: Props) {
             </p>
             {canCreate && (
               <Link
-                href="/dashboard/broker/mandate?action=new"
+                href="/dashboard/broker/mandate/new"
                 className="inline-flex items-center gap-2 px-5 py-2.5 bg-navy text-cream rounded-soft text-body-sm font-medium hover:bg-ink transition-colors"
               >
                 <Plus className="w-4 h-4" strokeWidth={1.5} />
@@ -90,7 +86,6 @@ export default async function MandatePage({ searchParams }: Props) {
           </div>
         )}
 
-        {sp.action === 'new' && canCreate && <NewMandatDialog />}
       </div>
     </div>
   );

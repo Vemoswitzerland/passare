@@ -1,15 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Check, Heart, Share2 } from 'lucide-react';
 import { LoginRequiredDialog } from '@/components/marketplace/LoginRequiredDialog';
 import { useAuthUser } from '@/components/marketplace/use-auth-user';
+import { addFavoritAction, removeFavoritAction } from '@/app/dashboard/kaeufer/favoriten/actions';
 
 /**
  * Merken (Like) + Teilen (Share) Buttons im ContactPanel der Detail-Seite.
  *
  * Merken erfordert ein Konto — bei Klick als nicht-eingeloggter User öffnet
- * sich der LoginRequiredDialog. Teilen bleibt immer offen.
+ * sich der LoginRequiredDialog. Bei eingeloggtem User wird der Like in der
+ * `favoriten`-Tabelle persistiert. Teilen bleibt immer offen.
  */
 
 type Props = {
@@ -23,17 +25,33 @@ type Props = {
 export function LikeShareActions({
   listingId, titel, branche, kanton, umsatz,
 }: Props) {
-  const { isLoggedIn } = useAuthUser();
+  const { isLoggedIn, loading } = useAuthUser();
   const [liked, setLiked] = useState(false);
+  const [pending, setPending] = useState(false);
   const [copied, setCopied] = useState(false);
   const [loginOpen, setLoginOpen] = useState(false);
 
-  function toggleLike() {
+  useEffect(() => {
+    if (loading || !isLoggedIn) return;
+    fetch(`/api/favoriten/check?inserat_id=${encodeURIComponent(listingId)}`)
+      .then((r) => r.json())
+      .then((d) => setLiked(!!d.liked))
+      .catch(() => {});
+  }, [loading, isLoggedIn, listingId]);
+
+  async function toggleLike() {
     if (!isLoggedIn) {
       setLoginOpen(true);
       return;
     }
-    setLiked((v) => !v);
+    if (pending) return;
+    setPending(true);
+    const fd = new FormData();
+    fd.set('inserat_id', listingId);
+    const action = liked ? removeFavoritAction : addFavoritAction;
+    const result = await action(fd);
+    setPending(false);
+    if (result.ok) setLiked((v) => !v);
   }
 
   async function share() {
@@ -71,8 +89,9 @@ export function LikeShareActions({
       <button
         type="button"
         onClick={toggleLike}
+        disabled={pending}
         aria-pressed={liked}
-        className={`flex items-center justify-center gap-2 px-4 py-2.5 border rounded-soft text-body-sm transition-all ${
+        className={`flex items-center justify-center gap-2 px-4 py-2.5 border rounded-soft text-body-sm transition-all disabled:opacity-50 ${
           liked
             ? 'border-bronze bg-bronze/10 text-bronze-ink'
             : 'border-stone text-muted hover:border-bronze hover:text-bronze'
