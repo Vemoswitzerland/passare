@@ -24,6 +24,7 @@ import { getBranchen, type Branche } from '@/lib/branchen';
 import {
   EBITDA_BUCKETS,
   KANTON_CODES,
+  KANTON_NAMES,
   MA_BUCKETS,
   PREIS_BUCKETS,
   UEBERGABE_GRUENDE,
@@ -354,7 +355,7 @@ function Marketplace({
                   >
                     <option value="all">Alle Kantone</option>
                     {KANTON_CODES.map((k) => (
-                      <option key={k} value={k}>{k}</option>
+                      <option key={k} value={k}>{KANTON_NAMES[k]}</option>
                     ))}
                   </select>
                 </div>
