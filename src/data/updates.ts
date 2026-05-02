@@ -68,6 +68,20 @@ export const UPDATES: Update[] = [
   {
     date: '2026-05-02',
     type: 'feature',
+    titel: 'Broker-System komplett: Onboarding, Dashboard, Abo',
+    beschreibung:
+      'Neues Broker-Modul vollständig live: Broker wählen beim Onboarding ihre Rolle, durchlaufen einen eigenen Tunnel (Agentur-Daten, Bio, Paket-Wahl) und landen in einem dedizierten Dashboard mit Mandats-Verwaltung, kombinierter Anfragen-Inbox, Suchprofil-Zugang und Team-Verwaltung (Pro). Öffentliches Broker-Verzeichnis zeigt alle aktiven Agenturen. Abo-Abrechnung über Kreditkarte mit zwei Stufen (Starter: 5 Mandate, Pro: 25 Mandate + Team). Broker können Inserate genau wie Verkäufer erstellen — alles in einem Konto.',
+  },
+  {
+    date: '2026-05-02',
+    type: 'feature',
+    titel: 'Käufer+ Audit + Logo-Upload',
+    beschreibung:
+      'Kompletter Käufer+-Bereich auditiert und bereinigt: Tier-Benennung überall auf «Käufer+» vereinheitlicht, verbotene Features (WhatsApp-Alert, Anfragen-Limit, Featured-Profil) aus allen Seiten entfernt, Feature-Vergleiche korrigiert. Neues Feature: Käufer+ können ihr Logo hochladen — wird im Profil und bei Anfragen angezeigt. Suchprofile haben kein 3-Stück-Limit mehr.',
+  },
+  {
+    date: '2026-05-02',
+    type: 'feature',
     titel: 'Broker-Landingpage /broker — sauber und minimal',
     beschreibung:
       'Eigene Landingpage für Broker und M&A-Berater mit dem Pitch «Beide Seiten. Ein Abo.» — Mandate inserieren und gleichzeitig im Marktplatz suchen, Käufer+ ist inklusive. Zwei Listen zeigen exakt was drin ist: links die Verkaufs-Funktionen pro Mandat (Inserat, Anfragen, Chat, Statistik, Datenraum, Hervorhebung, Newsletter, Käuferprofil-Einsicht), rechts die Käufer+-Funktionen (alle Inserate inkl. Premium, 7-Tage-Frühzugang, alle 18 Filter, Echtzeit-Alerts, WhatsApp, unbegrenzte Anfragen, Featured-Käuferprofil, KMU-Multiples, Ansprechpartner). Pakete-Vergleich zeigt vier echte Differenzierer Starter ↔ Pro: aktive Mandate (5 vs 25), Hervorhebung pro Mandat (4× vs 12× pro Jahr), Newsletter pro Mandat (— vs 2× pro Jahr), Mitarbeiter onboarden (— vs bis 5). Banner auf der Verkaufen-Seite verlinkt direkt zur Broker-Page.',

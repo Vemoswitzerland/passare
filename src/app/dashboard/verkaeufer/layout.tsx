@@ -31,7 +31,7 @@ export default async function VerkaeuferLayout({ children }: { children: React.R
   if (profile.rolle === 'kaeufer') {
     redirect('/dashboard/kaeufer');
   }
-  if (profile.rolle !== 'verkaeufer' && profile.rolle !== 'admin') {
+  if (profile.rolle !== 'verkaeufer' && profile.rolle !== 'admin' && profile.rolle !== 'broker') {
     redirect('/onboarding');
   }
 
@@ -59,13 +59,16 @@ export default async function VerkaeuferLayout({ children }: { children: React.R
     const urlInseratMatch = pathHeader.match(/\/inserat\/([0-9a-f-]{36})/);
     const urlInseratId = urlInseratMatch?.[1] ?? null;
 
+    const isBroker = profile.rolle === 'broker';
+    const ownerCol = isBroker ? 'broker_id' : 'verkaeufer_id';
+
     let inserat: any = null;
     if (urlInseratId) {
       const { data } = await supabase
         .from('inserate')
         .select('id, status, paket, paid_at')
         .eq('id', urlInseratId)
-        .eq('verkaeufer_id', userData.user.id)
+        .eq(ownerCol, userData.user.id)
         .maybeSingle();
       inserat = data;
     }
@@ -73,7 +76,7 @@ export default async function VerkaeuferLayout({ children }: { children: React.R
       const { data: draftInserat } = await supabase
         .from('inserate')
         .select('id, status, paket, paid_at')
-        .eq('verkaeufer_id', userData.user.id)
+        .eq(ownerCol, userData.user.id)
         .eq('status', 'entwurf')
         .is('paid_at', null)
         .order('updated_at', { ascending: false })
@@ -82,7 +85,7 @@ export default async function VerkaeuferLayout({ children }: { children: React.R
       inserat = draftInserat ?? (await supabase
         .from('inserate')
         .select('id, status, paket, paid_at')
-        .eq('verkaeufer_id', userData.user.id)
+        .eq(ownerCol, userData.user.id)
         .order('updated_at', { ascending: false })
         .limit(1)
         .maybeSingle()).data;
