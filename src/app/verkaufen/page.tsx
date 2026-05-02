@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Divider } from '@/components/ui/divider';
 import { Reveal, RevealStagger, RevealItem } from '@/components/ui/reveal';
 import { DashboardMockup } from '@/components/sections/dashboard-mockup';
+import { getUserState, ctaVerkaeufer } from '@/lib/auth/cta-routing';
 
 export const metadata = {
   title: 'Firma inserieren — passare',
@@ -13,18 +14,23 @@ export const metadata = {
   robots: { index: false, follow: false },
 };
 
-export default function VerkaufenPage() {
+export const dynamic = 'force-dynamic';
+
+export default async function VerkaufenPage() {
+  const state = await getUserState();
+  const ctaStart = ctaVerkaeufer(state);
+
   return (
     <main className="min-h-screen flex flex-col bg-cream">
       <TopBar />
-      <Hero />
+      <Hero ctaStart={ctaStart} />
       <BrokerBanner />
       <Benefits />
-      <Packages />
+      <Packages ctaStart={ctaStart} />
       <Process />
-      <BewertungsKarte />
+      <BewertungsKarte ctaStart={ctaStart} />
       <FAQ />
-      <CTA />
+      <CTA ctaStart={ctaStart} />
       <Footer />
     </main>
   );
@@ -38,7 +44,7 @@ function TopBar() {
 }
 
 /* Hero — 2-col: Text links, Dashboard-Mockup rechts */
-function Hero() {
+function Hero({ ctaStart }: { ctaStart: string }) {
   return (
     <section className="relative overflow-hidden pt-16 md:pt-24 pb-20 md:pb-28">
       <Container size="wide">
@@ -60,7 +66,7 @@ function Hero() {
             </Reveal>
             <Reveal delay={0.2}>
               <div className="flex flex-col sm:flex-row gap-4 items-start mb-3">
-                <Button href="/verkaufen/start" size="lg">
+                <Button href={ctaStart} size="lg">
                   Bewerten &amp; inserieren <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
                 </Button>
                 <Button href="#pakete" variant="secondary" size="lg">
@@ -167,7 +173,7 @@ function Benefits() {
 }
 
 /* ───────────────────────────────── */
-function Packages() {
+function Packages({ ctaStart }: { ctaStart: string }) {
   const plans = [
     {
       tag: 'Einstieg',
@@ -270,7 +276,7 @@ function Packages() {
                   {p.verlaengerung}
                 </p>
                 <Button
-                  href="/verkaufen/start"
+                  href={ctaStart}
                   variant={p.highlight ? 'primary' : 'secondary'}
                   size="lg"
                   className="w-full justify-center"
@@ -342,7 +348,7 @@ function Process() {
 }
 
 /* ───────────────────────────────── */
-function BewertungsKarte() {
+function BewertungsKarte({ ctaStart }: { ctaStart: string }) {
   return (
     <Section>
       <Container>
@@ -392,7 +398,7 @@ function BewertungsKarte() {
                 </ul>
 
                 <div className="flex flex-col sm:flex-row gap-3 items-start">
-                  <Button href="/verkaufen/start" size="lg">
+                  <Button href={ctaStart} size="lg">
                     <Calculator className="w-4 h-4" strokeWidth={1.5} />
                     Bewerten &amp; inserieren
                   </Button>
@@ -504,7 +510,7 @@ function FAQ() {
 }
 
 /* ───────────────────────────────── */
-function CTA() {
+function CTA({ ctaStart }: { ctaStart: string }) {
   return (
     <Section className="bg-navy text-cream">
       <Container>
@@ -522,7 +528,7 @@ function CTA() {
           </Reveal>
           <Reveal delay={0.2}>
             <div className="flex flex-col sm:flex-row gap-4 items-start">
-              <Button href="/verkaufen/start" variant="bronze" size="lg">
+              <Button href={ctaStart} variant="bronze" size="lg">
                 Bewerten &amp; inserieren <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
               </Button>
               <span className="font-mono text-[11px] uppercase tracking-widest text-cream/50 mt-3">

@@ -7,6 +7,7 @@ import { Container, Section } from '@/components/ui/container';
 import { Button } from '@/components/ui/button';
 import { Reveal, RevealStagger, RevealItem } from '@/components/ui/reveal';
 import { SiteHeader, SiteFooter } from '../page';
+import { getUserState, ctaKaeuferPlus, ctaKaeuferBasic } from '@/lib/auth/cta-routing';
 
 export const metadata = {
   title: 'Käufer+ — alle Inserate, Echtzeit-Alerts, 7 Tage Frühzugang — passare',
@@ -15,16 +16,22 @@ export const metadata = {
   robots: { index: false, follow: false },
 };
 
-export default function PlusPage() {
+export const dynamic = 'force-dynamic';
+
+export default async function PlusPage() {
+  const state = await getUserState();
+  const ctaPlus = ctaKaeuferPlus(state);
+  const ctaBasic = ctaKaeuferBasic(state);
+
   return (
     <main className="min-h-screen flex flex-col bg-cream">
       <SiteHeader />
-      <Hero />
+      <Hero ctaPlus={ctaPlus} />
       <Vorteile />
-      <Vergleich />
+      <Vergleich ctaPlus={ctaPlus} ctaBasic={ctaBasic} />
       <UseCases />
       <Faq />
-      <CTA />
+      <CTA ctaPlus={ctaPlus} />
       <SiteFooter />
     </main>
   );
@@ -50,7 +57,7 @@ function KaeuferPlus({
 }
 
 /* ─────────────────────────────────────────────── */
-function Hero() {
+function Hero({ ctaPlus }: { ctaPlus: string }) {
   return (
     <Section className="pt-16 md:pt-24 pb-14 md:pb-20">
       <Container>
@@ -74,7 +81,7 @@ function Hero() {
             </Reveal>
             <Reveal delay={0.2}>
               <div className="flex flex-col sm:flex-row gap-4 items-start mb-10">
-                <Button href="/auth/register?role=kaeufer&plan=plus" size="lg">
+                <Button href={ctaPlus} size="lg">
                   Käufer+ buchen <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
                 </Button>
                 <Button href="/" variant="secondary" size="lg">
@@ -214,7 +221,7 @@ function Vorteile() {
 }
 
 /* ─────────────────────────────────────────────── */
-function Vergleich() {
+function Vergleich({ ctaPlus, ctaBasic }: { ctaPlus: string; ctaBasic: string }) {
   const rows = [
     // Was beide haben — oben
     { feature: 'Öffentliche Inserate sehen',                 basic: '✓',           plus: '✓' },
@@ -281,10 +288,10 @@ function Vergleich() {
             <div className="grid grid-cols-[1.5fr_1fr_1fr] border-t border-stone bg-cream/50">
               <div className="p-4"></div>
               <div className="p-4 border-l border-stone">
-                <Button href="/auth/register?role=kaeufer&plan=basic" variant="secondary" size="sm" className="w-full justify-center">Gratis starten</Button>
+                <Button href={ctaBasic} variant="secondary" size="sm" className="w-full justify-center">Gratis starten</Button>
               </div>
               <div className="p-4 border-l border-stone">
-                <Button href="/auth/register?role=kaeufer&plan=plus" size="sm" className="w-full justify-center">Käufer+ buchen</Button>
+                <Button href={ctaPlus} size="sm" className="w-full justify-center">Käufer+ buchen</Button>
               </div>
             </div>
           </div>
@@ -445,7 +452,7 @@ function Faq() {
 }
 
 /* ─────────────────────────────────────────────── */
-function CTA() {
+function CTA({ ctaPlus }: { ctaPlus: string }) {
   return (
     <Section className="bg-navy text-cream">
       <Container>
@@ -463,7 +470,7 @@ function CTA() {
           </Reveal>
           <Reveal delay={0.2}>
             <div className="flex flex-col sm:flex-row gap-4 items-start">
-              <Button href="/auth/register?role=kaeufer&plan=plus" variant="bronze" size="lg">
+              <Button href={ctaPlus} variant="bronze" size="lg">
                 Käufer+ buchen <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
               </Button>
               <Button href="/" variant="secondary" size="lg" className="!text-cream !border-cream/30 hover:!border-cream">

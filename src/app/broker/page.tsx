@@ -3,6 +3,7 @@ import { Container, Section } from '@/components/ui/container';
 import { Button } from '@/components/ui/button';
 import { Reveal } from '@/components/ui/reveal';
 import { SiteHeader, SiteFooter } from '../page';
+import { getUserState, ctaBroker } from '@/lib/auth/cta-routing';
 
 export const metadata = {
   title: 'Für Broker — passare',
@@ -11,21 +12,28 @@ export const metadata = {
   robots: { index: false, follow: false },
 };
 
-export default function BrokerPage() {
+export const dynamic = 'force-dynamic';
+
+export default async function BrokerPage() {
+  const state = await getUserState();
+  const ctaDefault = ctaBroker(state);
+  const ctaStarter = ctaBroker(state, 'starter');
+  const ctaPro = ctaBroker(state, 'pro');
+
   return (
     <main className="min-h-screen flex flex-col bg-cream">
       <SiteHeader />
-      <Hero />
+      <Hero ctaDefault={ctaDefault} />
       <ZweiWelten />
-      <PaketeVergleich />
-      <CTA />
+      <PaketeVergleich ctaStarter={ctaStarter} ctaPro={ctaPro} />
+      <CTA ctaDefault={ctaDefault} />
       <SiteFooter />
     </main>
   );
 }
 
 /* ─────────────────────────────── HERO ─────────────────────────────── */
-function Hero() {
+function Hero({ ctaDefault }: { ctaDefault: string }) {
   return (
     <Section className="pt-20 md:pt-28 pb-16">
       <Container>
@@ -46,7 +54,7 @@ function Hero() {
           </Reveal>
           <Reveal delay={0.2}>
             <div className="flex flex-wrap items-center gap-4">
-              <Button href="/auth/register?role=broker" size="lg">
+              <Button href={ctaDefault} size="lg">
                 Als Broker registrieren <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
               </Button>
               <Button href="#pakete" variant="secondary" size="lg">
@@ -146,7 +154,7 @@ function ZweiWelten() {
 }
 
 /* ──────────────────────── PAKETE-VERGLEICH ──────────────────────── */
-function PaketeVergleich() {
+function PaketeVergleich({ ctaStarter, ctaPro }: { ctaStarter: string; ctaPro: string }) {
   const rows: Array<{
     label: string;
     starter: string | boolean;
@@ -222,7 +230,7 @@ function PaketeVergleich() {
               <div className="p-4" />
               <div className="p-4 border-l border-stone">
                 <Button
-                  href="/auth/register?role=broker&paket=starter"
+                  href={ctaStarter}
                   variant="secondary"
                   size="sm"
                   className="w-full justify-center"
@@ -232,7 +240,7 @@ function PaketeVergleich() {
               </div>
               <div className="p-4 border-l border-stone">
                 <Button
-                  href="/auth/register?role=broker&paket=pro"
+                  href={ctaPro}
                   size="sm"
                   className="w-full justify-center"
                 >
@@ -276,7 +284,7 @@ function DifferenzZelle({ value, highlight }: { value: string | boolean; highlig
 }
 
 /* ─────────────────────────────── CTA ─────────────────────────────── */
-function CTA() {
+function CTA({ ctaDefault }: { ctaDefault: string }) {
   return (
     <Section className="py-20 md:py-28 bg-paper border-t border-stone">
       <Container>
