@@ -18,7 +18,7 @@ export default async function KaeuferLayout({ children }: { children: React.Reac
   // Phase 1: profile + table-existence-checks parallel — 1 Roundtrip statt 5.
   // Pipeline-Query wurde komplett entfernt (Cyrill: «Pipeline brauchts nicht»).
   const userId = u.user.id;
-  const [{ data: profile }, hasFavoriten, hasSuchprofile, hasAnfragen, hasNdaSig] =
+  const [{ data: profile }, hasFavoriten, hasSuchprofile, hasAnfragen] =
     await Promise.all([
       supabase
         .from('profiles')
@@ -28,7 +28,6 @@ export default async function KaeuferLayout({ children }: { children: React.Reac
       hasTable('favoriten'),
       hasTable('suchprofile'),
       hasTable('anfragen'),
-      hasTable('nda_signaturen'),
     ]);
 
   // Loop-Vermeidung: KEIN automatischer Redirect zum Tunnel mehr.
@@ -45,7 +44,7 @@ export default async function KaeuferLayout({ children }: { children: React.Reac
   // Phase 2: alle Count-Queries parallel — 1 Roundtrip statt 4.
   // Supabase wirft nicht — bei Schema-Drift kommt einfach {count: null, error: …}
   // zurück und unsere `?? 0`-Fallbacks greifen.
-  const [favRes, suchRes, anfRes, ndaRes] = await Promise.all([
+  const [favRes, suchRes, anfRes] = await Promise.all([
     hasFavoriten
       ? supabase.from('favoriten').select('*', { count: 'exact', head: true }).eq('kaeufer_id', userId)
       : null,
@@ -59,22 +58,15 @@ export default async function KaeuferLayout({ children }: { children: React.Reac
           .eq('kaeufer_id', userId)
           .in('status', ['neu', 'in_pruefung', 'akzeptiert', 'nda_pending'])
       : null,
-    hasNdaSig && hasAnfragen
-      ? supabase
-          .from('nda_signaturen')
-          .select('*, anfragen!inner(kaeufer_id)', { count: 'exact', head: true })
-          .eq('anfragen.kaeufer_id', userId)
-      : null,
   ]);
 
   if (anfRes?.error) console.warn('[kaeufer-layout] anfragen-count failed:', anfRes.error.message);
-  if (ndaRes?.error) console.warn('[kaeufer-layout] nda-count failed:', ndaRes.error.message);
 
   const counts: SidebarCounts = {
     favoriten: favRes?.count ?? 0,
     suchprofile: suchRes?.count ?? 0,
     anfragen: anfRes?.count ?? 0,
-    ndas: ndaRes?.count ?? 0,
+    ndas: 0,
   };
 
   return (

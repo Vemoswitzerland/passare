@@ -84,10 +84,8 @@ export default async function AnfrageDetailPage({ params }: Props) {
   const initials = (profile?.full_name ?? 'K')
     .split(' ').map((s: string) => s[0]).filter(Boolean).slice(0, 2).join('').toUpperCase();
 
-  // Käufer-Pseudonym: bei Suchanfrage anonym, mit voll_offen sichtbar
-  const kaeuferName = kaeuferProfil?.ist_oeffentlich
-    ? profile?.full_name ?? 'Käufer'
-    : 'Anonymer Käufer';
+  // Käufer-Profile sind immer offen — Anonym-Modus wurde entfernt.
+  const kaeuferName = profile?.full_name ?? 'Käufer';
 
   const budgetText = kaeuferProfil?.budget_undisclosed
     ? 'nicht angegeben'

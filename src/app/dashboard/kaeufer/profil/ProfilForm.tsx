@@ -19,7 +19,6 @@ type Initial = {
   timing: string | null;
   erfahrung: string | null;
   beschreibung: string | null;
-  ist_oeffentlich: boolean;
   finanzierungsnachweis_verified: boolean;
   linkedin_url: string | null;
 } | null;
@@ -86,10 +85,9 @@ export function ProfilForm({ initial, branchen }: { initial: Initial; branchen: 
           name="investor_typ"
           value={investorTyp}
           onChange={(e) => setInvestorTyp(e.target.value)}
-          required
           className="w-full bg-paper border border-stone rounded-soft px-4 py-3 text-body font-sans text-ink focus:outline-none focus:border-bronze"
         >
-          <option value="" disabled>— Auswählen —</option>
+          <option value="">— Noch nicht entschieden —</option>
           {INVESTOR_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
       </div>
@@ -256,20 +254,6 @@ export function ProfilForm({ initial, branchen }: { initial: Initial; branchen: 
           className="w-full bg-paper border border-stone rounded-soft px-4 py-3 text-body font-sans text-ink focus:outline-none focus:border-bronze"
         />
       </div>
-
-      {/* Sichtbarkeit */}
-      <label className="flex items-start gap-3 p-3 border border-stone rounded-soft cursor-pointer hover:border-bronze">
-        <input
-          type="checkbox"
-          name="ist_oeffentlich"
-          defaultChecked={initial?.ist_oeffentlich ?? true}
-          className="mt-1 h-4 w-4 accent-bronze"
-        />
-        <div className="text-body-sm text-ink leading-snug">
-          <p className="text-navy font-medium">Profil für Verkäufer sichtbar machen</p>
-          <p className="text-caption text-quiet">Verkäufer sehen dein Profil bei einer Anfrage. Kannst du jederzeit ändern.</p>
-        </div>
-      </label>
 
       {error && (
         <div className="text-body-sm text-danger bg-danger/5 border border-danger/20 rounded-soft px-4 py-3">

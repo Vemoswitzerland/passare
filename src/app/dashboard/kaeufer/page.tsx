@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import {
-  ArrowRight, MessageSquare, FileLock2, Bell, Calendar,
+  ArrowRight, MessageSquare, Bell, Calendar,
   TrendingUp, Sparkles,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
@@ -89,6 +89,8 @@ export default async function KaeuferDashboardPage({ searchParams }: Props) {
           <p className="text-body text-cream/80 max-w-xl mb-5 leading-relaxed">
             {welcome === 'plus'
               ? 'Käufer+ ist freigeschaltet. Du siehst neue Inserate 7 Tage vor allen anderen, geschlossene Inserate inklusive — und du bekommst Echtzeit-E-Mail-Alerts bei jedem Match.'
+              : welcome === 'skipped'
+              ? 'Dein Käufer-Konto ist aktiv. Stöbere im Marktplatz und richte ein Suchprofil ein, damit du Treffer per E-Mail bekommst.'
               : 'Dein Suchprofil ist aktiv. Wir scannen den Marktplatz für dich und schicken dir wöchentlich einen Digest mit deinen neuen Treffern.'}
           </p>
           <div className="flex items-center gap-4 flex-wrap">
@@ -152,20 +154,19 @@ export default async function KaeuferDashboardPage({ searchParams }: Props) {
       )}
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         <StatCard icon={MessageSquare} label="Offene Anfragen" value="0" trend="+0" href="/dashboard/kaeufer/anfragen" />
-        <StatCard icon={FileLock2} label="Aktive NDAs" value="0" trend="+0" href="/dashboard/kaeufer/ndas" />
-        <StatCard icon={Bell} label="Heute neue Treffer" value={String(topMatches.length)} trend="Daily Digest" href="/kaufen" />
+        <StatCard icon={Bell} label="Neue Treffer" value={String(topMatches.length)} trend={isPlus ? 'Echtzeit-Alerts' : 'Wöchentlich'} href="/kaufen" />
         <StatCard icon={Calendar} label="Tage seit Start" value={String(daysSinceRegister || 1)} trend={daysSinceRegister < 7 ? 'Neu' : 'Aktiv'} />
       </div>
 
-      {/* Daily Digest */}
+      {/* Aktuelle Top-Matches */}
       <section>
         <div className="flex items-center justify-between mb-4 pb-3 border-b border-stone flex-wrap gap-3">
           <div>
-            <p className="overline text-bronze-ink mb-1">Daily Digest · {new Date().toLocaleDateString('de-CH', { day: '2-digit', month: 'long' })}</p>
+            <p className="overline text-bronze-ink mb-1">{new Date().toLocaleDateString('de-CH', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
             <h2 className="font-serif text-head-md text-navy font-normal">
-              Heute für dich<span className="text-bronze">.</span>
+              Aktuelle Treffer<span className="text-bronze">.</span>
             </h2>
           </div>
           {suchprofilName && (
@@ -212,8 +213,8 @@ export default async function KaeuferDashboardPage({ searchParams }: Props) {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <RecapStat label="Inserate angeschaut" value="0" />
           <RecapStat label="Anfragen gesendet" value="0" />
-          <RecapStat label="NDAs unterzeichnet" value="0" />
-          <RecapStat label="Datenraum-Zugriffe" value="0" />
+          <RecapStat label="Favoriten gespeichert" value="0" />
+          <RecapStat label="Suchprofile aktiv" value="0" />
         </div>
         <p className="text-caption text-quiet mt-4 leading-relaxed">
           Sobald du den Marktplatz nutzt, siehst du hier deinen Wochen-Verlauf.

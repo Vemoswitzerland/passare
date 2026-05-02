@@ -31,7 +31,7 @@ export default async function BrokerNewSuchprofilPage() {
             Beschreib was deine Käufer suchen
           </h1>
           <p className="text-body-sm text-muted mt-2 max-w-xl">
-            Pro Profil bekommst du einen eigenen Daily Digest. Ideal um z. B. eine «Maschinenbau ZH/AG»- und eine «Treuhand Westschweiz»-Strategie zu trennen.
+            Pro Profil bekommst du einen eigenen E-Mail-Alert. Ideal um z. B. eine «Maschinenbau ZH/AG»- und eine «Treuhand Westschweiz»-Strategie zu trennen.
           </p>
         </div>
 

@@ -24,7 +24,6 @@ type Props = {
 const STAGES: { key: string; label: string }[] = [
   { key: 'neu', label: 'Neu' },
   { key: 'kontaktiert', label: 'Kontaktiert' },
-  { key: 'nda', label: 'NDA' },
   { key: 'dd', label: 'Due Diligence' },
   { key: 'loi', label: 'LOI' },
   { key: 'won', label: 'Gewonnen' },

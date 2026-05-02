@@ -19,13 +19,20 @@ import type { InseratDetail } from '@/lib/listings';
  *   5. Dort Passwort setzen → Käufer-Basic-Konto aktiv → Redirect aufs Inserat
  */
 
-export function InlineAnfrageForm({ listing }: { listing: Pick<InseratDetail, 'id' | 'titel' | 'slug'> }) {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
+export function InlineAnfrageForm({
+  listing,
+  prefill,
+}: {
+  listing: Pick<InseratDetail, 'id' | 'titel' | 'slug'>;
+  prefill?: { name: string; email: string; isLoggedIn: boolean };
+}) {
+  const [name, setName] = useState(prefill?.name ?? '');
+  const [email, setEmail] = useState(prefill?.email ?? '');
   const [nachricht, setNachricht] = useState('');
   const [busy, setBusy] = useState(false);
   const [popOpen, setPopOpen] = useState(false);
   const [fehler, setFehler] = useState<string | null>(null);
+  const isLoggedIn = !!prefill?.isLoggedIn;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -42,10 +49,16 @@ export function InlineAnfrageForm({ listing }: { listing: Pick<InseratDetail, 'i
           listing_id: listing.id,
         }),
       });
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
         throw new Error(data?.error ?? 'Anfrage konnte nicht gesendet werden.');
       }
+      // Eingeloggter User: Anfrage wurde direkt gespeichert → zur Inbox
+      if (data?.direct) {
+        window.location.href = '/dashboard/kaeufer/anfragen';
+        return;
+      }
+      // Nicht eingeloggt: Mail-Verifizierungs-Popup zeigen
       setPopOpen(true);
     } catch (err) {
       setFehler(err instanceof Error ? err.message : 'Anfrage konnte nicht gesendet werden.');
@@ -68,8 +81,8 @@ export function InlineAnfrageForm({ listing }: { listing: Pick<InseratDetail, 'i
           listing_id: listing.id,
         }),
       });
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
         throw new Error(data?.error ?? 'Erneuter Versand fehlgeschlagen.');
       }
     } catch (err) {
@@ -82,27 +95,36 @@ export function InlineAnfrageForm({ listing }: { listing: Pick<InseratDetail, 'i
   return (
     <>
       <form onSubmit={handleSubmit} className="space-y-3">
-        <Field label="Name" required>
-          <input
-            type="text"
-            required
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Vor- und Nachname"
-            className="w-full bg-cream border border-stone rounded-soft px-3 py-2.5 text-body-sm placeholder:text-quiet focus:outline-none focus:border-bronze"
-          />
-        </Field>
+        {!isLoggedIn && (
+          <>
+            <Field label="Name" required>
+              <input
+                type="text"
+                required
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Vor- und Nachname"
+                className="w-full bg-cream border border-stone rounded-soft px-3 py-2.5 text-body-sm placeholder:text-quiet focus:outline-none focus:border-bronze"
+              />
+            </Field>
 
-        <Field label="E-Mail" required>
-          <input
-            type="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="ihre@firma.ch"
-            className="w-full bg-cream border border-stone rounded-soft px-3 py-2.5 text-body-sm placeholder:text-quiet focus:outline-none focus:border-bronze"
-          />
-        </Field>
+            <Field label="E-Mail" required>
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="ihre@firma.ch"
+                className="w-full bg-cream border border-stone rounded-soft px-3 py-2.5 text-body-sm placeholder:text-quiet focus:outline-none focus:border-bronze"
+              />
+            </Field>
+          </>
+        )}
+        {isLoggedIn && (
+          <p className="text-caption text-quiet bg-stone/30 border border-stone rounded-soft px-3 py-2">
+            Anfrage geht von <span className="font-mono text-navy">{email}</span> raus.
+          </p>
+        )}
 
         <Field label="Ihre Nachricht" required>
           <textarea

@@ -18,6 +18,7 @@ import {
 import { getBrancheById } from '@/lib/branchen';
 import { uebergabeGrundLabel } from '@/lib/constants';
 import { SiteHeader, SiteFooter } from '../../page';
+import { createClient } from '@/lib/supabase/server';
 import { InlineAnfrageForm } from './InlineAnfrageForm';
 import { LikeShareActions } from './LikeShareActions';
 import { VerkaeuferKontaktBox } from './VerkaeuferKontaktBox';
@@ -51,12 +52,31 @@ export default async function InseratDetailPage({ params, searchParams }: Params
   const branche = await getBrancheById(listing.branche_id);
   const brancheLabel = branche?.label_de ?? listing.branche_id ?? '—';
 
+  // Eingeloggte Käufer-Daten für Pre-Fill der Anfrage-Form
+  const supabase = await createClient();
+  const { data: u } = await supabase.auth.getUser();
+  let prefill: { name: string; email: string; isLoggedIn: boolean } = {
+    name: '', email: '', isLoggedIn: false,
+  };
+  if (u.user) {
+    const { data: prof } = await supabase
+      .from('profiles')
+      .select('full_name')
+      .eq('id', u.user.id)
+      .maybeSingle();
+    prefill = {
+      name: prof?.full_name ?? '',
+      email: u.user.email ?? '',
+      isLoggedIn: true,
+    };
+  }
+
   return (
     <main className="min-h-screen flex flex-col bg-cream">
       <SiteHeader />
       {anfrage === 'ok' && <AnfrageErfolgBanner />}
       <DetailHero listing={listing} brancheLabel={brancheLabel} />
-      <DetailBody listing={listing} brancheLabel={brancheLabel} />
+      <DetailBody listing={listing} brancheLabel={brancheLabel} prefill={prefill} />
       <SiteFooter />
     </main>
   );
@@ -150,9 +170,11 @@ function DetailHero({ listing, brancheLabel }: { listing: InseratDetail; branche
 function DetailBody({
   listing,
   brancheLabel,
+  prefill,
 }: {
   listing: InseratDetail;
   brancheLabel: string;
+  prefill: { name: string; email: string; isLoggedIn: boolean };
 }) {
   const grundLabel = uebergabeGrundLabel(listing.uebergabe_grund);
   const umsatzStr = formatUmsatz({ umsatz_chf: listing.umsatz_chf, umsatz_bucket: listing.umsatz_bucket });
@@ -241,7 +263,7 @@ function DetailBody({
           {/* ─── Rechte Spalte: Kontakt-Sidebar ─── */}
           <aside className="lg:sticky lg:top-24 lg:self-start">
             <Reveal delay={0.1}>
-              <ContactPanel listing={listing} brancheLabel={brancheLabel} />
+              <ContactPanel listing={listing} brancheLabel={brancheLabel} prefill={prefill} />
             </Reveal>
           </aside>
         </div>
@@ -302,9 +324,11 @@ function InfoTile({
 function ContactPanel({
   listing,
   brancheLabel,
+  prefill,
 }: {
   listing: InseratDetail;
   brancheLabel: string;
+  prefill: { name: string; email: string; isLoggedIn: boolean };
 }) {
   const umsatzStr = formatUmsatz({ umsatz_chf: listing.umsatz_chf, umsatz_bucket: listing.umsatz_bucket });
   const level = listing.anonymitaet_level;
@@ -333,7 +357,7 @@ function ContactPanel({
         </p>
       )}
 
-      <InlineAnfrageForm listing={listing} />
+      <InlineAnfrageForm listing={listing} prefill={prefill} />
 
       <LikeShareActions
         listingId={listing.id}

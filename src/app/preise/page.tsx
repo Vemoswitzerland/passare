@@ -139,8 +139,9 @@ function KaeuferHinweis() {
                   Diese Seite ist für Verkäufer.
                 </h3>
                 <p className="text-body text-muted max-w-prose leading-relaxed">
-                  Käufer browsen den Marktplatz gratis. Wer alles früher sehen will und
-                  unbegrenzt anfragen möchte, bucht <strong className="font-medium text-navy">Käufer+</strong> —
+                  Käufer browsen den Marktplatz gratis. Wer geschlossene Inserate sehen,
+                  7 Tage Frühzugang auf neue Inserate haben und Echtzeit-Alerts bekommen will,
+                  bucht <strong className="font-medium text-navy">Käufer+</strong> —
                   die Vorteile, der Vergleich und die Käufer-FAQ liegen auf der eigenen Seite.
                 </p>
               </div>

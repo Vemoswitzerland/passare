@@ -98,7 +98,7 @@ export default async function SuchprofilePage() {
             Noch kein Suchprofil aktiv<span className="text-bronze">.</span>
           </p>
           <p className="text-body-sm text-muted mb-5 max-w-md mx-auto">
-            Lege jetzt dein erstes Suchprofil an — wir scannen den Marktplatz für dich und schicken dir morgens 7:00 Uhr deinen Daily Digest.
+            Lege jetzt dein erstes Suchprofil an — wir scannen den Marktplatz für dich und schicken dir die Treffer per E-Mail. Käufer+ bekommt Echtzeit-Alerts, Basic einen wöchentlichen Digest.
           </p>
           <Link
             href="/dashboard/kaeufer/suchprofile/neu"

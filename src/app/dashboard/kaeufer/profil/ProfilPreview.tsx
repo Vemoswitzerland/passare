@@ -35,12 +35,16 @@ type Props = {
   beschreibung: string | null;
   isPlus: boolean;
   logoUrl?: string | null;
-  verified: { phone: boolean; kyc: boolean; finanzierung: boolean };
+  verified: { phone: boolean; kyc: boolean; finanzierung: boolean; linkedin?: boolean };
 };
 
 export function ProfilPreview(p: Props) {
   const initials = p.fullName?.split(' ').map((s) => s[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() ?? '??';
-  const verifiedCount = Number(p.verified.phone) + Number(p.verified.kyc) + Number(p.verified.finanzierung);
+  const verifiedCount =
+    Number(p.verified.phone) +
+    Number(p.verified.kyc) +
+    Number(p.verified.finanzierung) +
+    Number(p.verified.linkedin ?? false);
 
   return (
     <div className="bg-paper border border-stone rounded-card overflow-hidden">
@@ -84,7 +88,7 @@ export function ProfilPreview(p: Props) {
               verifiedCount === 3 ? 'bg-success/30 text-cream' : verifiedCount >= 1 ? 'bg-bronze/30 text-cream' : 'bg-stone/20 text-cream/70',
             )}>
               <ShieldCheck className="inline w-3 h-3 mr-1" strokeWidth={2} />
-              {verifiedCount}/3 verifiziert
+              {verifiedCount}/4 verifiziert
             </span>
           </div>
         </div>

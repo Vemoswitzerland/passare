@@ -124,11 +124,21 @@ export async function POST(req: NextRequest) {
         .insert({
           inserat_id: listing.id,
           kaeufer_id: kaeuferId,
-          message: payload.m,
+          nachricht: payload.m,
           status: 'neu',
         })
         .select('id')
         .maybeSingle();
+
+      // Erste Nachricht im Chat-Thread anlegen (sonst leere Inbox)
+      if (anfrageRow?.id) {
+        await adminClient.from('anfrage_messages').insert({
+          anfrage_id: anfrageRow.id,
+          from_user: kaeuferId,
+          from_role: 'kaeufer',
+          message: payload.m,
+        });
+      }
       if (anfrageErr) {
         // UNIQUE-Verletzung (Käufer hat schon angefragt) ist OK
         const msg = anfrageErr.message?.toLowerCase() ?? '';

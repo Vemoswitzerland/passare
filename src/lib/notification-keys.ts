@@ -60,8 +60,8 @@ export const NOTIFICATION_KEYS: NotificationDef[] = [
   {
     key: 'kae_daily_digest',
     group: 'kaeufer',
-    label: 'Tägliches Digest (3 beste Treffer)',
-    description: 'Jeden Morgen um 7:00 Uhr — passend zu deinen Suchprofilen.',
+    label: 'E-Mail-Alerts mit Treffern',
+    description: 'Treffer aus deinen Suchprofilen — Käufer+ in Echtzeit, Basic wöchentlich.',
   },
   {
     key: 'kae_neues_inserat',

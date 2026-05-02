@@ -1,13 +1,15 @@
 import Link from 'next/link';
-import { Eye, EyeOff, Settings } from 'lucide-react';
+import {
+  Phone, IdCard, FileLock2, Linkedin, Crown, Check, Lock, Settings, ShieldCheck,
+} from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { hasTable } from '@/lib/db/has-table';
 import { getBranchen } from '@/lib/branchen';
 import { ProfilForm } from './ProfilForm';
 import { ProfilPreview } from './ProfilPreview';
-import { toggleProfilSichtbarkeitAction } from './actions';
 import { cn } from '@/lib/utils';
 import { LogoUpload } from '@/components/kaeufer/logo-upload';
+import { ProfilVorschauButton } from '@/components/kaeufer/profil-vorschau-button';
 import { isPlusKaeufer } from '@/lib/kaeufer/is-plus';
 
 export const metadata = { title: 'Käufer-Profil — passare', robots: { index: false, follow: false } };
@@ -35,7 +37,6 @@ export default async function ProfilPage() {
     timing: string | null;
     erfahrung: string | null;
     beschreibung: string | null;
-    ist_oeffentlich: boolean;
     finanzierungsnachweis_verified: boolean;
     linkedin_url: string | null;
     logo_url: string | null;
@@ -44,14 +45,81 @@ export default async function ProfilPage() {
   if (await hasTable('kaeufer_profil')) {
     const { data } = await supabase
       .from('kaeufer_profil')
-      .select('*')
+      .select('investor_typ, budget_min, budget_max, budget_undisclosed, regionen, branche_praeferenzen, timing, erfahrung, beschreibung, finanzierungsnachweis_verified, linkedin_url, logo_url')
       .eq('user_id', u.user.id)
       .maybeSingle();
     kaeuferProfil = data;
   }
 
   const branchen = await getBranchen();
-  const sichtbar = kaeuferProfil?.ist_oeffentlich !== false; // default visible
+
+  // Branchen-IDs zu lesbaren Labels mappen für die Preview (statt rohe IDs anzeigen)
+  const brancheLabels = (kaeuferProfil?.branche_praeferenzen ?? [])
+    .map((id) => branchen.find((b) => b.id === id)?.label_de ?? id);
+
+  // Budget formatiert (CHF mit Apostroph, nur volle Mio)
+  const budgetText = (() => {
+    if (kaeuferProfil?.budget_undisclosed) return null;
+    const min = kaeuferProfil?.budget_min;
+    const max = kaeuferProfil?.budget_max;
+    if (!min && !max) return null;
+    const fmt = (v: number) => `CHF ${(v / 1_000_000).toFixed(v % 1_000_000 === 0 ? 0 : 1)} Mio`;
+    if (min && max) return `${fmt(min)} – ${fmt(max)}`;
+    if (max) return `bis ${fmt(max)}`;
+    if (min) return `ab ${fmt(min)}`;
+    return null;
+  })();
+
+  const verifications = [
+    {
+      key: 'telefon',
+      icon: Phone,
+      label: 'Telefon-Verifikation',
+      verified: !!prof?.verified_phone,
+    },
+    {
+      key: 'kyc',
+      icon: IdCard,
+      label: 'Identifikation (KYC)',
+      verified: !!prof?.verified_kyc,
+    },
+    {
+      key: 'finanzierung',
+      icon: FileLock2,
+      label: 'Finanzierungsnachweis',
+      verified: !!kaeuferProfil?.finanzierungsnachweis_verified,
+    },
+    {
+      key: 'linkedin',
+      icon: Linkedin,
+      label: 'LinkedIn-Profil',
+      verified: !!kaeuferProfil?.linkedin_url,
+    },
+  ];
+
+  const verifiedCount = verifications.filter((v) => v.verified).length;
+
+  const previewElement = (
+    <ProfilPreview
+      fullName={prof?.full_name ?? null}
+      kanton={prof?.kanton ?? null}
+      investorTyp={kaeuferProfil?.investor_typ ?? null}
+      budget={budgetText}
+      branchen={brancheLabels}
+      regionen={kaeuferProfil?.regionen ?? []}
+      erfahrung={kaeuferProfil?.erfahrung ?? null}
+      timing={kaeuferProfil?.timing ?? null}
+      beschreibung={kaeuferProfil?.beschreibung ?? null}
+      isPlus={isPlus}
+      logoUrl={kaeuferProfil?.logo_url}
+      verified={{
+        phone: !!prof?.verified_phone,
+        kyc: !!prof?.verified_kyc,
+        finanzierung: !!kaeuferProfil?.finanzierungsnachweis_verified,
+        linkedin: !!kaeuferProfil?.linkedin_url,
+      }}
+    />
+  );
 
   return (
     <div className="space-y-8 max-w-content">
@@ -62,94 +130,59 @@ export default async function ProfilPage() {
             Mein Käufer-Profil<span className="text-bronze">.</span>
           </h1>
           <p className="text-body-sm text-muted mt-2 max-w-2xl">
-            Verkäufer sehen dieses Profil, wenn du eine Anfrage stellst. Je vollständiger es ist, desto schneller antwortet der Verkäufer.
+            Verkäufer sehen dein Profil bei jeder Anfrage. Je vollständiger und je mehr Verifizierungen, desto schneller und positiver die Antwort.
           </p>
         </div>
-        <Link
-          href="/dashboard/kaeufer/einstellungen"
-          className="inline-flex items-center gap-2 px-3 py-2 rounded-soft text-caption font-mono uppercase tracking-widest text-quiet hover:text-navy hover:bg-stone/40 transition-colors"
-        >
-          <Settings className="w-3.5 h-3.5" strokeWidth={1.5} />
-          Einstellungen
-        </Link>
+        <div className="flex items-center gap-2 flex-wrap">
+          <ProfilVorschauButton>{previewElement}</ProfilVorschauButton>
+          <Link
+            href="/dashboard/kaeufer/einstellungen"
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-soft text-caption font-mono uppercase tracking-widest text-quiet hover:text-navy hover:bg-stone/40 transition-colors"
+          >
+            <Settings className="w-3.5 h-3.5" strokeWidth={1.5} />
+            Einstellungen
+          </Link>
+        </div>
       </div>
 
-      {/* ─── Sichtbarkeits-Toggle (klar als Switch erkennbar) ─── */}
-      <section className="bg-paper border border-stone rounded-card p-5">
-        <form action={toggleProfilSichtbarkeitAction} className="flex items-center gap-4">
-          <input type="hidden" name="visible" value={sichtbar ? 'false' : 'true'} />
-          <button
-            type="submit"
-            role="switch"
-            aria-checked={sichtbar}
-            aria-label="Profil-Sichtbarkeit umschalten"
-            className={cn(
-              'relative inline-flex h-7 w-12 flex-shrink-0 items-center rounded-pill transition-colors focus:outline-none focus:ring-2 focus:ring-bronze focus:ring-offset-2',
-              sichtbar ? 'bg-success' : 'bg-stone',
-            )}
-          >
-            <span
-              className={cn(
-                'inline-block h-5 w-5 transform rounded-full bg-cream shadow-sm transition-transform',
-                sichtbar ? 'translate-x-6' : 'translate-x-1',
-              )}
-            />
-          </button>
-          <div className="flex-1 min-w-0">
-            <p className="text-body-sm text-navy font-medium flex items-center gap-1.5">
-              {sichtbar ? (
-                <><Eye className="w-3.5 h-3.5 text-success" strokeWidth={1.5} /> Profil ist sichtbar</>
-              ) : (
-                <><EyeOff className="w-3.5 h-3.5 text-quiet" strokeWidth={1.5} /> Profil ist verborgen (anonym)</>
-              )}
-            </p>
-            <p className="text-caption text-quiet mt-0.5">
-              {sichtbar
-                ? 'Verkäufer sehen Name und Profil, wenn du eine Anfrage schickst.'
-                : 'Anfragen kommen anonym beim Verkäufer an — er sieht nur deine Branchen und Region.'}
-            </p>
-          </div>
-        </form>
-      </section>
-
-      {/* ─── Profilbild (für ALLE Käufer, nicht nur Plus) ─── */}
+      {/* ─── Profilbild (für ALLE Käufer) ─── */}
       <section>
         <h2 className="font-serif text-head-sm text-navy font-normal mb-3">Profilbild</h2>
         <LogoUpload currentUrl={kaeuferProfil?.logo_url ?? null} />
       </section>
 
-      {/* ─── Live-Preview ─── */}
+      {/* ─── Verifizierungen — Käufer+ Marketing-Sektion ─── */}
       <section>
-        <h2 className="font-serif text-head-sm text-navy font-normal mb-1">
-          Was Verkäufer sehen
-        </h2>
-        <p className="text-caption text-quiet mb-3">
-          Live-Preview aus Verkäufer-Sicht
+        <div className="flex items-baseline justify-between gap-3 mb-3 flex-wrap">
+          <h2 className="font-serif text-head-sm text-navy font-normal">
+            Verifizierungen <span className="font-mono text-caption text-quiet">{verifiedCount}/4</span>
+          </h2>
+          {!isPlus && (
+            <Link
+              href="/dashboard/kaeufer/abo"
+              className="inline-flex items-center gap-1.5 text-caption text-bronze-ink hover:text-bronze font-medium"
+            >
+              <Crown className="w-3.5 h-3.5" strokeWidth={1.5} />
+              Mit Käufer+ verifizieren
+            </Link>
+          )}
+        </div>
+        <p className="text-body-sm text-muted mb-4 max-w-xl">
+          {isPlus
+            ? 'Verifizierte Profile bekommen 2× schneller Antworten von Verkäufern.'
+            : 'Verifizierungen sind ein Käufer+-Feature. Verifizierte Profile bekommen 2× schneller Antworten — Käufer+ schaltet alle vier Verifizierungs-Wege frei.'}
         </p>
-        <ProfilPreview
-          fullName={prof?.full_name ?? null}
-          kanton={prof?.kanton ?? null}
-          investorTyp={kaeuferProfil?.investor_typ ?? null}
-          budget={
-            kaeuferProfil?.budget_undisclosed
-              ? null
-              : kaeuferProfil?.budget_min || kaeuferProfil?.budget_max
-              ? `CHF ${(kaeuferProfil.budget_min ?? 0) / 1_000_000} – ${(kaeuferProfil.budget_max ?? 0) / 1_000_000} Mio`
-              : null
-          }
-          branchen={kaeuferProfil?.branche_praeferenzen ?? []}
-          regionen={kaeuferProfil?.regionen ?? []}
-          erfahrung={kaeuferProfil?.erfahrung ?? null}
-          timing={kaeuferProfil?.timing ?? null}
-          beschreibung={kaeuferProfil?.beschreibung ?? null}
-          isPlus={isPlus}
-          logoUrl={kaeuferProfil?.logo_url}
-          verified={{
-            phone: !!prof?.verified_phone,
-            kyc: !!prof?.verified_kyc,
-            finanzierung: !!kaeuferProfil?.finanzierungsnachweis_verified,
-          }}
-        />
+        <div className="grid sm:grid-cols-2 gap-3">
+          {verifications.map((v) => (
+            <VerifyItem
+              key={v.key}
+              icon={v.icon}
+              label={v.label}
+              verified={v.verified}
+              isPlus={isPlus}
+            />
+          ))}
+        </div>
       </section>
 
       {/* ─── Editierbares Profil ─── */}
@@ -157,6 +190,75 @@ export default async function ProfilPage() {
         <h2 className="font-serif text-head-sm text-navy font-normal mb-3">Profil bearbeiten</h2>
         <ProfilForm initial={kaeuferProfil} branchen={branchen} />
       </section>
+
+      {/* ─── Inline-Live-Preview als Kontroll-Anker ─── */}
+      <section>
+        <h2 className="font-serif text-head-sm text-navy font-normal mb-1">
+          Live-Vorschau
+        </h2>
+        <p className="text-caption text-quiet mb-3">
+          So sehen Verkäufer dein Profil aktuell
+        </p>
+        {previewElement}
+      </section>
+    </div>
+  );
+}
+
+function VerifyItem({
+  icon: Icon,
+  label,
+  verified,
+  isPlus,
+}: {
+  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
+  label: string;
+  verified: boolean;
+  isPlus: boolean;
+}) {
+  return (
+    <div className={cn(
+      'bg-paper border rounded-card p-4 flex items-start gap-3',
+      verified ? 'border-success/30' : 'border-stone',
+    )}>
+      <div className={cn(
+        'w-10 h-10 rounded-soft flex items-center justify-center flex-shrink-0',
+        verified ? 'bg-success/10' : 'bg-stone/50',
+      )}>
+        {verified
+          ? <ShieldCheck className="w-5 h-5 text-success" strokeWidth={1.5} />
+          : <Icon className="w-5 h-5 text-navy" strokeWidth={1.5} />
+        }
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-body-sm text-navy font-medium">{label}</p>
+        <p className={cn('text-caption mt-0.5', verified ? 'text-success' : 'text-quiet')}>
+          {verified ? (
+            <span className="inline-flex items-center gap-1">
+              <Check className="w-3 h-3" strokeWidth={2} /> Verifiziert
+            </span>
+          ) : (
+            'Nicht verifiziert'
+          )}
+        </p>
+        {!verified && (
+          <div className="mt-2">
+            {isPlus ? (
+              <span className="text-caption text-quiet font-mono inline-flex items-center gap-1">
+                <Lock className="w-3 h-3" strokeWidth={1.5} /> Setup kommt bald
+              </span>
+            ) : (
+              <Link
+                href="/dashboard/kaeufer/abo"
+                className="text-caption text-bronze-ink hover:text-bronze font-medium inline-flex items-center gap-1"
+              >
+                <Crown className="w-3 h-3" strokeWidth={1.5} />
+                Mit Käufer+ freischalten →
+              </Link>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

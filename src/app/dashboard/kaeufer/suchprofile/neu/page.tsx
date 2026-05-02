@@ -36,7 +36,7 @@ export default async function NewSuchprofilPage() {
           Beschreib was du suchst<span className="text-bronze">.</span>
         </h1>
         <p className="text-body-sm text-muted mt-2 max-w-xl">
-          Pro Profil bekommst du einen eigenen Daily Digest. Nutze es um z.B. eine «Maschinenbau ZH/AG»- und eine «Treuhand Westschweiz»-Strategie zu trennen.
+          Pro Profil bekommst du einen eigenen E-Mail-Alert. Nutze es um z.B. eine «Maschinenbau ZH/AG»- und eine «Treuhand Westschweiz»-Strategie zu trennen.
         </p>
       </div>
 

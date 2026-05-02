@@ -269,7 +269,7 @@ export function TunnelForm({ branchen }: { branchen: Branche[] }) {
               <Sparkles className="w-5 h-5 text-bronze flex-shrink-0 mt-0.5" strokeWidth={1.5} />
               <div className="text-body-sm text-muted leading-relaxed">
                 <p className="text-navy font-medium mb-1">Gleich erstellen wir dein erstes Suchprofil.</p>
-                Du bekommst täglich um 7:00 Uhr per E-Mail die 3 besten Treffer.
+                Treffer kommen per E-Mail — Käufer+ in Echtzeit, Basic als wöchentlicher Digest.
               </div>
             </div>
           </div>

@@ -15,7 +15,7 @@ import { z } from 'zod';
 import { createAnfrageToken } from '@/lib/anfrage-token';
 import { sendEmail } from '@/lib/email';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
-import { createAdminClient } from '@/lib/supabase/server';
+import { createAdminClient, createClient } from '@/lib/supabase/server';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -63,7 +63,70 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Inserat nicht gefunden' }, { status: 404 });
   }
 
-  // Signierten Token mit allen Daten erzeugen
+  // ── Eingeloggten User direkt erkennen — kein Mail-Verify-Loop ──
+  // Vorher: jede Anfrage ging über die Token-Mail. Eingeloggte Käufer
+  // klickten nicht, weil sie schon eingeloggt waren — Anfrage landete
+  // nie in der DB und nicht in der Inbox.
+  const userClient = await createClient();
+  const { data: authData } = await userClient.auth.getUser();
+  if (authData.user) {
+    const { data: anfrageRow, error: insErr } = await admin
+      .from('anfragen')
+      .insert({
+        inserat_id: listing.id,
+        kaeufer_id: authData.user.id,
+        nachricht: body.nachricht,
+        status: 'neu',
+      })
+      .select('id')
+      .maybeSingle();
+
+    if (insErr) {
+      const dup = /duplicate|unique/i.test(insErr.message ?? '');
+      if (!dup) {
+        console.warn('[anfrage] insert error:', insErr.message);
+        return NextResponse.json({ error: 'Anfrage konnte nicht gespeichert werden.' }, { status: 500 });
+      }
+    }
+
+    // Erste Chat-Message anlegen — sonst zeigt die Inbox einen leeren Thread
+    if (anfrageRow?.id) {
+      await admin.from('anfrage_messages').insert({
+        anfrage_id: anfrageRow.id,
+        from_user: authData.user.id,
+        from_role: 'kaeufer',
+        message: body.nachricht,
+      });
+    }
+
+    // Verkäufer per Mail benachrichtigen
+    if (listing.verkaeufer_id) {
+      const { data: ownerData } = await admin.auth.admin.getUserById(listing.verkaeufer_id);
+      const verkaeuferEmail = ownerData?.user?.email ?? null;
+      if (verkaeuferEmail) {
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://passare-ch.vercel.app';
+        await sendEmail({
+          template: 'anfrage_eingegangen',
+          to: verkaeuferEmail,
+          vars: {
+            verkaeuferName: 'Verkäufer',
+            inseratTitel: listing.titel,
+            kaeuferTyp: `${body.name} · ${body.email}`,
+            nachrichtSnippet: body.nachricht,
+            anfrageId: anfrageRow?.id ?? listing.id,
+            appUrl,
+            link: `${appUrl}/dashboard/verkaeufer/anfragen`,
+          },
+          subject_override: `Neue Anfrage: ${listing.titel}`,
+          related_id: anfrageRow?.id ?? undefined,
+        });
+      }
+    }
+
+    return NextResponse.json({ ok: true, anfrageId: anfrageRow?.id ?? null, direct: true });
+  }
+
+  // ── Nicht eingeloggt: klassischer Email-Verify-Flow ─────────────
   const token = createAnfrageToken({
     n: body.name,
     e: body.email,
@@ -76,7 +139,6 @@ export async function POST(req: NextRequest) {
     `https://${req.headers.get('host')}`;
   const verifyUrl = `${baseUrl}/anfrage/passwort?token=${encodeURIComponent(token)}`;
 
-  // Verifikations-Mail (fire-and-forget — sendEmail wirft nie)
   await sendEmail({
     template: 'verifizierung',
     to: body.email,
@@ -87,5 +149,5 @@ export async function POST(req: NextRequest) {
     subject_override: `Bitte E-Mail bestätigen — Anfrage zu «${listing.titel}»`,
   });
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, direct: false });
 }
