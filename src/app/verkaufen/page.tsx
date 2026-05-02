@@ -116,8 +116,7 @@ function BrokerBanner() {
             <div>
               <p className="overline text-navy mb-1">Bist du Broker oder M&amp;A-Berater?</p>
               <p className="text-body-sm text-muted leading-snug">
-                Mehrere Mandate gleichzeitig führen + aktiv für Käufer-Mandate suchen — beides in einem Abo.
-                Käufer-Professional komplett inklusive.
+                Mehrere Mandate gleichzeitig inserieren + aktiv im Marktplatz suchen — Käufer+ ist inklusive.
               </p>
             </div>
           </div>
