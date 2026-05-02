@@ -487,9 +487,15 @@ function Marketplace({
               />
             ) : (
               <>
-                <div className="grid md:grid-cols-2 gap-5">
+                {/* Cyrill 02.05.2026: Karten sollen IMMER gleich tief sein.
+                    Lösung: items-stretch (default) + Reveal/Card `h-full` damit
+                    die Grid-Zelle die Höhe weiterreicht bis zur <article>.
+                    Bisher hatte <Reveal> kein h-full → Card war nur so hoch
+                    wie ihr Content, der mt-auto-Footer rutschte hoch oder
+                    runter je nachdem wieviel Inhalt da war. */}
+                <div className="grid md:grid-cols-2 gap-5 items-stretch">
                   {listings.map((l, i) => (
-                    <Reveal key={l.id} delay={i * 0.03}>
+                    <Reveal key={l.id} delay={i * 0.03} className="h-full">
                       <ListingCard listing={l} branchen={branchen} />
                     </Reveal>
                   ))}
@@ -576,7 +582,7 @@ function ListingCard({ listing, branchen }: { listing: InseratPublic; branchen: 
   const detailHref = `/inserat/${listing.slug ?? listing.id}`;
 
   return (
-    <article className="group relative bg-paper border border-stone rounded-card overflow-hidden hover:-translate-y-0.5 hover:shadow-lift hover:border-bronze/40 transition-all duration-300 flex flex-col cursor-pointer">
+    <article className="group relative h-full bg-paper border border-stone rounded-card overflow-hidden hover:-translate-y-0.5 hover:shadow-lift hover:border-bronze/40 transition-all duration-300 flex flex-col cursor-pointer">
       <Link
         href={detailHref}
         className="absolute inset-0 z-[1]"
