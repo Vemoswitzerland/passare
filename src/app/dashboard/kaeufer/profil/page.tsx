@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import {
   ShieldCheck, Phone, IdCard, FileLock2, Eye, EyeOff,
-  Linkedin, AlertCircle, Trash2, Lock,
+  Linkedin, AlertCircle, Trash2, Lock, Crown, ImagePlus,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { hasTable } from '@/lib/db/has-table';
@@ -12,6 +12,7 @@ import { toggleProfilSichtbarkeitAction } from './actions';
 import { getNotificationPrefs } from '@/app/dashboard/settings-actions';
 import { NotificationCenter } from '@/components/settings/NotificationCenter';
 import { cn } from '@/lib/utils';
+import { LogoUpload } from '@/components/kaeufer/logo-upload';
 
 export const metadata = { title: 'Käufer-Profil — passare', robots: { index: false, follow: false } };
 
@@ -39,6 +40,7 @@ export default async function ProfilPage() {
     ist_oeffentlich: boolean;
     finanzierungsnachweis_verified: boolean;
     linkedin_url: string | null;
+    logo_url: string | null;
   } | null = null;
 
   if (await hasTable('kaeufer_profil')) {
@@ -111,7 +113,7 @@ export default async function ProfilPage() {
           erfahrung={kaeuferProfil?.erfahrung ?? null}
           timing={kaeuferProfil?.timing ?? null}
           beschreibung={kaeuferProfil?.beschreibung ?? null}
-          isMax={prof?.subscription_tier === 'max'}
+          isPlus={prof?.subscription_tier === 'plus'}
           verified={{
             phone: !!prof?.verified_phone,
             kyc: !!prof?.verified_kyc,
@@ -168,7 +170,35 @@ export default async function ProfilPage() {
         </div>
       </section>
 
-      {/* ─── Sektion 3: Editierbares Profil ─── */}
+      {/* ─── Sektion 3: Logo-Upload (Käufer+ exklusiv) ─── */}
+      <section>
+        <h2 className="font-serif text-head-sm text-navy font-normal mb-3">
+          Käufer-Logo
+        </h2>
+        {prof?.subscription_tier === 'plus' ? (
+          <LogoUpload currentUrl={kaeuferProfil?.logo_url ?? null} />
+        ) : (
+          <div className="bg-bronze/5 border border-bronze/20 rounded-card p-5 flex items-start gap-3">
+            <Crown className="w-5 h-5 text-bronze flex-shrink-0 mt-0.5" strokeWidth={1.5} />
+            <div className="flex-1">
+              <p className="text-body-sm text-navy font-medium mb-1">
+                Logo-Upload ist ein Käufer+-Feature
+              </p>
+              <p className="text-caption text-muted leading-relaxed">
+                Mit Käufer+ kannst du dein Logo hochladen — dein Käuferprofil wirkt sofort professioneller und Verkäufer erkennen seriöse Käufer schneller.
+              </p>
+            </div>
+            <Link
+              href="/dashboard/kaeufer/abo"
+              className="font-mono text-caption uppercase tracking-widest text-bronze-ink hover:text-bronze whitespace-nowrap"
+            >
+              Käufer+ ansehen →
+            </Link>
+          </div>
+        )}
+      </section>
+
+      {/* ─── Sektion 4: Editierbares Profil ─── */}
       <section>
         <h2 className="font-serif text-head-sm text-navy font-normal mb-3">Profil bearbeiten</h2>
         <ProfilForm initial={kaeuferProfil} branchen={branchen} />

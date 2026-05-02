@@ -10,13 +10,17 @@ import { createClient } from '@/lib/supabase/server';
  * Login). Markiert das Onboarding als abgeschlossen und leitet ins
  * jeweilige Dashboard weiter.
  */
-export async function setRolleAction(rolle: 'verkaeufer' | 'kaeufer') {
+export async function setRolleAction(rolle: 'verkaeufer' | 'kaeufer' | 'broker') {
   const supabase = await createClient();
   const { data: u } = await supabase.auth.getUser();
   if (!u.user) redirect('/auth/login');
 
   const fullName = u.user.user_metadata?.full_name ?? '';
   const sprache = u.user.user_metadata?.sprache ?? 'de';
+
+  if (rolle === 'broker') {
+    redirect('/onboarding/broker/tunnel');
+  }
 
   await supabase.from('profiles').upsert({
     id: u.user.id,

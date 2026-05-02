@@ -7,17 +7,13 @@ export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 /**
- * Stripe-Webhook für Käufer-Subscriptions (MAX-Abo).
+ * Stripe-Webhook für Käufer-Subscriptions (Käufer+-Abo).
  *
  * Events die wir handhaben:
- * - customer.subscription.created   → tier auf 'max' setzen
+ * - customer.subscription.created   ��� tier auf 'plus' setzen
  * - customer.subscription.updated   → tier sync (active/canceled)
  * - customer.subscription.deleted   → tier auf 'basic' zurücksetzen
  * - invoice.payment_succeeded       → renewed_at aktualisieren + Zahlung loggen
- *
- * Hinweis: Verkäufer-Käufe (Light/Pro/Premium) laufen über separaten Webhook-Handler
- * (Etappe 76+ — Chat 2 ownt das). Hier reagieren wir nur auf `subscription`-Events
- * und filtern via metadata.role oder metadata.tier.
  */
 export async function POST(req: NextRequest) {
   const secretKey = process.env.STRIPE_SECRET_KEY;
@@ -45,41 +41,66 @@ export async function POST(req: NextRequest) {
       case 'customer.subscription.created':
       case 'customer.subscription.updated': {
         const sub = event.data.object as Stripe.Subscription;
-        // Nur Käufer-Subscriptions (MAX-Abo) verarbeiten
         const tier = sub.metadata?.tier;
         const userId = sub.metadata?.user_id;
-        if (tier !== 'max' || !userId) break;
+        if (!userId) break;
+
+        const isBrokerTier = tier === 'broker_starter' || tier === 'broker_pro';
+        const isKaeuferTier = tier === 'plus' || tier === 'max';
+        if (!isBrokerTier && !isKaeuferTier) break;
 
         const isActive = sub.status === 'active' || sub.status === 'trialing';
         const cancelAt = sub.cancel_at ? new Date(sub.cancel_at * 1000).toISOString() : null;
+        const interval = sub.metadata?.interval ?? 'monthly';
 
-        await admin
-          .from('profiles')
-          .update({
-            subscription_tier: isActive ? 'max' : 'basic',
-            stripe_subscription_id: sub.id,
-            subscription_renewed_at: new Date(sub.current_period_start * 1000).toISOString(),
-            subscription_cancel_at: cancelAt,
-          })
-          .eq('id', userId);
+        // Broker-Subscription
+        if (isBrokerTier) {
+          const brokerTier = tier === 'broker_pro' ? 'pro' : 'starter';
+          const mandateLimit = brokerTier === 'pro' ? 25 : 5;
+          const teamSeats = brokerTier === 'pro' ? 5 : 0;
 
-        // Welcome-MAX-Email bei erstmaliger Aktivierung
-        if (event.type === 'customer.subscription.created' && isActive) {
-          const { data: prof } = await admin
+          await admin
+            .from('broker_profiles')
+            .update({
+              tier: brokerTier,
+              mandate_limit: mandateLimit,
+              team_seats_limit: teamSeats,
+              subscription_status: isActive ? 'active' : 'canceled',
+              stripe_subscription_id: sub.id,
+              subscription_interval: interval,
+              subscription_renewed_at: new Date(sub.current_period_start * 1000).toISOString(),
+              subscription_cancel_at: cancelAt,
+            })
+            .eq('id', userId);
+
+          await admin
             .from('profiles')
-            .select('id')
-            .eq('id', userId)
-            .maybeSingle();
-          if (prof) {
-            const { data: authUser } = await admin.auth.admin.getUserById(userId);
-            if (authUser?.user?.email) {
-              void sendEmail({
-                template: 'welcome',
-                to: authUser.user.email,
-                vars: { rolle: 'kaeufer', tier: 'max' },
-                user_id: userId,
-              });
-            }
+            .update({ is_broker: isActive })
+            .eq('id', userId);
+        }
+
+        // Käufer-Subscription
+        if (isKaeuferTier) {
+          await admin
+            .from('profiles')
+            .update({
+              subscription_tier: isActive ? 'plus' : 'basic',
+              stripe_subscription_id: sub.id,
+              subscription_renewed_at: new Date(sub.current_period_start * 1000).toISOString(),
+              subscription_cancel_at: cancelAt,
+            })
+            .eq('id', userId);
+        }
+
+        if (event.type === 'customer.subscription.created' && isActive) {
+          const { data: authUser } = await admin.auth.admin.getUserById(userId);
+          if (authUser?.user?.email) {
+            void sendEmail({
+              template: 'welcome',
+              to: authUser.user.email,
+              vars: { rolle: isBrokerTier ? 'broker' : 'kaeufer', tier: tier ?? 'plus' },
+              user_id: userId,
+            });
           }
         }
         break;
@@ -88,16 +109,35 @@ export async function POST(req: NextRequest) {
       case 'customer.subscription.deleted': {
         const sub = event.data.object as Stripe.Subscription;
         const userId = sub.metadata?.user_id;
+        const tier = sub.metadata?.tier;
         if (!userId) break;
 
-        await admin
-          .from('profiles')
-          .update({
-            subscription_tier: 'basic',
-            stripe_subscription_id: null,
-            subscription_cancel_at: null,
-          })
-          .eq('id', userId);
+        const isBrokerTier = tier === 'broker_starter' || tier === 'broker_pro';
+
+        if (isBrokerTier) {
+          await admin
+            .from('broker_profiles')
+            .update({
+              subscription_status: 'inactive',
+              stripe_subscription_id: null,
+              subscription_cancel_at: null,
+            })
+            .eq('id', userId);
+
+          await admin
+            .from('profiles')
+            .update({ is_broker: false })
+            .eq('id', userId);
+        } else {
+          await admin
+            .from('profiles')
+            .update({
+              subscription_tier: 'basic',
+              stripe_subscription_id: null,
+              subscription_cancel_at: null,
+            })
+            .eq('id', userId);
+        }
         break;
       }
 

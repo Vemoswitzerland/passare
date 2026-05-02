@@ -49,6 +49,11 @@ export default async function OnboardingPage() {
   const fullName = u.user.user_metadata?.full_name ?? '';
   const sprache = u.user.user_metadata?.sprache ?? 'de';
 
+  // ── Broker-Indikator ──────────────────────────────────────────────
+  if (intended === 'broker' || profile?.rolle === 'broker') {
+    redirect('/onboarding/broker/tunnel');
+  }
+
   // ── Eindeutige Käufer-Indikatoren ────────────────────────────────
   // Kaeufer wird in /onboarding/kaeufer/tunnel komplett geführt — wir
   // setzen hier nur die rolle, onboarding_completed_at folgt am Ende

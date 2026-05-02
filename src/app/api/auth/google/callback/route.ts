@@ -184,6 +184,7 @@ export async function GET(req: NextRequest) {
 
     const targetPath =
       profile?.rolle === 'admin' ? '/admin'
+      : profile?.rolle === 'broker' ? '/dashboard/broker'
       : profile?.rolle === 'kaeufer' ? '/dashboard/kaeufer'
       : profile?.rolle === 'verkaeufer' ? '/dashboard/verkaeufer'
       : hasInserat ? '/dashboard/verkaeufer'

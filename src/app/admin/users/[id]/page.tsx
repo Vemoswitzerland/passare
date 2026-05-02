@@ -24,23 +24,25 @@ export const metadata = {
 /** Subtile Rolle-Anzeige (kleines Mono-Label statt Badge). */
 const ROLLE_DISPLAY: Record<string, { label: string; color: string }> = {
   admin: { label: 'admin', color: 'text-navy' },
+  broker: { label: 'broker', color: 'text-bronze-ink font-medium' },
   verkaeufer: { label: 'verkäufer', color: 'text-bronze-ink' },
   kaeufer: { label: 'käufer', color: 'text-quiet' },
 };
 
 const ABO_DISPLAY: Record<string, { label: string; color: string }> = {
   basic: { label: 'Basic', color: 'text-quiet' },
-  max: { label: 'MAX', color: 'text-bronze-ink font-medium' },
+  plus: { label: 'Käufer+', color: 'text-bronze-ink font-medium' },
+  max: { label: 'Käufer+', color: 'text-bronze-ink font-medium' },
 };
 
 type ProfileRow = {
   id: string;
   full_name: string | null;
-  rolle: 'verkaeufer' | 'kaeufer' | 'admin' | null;
+  rolle: 'verkaeufer' | 'kaeufer' | 'admin' | 'broker' | null;
   phone: string | null;
   kanton: string | null;
   sprache: string | null;
-  subscription_tier: 'basic' | 'max' | null;
+  subscription_tier: 'basic' | 'plus' | 'max' | null;
   email: string | null;
   last_sign_in_at: string | null;
   auth_created_at: string | null;
@@ -66,11 +68,13 @@ export default async function AdminUserDetailPage({
     { data: completenessData },
     { data: meData },
     { data: activityData },
+    { data: brokerProfile },
   ] = await Promise.all([
     supabase.from('profiles').select('*').eq('id', id).maybeSingle<ProfileRow>(),
     supabase.rpc('profile_completeness', { p_user_id: id }),
     supabase.auth.getUser(),
     supabase.from('audit_log').select('id, type, beschreibung, created_at').eq('user_id', id).order('created_at', { ascending: false }).limit(5),
+    supabase.from('broker_profiles').select('*').eq('id', id).maybeSingle(),
   ]);
 
   if (!profile) notFound();
@@ -121,7 +125,7 @@ export default async function AdminUserDetailPage({
             )}
             {profile.rolle === 'kaeufer' && profile.subscription_tier && (
               <span className={`inline-flex items-center gap-1 font-mono text-[11px] ${ABO_DISPLAY[profile.subscription_tier].color}`}>
-                {profile.subscription_tier === 'max' && <Crown className="w-3 h-3" strokeWidth={1.5} />}
+                {(profile.subscription_tier === 'plus' || profile.subscription_tier === 'max') && <Crown className="w-3 h-3" strokeWidth={1.5} />}
                 {ABO_DISPLAY[profile.subscription_tier].label}
               </span>
             )}
@@ -145,6 +149,26 @@ export default async function AdminUserDetailPage({
           </code>
         </div>
       </header>
+
+      {/* Broker-Profil-Sektion */}
+      {brokerProfile && (
+        <section className="bg-paper border border-stone rounded-soft p-4 mb-4">
+          <h3 className="text-[11px] uppercase tracking-wide font-medium text-quiet mb-3">
+            Broker-Profil
+          </h3>
+          <div className="grid sm:grid-cols-2 gap-x-6 gap-y-2 text-[12px]">
+            <div><span className="text-quiet">Agentur:</span>{' '}<span className="text-ink font-medium">{brokerProfile.agentur_name}</span></div>
+            <div><span className="text-quiet">Slug:</span>{' '}<span className="text-bronze-ink font-mono">/broker/{brokerProfile.slug}</span></div>
+            <div><span className="text-quiet">Tier:</span>{' '}<span className="text-ink font-mono">{brokerProfile.tier?.toUpperCase()}</span></div>
+            <div><span className="text-quiet">Status:</span>{' '}<span className={`font-mono ${brokerProfile.subscription_status === 'active' ? 'text-success' : 'text-danger'}`}>{brokerProfile.subscription_status}</span></div>
+            <div><span className="text-quiet">Mandate-Limit:</span>{' '}<span className="text-ink font-mono">{brokerProfile.mandate_limit}</span></div>
+            <div><span className="text-quiet">Team-Seats:</span>{' '}<span className="text-ink font-mono">{brokerProfile.team_seats_limit}</span></div>
+            {brokerProfile.suspended_at && (
+              <div className="sm:col-span-2"><span className="text-danger font-medium">Gesperrt: </span><span className="text-ink">{brokerProfile.suspended_reason ?? 'Ohne Grund'}</span></div>
+            )}
+          </div>
+        </section>
+      )}
 
       <div className="grid lg:grid-cols-[1fr_300px] gap-4">
         <div className="space-y-4">

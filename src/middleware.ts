@@ -27,7 +27,7 @@ const BETA_PUBLIC_PATHS = new Set([
 // Redirect kann den passare_beta-Cookie wegen SameSite-Policy verlieren).
 const BETA_PUBLIC_PREFIXES = ['/_next', '/assets', '/images', '/api/anfrage', '/api/auth'];
 
-const AUTH_PROTECTED_PREFIXES = ['/dashboard', '/admin', '/onboarding'];
+const AUTH_PROTECTED_PREFIXES = ['/dashboard', '/admin', '/onboarding', '/onboarding/broker'];
 const AUTH_PUBLIC_PREFIXES = ['/auth'];
 
 export async function middleware(req: NextRequest) {
