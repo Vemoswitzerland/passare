@@ -22,7 +22,11 @@ export function UserDeleteSection({ userId, userName }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [pending, startTx] = useTransition();
 
-  const canDelete = confirmInput.trim().toLowerCase() === userName.trim().toLowerCase();
+  // Cyrill 02.05.2026: «nur die erste Bucht von seinem Namen eingeben muss,
+  // das reicht — nicht den ganzen Namen». Erstes Wort (Vorname) als Bestäti-
+  // gung reicht. Falls kein Leerzeichen vorhanden → ganzer String.
+  const firstName = userName.trim().split(/\s+/)[0] ?? userName.trim();
+  const canDelete = confirmInput.trim().toLowerCase() === firstName.toLowerCase();
 
   const onDelete = () => {
     if (!canDelete) return;
@@ -64,14 +68,14 @@ export function UserDeleteSection({ userId, userName }: Props) {
         User wirklich löschen?
       </h3>
       <p className="text-[12px] text-ink mb-3 leading-relaxed">
-        Tippe <strong className="font-mono">{userName}</strong> ins Feld unten und klick «Endgültig löschen», um zu bestätigen.
+        Tippe <strong className="font-mono">{firstName}</strong> ins Feld unten und klick «Endgültig löschen», um zu bestätigen.
         Das Konto, das Profil, alle Inserate, Anfragen und Verknüpfungen werden permanent entfernt.
       </p>
       <input
         type="text"
         value={confirmInput}
         onChange={(e) => setConfirmInput(e.target.value)}
-        placeholder={userName}
+        placeholder={firstName}
         className="w-full px-2.5 py-1.5 bg-paper border border-stone rounded-soft text-[13px] focus:outline-none focus:border-danger mb-3"
         autoFocus
       />
