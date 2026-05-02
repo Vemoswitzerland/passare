@@ -486,7 +486,7 @@ function CTA() {
           </Reveal>
           <Reveal delay={0.1}>
             <p className="text-body-lg text-cream/80 max-w-prose leading-relaxed mb-10">
-              Keine Verträge, keine Vertreterbesuche, keine unterschriftspflichtigen Mandate.
+              Keine Verträge, keine Vertreterbesuche, keine Maklergebühren.
               Wählen Sie ein Paket, füllen Sie 10 Minuten aus, und der Marktplatz öffnet sich.
             </p>
           </Reveal>

@@ -16,18 +16,20 @@ type Event = {
   time: string;
 };
 
+// Cyrill 02.05.2026: «NDA und Mandate veraltet — überall raus».
+// Live-Ticker zeigt jetzt nur Inserate, Anfragen und Abschlüsse.
 const EVENTS: Event[] = [
   { type: 'listing', actor: 'Verkäufer', target: 'Maschinenbau ZH', meta: 'CHF 6–8 Mio', time: 'Vor 12 Min' },
-  { type: 'nda',     actor: 'Käufer',    target: 'Präzisions-Dreherei BE', meta: 'NDA signiert', time: 'Vor 28 Min' },
+  { type: 'inquiry', actor: 'Käufer',    target: 'Präzisions-Dreherei BE', meta: 'Anfrage gestellt', time: 'Vor 28 Min' },
   { type: 'inquiry', actor: 'MBI',       target: 'IT-Dienstleister ZG', meta: 'Erstkontakt',   time: 'Vor 41 Min' },
-  { type: 'listing', actor: 'Broker',    target: 'Treuhand-Kanzlei VD',  meta: 'Mandat live',  time: 'Vor 1 Std' },
+  { type: 'listing', actor: 'Verkäufer', target: 'Treuhand-Kanzlei VD',  meta: 'Inserat live',  time: 'Vor 1 Std' },
   { type: 'deal',    actor: 'Übergabe',  target: 'Elektrotechnik AG',    meta: 'Closing Q3',   time: 'Vor 2 Std' },
   { type: 'inquiry', actor: 'Family Office', target: 'Logistik SG',      meta: 'Dossier angefragt', time: 'Vor 3 Std' },
 ];
 
 const LABELS = {
-  listing: { label: 'neues mandat', dotClass: 'bg-bronze' },
-  nda:     { label: 'nda ausgeführt', dotClass: 'bg-success' },
+  listing: { label: 'neues inserat', dotClass: 'bg-bronze' },
+  nda:     { label: 'anfrage', dotClass: 'bg-success' },
   inquiry: { label: 'anfrage', dotClass: 'bg-navy' },
   deal:    { label: 'abschluss',     dotClass: 'bg-bronze' },
 } as const;
