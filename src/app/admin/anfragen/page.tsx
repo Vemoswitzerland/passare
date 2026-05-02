@@ -124,6 +124,12 @@ export default async function AdminAnfragenPage({ searchParams }: Props) {
   }
 
   // ── Threads bauen ──────────────────────────────────────────────
+  // Cyrill 02.05.2026: «im Chat selber beide anzeigt … zeigt doch nur den
+  // anderen an, nicht beide». Also: Title = der GEGENÜBER-Name (nicht
+  // «Käufer ↔ Verkäufer» oder «passare ↔ Verkäufer»). Im Käufer-Thread
+  // (Admin liest mit) zeigen wir den Käufer als Haupttitel; der Verkäufer
+  // steht als Status-Label drunter. Im passare-Thread (Admin schreibt mit
+  // Verkäufer) zeigen wir nur den Verkäufer.
   const kaeuferThreads: InboxThread[] = anfrageList.map((a) => {
     const last = lastMsgsByAnfrage.get(a.id as string);
     const ins = insMap.get(a.inserat_id as string);
@@ -131,18 +137,17 @@ export default async function AdminAnfragenPage({ searchParams }: Props) {
     const verkProf = ins ? profMap.get(ins.verkaeufer_id) : null;
     const kaeuferName = kaeuferProf?.name ?? kaeuferProf?.email ?? 'Käufer';
     const verkName = verkProf?.name ?? verkProf?.email ?? 'Verkäufer';
-    const title = `${kaeuferName} ↔ ${verkName}`;
     return {
       id: `k:${a.id}`,
       type: 'kaeufer' as const,
-      title,
+      title: kaeuferName,
       initials: deriveInitials(kaeuferName),
       lastMessage: last?.message ?? (a.nachricht as string | null) ?? '(keine Nachricht)',
       lastAt: last?.created_at ?? (a.updated_at as string),
       inseratId: a.inserat_id as string,
       inseratTitel: ins?.titel ?? null,
       detailHref: `/admin/anfragen/${a.id}`,
-      statusLabel: statusLabel(a.status as string),
+      statusLabel: `${statusLabel(a.status as string) ?? 'Anfrage'} · an ${verkName}`,
       unread: false,
     };
   });
@@ -156,14 +161,14 @@ export default async function AdminAnfragenPage({ searchParams }: Props) {
     passareThreads.push({
       id: `p:${iid}`,
       type: 'passare' as const,
-      title: `passare-Team ↔ ${verkName}`,
-      initials: 'PT',
+      title: verkName,
+      initials: deriveInitials(verkName),
       lastMessage: info.message,
       lastAt: info.created_at,
       inseratId: iid,
       inseratTitel: ins.titel,
       detailHref: `/admin/inserate/${iid}`,
-      statusLabel: ins.status ? `Inserat-Status: ${ins.status}` : null,
+      statusLabel: ins.status ? `passare-Team · ${ins.status}` : 'passare-Team',
       unread: false,
     });
   }

@@ -79,10 +79,37 @@ export function InboxLayout({
   const router = useRouter();
   const searchParams = useSearchParams();
 
+  // Cyrill 02.05.2026: «zwischen Chats wechseln ist enorm langsam». Lösung:
+  // (1) Optimistic-Click — der lokale State zeigt SOFORT den neuen Active
+  //     auch wenn die Server-Component noch nicht refresht hat.
+  // (2) useTransition — markiert den Refresh als Transition, blockiert
+  //     keine UI-Updates und liefert isPending für subtile Lade-Animation.
+  // (3) Prefetch beim Hover (router.prefetch) — beim Klick ist die neue
+  //     Page-Variante oft schon im Cache.
+  const [optimisticActiveId, setOptimisticActiveId] = useState<string | null>(activeThreadId);
+  const [pendingNav, startNavTx] = useTransition();
+
+  // Wenn der Server-Refresh durchläuft, holen wir den optimistischen State ein
+  useEffect(() => {
+    setOptimisticActiveId(activeThreadId);
+  }, [activeThreadId]);
+
+  const displayActiveId = optimisticActiveId ?? activeThreadId;
+
   const openThread = (threadId: string) => {
+    if (threadId === displayActiveId) return;
+    setOptimisticActiveId(threadId);
     const sp = new URLSearchParams(searchParams.toString());
     sp.set('thread', threadId);
-    router.push(`${basePath}?${sp.toString()}`);
+    startNavTx(() => {
+      router.push(`${basePath}?${sp.toString()}`);
+    });
+  };
+
+  const prefetchThread = (threadId: string) => {
+    const sp = new URLSearchParams(searchParams.toString());
+    sp.set('thread', threadId);
+    router.prefetch(`${basePath}?${sp.toString()}`);
   };
 
   // Cyrill 30.04.2026: «Inbox zu klein — links nur «Nachrichten»-Label,
@@ -108,15 +135,18 @@ export function InboxLayout({
         ) : (
           <ul className="flex-1 overflow-y-auto divide-y divide-stone/60 min-h-0">
             {threads.map((t) => {
-              const isActive = t.id === activeThreadId;
+              const isActive = t.id === displayActiveId;
               return (
                 <li key={t.id}>
                   <button
                     type="button"
                     onClick={() => openThread(t.id)}
+                    onMouseEnter={() => prefetchThread(t.id)}
                     className={cn(
-                      'w-full text-left px-4 py-3 flex items-start gap-3 transition-colors',
-                      isActive ? 'bg-paper' : 'hover:bg-paper/60',
+                      'w-full text-left px-4 py-3 flex items-start gap-3 transition-all duration-150',
+                      isActive
+                        ? 'bg-paper border-l-2 border-bronze pl-[14px]'
+                        : 'hover:bg-paper/60 border-l-2 border-transparent',
                     )}
                   >
                     <ThreadAvatar type={t.type} initials={t.initials} active={isActive} />
@@ -154,11 +184,24 @@ export function InboxLayout({
       </aside>
 
       {/* ── CHAT RECHTS — schluckt alle verbleibende Höhe + Breite ─── */}
-      <section className="flex flex-col min-h-0 h-full">
+      {/* Während pendingNav: kurze Opacity-Reduktion + Skeleton-Pulse als
+          subtile Lade-Indikation. Cyrill 02.05.2026: «macht das Ganze
+          auch schneller» — der Klick reagiert sofort, der Inhalt blendet
+          smooth über. */}
+      <section
+        className={cn(
+          'flex flex-col min-h-0 h-full transition-opacity duration-150',
+          pendingNav && 'opacity-70',
+        )}
+      >
         {!activeThread ? (
           <EmptyState />
         ) : (
           <ChatPane
+            // key auf Thread-ID erzwingt komplettes Re-Render des ChatPane
+            // beim Wechsel — Auto-Scroll und Eingabe-State werden korrekt
+            // zurückgesetzt, kein "alte Nachrichten kurz sichtbar"-Flash.
+            key={activeThread.id}
             thread={activeThread}
             messages={activeMessages}
             canReply={activeThread.type === 'kaeufer' || canReplyPassare}
