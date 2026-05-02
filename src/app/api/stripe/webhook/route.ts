@@ -118,9 +118,9 @@ export async function POST(req: NextRequest) {
           await admin
             .from('broker_profiles')
             .update({
-              subscription_status: 'inactive',
+              subscription_status: 'canceled',
               stripe_subscription_id: null,
-              subscription_cancel_at: null,
+              subscription_cancel_at: new Date().toISOString(),
             })
             .eq('id', userId);
 
@@ -128,6 +128,13 @@ export async function POST(req: NextRequest) {
             .from('profiles')
             .update({ is_broker: false })
             .eq('id', userId);
+
+          // Aktive Mandate pausieren — sonst bleiben sie public sichtbar.
+          await admin
+            .from('inserate')
+            .update({ status: 'pausiert', paused_at: new Date().toISOString() })
+            .eq('broker_id', userId)
+            .eq('status', 'live');
         } else {
           await admin
             .from('profiles')

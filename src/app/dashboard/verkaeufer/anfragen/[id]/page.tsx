@@ -72,7 +72,7 @@ export default async function AnfrageDetailPage({ params }: Props) {
     (await hasTable('kaeufer_profil'))
       ? supabase
           .from('kaeufer_profil')
-          .select('investor_typ, budget_min, budget_max, budget_undisclosed, regionen, branche_praeferenzen, timing, erfahrung, beschreibung, ist_oeffentlich, finanzierungsnachweis_verified, linkedin_url, dossier_url, dossier_uploaded_at')
+          .select('investor_typ, budget_min, budget_max, budget_undisclosed, regionen, branche_praeferenzen, timing, erfahrung, beschreibung, ist_oeffentlich, finanzierungsnachweis_verified, linkedin_url, logo_url, dossier_url, dossier_uploaded_at')
           .eq('user_id', anfrage.kaeufer_id)
           .maybeSingle()
       : Promise.resolve({ data: null }),
@@ -95,7 +95,7 @@ export default async function AnfrageDetailPage({ params }: Props) {
       ? `CHF ${(Number(kaeuferProfil.budget_min) / 1_000_000).toFixed(1)} – ${(Number(kaeuferProfil.budget_max) / 1_000_000).toFixed(0)} Mio`
       : '—';
 
-  const isMax = profile?.subscription_tier === 'max';
+  const isMax = profile?.subscription_tier === 'plus' || profile?.subscription_tier === 'max';
 
   return (
     <div className="px-6 md:px-10 py-8 md:py-10">
@@ -112,9 +112,13 @@ export default async function AnfrageDetailPage({ params }: Props) {
         <div className="rounded-card bg-paper border border-stone p-6 mb-6">
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div className="flex items-center gap-4 min-w-0">
-              <span className="w-14 h-14 rounded-full bg-navy text-cream flex items-center justify-center text-lg font-mono font-medium flex-shrink-0">
-                {initials}
-              </span>
+              {kaeuferProfil?.logo_url ? (
+                <img src={kaeuferProfil.logo_url} alt="" className="w-14 h-14 rounded-full object-cover flex-shrink-0" />
+              ) : (
+                <span className="w-14 h-14 rounded-full bg-navy text-cream flex items-center justify-center text-lg font-mono font-medium flex-shrink-0">
+                  {initials}
+                </span>
+              )}
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <h1 className="font-serif text-head-md text-navy font-light truncate">
@@ -123,7 +127,7 @@ export default async function AnfrageDetailPage({ params }: Props) {
                   {isMax && (
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-pill bg-bronze-soft text-bronze-ink text-caption font-medium">
                       <Crown className="w-3 h-3" strokeWidth={2} />
-                      MAX
+                      Käufer+
                     </span>
                   )}
                 </div>

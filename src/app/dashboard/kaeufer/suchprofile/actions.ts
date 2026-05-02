@@ -43,14 +43,6 @@ export async function createSuchprofilAction(formData: FormData): Promise<Action
   const { data: u } = await supabase.auth.getUser();
   if (!u.user) return { ok: false, error: 'Nicht eingeloggt' };
 
-  // MAX-Gate: WhatsApp + Push nur für MAX
-  const { data: prof } = await supabase
-    .from('profiles')
-    .select('subscription_tier')
-    .eq('id', u.user.id)
-    .maybeSingle();
-  const isMax = prof?.subscription_tier === 'max';
-
   const { error } = await supabase.from('suchprofile').insert({
     kaeufer_id: u.user.id,
     name: parsed.data.name,
@@ -63,8 +55,8 @@ export async function createSuchprofilAction(formData: FormData): Promise<Action
     ma_max: parsed.data.ma_max ?? null,
     gruende: [],
     email_alert: parsed.data.email_alert ?? true,
-    whatsapp_alert: isMax ? (parsed.data.whatsapp_alert ?? false) : false,
-    push_alert: isMax ? (parsed.data.push_alert ?? false) : false,
+    whatsapp_alert: false,
+    push_alert: false,
     ist_pausiert: false,
   });
 

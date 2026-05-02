@@ -29,7 +29,7 @@ export function KaeuferShell({ email, fullName, isMax, isAdmin, counts, children
       profileLabel="Käufer-Profil"
       secondary={{
         href: '/dashboard/kaeufer/abo',
-        label: isMax ? 'MAX verwalten' : 'Auf MAX upgraden',
+        label: isMax ? 'Käufer+ verwalten' : 'Auf Käufer+ upgraden',
         icon: 'crown',
       }}
     />

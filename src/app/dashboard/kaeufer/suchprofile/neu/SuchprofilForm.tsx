@@ -134,22 +134,8 @@ export function SuchprofilForm({ isMax, branchen }: Props) {
           <CheckboxRow
             name="email_alert"
             icon={Mail}
-            label="E-Mail · 1× pro Woche (Basic) bzw. täglich um 7:00 (MAX)"
+            label={isMax ? 'E-Mail · Echtzeit bei jedem Match (Käufer+)' : 'E-Mail · wöchentlicher Digest (Basic)'}
             defaultChecked
-          />
-          <CheckboxRow
-            name="whatsapp_alert"
-            icon={MessageCircle}
-            label="WhatsApp · in unter 5 Minuten bei einem Match"
-            disabled={!isMax}
-            note={!isMax ? 'Nur mit Käufer+-Abo' : undefined}
-          />
-          <CheckboxRow
-            name="push_alert"
-            icon={Smartphone}
-            label="Push-Notification · sofort"
-            disabled={!isMax}
-            note={!isMax ? 'Nur mit Käufer+-Abo' : undefined}
           />
         </div>
         {!isMax && (
@@ -158,7 +144,7 @@ export function SuchprofilForm({ isMax, branchen }: Props) {
             className="mt-3 inline-flex items-center gap-1.5 text-caption text-bronze-ink hover:text-bronze underline decoration-dotted underline-offset-2"
           >
             <Crown className="w-3.5 h-3.5" strokeWidth={1.5} />
-            Auf MAX upgraden für sofortige Alerts
+            Auf Käufer+ upgraden für Echtzeit-Alerts
           </Link>
         )}
       </fieldset>

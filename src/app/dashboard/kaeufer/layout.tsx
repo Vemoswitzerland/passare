@@ -21,7 +21,7 @@ export default async function KaeuferLayout({ children }: { children: React.Reac
     await Promise.all([
       supabase
         .from('profiles')
-        .select('full_name, rolle, onboarding_completed_at, subscription_tier')
+        .select('full_name, rolle, onboarding_completed_at, subscription_tier, is_broker')
         .eq('id', userId)
         .maybeSingle(),
       hasTable('favoriten'),
@@ -39,7 +39,8 @@ export default async function KaeuferLayout({ children }: { children: React.Reac
   // Nur Verkäufer wegleiten — alle anderen (kaeufer, admin, null) durch
   if (profile?.rolle === 'verkaeufer') redirect('/dashboard/verkaeufer');
 
-  const isMax = profile?.subscription_tier === 'max';
+  // Broker bekommen Käufer+-Funktionen inkludiert in ihrem Abo
+  const isPlus = profile?.subscription_tier === 'plus' || profile?.is_broker === true;
 
   // Phase 2: alle Count-Queries parallel — 1 Roundtrip statt 4.
   // Supabase wirft nicht — bei Schema-Drift kommt einfach {count: null, error: …}
@@ -80,7 +81,7 @@ export default async function KaeuferLayout({ children }: { children: React.Reac
     <KaeuferShell
       email={u.user.email ?? ''}
       fullName={profile?.full_name ?? null}
-      isMax={isMax}
+      isMax={isPlus}
       isAdmin={isAdmin}
       counts={counts}
     >

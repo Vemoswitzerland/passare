@@ -1,14 +1,17 @@
 import Link from 'next/link';
-import { FileText, MessageSquare, Search, Users, ArrowRight, Plus, Building2, Eye } from 'lucide-react';
+import { FileText, MessageSquare, Search, ArrowRight, Plus, Building2, Eye, Clock, Check } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { hasTable } from '@/lib/db/has-table';
 
 export const metadata = { title: 'Übersicht — passare Broker' };
 
-export default async function BrokerDashboard() {
+type Props = { searchParams: Promise<{ welcome?: string }> };
+
+export default async function BrokerDashboard({ searchParams }: Props) {
   const supabase = await createClient();
   const { data: userData } = await supabase.auth.getUser();
   if (!userData.user) return null;
+  const sp = await searchParams;
 
   let brokerProfile: any = null;
   let mandateActive = 0;
@@ -64,12 +67,31 @@ export default async function BrokerDashboard() {
 
   const mandateLimit = brokerProfile?.mandate_limit ?? 5;
   const isActive = brokerProfile?.subscription_status === 'active';
+  const justPaid = sp.welcome === '1';
 
   return (
     <div className="px-6 md:px-10 py-8 md:py-12">
       <div className="max-w-content mx-auto">
-        {/* Abo-Warnung */}
-        {!isActive && (
+        {/* Welcome-Polling: Stripe-Webhook ist async — hier zeigen wir kurz
+            «wir bestätigen deine Zahlung» mit Auto-Refresh statt panischem
+            «Abo nicht aktiv»-Banner. Meta-Refresh nur solange noch nicht aktiv. */}
+        {justPaid && !isActive && (
+          <>
+            <meta httpEquiv="refresh" content="4" />
+            <div className="rounded-card bg-bronze/10 border border-bronze/30 p-5 mb-8 flex items-center gap-3">
+              <Clock className="w-5 h-5 text-bronze-ink animate-pulse flex-shrink-0" strokeWidth={2} />
+              <div>
+                <p className="text-body text-navy font-medium">Wir bestätigen deine Zahlung…</p>
+                <p className="text-body-sm text-muted mt-1">
+                  Stripe meldet das Abo gleich automatisch — diese Seite aktualisiert sich von selbst. Kein erneuter Klick nötig.
+                </p>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Abo-Warnung — NUR wenn nicht gerade gezahlt */}
+        {!isActive && !justPaid && (
           <div className="rounded-card bg-warn/10 border border-warn/30 p-5 mb-8">
             <p className="text-body text-navy font-medium">Dein Broker-Abo ist nicht aktiv</p>
             <p className="text-body-sm text-muted mt-1">
@@ -81,6 +103,17 @@ export default async function BrokerDashboard() {
             >
               Abo aktivieren <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
             </Link>
+          </div>
+        )}
+
+        {/* Welcome-Erfolg */}
+        {justPaid && isActive && (
+          <div className="rounded-card bg-success/5 border border-success/30 p-5 mb-8 flex items-center gap-3">
+            <Check className="w-5 h-5 text-success flex-shrink-0" strokeWidth={2} />
+            <div>
+              <p className="text-body text-navy font-medium">Willkommen bei passare!</p>
+              <p className="text-body-sm text-muted mt-0.5">Dein Broker-Abo ist aktiv. Du kannst jetzt dein erstes Mandat anlegen.</p>
+            </div>
           </div>
         )}
 

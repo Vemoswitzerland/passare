@@ -33,7 +33,8 @@ type Props = {
   erfahrung: string | null;
   timing: string | null;
   beschreibung: string | null;
-  isMax: boolean;
+  isPlus: boolean;
+  logoUrl?: string | null;
   verified: { phone: boolean; kyc: boolean; finanzierung: boolean };
 };
 
@@ -46,18 +47,22 @@ export function ProfilPreview(p: Props) {
       {/* Header */}
       <div className="bg-gradient-to-br from-navy to-ink text-cream p-6 md:p-7">
         <div className="flex items-start gap-4">
-          <div className="w-14 h-14 rounded-full bg-bronze text-cream flex items-center justify-center font-mono text-body-sm font-medium flex-shrink-0">
-            {initials}
-          </div>
+          {p.logoUrl ? (
+            <img src={p.logoUrl} alt="" className="w-14 h-14 rounded-full object-cover flex-shrink-0" />
+          ) : (
+            <div className="w-14 h-14 rounded-full bg-bronze text-cream flex items-center justify-center font-mono text-body-sm font-medium flex-shrink-0">
+              {initials}
+            </div>
+          )}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1 flex-wrap">
               <h3 className="font-serif text-head-md text-cream font-normal">
                 {p.fullName ?? 'Käufer'}<span className="text-bronze">.</span>
               </h3>
-              {p.isMax && (
+              {p.isPlus && (
                 <span className="inline-flex items-center gap-1 text-caption font-medium px-2 py-0.5 rounded-pill bg-bronze text-cream">
                   <Crown className="w-3 h-3" strokeWidth={2} />
-                  MAX
+                  Käufer+
                 </span>
               )}
             </div>

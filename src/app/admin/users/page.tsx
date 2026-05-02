@@ -23,7 +23,7 @@ type UserRow = {
   rolle: 'verkaeufer' | 'kaeufer' | 'admin' | null;
   kanton: string | null;
   sprache: string | null;
-  subscription_tier: 'basic' | 'max' | null;
+  subscription_tier: 'basic' | 'plus' | 'max' | null;
   email: string | null;
   created_at: string;
   onboarding_completed_at: string | null;
@@ -38,7 +38,8 @@ const ROLLE_DISPLAY: Record<string, { label: string; color: string }> = {
 
 const ABO_DISPLAY: Record<string, { label: string; color: string }> = {
   basic: { label: 'Basic', color: 'text-quiet' },
-  max: { label: 'MAX', color: 'text-bronze-ink font-medium' },
+  plus: { label: 'Käufer+', color: 'text-bronze-ink font-medium' },
+  max: { label: 'Käufer+', color: 'text-bronze-ink font-medium' },
 };
 
 export default async function AdminUsersPage({
@@ -134,7 +135,7 @@ export default async function AdminUsersPage({
                   {u.rolle === 'kaeufer' ? (
                     abo ? (
                       <span className={`inline-flex items-center gap-1 font-mono text-[11px] ${abo.color}`}>
-                        {u.subscription_tier === 'max' && <Crown className="w-3 h-3" strokeWidth={1.5} />}
+                        {(u.subscription_tier === 'plus' || u.subscription_tier === 'max') && <Crown className="w-3 h-3" strokeWidth={1.5} />}
                         {abo.label}
                       </span>
                     ) : (

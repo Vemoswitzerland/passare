@@ -20,9 +20,8 @@ export default async function AboPage() {
     .eq('id', u.user.id)
     .maybeSingle();
 
-  const isMax = profile?.subscription_tier === 'max';
+  const isPlus = profile?.subscription_tier === 'plus';
 
-  // Rechnungen aus zahlungen-Tabelle (defensive)
   let zahlungen: { id: string; amount_gross: number; created_at: string; pdf_url?: string | null }[] = [];
   if (await hasTable('zahlungen')) {
     const { data } = await supabase
@@ -49,23 +48,23 @@ export default async function AboPage() {
       {/* Aktueller Status */}
       <div className={cn(
         'rounded-card p-7',
-        isMax ? 'bg-navy text-cream' : 'bg-paper border border-stone',
+        isPlus ? 'bg-navy text-cream' : 'bg-paper border border-stone',
       )}>
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             <div className="flex items-center gap-2 mb-2">
-              {isMax && <Crown className="w-4 h-4 text-bronze" strokeWidth={1.5} />}
-              <p className={cn('overline', isMax ? 'text-bronze' : 'text-bronze-ink')}>
+              {isPlus && <Crown className="w-4 h-4 text-bronze" strokeWidth={1.5} />}
+              <p className={cn('overline', isPlus ? 'text-bronze' : 'text-bronze-ink')}>
                 Aktueller Plan
               </p>
             </div>
             <h2 className={cn('font-serif text-head-lg font-normal',
-              isMax ? 'text-cream' : 'text-navy',
+              isPlus ? 'text-cream' : 'text-navy',
             )}>
-              {isMax ? 'Käufer+' : 'Käufer Basic'}<span className="text-bronze">.</span>
+              {isPlus ? 'Käufer+' : 'Käufer Basic'}<span className="text-bronze">.</span>
             </h2>
-            <p className={cn('text-body-sm mt-2', isMax ? 'text-cream/80' : 'text-muted')}>
-              {isMax
+            <p className={cn('text-body-sm mt-2', isPlus ? 'text-cream/80' : 'text-muted')}>
+              {isPlus
                 ? `Aktiv${profile.subscription_renewed_at ? ` seit ${new Date(profile.subscription_renewed_at).toLocaleDateString('de-CH')}` : ''}.`
                 : 'Du nutzt aktuell die kostenlose Variante.'}
             </p>
@@ -76,7 +75,7 @@ export default async function AboPage() {
             )}
           </div>
 
-          {isMax && profile.stripe_customer_id ? (
+          {isPlus && profile.stripe_customer_id ? (
             <form action="/api/stripe/customer-portal" method="post">
               <button
                 type="submit"
@@ -88,13 +87,13 @@ export default async function AboPage() {
             </form>
           ) : (
             <form action="/api/stripe/create-checkout-session" method="post">
-              <input type="hidden" name="tier" value="max" />
+              <input type="hidden" name="tier" value="plus" />
               <input type="hidden" name="interval" value="monthly" />
               <button
                 type="submit"
                 className="inline-flex items-center gap-2 px-5 py-2.5 bg-bronze text-cream rounded-soft text-body-sm font-medium hover:bg-bronze-ink transition-colors"
               >
-                Auf MAX upgraden <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
+                Auf Käufer+ upgraden <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
               </button>
             </form>
           )}
@@ -104,57 +103,54 @@ export default async function AboPage() {
       {/* Tier-Vergleich */}
       <section>
         <h2 className="font-serif text-head-md text-navy font-normal mb-4">
-          Was bekommst du dazu mit MAX<span className="text-bronze">?</span>
+          Was bringt Käufer+<span className="text-bronze">?</span>
         </h2>
         <div className="grid md:grid-cols-2 gap-4">
           <PlanCompareCard
             title="Basic"
             price="CHF 0"
-            interval="/ Monat"
-            current={!isMax}
+            interval="/ unbefristet"
+            current={!isPlus}
             features={[
               { text: 'Öffentliche Inserate', has: true },
-              { text: '5 Basis-Filter', has: true },
-              { text: '5 Anfragen/Monat', has: true },
-              { text: '1 Suchprofil + Email-Alert wöchentlich', has: true },
+              { text: 'Alle 18 Filter', has: true },
+              { text: 'Gespeicherte Suchen', has: true },
+              { text: 'Wöchentlicher E-Mail-Digest', has: true },
+              { text: 'Geschlossene Inserate', has: false },
               { text: '7 Tage Frühzugang', has: false },
-              { text: 'WhatsApp-Alerts', has: false },
-              { text: 'Unbegrenzte Anfragen', has: false },
-              { text: 'Berater-Datenraum-Share', has: false },
-              { text: 'KMU-Multiples-Datenbank', has: false },
+              { text: 'Echtzeit-E-Mail-Alerts', has: false },
+              { text: 'Eigenes Logo im Käuferprofil', has: false },
             ]}
           />
           <PlanCompareCard
-            title="MAX"
+            title="Käufer+"
             price="CHF 199"
             interval="/ Monat (oder CHF 1'990/Jahr)"
-            current={isMax}
+            current={isPlus}
             highlighted
             features={[
-              { text: 'Alles aus Basic', has: true },
-              { text: '7 Tage Frühzugang', has: true },
-              { text: 'WhatsApp-Alerts in <5 Min', has: true },
-              { text: 'Unbegrenzte Anfragen', has: true },
-              { text: 'Bis 3 Suchprofile', has: true },
-              { text: 'Direkt-Anfrage-Track (priorisiert)', has: true },
-              { text: 'KMU-Multiples-Datenbank', has: true },
-              { text: 'Featured-Käuferprofil', has: true },
-              { text: 'Berater-Datenraum-Share (14 Tage)', has: true },
+              { text: 'Öffentliche Inserate', has: true },
+              { text: 'Alle 18 Filter', has: true },
+              { text: 'Gespeicherte Suchen', has: true },
+              { text: 'Geschlossene Inserate sehen', has: true },
+              { text: '7 Tage Frühzugang auf neue Inserate', has: true },
+              { text: 'Echtzeit-E-Mail-Alerts bei Match', has: true },
+              { text: 'Eigenes Logo im Käuferprofil', has: true },
             ]}
           />
         </div>
       </section>
 
-      {/* Was MAX wirklich bringt — Editorial */}
+      {/* Käufer+ in Zahlen */}
       <section className="bg-paper border border-stone rounded-card p-6 md:p-8">
         <h2 className="font-serif text-head-md text-navy font-normal mb-5">
-          MAX in Zahlen<span className="text-bronze">.</span>
+          Käufer+ in Zahlen<span className="text-bronze">.</span>
         </h2>
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <ROIStat icon={Zap} value="7 Tage" label="Frühzugang vor Basic" />
-          <ROIStat icon={Bell} value="<5 Min" label="WhatsApp-Alert-Zeit" />
-          <ROIStat icon={MessageSquare} value="∞" label="Anfragen pro Monat" />
-          <ROIStat icon={FileLock2} value="14 Tage" label="Berater-Read-Only-Link" />
+          <ROIStat icon={Bell} value="Echtzeit" label="E-Mail-Alerts bei Match" />
+          <ROIStat icon={MessageSquare} value="100 %" label="Alle Inserate sichtbar" />
+          <ROIStat icon={FileLock2} value="Logo" label="Trust-Signal im Profil" />
         </div>
         <p className="text-caption text-quiet mt-5 leading-relaxed border-t border-stone pt-4">
           Die meisten Top-Inserate werden in den ersten 7 Tagen weggeschnappt. Mit Basic siehst du sie erst, wenn diese Phase fast vorbei ist.
@@ -171,7 +167,7 @@ export default async function AboPage() {
           <div className="bg-paper border border-dashed border-stone rounded-card p-8 text-center">
             <FileText className="w-6 h-6 text-quiet mx-auto mb-3" strokeWidth={1.5} />
             <p className="text-body-sm text-muted">
-              Sobald du eine MAX-Zahlung tätigst, erscheint hier die Rechnung als PDF zum Download.
+              Sobald du eine Käufer+-Zahlung tätigst, erscheint hier die Rechnung als PDF zum Download.
             </p>
           </div>
         ) : (

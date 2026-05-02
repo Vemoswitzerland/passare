@@ -1,8 +1,6 @@
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
-import { redirect } from 'next/navigation';
-import { hasTable } from '@/lib/db/has-table';
 import { getBranchen } from '@/lib/branchen';
 import { SuchprofilForm } from './SuchprofilForm';
 
@@ -13,21 +11,12 @@ export default async function NewSuchprofilPage() {
   const { data: u } = await supabase.auth.getUser();
   if (!u.user) return null;
 
-  // Limit-Check: schon 3 Profile?
-  if (await hasTable('suchprofile')) {
-    const { count } = await supabase
-      .from('suchprofile')
-      .select('*', { count: 'exact', head: true })
-      .eq('kaeufer_id', u.user.id);
-    if ((count ?? 0) >= 3) redirect('/dashboard/kaeufer/suchprofile?error=limit');
-  }
-
   const { data: prof } = await supabase
     .from('profiles')
     .select('subscription_tier')
     .eq('id', u.user.id)
     .maybeSingle();
-  const isMax = prof?.subscription_tier === 'max';
+  const isPlus = prof?.subscription_tier === 'plus';
   const branchen = await getBranchen();
 
   return (
@@ -50,7 +39,7 @@ export default async function NewSuchprofilPage() {
         </p>
       </div>
 
-      <SuchprofilForm isMax={isMax} branchen={branchen} />
+      <SuchprofilForm isMax={isPlus} branchen={branchen} />
     </div>
   );
 }

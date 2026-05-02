@@ -34,7 +34,7 @@ export default async function SuchprofilePage() {
     .select('subscription_tier')
     .eq('id', u.user.id)
     .maybeSingle();
-  const isMax = prof?.subscription_tier === 'max';
+  const isPlus = prof?.subscription_tier === 'plus';
 
   let profile: Suchprofil[] = [];
   const profileTableExists = await hasTable('suchprofile');
@@ -66,12 +66,12 @@ export default async function SuchprofilePage() {
     <div className="space-y-6 max-w-content">
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
-          <p className="overline text-bronze mb-2">Bis 3 Profile · Email + WhatsApp + Push</p>
+          <p className="overline text-bronze mb-2">Suchprofile · E-Mail-Alerts</p>
           <h1 className="font-serif text-display-sm md:text-head-lg text-navy font-light">
             Suchprofile<span className="text-bronze">.</span>
           </h1>
           <p className="text-body-sm text-muted mt-2 max-w-2xl">
-            Definiere bis zu 3 verschiedene Such-Kriterien und erhalte automatisch Alerts wenn ein neues Inserat passt.
+            Definiere deine Such-Kriterien und erhalte automatisch Alerts wenn ein neues Inserat passt.
           </p>
         </div>
         {profile.length < 3 && profileTableExists && (
@@ -111,26 +111,26 @@ export default async function SuchprofilePage() {
       ) : (
         <div className="grid md:grid-cols-2 gap-4">
           {profile.map((p) => (
-            <ProfilCard key={p.id} profil={p} isMax={isMax} alertCount={recentAlerts.filter((a) => a.suchprofil_id === p.id).length} />
+            <ProfilCard key={p.id} profil={p} isPlus={isPlus} alertCount={recentAlerts.filter((a) => a.suchprofil_id === p.id).length} />
           ))}
         </div>
       )}
 
-      {/* MAX-Gate Banner */}
-      {!isMax && profile.length > 0 && (
+      {/* Käufer+-Gate Banner */}
+      {!isPlus && profile.length > 0 && (
         <div className="bg-bronze/5 border border-bronze/20 rounded-card p-5 flex items-start gap-3">
           <Crown className="w-5 h-5 text-bronze flex-shrink-0 mt-0.5" strokeWidth={1.5} />
           <div className="flex-1">
-            <p className="text-body-sm text-navy font-medium mb-1">WhatsApp- und Push-Alerts mit MAX</p>
+            <p className="text-body-sm text-navy font-medium mb-1">Echtzeit-Alerts mit Käufer+</p>
             <p className="text-caption text-muted leading-relaxed">
-              Aktuell bekommst du Alerts nur per E-Mail (1× pro Woche). Mit MAX in unter 5 Minuten direkt aufs Handy — bei einem Top-Match macht das den Unterschied.
+              Aktuell bekommst du den wöchentlichen E-Mail-Digest. Mit Käufer+ erhältst du Echtzeit-E-Mail-Alerts innerhalb von Sekunden bei einem Match.
             </p>
           </div>
           <Link
             href="/dashboard/kaeufer/abo"
             className="font-mono text-caption uppercase tracking-widest text-bronze-ink hover:text-bronze whitespace-nowrap"
           >
-            MAX ansehen →
+            Käufer+ ansehen →
           </Link>
         </div>
       )}
@@ -167,10 +167,10 @@ export default async function SuchprofilePage() {
 }
 
 function ProfilCard({
-  profil, isMax, alertCount,
+  profil, isPlus, alertCount,
 }: {
   profil: Suchprofil;
-  isMax: boolean;
+  isPlus: boolean;
   alertCount: number;
 }) {
   return (
@@ -207,9 +207,7 @@ function ProfilCard({
       </dl>
 
       <div className="flex items-center gap-2 mb-4 pt-3 border-t border-stone">
-        <ChannelChip icon={Mail} label="E-Mail" active={profil.email_alert} />
-        <ChannelChip icon={MessageCircle} label="WhatsApp" active={profil.whatsapp_alert} locked={!isMax} />
-        <ChannelChip icon={Smartphone} label="Push" active={profil.push_alert} locked={!isMax} />
+        <ChannelChip icon={Mail} label={isPlus ? 'Echtzeit-E-Mail' : 'Wöchentlich E-Mail'} active={profil.email_alert} />
       </div>
 
       <div className="flex items-center gap-2 flex-wrap">

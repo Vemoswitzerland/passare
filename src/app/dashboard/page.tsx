@@ -33,8 +33,9 @@ export default async function DashboardPage({ searchParams }: Props) {
     redirect('/onboarding');
   }
 
-  // Rollen-Routing — Admin / Käufer / Verkäufer haben eigene Bereiche
+  // Rollen-Routing — Admin / Käufer / Verkäufer / Broker haben eigene Bereiche
   if (profile.rolle === 'admin') redirect('/admin');
+  if (profile.rolle === 'broker') redirect('/dashboard/broker');
   if (profile.rolle === 'kaeufer') redirect('/dashboard/kaeufer');
   if (profile.rolle === 'verkaeufer') redirect('/dashboard/verkaeufer');
 

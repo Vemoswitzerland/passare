@@ -47,7 +47,7 @@ export default async function BrokerProfilPage({ params }: Props) {
   // Aktive Mandate des Brokers
   const { data: mandate } = await supabase
     .from('inserate')
-    .select('id, titel, branche_id, kanton, cover_url, slug')
+    .select('id, titel, branche, kanton, cover_url, public_id')
     .eq('broker_id', bp.id)
     .eq('status', 'live')
     .order('published_at', { ascending: false });
@@ -131,7 +131,7 @@ export default async function BrokerProfilPage({ params }: Props) {
               {mandate.map((m: any) => (
                 <Link
                   key={m.id}
-                  href={m.slug ? `/inserat/${m.slug}` : `/inserat/${m.id}`}
+                  href={m.public_id ? `/inserat/${m.public_id}` : `/inserat/${m.id}`}
                   className="group rounded-card border border-stone bg-cream/40 p-5 hover:border-bronze/40 hover:shadow-card transition-all"
                 >
                   {m.cover_url && (
@@ -145,7 +145,7 @@ export default async function BrokerProfilPage({ params }: Props) {
                     {m.titel || 'Inserat'}
                   </p>
                   <p className="text-caption text-muted">
-                    {m.branche_id ?? '—'} · {m.kanton ?? '—'}
+                    {m.branche ?? '—'} · {m.kanton ?? '—'}
                   </p>
                   <p className="mt-3 text-caption text-bronze-ink inline-flex items-center gap-1 group-hover:gap-2 transition-all">
                     Ansehen <ArrowRight className="w-3 h-3" strokeWidth={1.5} />

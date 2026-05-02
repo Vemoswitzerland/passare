@@ -30,7 +30,7 @@ export default async function MandatePage({ searchParams }: Props) {
   if (await hasTable('inserate')) {
     const { data } = await supabase
       .from('inserate')
-      .select('id, firma_name, titel, status, branche_id, kanton, views, created_at, updated_at')
+      .select('id, firma_name, titel, status, branche, kanton, views, created_at, updated_at')
       .eq('broker_id', userData.user.id)
       .order('updated_at', { ascending: false });
     mandate = data ?? [];
@@ -130,7 +130,7 @@ function MandatCard({ mandat }: { mandat: any }) {
           {mandat.firma_name || mandat.titel || 'Unbenanntes Mandat'}
         </p>
         <p className="text-caption text-muted mt-0.5">
-          {mandat.branche_id ?? '—'} · {mandat.kanton ?? '—'} · Aktualisiert {formatDate(mandat.updated_at)}
+          {mandat.branche ?? '—'} · {mandat.kanton ?? '—'} · Aktualisiert {formatDate(mandat.updated_at)}
         </p>
       </div>
       <div className="flex items-center gap-3 flex-shrink-0">

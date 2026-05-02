@@ -69,6 +69,8 @@ export function BrokerTunnelForm({ userName, userEmail }: Props) {
         website: form.website,
         telefon: form.telefon,
         kanton: form.kanton,
+        paket: form.paket,
+        interval: form.interval,
       });
 
       if (result.error) {

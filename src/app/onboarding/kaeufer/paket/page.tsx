@@ -166,12 +166,13 @@ export default async function PaketPage({ searchParams }: Props) {
 
               <ul className="space-y-2.5 text-body-sm mb-8">
                 <FeatureRow text="Öffentliche Inserate ansehen" />
-                <FeatureRow text="5 Basis-Filter" />
-                <FeatureRow text="5 Anfragen pro Monat" />
-                <FeatureRow text="Alerts wöchentlich per E-Mail" />
-                <FeatureRow text="1 Suchprofil" />
-                <FeatureRow text="Anfragen senden + Detail-Dossier nach Freigabe" />
-                <FeatureRow text="Käufer+-Features" available={false} />
+                <FeatureRow text="Alle 18 Filter" />
+                <FeatureRow text="Gespeicherte Suchen" />
+                <FeatureRow text="Wöchentlicher E-Mail-Digest" />
+                <FeatureRow text="Geschlossene Inserate" available={false} />
+                <FeatureRow text="7 Tage Frühzugang" available={false} />
+                <FeatureRow text="Echtzeit-E-Mail-Alerts" available={false} />
+                <FeatureRow text="Eigenes Logo im Käuferprofil" available={false} />
               </ul>
 
               <form action={continueWithBasicAction} className="mt-auto">
@@ -212,16 +213,13 @@ export default async function PaketPage({ searchParams }: Props) {
               </p>
 
               <ul className="space-y-2.5 text-body-sm mb-6">
-                <FeatureRow text="Alles aus Basic" />
-                <FeatureRow text="7 Tage Frühzugang" highlight />
-                <FeatureRow text="Alle Filter & Sortierungen" />
-                <FeatureRow text="Unbegrenzte Anfragen" />
-                <FeatureRow text="WhatsApp-Alerts in <5 Min" highlight />
-                <FeatureRow text="Bis 3 Suchprofile" />
-                <FeatureRow text="Direkt-Anfrage-Track (priorisiert)" />
-                <FeatureRow text="KMU-Multiples-Datenbank" highlight />
-                <FeatureRow text="Featured-Käuferprofil" />
-                <FeatureRow text="Berater-Datenraum-Zugang" />
+                <FeatureRow text="Öffentliche Inserate" />
+                <FeatureRow text="Alle 18 Filter" />
+                <FeatureRow text="Gespeicherte Suchen" />
+                <FeatureRow text="Geschlossene Inserate sehen" highlight />
+                <FeatureRow text="7 Tage Frühzugang auf neue Inserate" highlight />
+                <FeatureRow text="Echtzeit-E-Mail-Alerts bei Match" highlight />
+                <FeatureRow text="Eigenes Logo im Käuferprofil" highlight />
               </ul>
 
               <div className="mb-6 p-4 bg-bronze/5 border border-bronze/20 rounded-soft">
@@ -236,7 +234,7 @@ export default async function PaketPage({ searchParams }: Props) {
 
               {/* Stripe-Form */}
               <form action="/api/stripe/create-checkout-session" method="post" className="mt-auto">
-                <input type="hidden" name="tier" value="max" />
+                <input type="hidden" name="tier" value="plus" />
                 <input type="hidden" name="interval" value={interval} />
                 <button
                   type="submit"
@@ -255,9 +253,9 @@ export default async function PaketPage({ searchParams }: Props) {
           {/* Feature-Visuals */}
           <div className="max-w-4xl mx-auto mt-12 grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <FeatureVisual icon={Zap} title="Frühzugang" desc="7 Tage vor allen anderen" />
-            <FeatureVisual icon={Bell} title="WhatsApp-Alerts" desc="In unter 5 Minuten" />
-            <FeatureVisual icon={MessageSquare} title="Direkt-Anfrage" desc="Verkäufer sehen «Käufer+»-Badge" />
-            <FeatureVisual icon={FileLock2} title="Datenraum-Share" desc="Berater zeitlich begrenzt rein" />
+            <FeatureVisual icon={Bell} title="Echtzeit-Alerts" desc="E-Mail bei jedem Match" />
+            <FeatureVisual icon={ShieldCheck} title="Geschlossene Inserate" desc="Exklusiver Zugang" />
+            <FeatureVisual icon={Crown} title="Eigenes Logo" desc="Trust-Signal im Profil" />
           </div>
 
           <p className="text-center text-caption text-quiet mt-12">

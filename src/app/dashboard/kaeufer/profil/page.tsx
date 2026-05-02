@@ -114,6 +114,7 @@ export default async function ProfilPage() {
           timing={kaeuferProfil?.timing ?? null}
           beschreibung={kaeuferProfil?.beschreibung ?? null}
           isPlus={prof?.subscription_tier === 'plus'}
+          logoUrl={kaeuferProfil?.logo_url}
           verified={{
             phone: !!prof?.verified_phone,
             kyc: !!prof?.verified_kyc,

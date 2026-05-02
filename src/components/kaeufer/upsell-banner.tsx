@@ -14,7 +14,7 @@ export function MaxUpsellBanner({ variant = 'card', reason }: Props) {
         className="inline-flex items-center gap-2 text-caption text-bronze-ink hover:text-bronze underline decoration-dotted underline-offset-2"
       >
         <Crown className="w-3.5 h-3.5" strokeWidth={1.5} />
-        Mit MAX freischalten
+        Mit Käufer+ freischalten
         <ArrowRight className="w-3 h-3" strokeWidth={1.5} />
       </Link>
     );
@@ -46,10 +46,10 @@ export function MaxUpsellBanner({ variant = 'card', reason }: Props) {
         <p className="overline text-bronze">Käufer+</p>
       </div>
       <h3 className="font-serif text-head-md text-cream font-normal mb-3 leading-snug">
-        7 Tage Frühzugang. Echtzeit-Alerts. Featured-Profil<span className="text-bronze">.</span>
+        7 Tage Frühzugang. Echtzeit-Alerts. Eigenes Logo<span className="text-bronze">.</span>
       </h3>
       <p className="text-body-sm text-cream/80 leading-relaxed mb-5 max-w-md">
-        {reason ?? 'Mit Käufer+ siehst du neue Inserate eine Woche bevor die öffentlich werden — und bekommst WhatsApp-Alerts in unter 5 Minuten bei einem Match.'}
+        {reason ?? 'Mit Käufer+ siehst du neue Inserate eine Woche bevor sie öffentlich werden — und bekommst Echtzeit-E-Mail-Alerts bei jedem Match.'}
       </p>
       <div className="flex items-center gap-4 flex-wrap">
         <Link

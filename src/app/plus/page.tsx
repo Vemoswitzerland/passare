@@ -1,11 +1,10 @@
 import Link from 'next/link';
 import {
-  ArrowRight, Eye, BellRing, MessageCircle,
-  Filter, Bookmark, Sparkles, ShieldCheck, Plus,
+  ArrowRight, Eye, BellRing,
+  Bookmark, Sparkles, Plus,
 } from 'lucide-react';
 import { Container, Section } from '@/components/ui/container';
 import { Button } from '@/components/ui/button';
-import { Divider } from '@/components/ui/divider';
 import { Reveal, RevealStagger, RevealItem } from '@/components/ui/reveal';
 import { SiteHeader, SiteFooter } from '../page';
 
@@ -75,7 +74,7 @@ function Hero() {
             </Reveal>
             <Reveal delay={0.2}>
               <div className="flex flex-col sm:flex-row gap-4 items-start mb-10">
-                <Button href="/auth/register?role=kaeufer&plan=max" size="lg">
+                <Button href="/auth/register?role=kaeufer&plan=plus" size="lg">
                   Käufer+ buchen <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
                 </Button>
                 <Button href="/" variant="secondary" size="lg">
@@ -285,7 +284,7 @@ function Vergleich() {
                 <Button href="/auth/register?role=kaeufer&plan=basic" variant="secondary" size="sm" className="w-full justify-center">Gratis starten</Button>
               </div>
               <div className="p-4 border-l border-stone">
-                <Button href="/auth/register?role=kaeufer&plan=max" size="sm" className="w-full justify-center">Käufer+ buchen</Button>
+                <Button href="/auth/register?role=kaeufer&plan=plus" size="sm" className="w-full justify-center">Käufer+ buchen</Button>
               </div>
             </div>
           </div>
@@ -464,7 +463,7 @@ function CTA() {
           </Reveal>
           <Reveal delay={0.2}>
             <div className="flex flex-col sm:flex-row gap-4 items-start">
-              <Button href="/auth/register?role=kaeufer&plan=max" variant="bronze" size="lg">
+              <Button href="/auth/register?role=kaeufer&plan=plus" variant="bronze" size="lg">
                 Käufer+ buchen <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
               </Button>
               <Button href="/" variant="secondary" size="lg" className="!text-cream !border-cream/30 hover:!border-cream">

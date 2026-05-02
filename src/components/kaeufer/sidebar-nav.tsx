@@ -28,7 +28,7 @@ const HAUPTMENU: NavItem[] = [
   { label: 'Nachrichten',       href: '/dashboard/kaeufer/anfragen',     icon: MessageSquare, badgeKey: 'anfragen' },
   { label: 'Favoriten',         href: '/dashboard/kaeufer/favoriten',    icon: Heart, badgeKey: 'favoriten' },
   // «NDAs & Datenraum» entfernt — Cyrill: «NDA werden wir dann und dann nicht abbilden».
-  { label: 'Suchprofile',       href: '/dashboard/kaeufer/suchprofile',  icon: Bell, badgeKey: 'suchprofile', badgeMax: 3 },
+  { label: 'Suchprofile',       href: '/dashboard/kaeufer/suchprofile',  icon: Bell, badgeKey: 'suchprofile' },
 ];
 
 const ACCOUNT: NavItem[] = [

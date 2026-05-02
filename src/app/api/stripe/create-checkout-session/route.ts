@@ -15,26 +15,26 @@ export async function POST(req: NextRequest) {
   }
 
   // Form-Daten lesen (kann FormData oder JSON sein)
-  let tier = 'max';
+  let tier = 'plus';
   let interval: 'monthly' | 'yearly' = 'monthly';
   const ct = req.headers.get('content-type') ?? '';
   if (ct.includes('application/json')) {
     const body = await req.json().catch(() => ({}));
-    tier = body.tier ?? 'max';
+    tier = body.tier ?? 'plus';
     interval = body.interval === 'yearly' ? 'yearly' : 'monthly';
   } else {
     const fd = await req.formData();
-    tier = String(fd.get('tier') ?? 'max');
+    tier = String(fd.get('tier') ?? 'plus');
     interval = fd.get('interval') === 'yearly' ? 'yearly' : 'monthly';
   }
 
-  if (tier !== 'max') {
+  if (tier !== 'plus' && tier !== 'max') {
     return NextResponse.json({ error: 'Ungültiger Tier' }, { status: 400 });
   }
 
   const priceId = interval === 'yearly'
-    ? process.env.STRIPE_PRICE_MAX_YEARLY
-    : process.env.STRIPE_PRICE_MAX_MONTHLY;
+    ? (process.env.STRIPE_PRICE_PLUS_YEARLY ?? process.env.STRIPE_PRICE_MAX_YEARLY)
+    : (process.env.STRIPE_PRICE_PLUS_MONTHLY ?? process.env.STRIPE_PRICE_MAX_MONTHLY);
 
   if (!priceId) {
     return NextResponse.json(
@@ -76,13 +76,13 @@ export async function POST(req: NextRequest) {
     mode: 'subscription',
     customer: customerId,
     line_items: [{ price: priceId, quantity: 1 }],
-    success_url: `${origin}/dashboard/kaeufer?welcome=max`,
+    success_url: `${origin}/dashboard/kaeufer?welcome=plus`,
     cancel_url: `${origin}/onboarding/kaeufer/paket?canceled=1&interval=${interval}`,
     allow_promotion_codes: true,
     automatic_tax: { enabled: true },
-    metadata: { user_id: u.user.id, tier: 'max', interval },
+    metadata: { user_id: u.user.id, tier: 'plus', interval },
     subscription_data: {
-      metadata: { user_id: u.user.id, tier: 'max', interval },
+      metadata: { user_id: u.user.id, tier: 'plus', interval },
     },
   });
 

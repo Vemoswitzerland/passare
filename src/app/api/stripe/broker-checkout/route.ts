@@ -5,29 +5,29 @@ import { createClient, createAdminClient } from '@/lib/supabase/server';
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
-  const secretKey = process.env.STRIPE_SECRET_KEY;
-  if (!secretKey) {
-    return NextResponse.json(
-      { error: 'Stripe ist noch nicht konfiguriert.' },
-      { status: 503 },
-    );
-  }
-
   const { searchParams } = req.nextUrl;
   const tier = searchParams.get('tier') ?? 'starter';
   const interval = searchParams.get('interval') === 'yearly' ? 'yearly' : 'monthly';
 
   if (!['starter', 'pro'].includes(tier)) {
-    return NextResponse.json({ error: 'Ungültiger Tier' }, { status: 400 });
+    return NextResponse.redirect(new URL('/dashboard/broker/paket?error=invalid_tier', req.url));
+  }
+
+  const secretKey = process.env.STRIPE_SECRET_KEY;
+  if (!secretKey) {
+    // Statt JSON-503 lieber freundlich auf die Paket-Seite leiten —
+    // dort sieht der User einen sauberen Hinweis statt rohe API-Fehler.
+    return NextResponse.redirect(
+      new URL('/dashboard/broker/paket?error=stripe_not_configured', req.url),
+    );
   }
 
   const priceEnvKey = `STRIPE_PRICE_BROKER_${tier.toUpperCase()}_${interval.toUpperCase()}`;
   const priceId = process.env[priceEnvKey];
 
   if (!priceId) {
-    return NextResponse.json(
-      { error: `Stripe-Preis-ID fehlt (${priceEnvKey}).` },
-      { status: 503 },
+    return NextResponse.redirect(
+      new URL(`/dashboard/broker/paket?error=stripe_price_missing&tier=${tier}&interval=${interval}`, req.url),
     );
   }
 

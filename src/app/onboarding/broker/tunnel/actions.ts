@@ -11,6 +11,8 @@ export async function completeBrokerOnboarding(data: {
   website: string;
   telefon: string;
   kanton: string;
+  paket: 'starter' | 'pro';
+  interval: 'monthly' | 'yearly';
 }): Promise<{ error?: string; success?: boolean }> {
   const supabase = await createClient();
   const { data: userData } = await supabase.auth.getUser();
@@ -20,7 +22,23 @@ export async function completeBrokerOnboarding(data: {
   const ip = (h.get('x-forwarded-for') ?? '').split(',')[0]?.trim() || null;
   const ua = h.get('user-agent') ?? null;
 
-  // 1. Complete onboarding (sets rolle = 'broker')
+  // Slug-Validierung früh (vor jedem DB-Write)
+  if (!data.slug || data.slug.length < 3) {
+    return { error: 'Bitte wähle eine gültige Profil-URL (mind. 3 Zeichen).' };
+  }
+
+  // 1. Slug-Konflikt zuerst checken — verhindert das halb-fertige Profil-Problem
+  const { data: existingSlug } = await supabase
+    .from('broker_profiles')
+    .select('id')
+    .eq('slug', data.slug)
+    .neq('id', userData.user.id)
+    .maybeSingle();
+  if (existingSlug) {
+    return { error: 'Diese Profil-URL ist bereits vergeben. Bitte wähle eine andere.' };
+  }
+
+  // 2. Complete onboarding (sets rolle = 'broker')
   const { error: onboardingErr } = await supabase.rpc('complete_onboarding', {
     p_rolle: 'broker',
     p_full_name: data.full_name,
@@ -36,7 +54,7 @@ export async function completeBrokerOnboarding(data: {
     return { error: `Onboarding fehlgeschlagen: ${onboardingErr.message}` };
   }
 
-  // 2. Create broker profile
+  // 3. Create broker profile
   const { error: profileErr } = await supabase.rpc('create_broker_profile', {
     p_agentur_name: data.agentur_name,
     p_slug: data.slug,
@@ -53,6 +71,18 @@ export async function completeBrokerOnboarding(data: {
     }
     return { error: `Broker-Profil konnte nicht erstellt werden: ${profileErr.message}` };
   }
+
+  // 4. Pre-set tier so the dashboard already shows the right limits
+  // before the Stripe webhook arrives (cosmetic — webhook is authoritative).
+  await supabase
+    .from('broker_profiles')
+    .update({
+      tier: data.paket,
+      mandate_limit: data.paket === 'pro' ? 25 : 5,
+      team_seats_limit: data.paket === 'pro' ? 5 : 0,
+      subscription_interval: data.interval,
+    })
+    .eq('id', userData.user.id);
 
   return { success: true };
 }

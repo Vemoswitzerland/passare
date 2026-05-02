@@ -12,13 +12,23 @@ export default async function BrokerTunnelPage() {
   const { data: u } = await supabase.auth.getUser();
   if (!u.user) redirect('/auth/login');
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('rolle, onboarding_completed_at, full_name')
-    .eq('id', u.user.id)
-    .maybeSingle();
+  const [{ data: profile }, { data: brokerProfile }] = await Promise.all([
+    supabase
+      .from('profiles')
+      .select('rolle, onboarding_completed_at, full_name')
+      .eq('id', u.user.id)
+      .maybeSingle(),
+    supabase
+      .from('broker_profiles')
+      .select('id')
+      .eq('id', u.user.id)
+      .maybeSingle(),
+  ]);
 
-  if (profile?.rolle === 'broker' && profile.onboarding_completed_at) {
+  // Recovery-Pfad: Wenn rolle=broker, onboarding fertig und Broker-Profil existiert
+  // → ab ins Dashboard. Falls Broker-Profil FEHLT (halbfertiges Onboarding),
+  // erlauben wir Re-Entry zum Tunnel statt User stranden zu lassen.
+  if (profile?.rolle === 'broker' && profile.onboarding_completed_at && brokerProfile) {
     redirect('/dashboard/broker');
   }
 
