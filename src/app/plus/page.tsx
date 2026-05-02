@@ -217,13 +217,17 @@ function Vorteile() {
 /* ─────────────────────────────────────────────── */
 function Vergleich() {
   const rows = [
+    // Was beide haben — oben
     { feature: 'Öffentliche Inserate sehen',                 basic: '✓',           plus: '✓' },
-    { feature: 'Geschlossene Inserate sehen',                basic: '—',           plus: '✓' },
-    { feature: 'Frühzugang neue Inserate',                   basic: '—',           plus: '7 Tage vor allen' },
     { feature: 'Alle 18 Filter',                             basic: '✓',           plus: '✓' },
     { feature: 'Gespeicherte Suchen',                        basic: '✓',           plus: '✓' },
+    // Sektion-Trenner: Käufer+ exklusive Vorteile
+    { feature: '__SECTION__', basic: 'Vorteile mit Käufer+', plus: '' },
+    // Käufer+ Vorteile — unten
+    { feature: 'Geschlossene Inserate sehen',                basic: '—',           plus: '✓' },
+    { feature: 'Frühzugang neue Inserate',                   basic: '—',           plus: '7 Tage vor allen' },
     { feature: 'E-Mail-Alerts',                              basic: 'Wöchentlich', plus: 'Echtzeit' },
-    { feature: 'Eigenes Logo im Käuferprofil (Trust-Boost)', basic: '—',           plus: '✓' },
+    { feature: 'Eigenes Logo im Käuferprofil',               basic: '—',           plus: '✓' },
   ];
 
   return (
@@ -249,18 +253,32 @@ function Vergleich() {
               <PlanHeader name="Basic" price="CHF 0" note="Unbefristet" />
               <PlanHeader name="Käufer+" price="CHF 199" note="/ Monat · CHF 1'990 / Jahr" highlight />
             </div>
-            {rows.map((r, i) => (
-              <div
-                key={i}
-                className={`grid grid-cols-[1.5fr_1fr_1fr] ${
-                  i !== rows.length - 1 ? 'border-b border-stone' : ''
-                } ${i % 2 === 1 ? 'bg-cream/30' : ''}`}
-              >
-                <div className="p-4 text-body-sm text-ink">{r.feature}</div>
-                <Cell>{r.basic}</Cell>
-                <Cell highlight>{r.plus}</Cell>
-              </div>
-            ))}
+            {rows.map((r, i) => {
+              if (r.feature === '__SECTION__') {
+                return (
+                  <div
+                    key={i}
+                    className="grid grid-cols-[1.5fr_1fr_1fr] border-b border-stone bg-cream/60"
+                  >
+                    <div className="p-3 col-span-3">
+                      <p className="overline text-bronze-ink text-center">{r.basic}</p>
+                    </div>
+                  </div>
+                );
+              }
+              return (
+                <div
+                  key={i}
+                  className={`grid grid-cols-[1.5fr_1fr_1fr] ${
+                    i !== rows.length - 1 ? 'border-b border-stone' : ''
+                  } ${i % 2 === 1 ? 'bg-cream/30' : ''}`}
+                >
+                  <div className="p-4 text-body-sm text-ink">{r.feature}</div>
+                  <Cell>{r.basic}</Cell>
+                  <Cell highlight>{r.plus}</Cell>
+                </div>
+              );
+            })}
             <div className="grid grid-cols-[1.5fr_1fr_1fr] border-t border-stone bg-cream/50">
               <div className="p-4"></div>
               <div className="p-4 border-l border-stone">
