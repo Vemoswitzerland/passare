@@ -180,15 +180,21 @@ export function FavoritenView({ favoriten, suchprofil }: Props) {
   );
 }
 
+function shortId(id: string): string {
+  // UUIDs auf 8 Zeichen kürzen, slugs unverändert lassen.
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(id) ? id.slice(0, 8) : id;
+}
+
 function KanbanCard({ entry }: { entry: FavoritEntry }) {
   const l = entry.listing;
+  const slugOrId = l.slug ?? l.id;
   return (
     <Link
-      href={`/kaufen/${l.slug ?? l.id}`}
+      href={`/inserat/${slugOrId}`}
       className="block bg-cream border border-stone rounded-soft p-3 hover:border-bronze transition-colors"
     >
       <p className="font-mono text-[10px] uppercase tracking-widest text-quiet mb-1">
-        {l.id}
+        {shortId(slugOrId)}
       </p>
       <p className="text-caption text-navy font-medium leading-snug mb-2 line-clamp-2">
         {l.titel}
@@ -208,10 +214,11 @@ function KanbanCard({ entry }: { entry: FavoritEntry }) {
 
 function CompareCard({ entry }: { entry: FavoritEntry }) {
   const l = entry.listing;
+  const slugOrId = l.slug ?? l.id;
   return (
     <div className="bg-paper border border-stone rounded-card overflow-hidden">
       <div className="bg-navy text-cream p-4">
-        <p className="font-mono text-caption text-bronze">{l.id} · {l.kanton ?? '—'}</p>
+        <p className="font-mono text-caption text-bronze">{shortId(slugOrId)} · {l.kanton ?? '—'}</p>
         <p className="font-serif text-body-sm text-cream mt-1 leading-tight">{l.titel}</p>
       </div>
       <dl className="divide-y divide-stone text-body-sm">

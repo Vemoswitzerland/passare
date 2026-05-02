@@ -11,6 +11,7 @@ import type { InseratPublic } from '@/lib/listings';
 import { uebergabeGrundLabel } from '@/lib/constants';
 import { matchScore, matchLabel, type Suchprofil, type Inserat } from '@/lib/match-score';
 import { cn } from '@/lib/utils';
+import { CardLikeButton } from './card-like-button';
 
 type Props = {
   listing: InseratPublic;
@@ -74,7 +75,11 @@ export function ListingCardMini({
   selected,
   onSelect,
 }: Props) {
-  const idForUI = String(listing.slug ?? listing.id);
+  // Public-ID/slug bevorzugt; UUID nur als Fallback und gekürzt fürs Badge.
+  const slugOrId = listing.slug ?? listing.id;
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(slugOrId);
+  const idForUI = String(slugOrId);
+  const idBadge = isUuid ? slugOrId.slice(0, 8) : slugOrId;
   const brancheDisplay = branche_label ?? listing.branche_id ?? '—';
   const kantonDisplay = listing.kanton ?? '—';
 
@@ -136,7 +141,7 @@ export function ListingCardMini({
         <div className="absolute inset-0 bg-gradient-to-t from-navy/70 via-navy/20 to-transparent" />
 
         <span className="absolute top-3 left-3 font-mono text-[10px] uppercase tracking-widest text-cream/85 backdrop-blur-sm bg-navy/40 px-2 py-1 rounded-full">
-          {idForUI}
+          {idBadge}
         </span>
         {score !== null && matchInfo && (
           <span
@@ -215,19 +220,13 @@ export function ListingCardMini({
 
         <div className="mt-auto flex items-center gap-2">
           <Link
-            href={detailHref ?? `/kaufen/${idForUI}`}
+            href={detailHref ?? `/inserat/${idForUI}`}
             className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-navy text-cream rounded-soft text-caption font-medium hover:bg-ink transition-colors"
           >
             <FileLock2 className="w-3.5 h-3.5" strokeWidth={1.5} />
             Detail ansehen
           </Link>
-          <button
-            type="button"
-            className="px-2.5 py-2 border border-stone rounded-soft text-bronze hover:bg-bronze/5 transition-colors"
-            aria-label="Aus Favoriten entfernen"
-          >
-            <Heart className="w-3.5 h-3.5 fill-bronze" strokeWidth={1.5} />
-          </button>
+          <CardLikeButton listingId={listing.id} />
         </div>
       </div>
     </article>

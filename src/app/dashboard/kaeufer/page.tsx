@@ -189,7 +189,7 @@ export default async function KaeuferDashboardPage({ searchParams }: Props) {
                 key={listing.id}
                 listing={listing}
                 suchprofil={suchprofil ?? undefined}
-                detailHref={`/kaufen/${listing.slug ?? listing.id}`}
+                detailHref={`/inserat/${listing.slug ?? listing.id}`}
               />
             ))}
           </div>
@@ -241,7 +241,7 @@ export default async function KaeuferDashboardPage({ searchParams }: Props) {
                 key={l.id}
                 listing={l}
                 suchprofil={suchprofil ?? undefined}
-                detailHref={`/kaufen/${l.slug ?? l.id}`}
+                detailHref={`/inserat/${l.slug ?? l.id}`}
               />
             ))}
           </div>

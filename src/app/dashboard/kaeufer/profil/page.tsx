@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import {
-  Phone, IdCard, FileLock2, Linkedin, Crown, Check, Lock, Settings, ShieldCheck,
+  Phone, IdCard, FileLock2, Linkedin, Crown, Check, Lock, ShieldCheck,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { hasTable } from '@/lib/db/has-table';
@@ -133,16 +133,7 @@ export default async function ProfilPage() {
             Verkäufer sehen dein Profil bei jeder Anfrage. Je vollständiger und je mehr Verifizierungen, desto schneller und positiver die Antwort.
           </p>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <ProfilVorschauButton>{previewElement}</ProfilVorschauButton>
-          <Link
-            href="/dashboard/kaeufer/einstellungen"
-            className="inline-flex items-center gap-2 px-3 py-2 rounded-soft text-caption font-mono uppercase tracking-widest text-quiet hover:text-navy hover:bg-stone/40 transition-colors"
-          >
-            <Settings className="w-3.5 h-3.5" strokeWidth={1.5} />
-            Einstellungen
-          </Link>
-        </div>
+        <ProfilVorschauButton>{previewElement}</ProfilVorschauButton>
       </div>
 
       {/* ─── Profilbild (für ALLE Käufer) ─── */}
@@ -189,17 +180,6 @@ export default async function ProfilPage() {
       <section>
         <h2 className="font-serif text-head-sm text-navy font-normal mb-3">Profil bearbeiten</h2>
         <ProfilForm initial={kaeuferProfil} branchen={branchen} />
-      </section>
-
-      {/* ─── Inline-Live-Preview als Kontroll-Anker ─── */}
-      <section>
-        <h2 className="font-serif text-head-sm text-navy font-normal mb-1">
-          Live-Vorschau
-        </h2>
-        <p className="text-caption text-quiet mb-3">
-          So sehen Verkäufer dein Profil aktuell
-        </p>
-        {previewElement}
       </section>
     </div>
   );
