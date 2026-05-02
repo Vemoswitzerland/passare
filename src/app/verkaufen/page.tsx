@@ -18,6 +18,7 @@ export default function VerkaufenPage() {
     <main className="min-h-screen flex flex-col bg-cream">
       <TopBar />
       <Hero />
+      <BrokerBanner />
       <Benefits />
       <Packages />
       <Process />
@@ -99,6 +100,36 @@ function SignalDot({ children }: { children: React.ReactNode }) {
       <span className="w-1 h-1 rounded-full bg-bronze" />
       {children}
     </span>
+  );
+}
+
+/* ─── Broker-Banner ─── verlinkt zur dedizierten Broker-Landingpage ── */
+function BrokerBanner() {
+  return (
+    <section className="border-y border-stone bg-paper">
+      <Container>
+        <div className="py-6 md:py-7 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-start md:items-center gap-4">
+            <div className="w-10 h-10 rounded-card bg-navy/10 flex items-center justify-center flex-shrink-0">
+              <Handshake className="w-5 h-5 text-navy" strokeWidth={1.75} />
+            </div>
+            <div>
+              <p className="overline text-navy mb-1">Bist du Broker oder M&amp;A-Berater?</p>
+              <p className="text-body-sm text-muted leading-snug">
+                Mehrere Mandate gleichzeitig führen + aktiv für Käufer-Mandate suchen — beides in einem Abo.
+                Käufer-Professional komplett inklusive.
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/broker"
+            className="inline-flex items-center gap-2 text-body-sm text-navy hover:text-bronze-ink font-medium whitespace-nowrap transition-colors"
+          >
+            Broker-Pakete ansehen <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
+          </Link>
+        </div>
+      </Container>
+    </section>
   );
 }
 

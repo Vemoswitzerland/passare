@@ -66,6 +66,13 @@ export const CURRENT_STEP = {
  */
 export const UPDATES: Update[] = [
   {
+    date: '2026-05-02',
+    type: 'feature',
+    titel: 'Broker-Landingpage live: «Beide Seiten. Ein Abo.»',
+    beschreibung:
+      'Eigene Landingpage /broker für Broker und M&A-Berater. Headline: «Beide Seiten. Ein Abo.» — der Pitch ist sofort sichtbar, dass ein Broker Mandate inserieren UND gleichzeitig für Käufer-Mandate aktiv im Marktplatz suchen kann (Käufer-Professional komplett inklusive, Wert CHF 490/Jahr gratis dazu). Zwei Pakete: Starter CHF 290/Monat oder 2\'900/Jahr (bis 5 Mandate, Hervorhebung 4× pro Jahr) und Pro CHF 890/Monat oder 8\'900/Jahr (bis 25 Mandate, Hervorhebung 12× pro Jahr, Newsletter-Slot 2× pro Jahr, bis 5 Team-Mitglieder). Auf der Verkaufen-Seite kommt jetzt unter dem Hero ein dezenter Banner «Bist du Broker?» mit Link zur neuen Page. 0 % Erfolgsprovision, monatlich kündbar.',
+  },
+  {
     date: '2026-05-01',
     type: 'design',
     titel: 'Header schlanker, Broker als eigener Menüpunkt, Käufer+ statt Käufer MAX',
