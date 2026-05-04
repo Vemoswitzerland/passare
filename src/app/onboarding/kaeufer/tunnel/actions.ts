@@ -6,7 +6,7 @@ import { headers } from 'next/headers';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { AGB_VERSION, DATENSCHUTZ_VERSION, type ActionResult } from '@/app/auth/constants';
-import { sendEmail } from '@/lib/email';
+import { sendWelcomeOnce } from '@/lib/email';
 
 const investorTypEnum = z.enum([
   'privatperson', 'family_office', 'holding_strategisch',
@@ -189,54 +189,4 @@ export async function skipKaeuferTunnelAction() {
 
   revalidatePath('/', 'layout');
   redirect('/onboarding/kaeufer/paket?from=skip');
-}
-
-/**
- * Sendet die Welcome-Mail an den Käufer GENAU EINMAL.
- * Trick: vorher `profiles.welcome_email_sent_at` checken; wenn schon
- * gesetzt → skip. Sonst senden + Spalte schreiben.
- *
- * Wenn die Migration noch nicht applied ist (Spalte fehlt), liefern
- * wir defensiv `false` zurück und senden trotzdem (best-effort) damit
- * Bestandsuser nicht ohne Mail bleiben.
- */
-async function sendWelcomeOnce(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  userId: string,
-  email: string,
-  vars: Record<string, unknown>,
-): Promise<void> {
-  let alreadySent = false;
-  try {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('welcome_email_sent_at')
-      .eq('id', userId)
-      .maybeSingle();
-    if (error && !/column.*welcome_email_sent_at|42703/i.test(error.message)) {
-      console.warn('[welcome-once] check failed:', error.message);
-    }
-    alreadySent = !!(data && (data as { welcome_email_sent_at?: string | null }).welcome_email_sent_at);
-  } catch (err) {
-    console.warn('[welcome-once] exception:', err);
-  }
-  if (alreadySent) return;
-
-  await sendEmail({
-    template: 'welcome',
-    to: email,
-    vars,
-    user_id: userId,
-  });
-
-  // Markieren — best-effort. Wenn die Migration noch nicht applied ist,
-  // schreibt das fehl, aber wir wollen den Action-Flow nicht blockieren.
-  try {
-    await supabase
-      .from('profiles')
-      .update({ welcome_email_sent_at: new Date().toISOString() })
-      .eq('id', userId);
-  } catch (err) {
-    console.warn('[welcome-once] update failed:', err);
-  }
 }

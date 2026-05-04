@@ -144,6 +144,24 @@ Deno.serve(async (req: Request) => {
       return json(500, { error: 'email_log-Insert fehlgeschlagen', detail: error.message }, corsHeaders);
     }
     logId = data.id;
+  } else {
+    // Idempotenz: wenn die Mail mit dieser log_id schon erfolgreich
+    // gesendet wurde, nicht ein zweites Mal an Resend schicken. Schützt
+    // gegen Doppel-Versand wenn der email-handler-Drain eine bereits
+    // versandte Queue-Zeile nochmal verarbeitet.
+    const { data: existing } = await supabase
+      .from('email_log')
+      .select('status, resend_id')
+      .eq('id', logId)
+      .maybeSingle();
+    if (existing?.status === 'sent') {
+      return json(200, {
+        ok: true,
+        log_id: logId,
+        resend_id: existing.resend_id,
+        idempotent: true,
+      }, corsHeaders);
+    }
   }
 
   // ─── Resend-Call ──

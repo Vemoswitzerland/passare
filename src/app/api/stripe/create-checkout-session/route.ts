@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
-import { sendEmail } from '@/lib/email';
+import { sendWelcomeOnce } from '@/lib/email';
 
 export const dynamic = 'force-dynamic';
 
@@ -51,11 +51,10 @@ export async function POST(req: NextRequest) {
     .eq('id', u.user.id);
 
   if (u.user.email) {
-    void sendEmail({
-      template: 'welcome',
-      to: u.user.email,
-      vars: { rolle: 'kaeufer', tier: 'plus', mock: true, interval },
-      user_id: u.user.id,
+    // Atomic-idempotent — kommt nur eine Mail, auch wenn der User
+    // schon eine bekommen hat (Tunnel, Anfrage-Aktivierung, etc.)
+    void sendWelcomeOnce(admin, u.user.id, u.user.email, {
+      rolle: 'kaeufer', tier: 'plus', mock: true, interval,
     });
   }
 

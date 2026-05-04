@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
-import { sendEmail } from '@/lib/email';
+import { sendWelcomeOnce } from '@/lib/email';
 
 export const dynamic = 'force-dynamic';
 
@@ -92,11 +92,8 @@ export async function POST(req: NextRequest) {
   revalidatePath('/dashboard/broker', 'layout');
 
   if (isFirstActivation && u.user.email) {
-    void sendEmail({
-      template: 'welcome',
-      to: u.user.email,
-      vars: { rolle: 'broker', tier: `broker_${tier}`, mock: true, interval },
-      user_id: u.user.id,
+    void sendWelcomeOnce(admin, u.user.id, u.user.email, {
+      rolle: 'broker', tier: `broker_${tier}`, mock: true, interval,
     });
   }
 

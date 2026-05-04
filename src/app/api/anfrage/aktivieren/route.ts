@@ -16,7 +16,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { anfrageTokenHash, verifyAnfrageToken } from '@/lib/anfrage-token';
-import { sendEmail } from '@/lib/email';
+import { sendEmail, sendWelcomeOnce } from '@/lib/email';
 import { createAdminClient, createClient } from '@/lib/supabase/server';
 
 export const runtime = 'nodejs';
@@ -288,15 +288,13 @@ export async function POST(req: NextRequest) {
     subject_override: `Neue Anfrage: ${listing?.titel ?? payload.l}`,
   });
 
-  // Welcome-Mail an Käufer (Konto-Bestätigung)
-  if (createdUser) {
-    await sendEmail({
-      template: 'welcome',
-      to: payload.e,
-      vars: {
-        name: payload.n,
-        loginUrl: `${appUrl}/auth/login`,
-      },
+  // Welcome-Mail an Käufer (Konto-Bestätigung) — atomic-idempotent.
+  // Falls der Käufer später noch durch den Tunnel geht oder ein Paket
+  // kauft, wird trotzdem nur EINE Welcome-Mail versendet.
+  if (createdUser && kaeuferId) {
+    await sendWelcomeOnce(adminClient, kaeuferId, payload.e, {
+      name: payload.n,
+      loginUrl: `${appUrl}/auth/login`,
     });
   }
 

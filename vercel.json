@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/inserate-expiring",
+      "schedule": "0 6 * * *"
+    }
+  ]
+}

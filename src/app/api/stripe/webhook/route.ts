@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createAdminClient } from '@/lib/supabase/server';
-import { sendEmail } from '@/lib/email';
+import { sendEmail, sendWelcomeOnce } from '@/lib/email';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -123,11 +123,12 @@ export async function POST(req: NextRequest) {
         if (event.type === 'customer.subscription.created' && isActive) {
           const { data: authUser } = await admin.auth.admin.getUserById(userId);
           if (authUser?.user?.email) {
-            void sendEmail({
-              template: 'welcome',
-              to: authUser.user.email,
-              vars: { rolle: isBrokerTier ? 'broker' : 'kaeufer', tier: tier ?? 'plus' },
-              user_id: userId,
+            // sendWelcomeOnce ist atomic-idempotent: kommt der User bereits
+            // vom Onboarding-Tunnel oder Anfrage-Aktivierung mit Welcome,
+            // wird hier KEINE zweite Mail versendet.
+            void sendWelcomeOnce(admin, userId, authUser.user.email, {
+              rolle: isBrokerTier ? 'broker' : 'kaeufer',
+              tier: tier ?? 'plus',
             });
           }
         }

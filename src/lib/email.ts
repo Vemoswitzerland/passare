@@ -9,6 +9,8 @@
  * eigentliche User-Action NICHT.
  */
 
+import type { SupabaseClient } from '@supabase/supabase-js';
+
 // Template-Namen wie in supabase/functions/_shared/render.ts (snake_case).
 export type EmailTemplate =
   | 'welcome'
@@ -60,4 +62,58 @@ export async function sendEmail(params: SendEmailParams): Promise<void> {
   } catch (err) {
     console.warn('[email] Versand-Exception:', err);
   }
+}
+
+/**
+ * Sendet die Welcome-Mail an einen User GENAU EINMAL.
+ *
+ * Mechanik (atomic, race-safe):
+ *   - RPC `claim_welcome_send(user_id)` macht ein atomic UPDATE
+ *     auf profiles.welcome_email_sent_at. Wenn die Spalte noch null
+ *     war, gibt's true zurück → wir senden. Wenn schon gesetzt:
+ *     false → skip.
+ *   - Damit ist es egal ob 5 parallele Requests reinkommen — nur
+ *     EINER bekommt das Claim, die anderen 4 skippen.
+ *
+ * Fallback: wenn die RPC fehlt (Migration nicht applied) ODER der
+ * RPC-Call sonst fehlschlägt, senden wir trotzdem (best-effort) damit
+ * Bestandsuser nicht ohne Mail bleiben.
+ */
+export async function sendWelcomeOnce(
+  supabase: SupabaseClient,
+  userId: string,
+  email: string,
+  vars: Record<string, unknown> = {},
+): Promise<void> {
+  if (!email) return;
+
+  let maySend = true;
+  try {
+    const { data, error } = await supabase.rpc('claim_welcome_send', {
+      p_user_id: userId,
+    });
+    if (error) {
+      const msg = error.message ?? '';
+      const fnMissing = /function.*does not exist|42883|claim_welcome_send/i.test(msg);
+      if (!fnMissing) {
+        console.warn('[welcome-once] RPC-Fehler:', msg);
+      }
+      // Bei Fehler: trotzdem senden (defensive)
+      maySend = true;
+    } else {
+      maySend = data === true;
+    }
+  } catch (err) {
+    console.warn('[welcome-once] RPC-Exception:', err);
+    maySend = true;
+  }
+
+  if (!maySend) return;
+
+  await sendEmail({
+    template: 'welcome',
+    to: email,
+    vars,
+    user_id: userId,
+  });
 }
