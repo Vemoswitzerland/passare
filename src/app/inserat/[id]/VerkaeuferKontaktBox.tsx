@@ -44,15 +44,17 @@ export function VerkaeuferKontaktBox({ listing, isAuthenticated }: Props) {
   const level = listing.anonymitaet_level;
   if (!level || level === 'voll_anonym') return null;
 
-  // PII-Schutz: Anonyme Besucher sehen NUR den Hinweis-Text, KEINE
-  // Telefonnummer / Email / WhatsApp / LinkedIn — auch nicht im
-  // halb-öffentlichen `vorname_funktion`-Modus. Cyrill 2026-05-04.
-  if (!isAuthenticated) {
+  // PII-Schutz: NUR bei `vorname_funktion` (halb-anonym) Kontaktdaten
+  // hinter Login verstecken. `voll_offen` ist die explizite Wahl des
+  // Verkäufers — er WILL sichtbar sein, also auch für anonyme Besucher
+  // zeigen. Cyrill 2026-05-04: «Wenn Verkäufer Profil-an gewählt hat,
+  // muss es ihm angezeigt werden.»
+  if (!isAuthenticated && level === 'vorname_funktion') {
     return (
       <div className="bg-bronze/5 border border-bronze/20 rounded-card p-4 flex items-start gap-3">
         <Lock className="w-4 h-4 text-bronze flex-shrink-0 mt-0.5" strokeWidth={1.5} />
         <p className="text-caption text-muted leading-relaxed">
-          Kontaktdaten werden nach Anmeldung &amp; NDA-Freigabe sichtbar. Stelle
+          Kontaktdaten werden nach Anmeldung sichtbar. Stelle
           unten eine Anfrage — der Verkäufer entscheidet über die Freigabe.
         </p>
       </div>
