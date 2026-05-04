@@ -73,5 +73,9 @@ export async function GET(req: NextRequest) {
     });
   }
 
-  return NextResponse.redirect(new URL('/dashboard/broker?welcome=1', req.url), { status: 303 });
+  // Welcome-Animation zeigen, danach automatisch zum Dashboard
+  return NextResponse.redirect(
+    new URL('/dashboard/broker/welcome?paid=1&next=/dashboard/broker', req.url),
+    { status: 303 },
+  );
 }

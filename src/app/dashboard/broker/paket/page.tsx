@@ -5,6 +5,7 @@ import { hasTable } from '@/lib/db/has-table';
 import { BERATER_TIERS } from '@/data/pakete';
 
 export const metadata = { title: 'Paket — passare Broker' };
+export const dynamic = 'force-dynamic';
 
 type Props = { searchParams: Promise<{ error?: string; canceled?: string; tier?: string; interval?: string }> };
 

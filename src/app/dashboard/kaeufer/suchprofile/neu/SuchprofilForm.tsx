@@ -10,9 +10,21 @@ import { KANTON_CODES } from '@/lib/constants';
 import type { Branche } from '@/lib/branchen';
 import { cn } from '@/lib/utils';
 
-type Props = { isMax: boolean; branchen: Branche[]; successUrl?: string };
+type Props = {
+  isMax: boolean;
+  branchen: Branche[];
+  successUrl?: string;
+  backUrl?: string; // wo "Abbrechen" hinführt (default: /dashboard/kaeufer/suchprofile)
+  upsellUrl?: string; // wo der Käufer+-Upsell hinführt (default: /dashboard/kaeufer/abo)
+};
 
-export function SuchprofilForm({ isMax, branchen, successUrl }: Props) {
+export function SuchprofilForm({
+  isMax,
+  branchen,
+  successUrl,
+  backUrl = '/dashboard/kaeufer/suchprofile',
+  upsellUrl = '/dashboard/kaeufer/abo',
+}: Props) {
   const [branchenSelected, setBranchenSelected] = useState<string[]>([]);
   const [kantone, setKantone] = useState<string[]>([]);
   const [name, setName] = useState('Mein Suchprofil');
@@ -140,7 +152,7 @@ export function SuchprofilForm({ isMax, branchen, successUrl }: Props) {
         </div>
         {!isMax && (
           <Link
-            href="/dashboard/kaeufer/abo"
+            href={upsellUrl}
             className="mt-3 inline-flex items-center gap-1.5 text-caption text-bronze-ink hover:text-bronze underline decoration-dotted underline-offset-2"
           >
             <Crown className="w-3.5 h-3.5" strokeWidth={1.5} />
@@ -157,7 +169,7 @@ export function SuchprofilForm({ isMax, branchen, successUrl }: Props) {
 
       <div className="flex items-center justify-between pt-4 border-t border-stone">
         <Link
-          href="/dashboard/kaeufer/suchprofile"
+          href={backUrl}
           className="font-mono text-caption uppercase tracking-widest text-quiet hover:text-navy"
         >
           Abbrechen

@@ -60,23 +60,15 @@ export default async function MandatePage() {
           )}
         </div>
 
-        {/* Mandate-Liste */}
+        {/* Mandate-Liste — Empty-State zeigt nur Hinweis,
+            den CTA gibt's nur einmal oben rechts. */}
         {mandate.length === 0 ? (
-          <div className="rounded-card bg-paper border border-stone p-10 text-center">
+          <div className="rounded-card bg-paper border border-dashed border-stone p-10 text-center">
             <FileText className="w-10 h-10 text-stone mx-auto mb-4" strokeWidth={1.5} />
             <h2 className="font-serif text-head-md text-navy mb-2">Noch keine Mandate</h2>
-            <p className="text-body-sm text-muted mb-6 max-w-sm mx-auto">
-              Erstelle dein erstes Mandat und nutze den bewährten Inserat-Wizard, um es zu veröffentlichen.
+            <p className="text-body-sm text-muted max-w-md mx-auto">
+              Lege oben rechts dein erstes Mandat an — Firma per Handelsregister-Suche übernehmen oder manuell starten.
             </p>
-            {canCreate && (
-              <Link
-                href="/dashboard/broker/mandate/new"
-                className="inline-flex items-center gap-2 px-5 py-2.5 bg-navy text-cream rounded-soft text-body-sm font-medium hover:bg-ink transition-colors"
-              >
-                <Plus className="w-4 h-4" strokeWidth={1.5} />
-                Mandat erstellen
-              </Link>
-            )}
           </div>
         ) : (
           <div className="space-y-3">

@@ -39,6 +39,8 @@ export default async function BrokerNewSuchprofilPage() {
           isMax={true}
           branchen={branchen}
           successUrl="/dashboard/broker/suchprofile"
+          backUrl="/dashboard/broker/suchprofile"
+          upsellUrl="/dashboard/broker/paket"
         />
       </div>
     </div>

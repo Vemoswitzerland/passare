@@ -55,10 +55,13 @@ export function BrokerTunnelForm({ userName }: Props) {
 
   function applyZefixHit(hit: FirmaHit) {
     if (!hit.name) return;
+    // Wenn der User aus dem Handelsregister einen Hit nimmt, soll der
+    // Slug AUS DEM HIT-NAMEN regeneriert werden — nicht der bisherige
+    // Tippfehler-Stub stehen bleiben.
     setForm((f) => ({
       ...f,
       agentur_name: hit.name ?? f.agentur_name,
-      slug: f.slug || generateSlug(hit.name ?? ''),
+      slug: generateSlug(hit.name ?? ''),
       kanton: hit.kanton ?? f.kanton,
       handelsregister_uid: hit.uid ?? f.handelsregister_uid,
     }));
@@ -74,17 +77,19 @@ export function BrokerTunnelForm({ userName }: Props) {
   }
 
   function next() {
-    if (step === 1 && !form.agentur_name.trim()) {
-      setError('Bitte gib einen Agentur-Namen ein.');
-      return;
-    }
-    if (step === 1 && !form.kanton.trim()) {
-      setError('Bitte wähle deinen Kanton.');
-      return;
-    }
-    if (step === 1 && !form.slug.trim()) {
-      setError('Bitte wähle eine Profil-URL.');
-      return;
+    if (step === 1) {
+      if (!form.agentur_name.trim()) {
+        setError('Bitte gib einen Agentur-Namen ein.');
+        return;
+      }
+      if (!form.kanton.trim()) {
+        setError('Bitte wähle deinen Kanton.');
+        return;
+      }
+      if (!form.slug.trim() || form.slug.trim().length < 3) {
+        setError('Bitte wähle eine gültige Profil-URL (mindestens 3 Zeichen).');
+        return;
+      }
     }
     setError('');
     setStep(step + 1);
@@ -330,18 +335,21 @@ export function BrokerTunnelForm({ userName }: Props) {
         </div>
       )}
 
-      {/* ─── Step 3: Paket-Pipeline ───────────────────────────────── */}
+      {/* ─── Step 3: Paket-Vergleich ──────────────────────────────── */}
       {step === 3 && (
         <div className="space-y-6">
-          <div className="text-center">
-            <h2 className="font-serif text-head-md text-navy mb-2">Wähle dein Paket</h2>
-            <p className="text-body-sm text-muted max-w-md mx-auto">
-              Beide Pakete enthalten alle Verkaufs- und Käufer+-Funktionen. Jederzeit kündbar.
+          <div>
+            <p className="overline text-bronze-ink mb-2">Pakete</p>
+            <h2 className="font-serif text-head-md text-navy font-light mb-2">
+              Starter oder Pro
+            </h2>
+            <p className="text-body-sm text-muted max-w-prose">
+              Beide Pakete enthalten alle Verkaufs- und Käufer+-Funktionen. Was die zwei Pakete unterscheidet:
             </p>
           </div>
 
           {/* Interval-Toggle */}
-          <div className="flex justify-center">
+          <div className="flex">
             <div className="inline-flex bg-paper border border-stone rounded-pill p-1">
               <button
                 type="button"
@@ -369,25 +377,79 @@ export function BrokerTunnelForm({ userName }: Props) {
             </div>
           </div>
 
-          {/* Tier-Cards */}
-          <div className="grid md:grid-cols-2 gap-4">
-            <TierCard
-              tier={tierStarter}
-              selected={form.paket === 'starter'}
-              interval={form.interval}
-              onSelect={() => setForm({ ...form, paket: 'starter' })}
-            />
-            <TierCard
-              tier={tierPro}
-              selected={form.paket === 'pro'}
-              interval={form.interval}
-              recommended
-              onSelect={() => setForm({ ...form, paket: 'pro' })}
-            />
+          {/* Vergleichs-Tabelle */}
+          <div className="rounded-card border border-stone bg-paper overflow-hidden">
+            {/* Header — Tier-Namen mit Preisen */}
+            <div className="grid grid-cols-[1.4fr_1fr_1fr] border-b border-stone">
+              <div className="p-5">
+                <p className="overline text-bronze-ink">Vergleich</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setForm({ ...form, paket: 'starter' })}
+                className={`p-5 text-center border-l border-stone transition-colors ${
+                  form.paket === 'starter' ? 'bg-bronze/10' : 'hover:bg-cream/40'
+                }`}
+              >
+                <p className="overline text-quiet mb-2">Starter</p>
+                <p className="font-serif text-[1.6rem] text-navy font-light font-tabular leading-none">
+                  CHF {form.interval === 'yearly' ? "2'900" : '290'}
+                </p>
+                <p className="text-caption text-quiet mt-1">
+                  / {form.interval === 'yearly' ? 'Jahr' : 'Monat'}
+                </p>
+                {form.paket === 'starter' && (
+                  <span className="inline-flex items-center gap-1 mt-2 px-2 py-0.5 rounded-pill bg-bronze text-cream text-[10px] font-medium uppercase">
+                    <Check className="w-3 h-3" strokeWidth={2.5} /> Gewählt
+                  </span>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => setForm({ ...form, paket: 'pro' })}
+                className={`p-5 text-center border-l border-stone transition-colors relative ${
+                  form.paket === 'pro' ? 'bg-bronze/10' : 'bg-bronze/5 hover:bg-bronze/10'
+                }`}
+              >
+                <p className="overline text-quiet mb-2">Pro</p>
+                <p className="font-serif text-[1.6rem] text-navy font-light font-tabular leading-none">
+                  CHF {form.interval === 'yearly' ? "8'900" : '890'}
+                </p>
+                <p className="text-caption text-quiet mt-1">
+                  / {form.interval === 'yearly' ? 'Jahr' : 'Monat'}
+                </p>
+                {form.paket === 'pro' && (
+                  <span className="inline-flex items-center gap-1 mt-2 px-2 py-0.5 rounded-pill bg-bronze text-cream text-[10px] font-medium uppercase">
+                    <Check className="w-3 h-3" strokeWidth={2.5} /> Gewählt
+                  </span>
+                )}
+              </button>
+            </div>
+
+            {/* Differenzierer-Zeilen */}
+            {[
+              { label: 'Aktive Mandate gleichzeitig', starter: 'bis 5', pro: 'bis 25' },
+              { label: 'Hervorhebung pro Mandat', starter: '4× / Jahr', pro: '12× / Jahr' },
+              { label: 'Newsletter-Positionierung pro Mandat', starter: false as const, pro: '2× / Jahr' },
+              { label: 'Mehrere Mitarbeiter onboarden', starter: false as const, pro: 'bis 5' },
+            ].map((r, i, arr) => (
+              <div
+                key={r.label}
+                className={`grid grid-cols-[1.4fr_1fr_1fr] ${
+                  i !== arr.length - 1 ? 'border-b border-stone/60' : ''
+                } ${i % 2 === 1 ? 'bg-cream/30' : ''}`}
+              >
+                <div className="p-3.5 text-body-sm text-ink font-medium">{r.label}</div>
+                <DifferenzZelle value={r.starter} />
+                <DifferenzZelle value={r.pro} />
+              </div>
+            ))}
           </div>
 
           {error && (
-            <p className="text-caption text-danger text-center">{error}</p>
+            <div className="rounded-soft bg-danger/10 border border-danger/30 px-4 py-2.5">
+              <p className="text-caption text-danger">{error}</p>
+            </div>
           )}
 
           <div className="flex gap-3">
@@ -408,7 +470,7 @@ export function BrokerTunnelForm({ userName }: Props) {
                 'Wird eingerichtet…'
               ) : (
                 <>
-                  Weiter zur Zahlung
+                  {form.paket === 'pro' ? 'Pro' : 'Starter'} buchen
                   <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
                 </>
               )}
@@ -420,73 +482,26 @@ export function BrokerTunnelForm({ userName }: Props) {
   );
 }
 
-function TierCard({
-  tier,
-  selected,
-  interval,
-  recommended,
-  onSelect,
-}: {
-  tier: typeof BERATER_TIERS[number];
-  selected: boolean;
-  interval: 'monthly' | 'yearly';
-  recommended?: boolean;
-  onSelect: () => void;
-}) {
-  const isYearly = interval === 'yearly';
-  const price = isYearly ? tier.preisJahr : tier.preisMonat;
-  const priceUnit = isYearly ? '/ Jahr' : '/ Monat';
-  const monthlyEquiv = isYearly ? Math.round(tier.preisJahr / 12) : null;
-
-  return (
-    <button
-      type="button"
-      onClick={onSelect}
-      className={`relative rounded-card border p-6 text-left transition-all ${
-        selected
-          ? 'border-bronze bg-bronze/5 shadow-card'
-          : 'border-stone bg-paper hover:border-bronze/40 hover:shadow-card'
-      }`}
-    >
-      {recommended && (
-        <span className="absolute -top-2.5 right-4 inline-flex items-center gap-1 px-2.5 py-0.5 bg-bronze text-cream rounded-pill text-[10px] font-medium uppercase tracking-wide">
-          <Sparkles className="w-3 h-3" strokeWidth={2} />
-          Empfohlen
-        </span>
-      )}
-
-      <div className="flex items-start justify-between mb-4">
-        <div>
-          <p className="overline text-quiet mb-1">{tier.label}</p>
-          <p className="font-serif text-head-lg text-navy font-light font-tabular leading-none">
-            CHF {price.toLocaleString('de-CH')}
-          </p>
-          <p className="text-caption text-muted mt-1.5">
-            {priceUnit}
-            {monthlyEquiv !== null && (
-              <span className="ml-1.5 text-quiet">
-                · entspricht CHF {monthlyEquiv}/Mt.
-              </span>
-            )}
-          </p>
-        </div>
-        <div
-          className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${
-            selected ? 'border-bronze bg-bronze' : 'border-stone'
-          }`}
-        >
-          {selected && <Check className="w-3 h-3 text-cream" strokeWidth={3} />}
-        </div>
-      </div>
-
-      <ul className="space-y-2">
-        {tier.features.map((f) => (
-          <li key={f} className="flex items-start gap-2 text-body-sm text-ink">
-            <Check className="w-4 h-4 text-bronze flex-shrink-0 mt-0.5" strokeWidth={2} />
-            <span>{f}</span>
-          </li>
-        ))}
-      </ul>
-    </button>
-  );
+function DifferenzZelle({ value }: { value: string | boolean }) {
+  let content: React.ReactNode;
+  if (value === true) {
+    content = (
+      <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-success/15 text-success">
+        <Check className="w-4 h-4" strokeWidth={2.5} />
+      </span>
+    );
+  } else if (value === false) {
+    content = (
+      <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-stone/60 text-quiet">
+        <X className="w-3.5 h-3.5" strokeWidth={2.5} />
+      </span>
+    );
+  } else {
+    content = (
+      <span className="inline-flex items-center px-2.5 py-1 rounded-pill bg-success/10 text-success text-caption font-mono font-medium">
+        {value}
+      </span>
+    );
+  }
+  return <div className="p-3.5 text-center border-l border-stone/60">{content}</div>;
 }

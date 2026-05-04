@@ -333,6 +333,11 @@ export type BeraterTier = {
   features: string[];
 };
 
+// Vier echte Differenzierer (Stand 2026-05-04, abgestimmt mit Cyrill):
+//   1) Aktive Mandate gleichzeitig — bis 5 / bis 25
+//   2) Hervorhebung pro Mandat — 4× pro Jahr / 12× pro Jahr
+//   3) Newsletter-Positionierung — — / 2× pro Jahr
+//   4) Mehrere Mitarbeiter onboarden — — / bis 5
 export const BERATER_TIERS: BeraterTier[] = [
   {
     id: 'starter',
@@ -342,11 +347,9 @@ export const BERATER_TIERS: BeraterTier[] = [
     inserateMax: 5,
     teamSeats: 0,
     features: [
-      'Bis 5 aktive Inserate',
-      'Multi-Mandat-Dashboard',
-      'Brand-Profil mit Logo',
-      'Eigene Profil-URL /broker/[slug]',
-      'Agentur-Badge auf Inseraten',
+      'Bis 5 aktive Mandate gleichzeitig',
+      'Hervorhebung pro Mandat: 4× pro Jahr',
+      'Brand-Profil mit Logo & Profil-URL',
       'Kombinierte Anfragen-Inbox',
     ],
   },
@@ -358,14 +361,12 @@ export const BERATER_TIERS: BeraterTier[] = [
     inserateMax: 25,
     teamSeats: 5,
     features: [
-      'Bis 25 aktive Inserate',
-      'Bis 5 Team-Mitglieder',
-      'White-Label-Option (eigene Domain)',
-      'Featured-Badge auf allen Inseraten',
-      'Atlas-Highlight auf allen Inseraten',
-      'Monatlicher Push-Boost (alle Inserate)',
-      'Erweiterte Analytics + CSV-Export',
-      'Prioritärer Account-Kontakt',
+      'Bis 25 aktive Mandate gleichzeitig',
+      'Hervorhebung pro Mandat: 12× pro Jahr',
+      'Newsletter-Positionierung: 2× pro Jahr pro Mandat',
+      'Mehrere Mitarbeiter onboarden (bis 5)',
+      'Brand-Profil mit Logo & Profil-URL',
+      'Kombinierte Anfragen-Inbox',
     ],
   },
 ];
