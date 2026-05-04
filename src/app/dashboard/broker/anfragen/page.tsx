@@ -1,90 +1,191 @@
 import Link from 'next/link';
-import { MessageSquare, ArrowRight, User } from 'lucide-react';
+import { MessageSquare, ArrowRight, User, Send, Inbox } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { hasTable } from '@/lib/db/has-table';
 
 export const metadata = { title: 'Anfragen — passare Broker' };
+export const dynamic = 'force-dynamic';
+
+type AnfragenRow = {
+  id: string;
+  inserat_id: string;
+  kaeufer_id: string;
+  nachricht: string | null;
+  status: string;
+  created_at: string;
+};
 
 export default async function BrokerAnfragenPage() {
   const supabase = await createClient();
   const { data: userData } = await supabase.auth.getUser();
   if (!userData.user) return null;
 
-  let anfragen: any[] = [];
-  let mandate: any[] = [];
+  let erhalten: AnfragenRow[] = [];
+  let gesendet: AnfragenRow[] = [];
+  let mandate: { id: string; firma_name: string | null; titel: string | null }[] = [];
+  let inseratLookup: { id: string; titel: string | null; firma_name: string | null }[] = [];
 
   if (await hasTable('inserate')) {
+    // Mandate des Brokers für "Erhalten"
     const { data: m } = await supabase
       .from('inserate')
       .select('id, firma_name, titel')
       .eq('broker_id', userData.user.id);
     mandate = m ?? [];
+  }
 
-    if (mandate.length > 0 && await hasTable('anfragen')) {
-      const ids = mandate.map((i: any) => i.id);
+  if (await hasTable('anfragen')) {
+    // Erhalten: alle Anfragen an Mandate des Brokers
+    if (mandate.length > 0) {
+      const ids = mandate.map((i) => i.id);
       const { data: a } = await supabase
         .from('anfragen')
         .select('id, inserat_id, kaeufer_id, nachricht, status, created_at')
         .in('inserat_id', ids)
         .order('created_at', { ascending: false })
         .limit(50);
-      anfragen = a ?? [];
+      erhalten = (a ?? []) as AnfragenRow[];
+    }
+
+    // Gesendet: Anfragen die Broker selbst gestellt hat (kaeufer_id = me)
+    const { data: s } = await supabase
+      .from('anfragen')
+      .select('id, inserat_id, kaeufer_id, nachricht, status, created_at')
+      .eq('kaeufer_id', userData.user.id)
+      .order('created_at', { ascending: false })
+      .limit(50);
+    gesendet = (s ?? []) as AnfragenRow[];
+
+    // Inserat-Daten für gesendete Anfragen nachladen (Titel anzeigen)
+    if (gesendet.length > 0 && (await hasTable('inserate'))) {
+      const ids = Array.from(new Set(gesendet.map((g) => g.inserat_id)));
+      const { data: looked } = await supabase
+        .from('inserate')
+        .select('id, titel, firma_name')
+        .in('id', ids);
+      inseratLookup = looked ?? [];
     }
   }
 
-  const mandateMap = new Map(mandate.map((m: any) => [m.id, m]));
+  const mandateMap = new Map(mandate.map((m) => [m.id, m]));
+  const inseratMap = new Map(inseratLookup.map((i) => [i.id, i]));
 
   return (
     <div className="px-6 md:px-10 py-8 md:py-12">
-      <div className="max-w-content mx-auto">
-        <div className="mb-8">
+      <div className="max-w-content mx-auto space-y-10">
+        <div>
           <p className="overline text-bronze-ink mb-2">Anfragen</p>
           <h1 className="font-serif text-display-sm text-navy font-light tracking-tight">
             Alle Anfragen
           </h1>
-          <p className="text-body text-muted mt-2">
-            Anfragen über alle deine Mandate kombiniert.
+          <p className="text-body-sm text-muted mt-2 max-w-2xl">
+            Erhaltene Anfragen an deine Mandate plus eigene Anfragen, die du als Käufer gestellt hast — alles an einem Ort.
           </p>
         </div>
 
-        {anfragen.length === 0 ? (
-          <div className="rounded-card bg-paper border border-stone p-10 text-center">
-            <MessageSquare className="w-10 h-10 text-stone mx-auto mb-4" strokeWidth={1.5} />
-            <h2 className="font-serif text-head-md text-navy mb-2">Noch keine Anfragen</h2>
-            <p className="text-body-sm text-muted max-w-sm mx-auto">
-              Sobald Käufer auf deine Mandate anfragen, erscheinen sie hier.
-            </p>
+        {/* ─── ERHALTEN ─── */}
+        <section>
+          <div className="flex items-center gap-3 mb-4">
+            <Inbox className="w-4 h-4 text-bronze-ink" strokeWidth={1.5} />
+            <h2 className="font-serif text-head-sm text-navy">
+              Erhalten <span className="font-mono text-caption text-quiet">· {erhalten.length}</span>
+            </h2>
           </div>
-        ) : (
-          <div className="space-y-3">
-            {anfragen.map((a) => {
-              const mandat = mandateMap.get(a.inserat_id);
-              return (
-                <Link
-                  key={a.id}
-                  href={`/dashboard/verkaeufer/anfragen/${a.id}`}
-                  className="group flex items-center gap-4 rounded-card bg-paper border border-stone p-4 hover:border-bronze/40 hover:shadow-card transition-all"
-                >
-                  <div className="w-9 h-9 rounded-full bg-navy/10 flex items-center justify-center flex-shrink-0">
-                    <User className="w-4 h-4 text-navy" strokeWidth={1.5} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-body-sm text-navy font-medium truncate">
-                      Anfrage für {mandat?.firma_name || mandat?.titel || 'Mandat'}
-                    </p>
-                    {a.nachricht && (
-                      <p className="text-caption text-muted truncate mt-0.5">{a.nachricht}</p>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <StatusBadge status={a.status} />
-                    <ArrowRight className="w-4 h-4 text-quiet group-hover:text-bronze-ink transition-colors" strokeWidth={1.5} />
-                  </div>
-                </Link>
-              );
-            })}
+
+          {erhalten.length === 0 ? (
+            <div className="rounded-card bg-paper border border-stone p-8 text-center">
+              <p className="text-body-sm text-muted max-w-sm mx-auto">
+                Sobald Käufer auf deine Mandate anfragen, erscheinen sie hier.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {erhalten.map((a) => {
+                const mandat = mandateMap.get(a.inserat_id);
+                return (
+                  <Link
+                    key={a.id}
+                    href={`/dashboard/verkaeufer/anfragen/${a.id}`}
+                    className="group flex items-center gap-4 rounded-card bg-paper border border-stone p-4 hover:border-bronze/40 hover:shadow-card transition-all"
+                  >
+                    <div className="w-9 h-9 rounded-full bg-navy/10 flex items-center justify-center flex-shrink-0">
+                      <User className="w-4 h-4 text-navy" strokeWidth={1.5} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-body-sm text-navy font-medium truncate">
+                        Anfrage für {mandat?.firma_name || mandat?.titel || 'Mandat'}
+                      </p>
+                      {a.nachricht && (
+                        <p className="text-caption text-muted truncate mt-0.5">{a.nachricht}</p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <StatusBadge status={a.status} />
+                      <ArrowRight className="w-4 h-4 text-quiet group-hover:text-bronze-ink transition-colors" strokeWidth={1.5} />
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </section>
+
+        {/* ─── GESENDET ─── */}
+        <section>
+          <div className="flex items-center gap-3 mb-4">
+            <Send className="w-4 h-4 text-bronze-ink" strokeWidth={1.5} />
+            <h2 className="font-serif text-head-sm text-navy">
+              Gesendet <span className="font-mono text-caption text-quiet">· {gesendet.length}</span>
+            </h2>
           </div>
-        )}
+
+          {gesendet.length === 0 ? (
+            <div className="rounded-card bg-paper border border-stone p-8 text-center">
+              <MessageSquare className="w-8 h-8 text-stone mx-auto mb-3" strokeWidth={1.5} />
+              <p className="text-body-sm text-muted mb-3 max-w-sm mx-auto">
+                Du hast noch keine Anfragen gestellt. Durchstöbere den Marktplatz und sende eine Anfrage an ein Inserat.
+              </p>
+              <Link
+                href="/"
+                className="inline-flex items-center gap-1.5 text-caption text-bronze-ink hover:text-bronze font-medium"
+              >
+                Zum Marktplatz <ArrowRight className="w-3 h-3" strokeWidth={1.5} />
+              </Link>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {gesendet.map((a) => {
+                const ins = inseratMap.get(a.inserat_id);
+                return (
+                  <Link
+                    key={a.id}
+                    href={`/dashboard/broker/anfragen/${a.id}`}
+                    className="group flex items-center gap-4 rounded-card bg-paper border border-stone p-4 hover:border-bronze/40 hover:shadow-card transition-all"
+                  >
+                    <div className="w-9 h-9 rounded-full bg-bronze/10 flex items-center justify-center flex-shrink-0">
+                      <Send className="w-4 h-4 text-bronze-ink" strokeWidth={1.5} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-body-sm text-navy font-medium truncate">
+                        An {ins?.titel ?? ins?.firma_name ?? 'Inserat'}
+                      </p>
+                      {a.nachricht && (
+                        <p className="text-caption text-muted truncate mt-0.5">{a.nachricht}</p>
+                      )}
+                      <p className="text-[11px] text-quiet font-mono mt-0.5">
+                        gesendet {new Date(a.created_at).toLocaleDateString('de-CH')}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <StatusBadge status={a.status} />
+                      <ArrowRight className="w-4 h-4 text-quiet group-hover:text-bronze-ink transition-colors" strokeWidth={1.5} />
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </section>
       </div>
     </div>
   );

@@ -73,5 +73,6 @@ export async function updateKaeuferProfilAction(formData: FormData): Promise<Act
   if (error) return { ok: false, error: error.message };
 
   revalidatePath('/dashboard/kaeufer/profil');
+  revalidatePath('/dashboard/broker/profil');
   return { ok: true };
 }

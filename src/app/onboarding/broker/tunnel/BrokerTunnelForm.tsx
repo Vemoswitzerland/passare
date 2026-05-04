@@ -381,31 +381,24 @@ export function BrokerTunnelForm({ userName }: Props) {
             </button>
           </div>
 
-          {/* Vergleichs-Tabelle — gleicher Stil wie /preise Verkäufer */}
+          {/* Vergleichs-Tabelle — stabil, kein Layout-Sprung beim Klicken.
+              Selection wird via Hintergrund-Schicht im Outer-Container und
+              Style des CTA-Buttons gezeigt — Header bleibt fix. */}
           <div className="border border-stone rounded-card overflow-hidden bg-paper">
-            {/* Badge-Reihe oben (eigene Zeile, kein Überlappen) */}
+            {/* Badge-Reihe oben — feste Höhe, "Empfohlen" IMMER in Pro-Spalte */}
             <div className="grid grid-cols-[1.5fr_1fr_1fr] bg-cream/50 border-b border-stone">
-              <div />
+              <div className="h-10" />
+              <div className="border-l border-stone h-10" />
               <div className="border-l border-stone h-10 flex items-center justify-center">
-                {form.paket === 'starter' && (
-                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-pill bg-bronze text-cream text-caption font-medium tracking-wide whitespace-nowrap">
-                    <Check className="w-3 h-3" strokeWidth={2.5} /> Gewählt
-                  </span>
-                )}
-              </div>
-              <div className="border-l border-stone h-10 flex items-center justify-center gap-2">
                 <span className="inline-flex items-center px-3 py-1 rounded-pill bg-navy text-cream text-caption font-medium tracking-wide whitespace-nowrap">
                   Empfohlen
                 </span>
-                {form.paket === 'pro' && (
-                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-pill bg-bronze text-cream text-caption font-medium tracking-wide whitespace-nowrap">
-                    <Check className="w-3 h-3" strokeWidth={2.5} /> Gewählt
-                  </span>
-                )}
               </div>
             </div>
 
-            {/* Header: Vergleich + Preise */}
+            {/* Header: Vergleich + Preise — KEIN Background-Wechsel beim Klick.
+                Pro-Spalte hat IMMER bg-cream/30, der "gewählt"-State zeigt
+                sich nur via Ring um den ganzen Tier-Header. */}
             <div className="grid grid-cols-[1.5fr_1fr_1fr] border-b border-stone">
               <div className="p-5">
                 <p className="overline text-bronze-ink mb-2">Vergleich</p>
@@ -419,9 +412,7 @@ export function BrokerTunnelForm({ userName }: Props) {
               <button
                 type="button"
                 onClick={() => setForm({ ...form, paket: 'starter' })}
-                className={`p-5 text-center border-l border-stone transition-colors ${
-                  form.paket === 'starter' ? 'bg-bronze/5' : 'hover:bg-cream/40'
-                }`}
+                className="p-5 text-center border-l border-stone hover:bg-cream/40 transition-colors"
               >
                 <p className="overline text-quiet mb-3">Starter</p>
                 <p className="font-serif text-[1.85rem] text-navy font-light font-tabular leading-none">
@@ -435,9 +426,7 @@ export function BrokerTunnelForm({ userName }: Props) {
               <button
                 type="button"
                 onClick={() => setForm({ ...form, paket: 'pro' })}
-                className={`p-5 text-center border-l border-stone transition-colors ${
-                  form.paket === 'pro' ? 'bg-bronze/5' : 'bg-cream/30 hover:bg-bronze/5'
-                }`}
+                className="p-5 text-center border-l border-stone bg-cream/30 hover:bg-cream/50 transition-colors"
               >
                 <p className="overline text-quiet mb-3">Pro</p>
                 <p className="font-serif text-[1.85rem] text-navy font-light font-tabular leading-none">
@@ -468,36 +457,49 @@ export function BrokerTunnelForm({ userName }: Props) {
               </div>
             ))}
 
-            {/* CTA-Footer */}
+            {/* CTA-Footer — feste Button-Texte, nur Stil ändert sich.
+                Gewählt = Navy primary. Nicht gewählt = secondary outline. */}
             <div className="grid grid-cols-[1.5fr_1fr_1fr] border-t border-stone bg-cream/40">
-              <div className="p-4 hidden md:block" />
-              <div className="p-4 border-l border-stone md:border-l border-l-0">
+              <div className="p-4" />
+              <div className="p-4 border-l border-stone">
                 <button
                   type="button"
                   onClick={() => setForm({ ...form, paket: 'starter' })}
-                  className={`w-full px-4 py-2 rounded-soft text-caption font-medium transition-colors ${
+                  aria-pressed={form.paket === 'starter'}
+                  className={`w-full px-4 py-2 rounded-soft text-caption font-medium border transition-colors ${
                     form.paket === 'starter'
-                      ? 'bg-navy text-cream'
-                      : 'border border-stone text-navy hover:bg-stone/30'
+                      ? 'bg-navy text-cream border-navy'
+                      : 'bg-paper text-navy border-stone hover:bg-stone/30'
                   }`}
                 >
-                  {form.paket === 'starter' ? 'Starter gewählt' : 'Starter wählen'}
+                  Starter wählen
                 </button>
               </div>
               <div className="p-4 border-l border-stone">
                 <button
                   type="button"
                   onClick={() => setForm({ ...form, paket: 'pro' })}
-                  className={`w-full px-4 py-2 rounded-soft text-caption font-medium transition-colors ${
+                  aria-pressed={form.paket === 'pro'}
+                  className={`w-full px-4 py-2 rounded-soft text-caption font-medium border transition-colors ${
                     form.paket === 'pro'
-                      ? 'bg-navy text-cream'
-                      : 'bg-navy/90 text-cream hover:bg-ink'
+                      ? 'bg-navy text-cream border-navy'
+                      : 'bg-paper text-navy border-stone hover:bg-stone/30'
                   }`}
                 >
-                  {form.paket === 'pro' ? 'Pro gewählt' : 'Pro wählen'}
+                  Pro wählen
                 </button>
               </div>
             </div>
+          </div>
+
+          {/* Selection-Bestätigung dezent unter der Tabelle — kein Reflow */}
+          <div className="text-caption text-muted">
+            Aktuelle Wahl:{' '}
+            <span className="text-navy font-medium">
+              {form.paket === 'pro' ? 'Pro' : 'Starter'}
+              {' · '}
+              {form.interval === 'yearly' ? 'Jahresabo' : 'Monatsabo'}
+            </span>
           </div>
 
           {error && (

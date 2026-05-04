@@ -24,6 +24,7 @@ export async function updateFavoritStageAction(formData: FormData): Promise<Acti
 
   if (error) return { ok: false, error: error.message };
   revalidatePath('/dashboard/kaeufer/favoriten');
+  revalidatePath('/dashboard/broker/favoriten');
   return { ok: true };
 }
 
@@ -44,6 +45,7 @@ export async function updateFavoritNoteAction(formData: FormData): Promise<Actio
 
   if (error) return { ok: false, error: error.message };
   revalidatePath('/dashboard/kaeufer/favoriten');
+  revalidatePath('/dashboard/broker/favoriten');
   return { ok: true };
 }
 
@@ -64,6 +66,7 @@ export async function addFavoritAction(formData: FormData): Promise<ActionResult
 
   if (error) return { ok: false, error: error.message };
   revalidatePath('/dashboard/kaeufer/favoriten');
+  revalidatePath('/dashboard/broker/favoriten');
   return { ok: true };
 }
 
@@ -83,5 +86,6 @@ export async function removeFavoritAction(formData: FormData): Promise<ActionRes
 
   if (error) return { ok: false, error: error.message };
   revalidatePath('/dashboard/kaeufer/favoriten');
+  revalidatePath('/dashboard/broker/favoriten');
   return { ok: true };
 }
