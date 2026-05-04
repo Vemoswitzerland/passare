@@ -304,7 +304,12 @@ export function TunnelForm({ branchen }: { branchen: Branche[] }) {
                       <select
                         id="bmin"
                         value={budgetMin}
-                        onChange={(e) => setBudgetMin(parseInt(e.target.value, 10))}
+                        onChange={(e) => {
+                          const newMin = parseInt(e.target.value, 10);
+                          setBudgetMin(newMin);
+                          // Min > Max ist sinnlos — Max nachziehen.
+                          if (newMin > budgetMax) setBudgetMax(newMin);
+                        }}
                         className="w-full bg-paper border border-stone rounded-soft px-4 py-2.5 text-body-sm font-mono text-ink focus:outline-none focus:border-bronze"
                       >
                         {[200_000, 500_000, 1_000_000, 2_000_000, 5_000_000, 10_000_000, 20_000_000].map((v) => (
@@ -317,12 +322,19 @@ export function TunnelForm({ branchen }: { branchen: Branche[] }) {
                       <select
                         id="bmax"
                         value={budgetMax}
-                        onChange={(e) => setBudgetMax(parseInt(e.target.value, 10))}
+                        onChange={(e) => {
+                          const newMax = parseInt(e.target.value, 10);
+                          setBudgetMax(newMax);
+                          // Max < Min ist sinnlos — Min nachziehen.
+                          if (newMax < budgetMin) setBudgetMin(newMax);
+                        }}
                         className="w-full bg-paper border border-stone rounded-soft px-4 py-2.5 text-body-sm font-mono text-ink focus:outline-none focus:border-bronze"
                       >
-                        {[1_000_000, 2_000_000, 5_000_000, 10_000_000, 20_000_000, 50_000_000].map((v) => (
-                          <option key={v} value={v}>CHF {(v / 1_000_000).toFixed(0)} Mio</option>
-                        ))}
+                        {[1_000_000, 2_000_000, 5_000_000, 10_000_000, 20_000_000, 50_000_000]
+                          .filter((v) => v >= budgetMin)
+                          .map((v) => (
+                            <option key={v} value={v}>CHF {(v / 1_000_000).toFixed(0)} Mio</option>
+                          ))}
                       </select>
                     </div>
                   </div>

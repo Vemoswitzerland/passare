@@ -165,9 +165,12 @@ export async function submitKaeuferTunnelAction(
 }
 
 /**
- * Skip-Tunnel: User klickt «Überspringen → Free-Version».
+ * Skip-Tunnel: User klickt «Überspringen».
  * Setzt Käufer-Rolle, KEIN Suchprofil, KEIN Käufer-Profil.
- * Geht direkt zum Dashboard mit Basic-Tier.
+ * Leitet zur Paket-Seite — der User MUSS sich für ein Paket
+ * entscheiden (Basic gratis oder Käufer+ kostenpflichtig), bevor
+ * er ins Dashboard kommt. Vorher landete der User direkt im Dashboard
+ * ohne je die Pakete gesehen zu haben.
  */
 export async function skipKaeuferTunnelAction() {
   const supabase = await createClient();
@@ -185,7 +188,7 @@ export async function skipKaeuferTunnelAction() {
   }
 
   revalidatePath('/', 'layout');
-  redirect('/dashboard/kaeufer?welcome=skipped');
+  redirect('/onboarding/kaeufer/paket?from=skip');
 }
 
 /**

@@ -5,7 +5,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { Container } from '@/components/ui/container';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { continueWithBasicAction } from './actions';
 import { hasTable } from '@/lib/db/has-table';
 import { countListings } from '@/lib/listings';
@@ -17,7 +17,7 @@ export const metadata = {
 };
 
 type Props = {
-  searchParams: Promise<{ canceled?: string; interval?: 'monthly' | 'yearly' }>;
+  searchParams: Promise<{ canceled?: string; interval?: 'monthly' | 'yearly'; from?: string }>;
 };
 
 export default async function PaketPage({ searchParams }: Props) {
@@ -31,7 +31,26 @@ export default async function PaketPage({ searchParams }: Props) {
     .eq('id', u.user.id)
     .maybeSingle();
 
-  if (profile?.rolle !== 'kaeufer') redirect('/onboarding/kaeufer/tunnel');
+  // Verkäufer / Broker werden in ihren eigenen Bereich umgeleitet.
+  if (profile?.rolle === 'verkaeufer') redirect('/dashboard/verkaeufer');
+  if (profile?.rolle === 'broker') redirect('/dashboard/broker');
+
+  // Käufer-Rolle defensiv setzen — vermeidet Tunnel↔Paket-Loop wenn
+  // complete_onboarding-RPC nicht sauber durchlief (RLS-Race, Schema-Drift,
+  // Replication-Lag). Statt zurück zum Tunnel zu redirecten — was den
+  // User in eine Endlosschleife schickte, sobald er «Profil speichern»
+  // gedrückt hatte — setzen wir die Rolle hier mit dem Service-Client und
+  // zeigen die Pakete an.
+  if (profile?.rolle !== 'kaeufer') {
+    const admin = createAdminClient();
+    await admin
+      .from('profiles')
+      .update({
+        rolle: 'kaeufer',
+        onboarding_completed_at: profile?.onboarding_completed_at ?? new Date().toISOString(),
+      })
+      .eq('id', u.user.id);
+  }
 
   // Käufer-Profil laden für personalisiertes Banner + Treffer-Count
   const profilTableExists = await hasTable('kaeufer_profil');
@@ -92,6 +111,15 @@ export default async function PaketPage({ searchParams }: Props) {
           {sp.canceled === '1' && (
             <div className="max-w-2xl mx-auto mb-8 bg-warn/5 border border-warn/20 rounded-soft px-4 py-3 text-body-sm text-warn">
               Stripe-Bezahlung abgebrochen — du kannst trotzdem mit Basic gratis weitermachen.
+            </div>
+          )}
+
+          {sp.from === 'skip' && (
+            <div className="max-w-2xl mx-auto mb-8 bg-bronze/5 border border-bronze/20 rounded-soft px-4 py-3 text-body-sm text-ink">
+              <p className="text-navy font-medium mb-1">Du hast die Fragen übersprungen.</p>
+              <p className="text-caption text-muted">
+                Wähle jetzt dein Paket — du kannst jederzeit wechseln und das Profil später nachholen.
+              </p>
             </div>
           )}
 
