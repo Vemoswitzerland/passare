@@ -1,15 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createHmac } from 'crypto';
+import { betaCookieValue } from '@/lib/auth/beta-hmac';
 
 export const runtime = 'nodejs';
-
-/**
- * Setzt das Beta-Cookie als HMAC(code) — Klartext-Code wird NIE persistiert.
- * Selber HMAC-Salt wie in middleware.ts (`betaCookieValue`).
- */
-function betaCookieValue(code: string): string {
-  return createHmac('sha256', code).update('passare_beta_v1').digest('hex');
-}
 
 export async function POST(req: NextRequest) {
   const { code } = await req.json().catch(() => ({ code: '' }));
@@ -27,7 +19,7 @@ export async function POST(req: NextRequest) {
 
   const res = NextResponse.json({ ok: true });
   // SECURITY: HMAC statt Klartext — Cookie-Klau enthüllt nicht den Code.
-  res.cookies.set('passare_beta', betaCookieValue(valid), {
+  res.cookies.set('passare_beta', await betaCookieValue(valid), {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',

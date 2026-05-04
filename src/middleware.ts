@@ -1,12 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createHmac } from 'crypto';
 import { updateSession } from '@/lib/supabase/middleware';
-
-// Beta-Cookie wird als HMAC gespeichert (nie der Klartext-Code).
-// Selber HMAC-Salt wie beim Schreiben in /api/beta:
-function betaCookieValue(code: string): string {
-  return createHmac('sha256', code).update('passare_beta_v1').digest('hex');
-}
+import { betaCookieValue } from '@/lib/auth/beta-hmac';
 
 /**
  * Two-stage middleware:
@@ -58,7 +52,7 @@ export async function middleware(req: NextRequest) {
       // Sonst könnte jemand mit Cookie-Klau direkt den BETA_ACCESS_CODE lesen.
       const beta = req.cookies.get('passare_beta')?.value;
       const expected = process.env.BETA_ACCESS_CODE
-        ? betaCookieValue(process.env.BETA_ACCESS_CODE)
+        ? await betaCookieValue(process.env.BETA_ACCESS_CODE)
         : null;
       if (!beta || !expected || beta !== expected) {
         const url = req.nextUrl.clone();
