@@ -1,159 +1,494 @@
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ArrowLeft, MessageSquare, Building2, Calendar, FileText } from 'lucide-react';
+import Link from 'next/link';
+import {
+  ArrowLeft, Calendar, Mail, MapPin, Briefcase, Wallet, CheckCircle2, Crown,
+  ShieldCheck, Linkedin, Sparkles, FileText, Clock, Building2,
+} from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
+import { hasTable } from '@/lib/db/has-table';
+import { AnfrageProActions } from './AnfrageProActions';
 import { getMandatLabel } from '@/lib/broker/labels';
 
 export const metadata = { title: 'Anfrage — passare Broker', robots: { index: false, follow: false } };
 export const dynamic = 'force-dynamic';
+
+const INVESTOR_LABELS: Record<string, string> = {
+  privatperson: 'Privatperson · MBI',
+  family_office: 'Family Office',
+  holding_strategisch: 'Strategischer Käufer',
+  mbi_management: 'MBI-Manager',
+  berater_broker: 'Berater / Broker',
+};
+
+const TIMING_LABELS: Record<string, string> = {
+  sofort: 'Möchte sofort übernehmen',
+  '3_6_monate': 'In 3-6 Monaten',
+  '6_12_monate': 'In 6-12 Monaten',
+  flexibel: 'Zeitlich flexibel',
+};
+
+const ERFAHRUNG_LABELS: Record<string, string> = {
+  erste_uebernahme: 'Erste Übernahme',
+  einige_deals: 'Schon einige Deals',
+  serial_acquirer: 'Serial Acquirer',
+};
 
 type Props = { params: Promise<{ id: string }> };
 
 export default async function BrokerAnfrageDetailPage({ params }: Props) {
   const { id } = await params;
   const supabase = await createClient();
+
   const { data: u } = await supabase.auth.getUser();
   if (!u.user) notFound();
 
   const { data: anfrage } = await supabase
     .from('anfragen')
-    .select('id, inserat_id, kaeufer_id, nachricht, status, created_at, updated_at, dossier_requested_at, datenraum_granted_at')
+    .select(`
+      id, kaeufer_id, nachricht, status, created_at, admin_notes,
+      dossier_requested_at, dossier_request_message, datenraum_granted_at,
+      inserate!inner(id, titel, firma_name, verkaeufer_id, broker_id, paket)
+    `)
     .eq('id', id)
     .maybeSingle();
 
   if (!anfrage) notFound();
 
-  // Zugriffs-Check: Broker darf nur eigene Anfragen sehen — entweder als
-  // Käufer (kaeufer_id) oder als Inseratsbesitzer (inserat.broker_id).
+  const inseratRaw = anfrage.inserate as unknown;
+  const inserat = (Array.isArray(inseratRaw) ? inseratRaw[0] : inseratRaw) as
+    {
+      id: string;
+      titel: string | null;
+      firma_name: string | null;
+      verkaeufer_id: string | null;
+      broker_id: string | null;
+      paket: string | null;
+    } | null;
+
+  if (!inserat) notFound();
+
   const userId = u.user.id;
-  let isOwner = anfrage.kaeufer_id === userId;
-  let inseratData: { id: string; titel: string | null; firma_name: string | null; broker_id: string | null; verkaeufer_id: string | null } | null = null;
+  // Zugriffs-Check: Entweder Broker des Inserats ODER Käufer der Anfrage
+  const isBroker = inserat.broker_id === userId;
+  const isKaeufer = anfrage.kaeufer_id === userId;
+  if (!isBroker && !isKaeufer) notFound();
 
-  const { data: ins } = await supabase
-    .from('inserate')
-    .select('id, titel, firma_name, broker_id, verkaeufer_id')
-    .eq('id', anfrage.inserat_id)
-    .maybeSingle();
-  inseratData = ins;
+  const isPro = ['pro', 'premium'].includes(inserat.paket ?? '');
 
-  if (!isOwner && inseratData?.broker_id === userId) isOwner = true;
-  if (!isOwner) notFound();
+  // ── Käufer-Profile + Kaeufer-Profil parallel laden ──────────────
+  const [profileRes, kaeuferProfilRes] = await Promise.all([
+    supabase
+      .from('profiles')
+      .select('full_name, kanton, sprache, verified_phone, verified_kyc, subscription_tier, created_at')
+      .eq('id', anfrage.kaeufer_id)
+      .maybeSingle(),
+    (await hasTable('kaeufer_profil'))
+      ? supabase
+          .from('kaeufer_profil')
+          .select('investor_typ, budget_min, budget_max, budget_undisclosed, regionen, branche_praeferenzen, timing, erfahrung, beschreibung, ist_oeffentlich, finanzierungsnachweis_verified, linkedin_url, logo_url, dossier_url, dossier_uploaded_at')
+          .eq('user_id', anfrage.kaeufer_id)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
 
-  const isAlsKaeufer = anfrage.kaeufer_id === userId;
+  const profile = profileRes.data;
+  const kaeuferProfil = kaeuferProfilRes?.data;
 
-  return (
-    <div className="px-6 md:px-10 py-8 md:py-12">
-      <div className="max-w-3xl mx-auto space-y-6">
-        <Link
-          href="/dashboard/broker/anfragen"
-          className="inline-flex items-center gap-1.5 text-caption text-quiet hover:text-navy transition-colors"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" strokeWidth={1.5} />
-          Zurück zur Anfragen-Übersicht
-        </Link>
+  const initials = (profile?.full_name ?? 'K')
+    .split(' ').map((s: string) => s[0]).filter(Boolean).slice(0, 2).join('').toUpperCase();
 
-        <div>
-          <p className="overline text-bronze-ink mb-2">
-            {isAlsKaeufer ? 'Anfrage gesendet' : 'Anfrage erhalten'}
-          </p>
-          <h1 className="font-serif text-display-sm text-navy font-light tracking-tight">
-            {inseratData ? getMandatLabel(inseratData) : 'Anfrage'}
-          </h1>
-          <p className="text-caption text-quiet font-mono mt-1">
-            ID {anfrage.id.slice(0, 8)} · {new Date(anfrage.created_at).toLocaleDateString('de-CH', { day: '2-digit', month: 'long', year: 'numeric' })}
-          </p>
-        </div>
+  const kaeuferName = profile?.full_name ?? 'Käufer';
+  const inseratLabel = getMandatLabel(inserat);
 
-        {/* Status-Karte */}
-        <div className="rounded-card bg-paper border border-stone p-5">
-          <div className="flex items-center justify-between mb-3">
-            <span className="overline text-quiet">Status</span>
-            <StatusBadge status={anfrage.status} />
-          </div>
-          <div className="space-y-2 text-caption">
-            <Row icon={Calendar} label="Gesendet">
-              {new Date(anfrage.created_at).toLocaleString('de-CH')}
-            </Row>
-            {anfrage.dossier_requested_at && (
-              <Row icon={FileText} label="Dossier angefragt">
-                {new Date(anfrage.dossier_requested_at).toLocaleDateString('de-CH')}
-              </Row>
-            )}
-            {anfrage.datenraum_granted_at && (
-              <Row icon={FileText} label="Datenraum freigegeben">
-                {new Date(anfrage.datenraum_granted_at).toLocaleDateString('de-CH')}
-              </Row>
-            )}
-            <Row icon={Building2} label="Inserat">
-              <Link
-                href={`/inserat/${anfrage.inserat_id}`}
-                className="text-bronze-ink hover:text-bronze underline-offset-2 hover:underline"
-              >
-                Öffnen ↗
-              </Link>
-            </Row>
-          </div>
-        </div>
+  const budgetText = kaeuferProfil?.budget_undisclosed
+    ? 'nicht angegeben'
+    : kaeuferProfil?.budget_min && kaeuferProfil?.budget_max
+      ? `CHF ${(Number(kaeuferProfil.budget_min) / 1_000_000).toFixed(1)} – ${(Number(kaeuferProfil.budget_max) / 1_000_000).toFixed(0)} Mio`
+      : '—';
 
-        {/* Nachricht */}
-        {anfrage.nachricht && (
-          <div className="rounded-card bg-paper border border-stone p-5">
-            <div className="flex items-center gap-2 mb-3">
-              <MessageSquare className="w-4 h-4 text-bronze-ink" strokeWidth={1.5} />
-              <h2 className="font-serif text-head-sm text-navy">
-                {isAlsKaeufer ? 'Deine Nachricht' : 'Käufer-Nachricht'}
-              </h2>
-            </div>
-            <p className="text-body-sm text-ink whitespace-pre-wrap leading-relaxed">
-              {anfrage.nachricht}
+  const isMax = profile?.subscription_tier === 'plus' || profile?.subscription_tier === 'max';
+
+  const safeLogoUrl: string | null = (() => {
+    const raw = kaeuferProfil?.logo_url;
+    if (!raw) return null;
+    try {
+      const u = new URL(raw);
+      return ['http:', 'https:'].includes(u.protocol) ? u.toString() : null;
+    } catch {
+      return null;
+    }
+  })();
+
+  // Wenn der User als Käufer-Seite agiert (eigene gesendete Anfrage),
+  // dann ist die Detail-Page eher eine Status-Übersicht als ein Käufer-
+  // Profil — wir blenden das Profil aus und zeigen den Inserat-Inhaber.
+  if (isKaeufer && !isBroker) {
+    return (
+      <div className="px-6 md:px-10 py-8 md:py-10">
+        <div className="max-w-content mx-auto">
+          <Link
+            href="/dashboard/broker/anfragen"
+            className="inline-flex items-center gap-1.5 text-caption text-quiet hover:text-navy transition-colors mb-4"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" strokeWidth={1.5} />
+            Zurück zur Inbox
+          </Link>
+
+          <div className="rounded-card bg-paper border border-stone p-6 mb-6">
+            <p className="overline text-bronze-ink mb-2">Eigene Anfrage</p>
+            <h1 className="font-serif text-head-md text-navy font-light">
+              {inseratLabel}
+            </h1>
+            <p className="text-caption text-quiet mt-1 inline-flex items-center gap-3">
+              <span className="inline-flex items-center gap-1">
+                <Calendar className="w-3 h-3" strokeWidth={1.5} />
+                Gesendet am {formatDate(anfrage.created_at)}
+              </span>
+              <StatusPill status={anfrage.status} />
             </p>
           </div>
-        )}
 
-        {!isAlsKaeufer && (
-          <div className="rounded-card bg-cream/40 border border-stone p-5 text-caption text-muted">
-            Detaillierte Status-Aktionen (Akzeptieren · Datenraum freigeben · Ablehnen) folgen in Kürze.
-            Bis dahin kannst du Anfragen direkt mit dem Käufer per E-Mail bearbeiten.
+          <div className="grid lg:grid-cols-[1fr_320px] gap-6">
+            <div className="space-y-6">
+              <section className="bg-paper border border-stone rounded-card p-5">
+                <p className="overline text-bronze-ink mb-3">Deine Nachricht</p>
+                <p className="text-body text-ink leading-relaxed whitespace-pre-wrap">
+                  {anfrage.nachricht ?? <span className="text-quiet italic">Keine Nachricht.</span>}
+                </p>
+              </section>
+              <section className="bg-paper border border-stone rounded-card p-5">
+                <p className="overline text-bronze-ink mb-3">Antworten</p>
+                <p className="text-body-sm text-muted leading-relaxed">
+                  Antworten und weitere Nachrichten findest du in der{' '}
+                  <Link
+                    href={`/dashboard/broker/anfragen?thread=g:${anfrage.id}`}
+                    className="text-bronze-ink hover:text-bronze underline-offset-2 hover:underline"
+                  >
+                    Inbox
+                  </Link>
+                  .
+                </p>
+              </section>
+            </div>
+
+            <aside className="space-y-4">
+              <div className="bg-paper border border-stone rounded-soft p-4">
+                <p className="overline text-quiet text-caption mb-1.5">Inserat</p>
+                <p className="text-body-sm text-navy font-medium leading-snug mb-2">
+                  {inseratLabel}
+                </p>
+                <Link
+                  href={`/inserat/${inserat.id}`}
+                  className="text-caption text-bronze-ink hover:text-bronze inline-flex items-center gap-1"
+                >
+                  Inserat öffnen →
+                </Link>
+              </div>
+            </aside>
           </div>
-        )}
+        </div>
+      </div>
+    );
+  }
+
+  // Standard-Detail-Page: Broker als Inserat-Inhaber sieht Käufer-Profil
+  return (
+    <div className="px-6 md:px-10 py-8 md:py-10">
+      <div className="max-w-content mx-auto">
+        <Link
+          href="/dashboard/broker/anfragen"
+          className="inline-flex items-center gap-1.5 text-caption text-quiet hover:text-navy transition-colors mb-4"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" strokeWidth={1.5} />
+          Zurück zu allen Anfragen
+        </Link>
+
+        {/* ── HEADER: Käufer-Karte ───────────────────────────────── */}
+        <div className="rounded-card bg-paper border border-stone p-6 mb-6">
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div className="flex items-center gap-4 min-w-0">
+              {safeLogoUrl ? (
+                <img
+                  src={safeLogoUrl}
+                  alt={profile?.full_name ? `Logo ${profile.full_name}` : 'Käufer-Logo'}
+                  width={56}
+                  height={56}
+                  loading="lazy"
+                  className="w-14 h-14 rounded-full object-cover flex-shrink-0"
+                />
+              ) : (
+                <span className="w-14 h-14 rounded-full bg-navy text-cream flex items-center justify-center text-lg font-mono font-medium flex-shrink-0">
+                  {initials}
+                </span>
+              )}
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h1 className="font-serif text-head-md text-navy font-light truncate">
+                    {kaeuferName}
+                  </h1>
+                  {isMax && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-pill bg-bronze-soft text-bronze-ink text-caption font-medium">
+                      <Crown className="w-3 h-3" strokeWidth={2} />
+                      Käufer+
+                    </span>
+                  )}
+                </div>
+                <p className="text-caption text-quiet mt-1">
+                  {kaeuferProfil?.investor_typ ? INVESTOR_LABELS[kaeuferProfil.investor_typ] ?? kaeuferProfil.investor_typ : 'Investor-Typ unbekannt'}
+                  {profile?.kanton && <> · Kanton {profile.kanton}</>}
+                </p>
+                <p className="text-caption text-quiet mt-1 inline-flex items-center gap-3">
+                  <span className="inline-flex items-center gap-1">
+                    <Calendar className="w-3 h-3" strokeWidth={1.5} />
+                    Anfrage vom {formatDate(anfrage.created_at)}
+                  </span>
+                  <StatusPill status={anfrage.status} />
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-col gap-2 items-end">
+              {profile?.verified_phone && (
+                <span className="inline-flex items-center gap-1 text-caption text-success font-medium">
+                  <ShieldCheck className="w-3.5 h-3.5" strokeWidth={1.5} />
+                  Telefon verifiziert
+                </span>
+              )}
+              {kaeuferProfil?.finanzierungsnachweis_verified && (
+                <span className="inline-flex items-center gap-1 text-caption text-success font-medium">
+                  <Wallet className="w-3.5 h-3.5" strokeWidth={1.5} />
+                  Finanzierung bestätigt
+                </span>
+              )}
+              {profile?.verified_kyc && (
+                <span className="inline-flex items-center gap-1 text-caption text-success font-medium">
+                  <ShieldCheck className="w-3.5 h-3.5" strokeWidth={1.5} />
+                  KYC verifiziert
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* ── 2-SPALTEN: Profil LINKS · Aktionen RECHTS ──────────── */}
+        <div className="grid lg:grid-cols-[1fr_320px] gap-6">
+          <div className="space-y-6">
+            {/* Anfrage-Nachricht */}
+            <section className="bg-paper border border-stone rounded-card p-5">
+              <p className="overline text-bronze-ink mb-3">Anfrage-Nachricht</p>
+              <p className="text-body text-ink leading-relaxed whitespace-pre-wrap">
+                {anfrage.nachricht ?? <span className="text-quiet italic">Keine Nachricht.</span>}
+              </p>
+            </section>
+
+            {/* Käufer-Profil im Detail */}
+            <section className="bg-paper border border-stone rounded-card p-5">
+              <p className="overline text-bronze-ink mb-4">Käufer-Profil</p>
+
+              <div className="grid sm:grid-cols-2 gap-4 mb-5">
+                <Detail icon={Briefcase} label="Investor-Typ" value={
+                  kaeuferProfil?.investor_typ ? INVESTOR_LABELS[kaeuferProfil.investor_typ] ?? kaeuferProfil.investor_typ : '—'
+                } />
+                <Detail icon={Wallet} label="Budget" value={budgetText} mono />
+                <Detail icon={Clock} label="Timing" value={
+                  kaeuferProfil?.timing ? TIMING_LABELS[kaeuferProfil.timing] ?? kaeuferProfil.timing : '—'
+                } />
+                <Detail icon={Sparkles} label="Erfahrung" value={
+                  kaeuferProfil?.erfahrung ? ERFAHRUNG_LABELS[kaeuferProfil.erfahrung] ?? kaeuferProfil.erfahrung : '—'
+                } />
+              </div>
+
+              {Array.isArray(kaeuferProfil?.regionen) && kaeuferProfil.regionen.length > 0 && (
+                <div className="mb-4">
+                  <p className="text-caption text-quiet mb-1.5 inline-flex items-center gap-1">
+                    <MapPin className="w-3 h-3" strokeWidth={1.5} />
+                    Wunsch-Regionen
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {(kaeuferProfil.regionen as string[]).map((r) => (
+                      <span key={r} className="inline-flex items-center px-2 py-0.5 rounded-pill bg-stone/50 text-caption text-navy font-mono">
+                        {r}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {Array.isArray(kaeuferProfil?.branche_praeferenzen) && kaeuferProfil.branche_praeferenzen.length > 0 && (
+                <div className="mb-4">
+                  <p className="text-caption text-quiet mb-1.5">Bevorzugte Branchen</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {(kaeuferProfil.branche_praeferenzen as string[]).map((b) => (
+                      <span key={b} className="inline-flex items-center px-2.5 py-0.5 rounded-pill bg-bronze/10 text-caption text-bronze-ink">
+                        {b}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {kaeuferProfil?.beschreibung && (
+                <div className="mb-4 pt-3 border-t border-stone/40">
+                  <p className="text-caption text-quiet mb-1.5">Persönliche Beschreibung</p>
+                  <p className="text-body-sm text-ink leading-relaxed whitespace-pre-wrap">
+                    {kaeuferProfil.beschreibung}
+                  </p>
+                </div>
+              )}
+
+              {kaeuferProfil?.linkedin_url && (
+                <a
+                  href={kaeuferProfil.linkedin_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-body-sm text-bronze-ink hover:text-bronze transition-colors"
+                >
+                  <Linkedin className="w-4 h-4" strokeWidth={1.5} />
+                  LinkedIn-Profil ansehen
+                </a>
+              )}
+
+              {!kaeuferProfil && (
+                <p className="text-caption text-quiet italic">
+                  Käufer hat noch kein Profil ausgefüllt.
+                </p>
+              )}
+            </section>
+
+            {/* Käuferdossier */}
+            {anfrage.dossier_requested_at && (
+              <section className="bg-paper border border-stone rounded-card p-5">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="overline text-bronze-ink">Käuferdossier</p>
+                  <span className="text-caption text-quiet font-mono">
+                    Angefordert {formatDate(anfrage.dossier_requested_at)}
+                  </span>
+                </div>
+                {kaeuferProfil?.dossier_url ? (
+                  <DossierLink url={kaeuferProfil.dossier_url} uploadedAt={kaeuferProfil.dossier_uploaded_at ?? null} />
+                ) : (
+                  <p className="text-body-sm text-muted leading-relaxed">
+                    <Clock className="inline-block w-3.5 h-3.5 mr-1 -mt-0.5 text-quiet" strokeWidth={1.5} />
+                    Wartet auf Upload des Käufers — er hat eine Mail bekommen.
+                    {anfrage.dossier_request_message && (
+                      <span className="block mt-2 pl-3 border-l-2 border-bronze/30 italic text-quiet">
+                        Deine Nachricht: «{anfrage.dossier_request_message}»
+                      </span>
+                    )}
+                  </p>
+                )}
+              </section>
+            )}
+          </div>
+
+          {/* ── PRO-AKTIONEN (Sidebar rechts) ───────────────────── */}
+          <aside className="space-y-4">
+            <AnfrageProActions
+              anfrageId={anfrage.id}
+              isPro={isPro}
+              dossierRequestedAt={anfrage.dossier_requested_at}
+              datenraumGrantedAt={anfrage.datenraum_granted_at}
+              hasUploadedDossier={Boolean(kaeuferProfil?.dossier_url)}
+            />
+
+            {/* Mandat-Link */}
+            <div className="bg-paper border border-stone rounded-soft p-4">
+              <p className="overline text-quiet text-caption mb-1.5">Zum Mandat</p>
+              <p className="text-body-sm text-navy font-medium leading-snug mb-2 inline-flex items-center gap-1">
+                <Building2 className="w-3.5 h-3.5 text-quiet" strokeWidth={1.5} />
+                {inseratLabel}
+              </p>
+              <Link
+                href={`/dashboard/broker/mandate/${inserat.id}`}
+                className="text-caption text-bronze-ink hover:text-bronze inline-flex items-center gap-1"
+              >
+                Mandat öffnen →
+              </Link>
+            </div>
+
+            {/* Inbox-Link */}
+            <div className="bg-paper border border-stone rounded-soft p-4">
+              <p className="overline text-quiet text-caption mb-1.5">Konversation</p>
+              <p className="text-body-sm text-muted leading-snug mb-2">
+                Vollständiger Chat-Verlauf in der Inbox.
+              </p>
+              <Link
+                href={`/dashboard/broker/anfragen?thread=k:${anfrage.id}`}
+                className="text-caption text-bronze-ink hover:text-bronze inline-flex items-center gap-1"
+              >
+                In Inbox öffnen →
+              </Link>
+            </div>
+          </aside>
+        </div>
       </div>
     </div>
   );
 }
 
-function Row({
-  icon: Icon,
-  label,
-  children,
+function Detail({
+  icon: Icon, label, value, mono,
 }: {
-  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
+  icon: typeof Mail;
   label: string;
-  children: React.ReactNode;
+  value: string;
+  mono?: boolean;
 }) {
   return (
-    <div className="flex items-center gap-2">
-      <Icon className="w-3.5 h-3.5 text-quiet flex-shrink-0" strokeWidth={1.5} />
-      <span className="text-quiet w-32 flex-shrink-0">{label}</span>
-      <span className="text-ink">{children}</span>
+    <div>
+      <p className="text-caption text-quiet mb-0.5 inline-flex items-center gap-1">
+        <Icon className="w-3 h-3" strokeWidth={1.5} />
+        {label}
+      </p>
+      <p className={mono ? 'text-body-sm text-navy font-mono' : 'text-body-sm text-navy'}>
+        {value}
+      </p>
     </div>
   );
 }
 
-function StatusBadge({ status }: { status: string }) {
+function StatusPill({ status }: { status: string }) {
   const map: Record<string, { label: string; cls: string }> = {
     neu: { label: 'Neu', cls: 'bg-bronze/15 text-bronze-ink' },
     in_pruefung: { label: 'In Prüfung', cls: 'bg-warn/15 text-warn' },
     akzeptiert: { label: 'Akzeptiert', cls: 'bg-success/15 text-success' },
-    abgelehnt: { label: 'Abgelehnt', cls: 'bg-danger/10 text-danger' },
-    nda_pending: { label: 'NDA Pending', cls: 'bg-navy/10 text-navy' },
-    nda_signed: { label: 'NDA Signed', cls: 'bg-success/15 text-success' },
-    released: { label: 'Freigegeben', cls: 'bg-success/15 text-success' },
+    abgelehnt: { label: 'Abgelehnt', cls: 'bg-stone text-quiet' },
+    nda_pending: { label: 'NDA wartet', cls: 'bg-warn/15 text-warn' },
+    nda_signed: { label: 'NDA signiert', cls: 'bg-success/15 text-success' },
     geschlossen: { label: 'Geschlossen', cls: 'bg-stone text-quiet' },
   };
-  const entry = map[status] ?? { label: status, cls: 'bg-stone text-quiet' };
+  const m = map[status] ?? { label: status, cls: 'bg-stone text-quiet' };
   return (
-    <span className={`inline-flex items-center px-2.5 py-1 rounded-pill text-caption font-medium uppercase ${entry.cls}`}>
-      {entry.label}
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-pill text-[10px] font-medium ${m.cls}`}>
+      {m.label}
     </span>
   );
+}
+
+function DossierLink({ url, uploadedAt }: { url: string; uploadedAt: string | null }) {
+  return (
+    <div className="rounded-soft bg-success/5 border border-success/30 p-3">
+      <div className="flex items-center gap-3">
+        <FileText className="w-5 h-5 text-success flex-shrink-0" strokeWidth={1.5} />
+        <div className="flex-1 min-w-0">
+          <p className="text-body-sm text-navy font-medium">Käuferdossier hochgeladen</p>
+          {uploadedAt && (
+            <p className="text-caption text-quiet">am {formatDate(uploadedAt)}</p>
+          )}
+        </div>
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-navy text-cream rounded-soft text-caption font-medium hover:bg-ink transition-colors"
+        >
+          <CheckCircle2 className="w-3.5 h-3.5" strokeWidth={2} />
+          Öffnen
+        </a>
+      </div>
+    </div>
+  );
+}
+
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('de-CH', { day: '2-digit', month: 'short', year: 'numeric' });
 }

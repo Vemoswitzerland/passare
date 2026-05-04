@@ -23,10 +23,10 @@ import { cn } from '@/lib/utils';
  */
 
 export type InboxThread = {
-  /** k:<anfrageId> oder p:<inseratId> */
+  /** k:<anfrageId> · p:<inseratId> · g:<anfrageId> (broker_gesendet) */
   id: string;
-  type: 'kaeufer' | 'passare';
-  /** Anzeige-Titel (Käufer-Name oder «passare-Team») */
+  type: 'kaeufer' | 'passare' | 'broker_gesendet';
+  /** Anzeige-Titel (Käufer-Name, «passare-Team» oder Inserat-Owner-Name) */
   title: string;
   initials: string;
   /** Letzte Nachricht für die Liste */
@@ -67,8 +67,8 @@ type Props = {
   canReplyPassare: boolean;
   /** Aus welchem Bereich öffnen wir die Inbox? Bestimmt URL + erlaubte Features */
   basePath?: string;
-  /** User-Rolle — bestimmt Attachment-Funktionen */
-  senderRole?: 'verkaeufer' | 'kaeufer' | 'admin';
+  /** User-Rolle — bestimmt Attachment-Funktionen. broker = wie verkaeufer behandeln. */
+  senderRole?: 'verkaeufer' | 'kaeufer' | 'admin' | 'broker';
 };
 
 export function InboxLayout({
@@ -221,7 +221,7 @@ function ChatPane({
   thread: InboxThread;
   messages: InboxMessage[];
   canReply: boolean;
-  senderRole: 'verkaeufer' | 'kaeufer' | 'admin';
+  senderRole: 'verkaeufer' | 'kaeufer' | 'admin' | 'broker';
 }) {
   const router = useRouter();
   const [draft, setDraft] = useState('');
@@ -250,6 +250,9 @@ function ChatPane({
         let res: { ok: boolean; error?: string };
         if (thread.type === 'kaeufer') {
           res = await sendAnfrageMessage(thread.id.replace(/^k:/, ''), text, pendingAttachments);
+        } else if (thread.type === 'broker_gesendet') {
+          // Broker antwortet als Käufer auf eigenen Thread (kaeufer_id = me)
+          res = await sendAnfrageMessage(thread.id.replace(/^g:/, ''), text, pendingAttachments);
         } else if (senderRole === 'admin') {
           // Admin schreibt in audit-messages mit from_role='admin'
           res = await sendInseratMessageAction({
@@ -257,7 +260,7 @@ function ChatPane({
             message: text,
           });
         } else {
-          // Verkäufer antwortet auf passare-Team-Rückfrage
+          // Verkäufer/Broker antwortet auf passare-Team-Rückfrage
           res = await respondToRevisionAction(thread.id.replace(/^p:/, ''), text);
         }
         if (res.ok) {
@@ -294,7 +297,11 @@ function ChatPane({
                 ? '/dashboard/verkaeufer/inserat'
                 : senderRole === 'admin'
                   ? `/admin/inserate/${thread.inseratId}`
-                  : `/inserat/${thread.inseratId}`
+                  : senderRole === 'broker'
+                    ? thread.type === 'broker_gesendet'
+                      ? `/inserat/${thread.inseratId}`
+                      : `/dashboard/broker/mandate/${thread.inseratId}`
+                    : `/inserat/${thread.inseratId}`
             }
             className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-soft text-caption text-quiet hover:text-navy hover:bg-stone/40 transition-colors max-w-[260px]"
             title={`Zum Inserat «${thread.inseratTitel}»`}
@@ -449,7 +456,9 @@ function ChatPane({
               placeholder={
                 thread.type === 'kaeufer'
                   ? 'Antwort an den Käufer schreiben …'
-                  : 'Antwort an das passare-Team schreiben …'
+                  : thread.type === 'broker_gesendet'
+                    ? 'Nachricht an den Inserat-Inhaber schreiben …'
+                    : 'Antwort an das passare-Team schreiben …'
               }
               className="flex-1 resize-none rounded-soft border border-stone bg-cream/40 px-3 py-2 text-body-sm focus:outline-none focus:border-bronze focus:bg-paper transition-colors"
               disabled={pending}
@@ -500,7 +509,7 @@ function ChatPane({
 function ThreadAvatar({
   type, initials, active,
 }: {
-  type: 'kaeufer' | 'passare';
+  type: 'kaeufer' | 'passare' | 'broker_gesendet';
   initials: string;
   active?: boolean;
 }) {
@@ -511,6 +520,16 @@ function ThreadAvatar({
         active ? 'bg-bronze text-cream' : 'bg-bronze/15 text-bronze-ink',
       )}>
         <Sparkles className="w-4 h-4" strokeWidth={1.5} />
+      </div>
+    );
+  }
+  if (type === 'broker_gesendet') {
+    return (
+      <div className={cn(
+        'w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 text-caption font-medium',
+        active ? 'bg-bronze text-cream' : 'bg-bronze/15 text-bronze-ink',
+      )}>
+        {initials || <User className="w-4 h-4" strokeWidth={1.5} />}
       </div>
     );
   }

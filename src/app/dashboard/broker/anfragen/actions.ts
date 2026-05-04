@@ -17,15 +17,13 @@ export async function setAnfrageStatus(
     p_reason: reason ?? null,
   });
   if (error) return { ok: false, error: error.message };
-  revalidatePath('/dashboard/verkaeufer/anfragen');
-  revalidatePath('/dashboard/verkaeufer/nda');
+  revalidatePath('/dashboard/broker/anfragen');
+  revalidatePath('/dashboard/broker/nda');
   return { ok: true };
 }
 
 /**
- * Anhang-Typ für Chat-Nachrichten — auf Verkäufer-Seite kommen aktuell
- * Datenraum-Dateien rein, später könnten weitere Quellen dazu kommen
- * (Käufer-Dossier, Direkt-Upload).
+ * Anhang-Typ — analog zur Verkäufer-Variante.
  */
 export type AnfrageAttachment = {
   kind: 'datenraum' | 'kaeufer_dossier' | 'upload';
@@ -37,15 +35,14 @@ export type AnfrageAttachment = {
 };
 
 /**
- * Verkäufer (oder Käufer) schickt eine Nachricht im Anfragen-Chat.
+ * Broker schickt eine Nachricht im Anfragen-Chat. Der Broker tritt in
+ * zwei Rollen auf: als Inserats-Inhaber (broker_id) ODER als Käufer
+ * (kaeufer_id) bei eigenen gesendeten Anfragen. Beides ist hier erlaubt.
  *
- * Cyrill 30.04.2026: «Konversation soll als Thread unter Anfragen
- * laufen — Käufer und Verkäufer schreiben sich direkt, mit Inserat-
- * Tag im Chat-Header.» Cyrill 30.04.2026 (Update): «Chat soll mehr
- * Funktionen haben — Unterlagen senden, Käufer kann Dokumente schicken.»
- *
- * RLS regelt wer schreiben darf. Bei attachments mit kind=datenraum
- * prüfen wir zusätzlich dass die file zum richtigen Inserat gehört.
+ * RLS regelt die DB-Seite — wir setzen `from_role` korrekt:
+ *   • broker als Inserat-Inhaber  →  from_role='verkaeufer' (gleiche
+ *     Logik wie bei normalen Verkäufern: er besitzt das Inserat)
+ *   • broker als Käufer            →  from_role='kaeufer'
  */
 export async function sendAnfrageMessage(
   anfrageId: string,
@@ -57,14 +54,12 @@ export async function sendAnfrageMessage(
   if (!u.user) return { ok: false, error: 'Nicht angemeldet.' };
 
   const trimmed = message.trim();
-  // Eine leere Nachricht ist OK wenn Anhänge dabei sind ("Hier deine Unterlagen")
   if (trimmed.length === 0 && attachments.length === 0) {
     return { ok: false, error: 'Leere Nachricht.' };
   }
   if (trimmed.length > 4000) return { ok: false, error: 'Zu lang (max 4000 Zeichen).' };
   if (attachments.length > 20) return { ok: false, error: 'Zu viele Anhänge (max 20).' };
 
-  // Rolle ermitteln: Käufer der Anfrage, Verkäufer des Inserats oder Admin
   const { data: anf } = await supabase
     .from('anfragen')
     .select('id, kaeufer_id, inserat_id')
@@ -85,7 +80,7 @@ export async function sendAnfrageMessage(
       (ins?.verkaeufer_id as string | undefined) === u.user.id ||
       (ins?.broker_id as string | undefined) === u.user.id
     ) {
-      // Broker oder Verkäufer als Inserat-Inhaber — gleiche Rolle
+      // Broker tritt als Inserat-Inhaber auf — gleiche Rolle wie verkaeufer
       role = 'verkaeufer';
     } else {
       const { data: prof } = await supabase
@@ -98,7 +93,7 @@ export async function sendAnfrageMessage(
   }
   if (!role) return { ok: false, error: 'Keine Berechtigung.' };
 
-  // Datenraum-Anhänge validieren: nur eigene Files des Inserats
+  // Datenraum-Anhänge validieren — nur Files des Inserats
   if (attachments.some((a) => a.kind === 'datenraum')) {
     const fileIds = attachments
       .filter((a) => a.kind === 'datenraum' && a.file_id)
@@ -126,16 +121,15 @@ export async function sendAnfrageMessage(
   });
   if (error) return { ok: false, error: error.message };
 
+  revalidatePath('/dashboard/broker/anfragen');
   revalidatePath('/dashboard/verkaeufer/anfragen');
   revalidatePath('/dashboard/kaeufer/anfragen');
   return { ok: true };
 }
 
 /**
- * Listet die Datenraum-Dateien des Verkäufers für ein Inserat — als
- * Auswahl-Quelle für den «Unterlagen senden»-Knopf im Chat.
- *
- * RLS prüft Owner via Inserat-Verkäufer-ID.
+ * Listet die Datenraum-Dateien des Mandats für die Anfrage. Berechtigt:
+ * Verkäufer-Inhaber ODER Broker des Inserats.
  */
 export async function listDatenraumFilesForAnfrage(
   anfrageId: string,

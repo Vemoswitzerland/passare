@@ -460,10 +460,12 @@ export async function submitForReview(inseratId: string): Promise<ActionResult> 
     .maybeSingle();
   if (!ins) return { ok: false, error: 'Keine Berechtigung oder Inserat nicht gefunden.' };
 
-  // Branche / branche_id-Schema-Drift abdecken
+  // Branche / branche_id-Schema-Drift abdecken.
+  // Pflichtfelder: Titel + Beschreibung + Kanton + Branche.
+  // Umsatz/Kaufpreis dürfen 0 oder null sein (Range-Inserate, VHB).
   const branche = (ins as Record<string, unknown>).branche_id ?? (ins as Record<string, unknown>).branche;
-  if (!ins.titel || !branche || !ins.kanton || !ins.umsatz_chf || !ins.beschreibung) {
-    return { ok: false, error: 'Pflichtfelder fehlen — bitte Titel, Branche, Kanton, Umsatz und Beschreibung ergänzen.' };
+  if (!ins.titel || !branche || !ins.kanton || !ins.beschreibung) {
+    return { ok: false, error: 'Pflichtfelder fehlen — bitte Titel, Branche, Kanton und Beschreibung ergänzen.' };
   }
 
   const { error } = await supabase.rpc('publish_inserat', { p_id: inseratId });
