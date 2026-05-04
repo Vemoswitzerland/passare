@@ -105,7 +105,7 @@ export default async function BrokerAnfragenPage() {
                 return (
                   <Link
                     key={a.id}
-                    href={`/dashboard/verkaeufer/anfragen/${a.id}`}
+                    href={`/dashboard/broker/anfragen/${a.id}`}
                     className="group flex items-center gap-4 rounded-card bg-paper border border-stone p-4 hover:border-bronze/40 hover:shadow-card transition-all"
                   >
                     <div className="w-9 h-9 rounded-full bg-navy/10 flex items-center justify-center flex-shrink-0">

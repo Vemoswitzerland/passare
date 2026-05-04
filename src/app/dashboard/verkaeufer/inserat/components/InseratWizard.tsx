@@ -1523,15 +1523,34 @@ function Step5Paket({
     kaufpreis_vhb: data.kaufpreis_vhb,
   });
 
-  if (data.paid_at) {
+  // Broker-Mandate sind durch das Broker-Abo abgedeckt — kein Verkäufer-
+  // Checkout. Auch bei "halb-fertigem" State (paid_at nicht gesetzt aber
+  // paket = broker_*) zeigen wir die Bestätigung statt Verkäufer-Pakete.
+  const isBrokerMandat = typeof data.paket === 'string' && data.paket.startsWith('broker_');
+
+  if (data.paid_at || isBrokerMandat) {
+    const tierLabel = isBrokerMandat
+      ? data.paket === 'broker_pro' ? 'Broker Pro' : 'Broker Starter'
+      : (data.paket ?? '').toUpperCase();
     return (
       <div className="text-center py-16 animate-fade-up">
         <div className="w-16 h-16 mx-auto rounded-full bg-success/15 flex items-center justify-center mb-4">
           <Check className="w-8 h-8 text-success" strokeWidth={2} />
         </div>
-        <h2 className="font-serif text-head-md text-navy mb-2">Paket gebucht</h2>
+        <h2 className="font-serif text-head-md text-navy mb-2">
+          {isBrokerMandat ? 'Mandat ist eingerichtet' : 'Paket gebucht'}
+        </h2>
         <p className="text-body text-muted mb-6">
-          Dein <strong className="text-navy uppercase">{data.paket}</strong>-Paket ist aktiv. Wir prüfen dein Inserat — meist innerhalb 24h.
+          {isBrokerMandat ? (
+            <>
+              Dein <strong className="text-navy">{tierLabel}</strong>-Abo deckt dieses Mandat ab.
+              Wir prüfen das Inserat — meist innerhalb 24h.
+            </>
+          ) : (
+            <>
+              Dein <strong className="text-navy uppercase">{data.paket}</strong>-Paket ist aktiv. Wir prüfen dein Inserat — meist innerhalb 24h.
+            </>
+          )}
         </p>
       </div>
     );
