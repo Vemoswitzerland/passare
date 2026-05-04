@@ -163,7 +163,7 @@ function renderValuationHtml(i: SendValuationInput): string {
     </div>
 
     <p style="margin:32px 0 0;font-size:11px;color:#9aa0a6;text-align:center;">
-      passare — Made in Switzerland · 0% Erfolgsprovision · passare.ch
+      passare — Made in Switzerland · passare.ch
     </p>
   </div>
 </body></html>`;

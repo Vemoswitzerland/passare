@@ -15,7 +15,7 @@ import {
  * Mein Inserat · Anfragen · Datenraum · Statistik · Experten · Paket
  * (NDA-Pipeline ist Teil von «Anfragen», keine eigene Sektion mehr;
  * «Mandate» gibt's nur im Broker-Bereich, nicht im Verkäufer-Dashboard).
- * KPIs: Views · Anfragen · Favoriten. «0 % Erfolgsprovision» als
+ * KPIs: Views · Anfragen · Favoriten. Self-Service-Plattform-Tag als
  * USP-Banner unten — passt zur Self-Service-Plattform-Positionierung.
  */
 export function DashboardMockup() {
@@ -95,14 +95,14 @@ export function DashboardMockup() {
               <InseratRow title="Mitarbeitende" meta="Vollzeit-Äquivalente" kpi="34" status="" muted last />
             </div>
 
-            {/* USP-Streifen — passend zur 0%-Provisions-Positionierung */}
+            {/* USP-Streifen */}
             <div className="hidden md:flex items-center justify-between px-3.5 py-2 rounded-soft bg-bronze/5 border border-bronze/30">
               <div className="flex items-center gap-2">
                 <span className="font-mono text-[9px] uppercase tracking-widest text-bronze-ink">
-                  0 % Provision
+                  Anonym
                 </span>
                 <span className="font-mono text-[9px] text-quiet">
-                  · einmalige Inserat-Gebühr · ohne Erfolgsanteil
+                  · einmalige Inserat-Gebühr · Sie geben jede Anfrage frei
                 </span>
               </div>
               <span className="font-mono text-[9px] text-quiet">passare.ch</span>

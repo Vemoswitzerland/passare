@@ -57,7 +57,7 @@ function Cards({
         selected={selected === 'verkaeufer'}
         icon={Building2}
         title="Ich verkaufe"
-        desc="Mein Unternehmen bei passare anbieten. Anonym, mit Bewertung und 0% Erfolgsprovision."
+        desc="Mein Unternehmen bei passare anbieten. Anonym, inkl. Bewertung — Sie behalten die Kontrolle."
         onClick={() => setSelected('verkaeufer')}
         disabled={pending}
       />

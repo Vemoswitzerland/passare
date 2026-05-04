@@ -4,13 +4,23 @@ import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 
 export const metadata = {
-  title: 'Inserat starten — passare',
+  title: 'Firma inserieren — passare',
   description:
-    'In wenigen Schritten zur Firmen-Bewertung. Live-Daten aus dem Schweizer Handelsregister, indikativer Marktwert in Sekunden — anonym, kostenlos, unverbindlich.',
+    'In wenigen Schritten zum eigenen Inserat — Handelsregister-Import, anonyme Eckdaten, dann Registrierung.',
   robots: { index: false, follow: false },
 };
 
-export default function PreRegStartPage() {
+type Props = {
+  searchParams: Promise<{ mode?: string }>;
+};
+
+export default async function PreRegStartPage({ searchParams }: Props) {
+  const sp = await searchParams;
+  // Mode steuert ob der Funnel zur Bewertung (mit Detail-Faktoren + Mail-Versand)
+  // oder zum Inserieren (direkt zur Registrierung am Schluss) führt.
+  const mode: 'bewerten' | 'inserieren' =
+    sp.mode === 'bewerten' ? 'bewerten' : 'inserieren';
+
   return (
     <main className="min-h-screen bg-cream">
       <header className="border-b border-stone bg-cream/80 backdrop-blur-md sticky top-0 z-30">
@@ -31,7 +41,7 @@ export default function PreRegStartPage() {
       </header>
 
       <Container size="default" className="py-12 md:py-20">
-        <FirmaOnboarding />
+        <FirmaOnboarding mode={mode} />
       </Container>
     </main>
   );

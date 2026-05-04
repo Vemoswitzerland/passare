@@ -292,6 +292,7 @@ export async function updateKontaktFelder(
     kontakt_nachname?: string | null;
     kontakt_funktion?: string | null;
     kontakt_email_public?: string | null;
+    kontakt_telefon_nr?: string | null;
     kontakt_whatsapp_nr?: string | null;
     kontakt_foto_url?: string | null;
   },
@@ -306,6 +307,7 @@ export async function updateKontaktFelder(
   if ('kontakt_nachname' in data) patch.kontakt_nachname = trimOrNull(data.kontakt_nachname);
   if ('kontakt_funktion' in data) patch.kontakt_funktion = trimOrNull(data.kontakt_funktion);
   if ('kontakt_email_public' in data) patch.kontakt_email_public = trimOrNull(data.kontakt_email_public);
+  if ('kontakt_telefon_nr' in data) patch.kontakt_telefon_nr = trimOrNull(data.kontakt_telefon_nr);
   if ('kontakt_whatsapp_nr' in data) patch.kontakt_whatsapp_nr = trimOrNull(data.kontakt_whatsapp_nr);
   if ('kontakt_foto_url' in data) patch.kontakt_foto_url = trimOrNull(data.kontakt_foto_url);
 

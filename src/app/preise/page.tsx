@@ -10,7 +10,7 @@ import { SiteHeader } from '../page';
 export const metadata = {
   title: 'Inserat-Preise — passare',
   description:
-    'Transparente Pakete für Verkäufer: Inserat Light CHF 710, Pro CHF 890, Premium CHF 1\'890 (jeweils 12 Monate). Auch als 6-Monats-Variante. Klein-Inserat-Rabatt 25 % bei Verkaufspreis unter CHF 500\'000. Pauschalpreis, 0 % Erfolgsprovision, keine Auto-Verlängerung.',
+    'Transparente Pakete für Verkäufer: Inserat Light CHF 710, Pro CHF 890, Premium CHF 1\'890 (jeweils 12 Monate). Auch als 6-Monats-Variante. Klein-Inserat-Rabatt 25 % bei Verkaufspreis unter CHF 500\'000. Keine Auto-Verlängerung.',
   robots: { index: false, follow: false },
 };
 
@@ -42,8 +42,9 @@ function Hero() {
           <Reveal delay={0.1}>
             <p className="text-body-lg md:text-xl text-muted max-w-prose leading-relaxed">
               Sie zahlen einmal eine Paketgebühr — Light, Pro oder Premium — und Ihr Inserat
-              läuft die volle Laufzeit. Keine automatische Verlängerung. 0 % Erfolgsprovision,
-              egal für welchen Preis Ihre Firma am Ende den Besitzer wechselt.
+              läuft die volle Laufzeit. Keine automatische Verlängerung. Die Konditionen für
+              eine Erfolgsbeteiligung im Verkaufsfall klären wir vor der Freischaltung mit Ihnen
+              persönlich.
             </p>
           </Reveal>
         </div>
@@ -66,8 +67,8 @@ function VerkaeuferTable() {
 function Faq() {
   const items = [
     {
-      q: 'Verdient passare am Verkaufspreis mit?',
-      a: 'Nein, niemals. passare verdient ausschliesslich am Paketpreis. Was Sie für Ihre Firma lösen, gehört Ihnen zu 100 %.',
+      q: 'Wie verdient passare?',
+      a: 'Sie zahlen einmal das Inserat-Paket (Light, Pro oder Premium). Im Falle eines erfolgreichen Verkaufs über passare wird zusätzlich eine Erfolgsbeteiligung fällig — die genauen Konditionen besprechen wir vor der Freischaltung Ihres Inserats persönlich mit Ihnen.',
     },
     {
       q: 'Was passiert nach Ablauf der Laufzeit?',

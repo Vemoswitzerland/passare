@@ -152,8 +152,8 @@ function StepRolle({
           title="Ich verkaufe"
           subtitle="Mein Unternehmen anonym inserieren"
           bullets={[
-            'Ab CHF 425, einmaliger Paketpreis',
-            'Pauschalpreis — keine Folgekosten',
+            'Ab CHF 425, einmaliger Inserat-Paketpreis',
+            'Anonym — Firmenname & Zahlen bleiben verdeckt',
             'Detailfreigabe nur durch Sie selbst',
           ]}
         />

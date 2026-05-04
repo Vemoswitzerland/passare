@@ -76,7 +76,7 @@ const VARIANTS: Record<Variant, {
     eyebrow: 'Noch keine Inserate',
     headline: 'Sei der erste KMU-Verkäufer auf passare',
     beschreibung:
-      'Aktuell sind noch keine Firmen öffentlich gelistet. Stell dein Unternehmen vor — anonym, mit klarer Bewertung und transparenten Pauschalpreisen.',
+      'Aktuell sind noch keine Firmen öffentlich gelistet. Stell dein Unternehmen vor — anonym, mit klarer Bewertung und transparenten Inserat-Paketen.',
     cta1: { label: 'Firma inserieren', href: '/verkaufen' },
     cta2: { label: 'Suchprofil anlegen', href: '/onboarding/kaeufer/tunnel' },
   },

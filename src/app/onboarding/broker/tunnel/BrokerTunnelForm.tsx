@@ -373,7 +373,7 @@ export function BrokerTunnelForm({ userName }: Props) {
             <div className="flex items-center gap-4 mb-5">
               <span className="overline text-navy">Pakete</span>
               <span className="h-px flex-1 bg-stone" />
-              <span className="font-mono text-[11px] text-quiet">jederzeit kündbar · 0 % Erfolgsprovision</span>
+              <span className="font-mono text-[11px] text-quiet">jederzeit kündbar · monatliche Abrechnung</span>
             </div>
             <h2 className="font-serif text-display-md text-navy font-light">
               Starter oder Pro.

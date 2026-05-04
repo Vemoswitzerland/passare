@@ -18,19 +18,23 @@ export const dynamic = 'force-dynamic';
 
 export default async function VerkaufenPage() {
   const state = await getUserState();
-  const ctaStart = ctaVerkaeufer(state);
+  const ctaInserat = ctaVerkaeufer(state);
+  // Bewertungs-Funnel ist eigener Modus — geht IMMER in Pre-Reg-Funnel,
+  // unabhängig vom Auth-State, weil User vielleicht noch nicht entschieden
+  // hat, ob er inserieren will.
+  const ctaBewerten = '/verkaufen/start?mode=bewerten';
 
   return (
     <main className="min-h-screen flex flex-col bg-cream">
       <TopBar />
-      <Hero ctaStart={ctaStart} />
+      <Hero ctaStart={ctaInserat} />
       <BrokerBanner />
       <Benefits />
-      <Packages ctaStart={ctaStart} />
+      <Packages ctaStart={ctaInserat} />
       <Process />
-      <BewertungsKarte ctaStart={ctaStart} />
+      <BewertungsKarte ctaBewerten={ctaBewerten} />
       <FAQ />
-      <CTA ctaStart={ctaStart} />
+      <CTA ctaStart={ctaInserat} />
       <Footer />
     </main>
   );
@@ -67,25 +71,23 @@ function Hero({ ctaStart }: { ctaStart: string }) {
             <Reveal delay={0.2}>
               <div className="flex flex-col sm:flex-row gap-4 items-start mb-3">
                 <Button href={ctaStart} size="lg">
-                  Bewerten &amp; inserieren <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
+                  Inserieren <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
                 </Button>
                 <Button href="#pakete" variant="secondary" size="lg">
                   Pakete ansehen
                 </Button>
               </div>
               <p className="text-caption text-quiet mb-12 max-w-prose">
-                Der Inserat-Funnel beginnt mit der Smart-Bewertung &mdash; Sie sehen die Marktwert-Range Ihrer Firma, bevor Sie das Inserat fertig stellen.
+                Sie machen ein paar Eckdaten zu Ihrer Firma &mdash; ein Klick weiter sind Sie in der Registrierung und stellen das Inserat fertig.
               </p>
             </Reveal>
             <Reveal delay={0.3}>
               <div className="flex flex-wrap items-center gap-x-5 gap-y-2 font-mono text-[11px] uppercase tracking-widest text-quiet">
-                <SignalDot>Ab CHF 425</SignalDot>
+                <SignalDot>Anonymes Inserat</SignalDot>
                 <span className="w-px h-3 bg-stone" />
-                <SignalDot>Pauschalpreis</SignalDot>
+                <SignalDot>Sie geben frei</SignalDot>
                 <span className="w-px h-3 bg-stone" />
-                <SignalDot>Anonym</SignalDot>
-                <span className="w-px h-3 bg-stone" />
-                <SignalDot>0&nbsp;% Provision</SignalDot>
+                <SignalDot>Direkter Kontakt zu Käufern</SignalDot>
               </div>
             </Reveal>
           </div>
@@ -348,7 +350,7 @@ function Process() {
 }
 
 /* ───────────────────────────────── */
-function BewertungsKarte({ ctaStart }: { ctaStart: string }) {
+function BewertungsKarte({ ctaBewerten }: { ctaBewerten: string }) {
   return (
     <Section>
       <Container>
@@ -363,47 +365,44 @@ function BewertungsKarte({ ctaStart }: { ctaStart: string }) {
                 <div className="flex items-center gap-2 mb-4">
                   <span className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-bronze bg-bronze/10 border border-bronze/30 rounded-full px-2.5 py-1">
                     <Sparkles className="w-3 h-3" strokeWidth={1.5} />
-                    Alternativ-Weg
+                    Bewertungs-Tool
                   </span>
                   <span className="font-mono text-[10px] uppercase tracking-widest text-quiet">
-                    2 Min &middot; gratis &middot; ohne Konto
+                    Gratis &middot; ohne Konto
                   </span>
                 </div>
 
                 <h2 className="font-serif text-display-sm md:text-display-md text-navy font-light mb-4 tracking-[-0.02em] leading-[1.1]">
                   Erst bewerten<span className="text-bronze">.</span>{' '}
-                  <span className="text-muted italic">Dann inserieren.</span>
+                  <span className="text-muted italic">Dann entscheiden.</span>
                 </h2>
 
                 <p className="text-body-lg text-muted leading-relaxed mb-6">
                   Du weisst noch nicht, was deine Firma wert ist? Mit der
-                  Smart-Bewertung erhältst du eine indikative Marktwert-Range
-                  basierend auf Schweizer KMU-Multiples deiner Branche &mdash;
-                  und gehst direkt im Anschluss in den Inserat-Wizard.
+                  passare-Bewertung erhältst du eine umfassende
+                  Marktwert-Range basierend auf Schweizer KMU-Multiples
+                  deiner Branche &mdash; ohne Account, ohne Verpflichtung.
                 </p>
 
                 <ul className="grid sm:grid-cols-3 gap-3 mb-8">
                   <li className="flex items-start gap-2 text-body-sm">
                     <Check className="w-4 h-4 text-bronze flex-shrink-0 mt-0.5" strokeWidth={2} />
-                    <span className="text-ink">Marktwert-Range in 2 Min</span>
+                    <span className="text-ink">Handelsregister-First</span>
                   </li>
                   <li className="flex items-start gap-2 text-body-sm">
                     <Check className="w-4 h-4 text-bronze flex-shrink-0 mt-0.5" strokeWidth={2} />
-                    <span className="text-ink">EBITDA &amp; Umsatz-Multiples</span>
+                    <span className="text-ink">Detail-Faktoren berücksichtigt</span>
                   </li>
                   <li className="flex items-start gap-2 text-body-sm">
                     <Check className="w-4 h-4 text-bronze flex-shrink-0 mt-0.5" strokeWidth={2} />
-                    <span className="text-ink">Direkt-Übergabe ans Inserat</span>
+                    <span className="text-ink">PDF-Report per Mail</span>
                   </li>
                 </ul>
 
                 <div className="flex flex-col sm:flex-row gap-3 items-start">
-                  <Button href={ctaStart} size="lg">
+                  <Button href={ctaBewerten} size="lg">
                     <Calculator className="w-4 h-4" strokeWidth={1.5} />
-                    Bewerten &amp; inserieren
-                  </Button>
-                  <Button href="/bewerten" variant="ghost" size="lg">
-                    Nur bewerten (ohne Inserat) <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
+                    Firma bewerten
                   </Button>
                 </div>
               </div>
@@ -464,8 +463,8 @@ function FAQ() {
       a: 'Ja. Im Inserat-Wizard fragen wir zuerst Branche, Kanton, Mitarbeitende, Umsatz und EBITDA-Marge ab und zeigen Ihnen sofort eine indikative Marktwert-Range basierend auf aktuellen Schweizer KMU-Multiples. Das Inserat selbst wird im gleichen Flow erstellt — kein separater Schritt.',
     },
     {
-      q: 'Verdient passare am Verkaufspreis mit?',
-      a: 'Nein. passare ist eine Self-Service-Plattform. Sie zahlen einmal das Paket — ob Sie für CHF 500\'000 oder CHF 25 Mio verkaufen, am Plattform-Preis ändert sich nichts. 0 % Erfolgsprovision.',
+      q: 'Wie verdient passare?',
+      a: 'passare verbindet Verkäufer und Käufer direkt. Sie zahlen für das Inserat ein Plattform-Paket (siehe Pakete oben). Erst bei einem erfolgreichen Verkauf über passare wird zusätzlich eine Erfolgsbeteiligung fällig — die genauen Konditionen besprechen wir mit Ihnen vor der Freischaltung Ihres Inserats persönlich.',
     },
     {
       q: 'Was passiert, wenn mein Inserat nach der Laufzeit nicht verkauft ist?',
@@ -522,17 +521,17 @@ function CTA({ ctaStart }: { ctaStart: string }) {
           </Reveal>
           <Reveal delay={0.1}>
             <p className="text-body-lg text-cream/80 max-w-prose leading-relaxed mb-10">
-              Keine Verträge, keine Vertreterbesuche, keine Maklergebühren.
+              Keine Vertreterbesuche, kein Wochen-langes Onboarding.
               Wählen Sie ein Paket, füllen Sie 10 Minuten aus, und der Marktplatz öffnet sich.
             </p>
           </Reveal>
           <Reveal delay={0.2}>
             <div className="flex flex-col sm:flex-row gap-4 items-start">
               <Button href={ctaStart} variant="bronze" size="lg">
-                Bewerten &amp; inserieren <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
+                Inserieren <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
               </Button>
               <span className="font-mono text-[11px] uppercase tracking-widest text-cream/50 mt-3">
-                Ab CHF 425 &middot; Pauschalpreis &middot; 0 % Provision
+                Ab CHF 425 &middot; anonym &middot; Sie geben frei
               </span>
             </div>
           </Reveal>

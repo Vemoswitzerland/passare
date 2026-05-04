@@ -28,7 +28,12 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json().catch(() => ({}));
-  const { branche_id, umsatz, ebitda, mitarbeitende, jahr, inhaber_dependency, eigenkapital } = body;
+  const {
+    branche_id, umsatz, ebitda, mitarbeitende, jahr,
+    inhaber_dependency, eigenkapital,
+    // Erweiterte Detail-Faktoren aus dem Bewertungs-Funnel
+    wachstum_pct, recurring_pct, top3_kunden_pct, inhaberabhaengigkeit,
+  } = body;
 
   if (!branche_id || typeof umsatz !== 'number' || typeof ebitda !== 'number') {
     return NextResponse.json(
@@ -44,6 +49,20 @@ export async function POST(req: NextRequest) {
     await new Promise((r) => setTimeout(r, 1500));
   }
 
+  const numOrNull = (v: unknown): number | null => {
+    if (v == null) return null;
+    const n = Number(v);
+    return Number.isFinite(n) ? n : null;
+  };
+
+  const allowedInhaber = ['low', 'mid', 'high'] as const;
+  type AllowedInhaber = typeof allowedInhaber[number];
+  const inhaberLevel: AllowedInhaber | null =
+    typeof inhaberabhaengigkeit === 'string' &&
+    (allowedInhaber as readonly string[]).includes(inhaberabhaengigkeit)
+      ? (inhaberabhaengigkeit as AllowedInhaber)
+      : null;
+
   const result = calculateValuation({
     branche_id,
     umsatz: Number(umsatz),
@@ -52,6 +71,10 @@ export async function POST(req: NextRequest) {
     jahr: Number(jahr ?? new Date().getFullYear()),
     inhaber_dependency,
     eigenkapital: eigenkapital ? Number(eigenkapital) : undefined,
+    wachstum_pct: numOrNull(wachstum_pct),
+    recurring_pct: numOrNull(recurring_pct),
+    top3_kunden_pct: numOrNull(top3_kunden_pct),
+    inhaberabhaengigkeit: inhaberLevel,
   });
 
   return NextResponse.json(result);

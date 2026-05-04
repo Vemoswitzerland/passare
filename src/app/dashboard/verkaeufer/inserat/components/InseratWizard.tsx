@@ -117,6 +117,7 @@ type Inserat = {
   kontakt_funktion: string | null;
   kontakt_foto_url: string | null;
   kontakt_email_public: string | null;
+  kontakt_telefon_nr: string | null;
   kontakt_whatsapp_nr: string | null;
   // Paket
   paket: string | null;
@@ -1385,7 +1386,10 @@ function Step4Strengths({
             </label>
           </div>
 
-          {/* Direkt-Kontakte */}
+          {/* Direkt-Kontakte — Cyrill 04.05.2026: Telefon und WhatsApp
+              MÜSSEN getrennt sein. Viele Verkäufer wollen WhatsApp nicht
+              für eingehende Anrufe nutzen oder geben für Geschäftliches
+              eine Festnetz-Nr für Anrufe an. */}
           <div>
             <p className="text-caption text-quiet mb-2">Mindestens ein Direkt-Kontakt erforderlich <span className="text-warn">*</span></p>
             <div className="grid md:grid-cols-2 gap-3">
@@ -1400,7 +1404,41 @@ function Step4Strengths({
                 />
               </label>
               <label className="block">
-                <span className="text-caption text-quiet block mb-1.5">WhatsApp-Nummer</span>
+                <span className="text-caption text-quiet block mb-1.5">Telefon (optional)</span>
+                <input
+                  type="tel"
+                  value={data.kontakt_telefon_nr ?? ''}
+                  onChange={(e) => update({ kontakt_telefon_nr: e.target.value })}
+                  placeholder="+41 44 123 45 67"
+                  className="w-full px-4 py-3 bg-paper border border-stone rounded-soft text-body focus:outline-none focus:border-bronze focus:shadow-focus transition-all"
+                />
+              </label>
+            </div>
+            <div className="grid md:grid-cols-2 gap-3 mt-3">
+              <label className="block">
+                <span className="text-caption text-quiet mb-1.5 inline-flex items-center gap-1.5">
+                  WhatsApp-Nummer (optional)
+                  <span className="relative inline-flex group">
+                    <span
+                      tabIndex={0}
+                      className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full text-quiet hover:text-bronze-ink cursor-help select-none"
+                      aria-label="Was passiert, wenn ich hier eine WhatsApp-Nummer eingebe?"
+                    >
+                      <svg viewBox="0 0 16 16" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="1.5">
+                        <circle cx="8" cy="8" r="6.5" />
+                        <path d="M8 7v3.5" strokeLinecap="round" />
+                        <circle cx="8" cy="5.2" r="0.6" fill="currentColor" stroke="none" />
+                      </svg>
+                    </span>
+                    <span
+                      role="tooltip"
+                      className="invisible group-hover:visible group-focus-within:visible absolute left-1/2 -translate-x-1/2 top-full mt-1.5 z-50 w-72 px-3 py-2 bg-paper border border-stone rounded-soft shadow-lift text-caption text-ink leading-relaxed normal-case tracking-normal"
+                    >
+                      <span className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-paper border-l border-t border-stone rotate-45" />
+                      Diese Nummer öffnet bei Klick einen WhatsApp-Chat (wa.me-Direktlink). Käufer können dich so direkt anschreiben — ohne dass dein Account oder deine Mobile-Nr in der App gespeichert werden. Bleibt das Feld leer, erscheint kein WhatsApp-Button auf deinem Inserat.
+                    </span>
+                  </span>
+                </span>
                 <input
                   type="tel"
                   value={data.kontakt_whatsapp_nr ?? ''}
@@ -1902,7 +1940,7 @@ function Step5Paket({
           </div>
 
           <p className="text-caption text-quiet text-center pt-2">
-            Pauschalpreis · 0 % Erfolgsprovision · Schweizer Datenschutz
+            Schweizer Datenschutz · Sie geben jede Anfrage frei
           </p>
         </div>
       )}

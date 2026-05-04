@@ -156,13 +156,18 @@ export default async function VerkaeuferLayout({ children }: { children: React.R
   //
   // Die /inserat-ÜBERSICHT bekommt IMMER die normale Sidebar-Shell —
   // dort sieht der Verkäufer Status, Vorschau, Bearbeiten-Button.
+  //
+  // Cyrill 04.05.2026: TunnelShell auch für Admin im Wizard zeigen —
+  // sonst sieht der "Direkt inserieren"-Flow vom Pre-Reg-Funnel her wie
+  // ein voll geöffnetes Dashboard mit Nachrichten/Datenraum/Statistik
+  // aus, was komisch wirkt. Im Wizard soll der User fokussiert sein.
   const h = await headers();
   const currentPath = h.get('x-pathname') ?? '';
   const isInWizardRoute =
     /\/dashboard\/verkaeufer\/inserat\/[a-f0-9-]{36}\/edit/.test(currentPath) ||
     currentPath.startsWith('/dashboard/verkaeufer/inserat/new') ||
     currentPath.startsWith('/dashboard/verkaeufer/checkout');
-  const showTunnelShell = !paidAt && !isAdmin && isInWizardRoute;
+  const showTunnelShell = !paidAt && isInWizardRoute;
 
   if (showTunnelShell) {
     return (

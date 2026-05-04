@@ -114,7 +114,7 @@ export default async function CheckoutPage({ searchParams }: Props) {
         />
 
         <p className="text-caption text-quiet text-center mt-6 leading-relaxed">
-          Inserat bleibt aktiv bis zum Verkauf · 0 % Erfolgsprovision · Schweizer Datenschutz
+          Inserat bleibt aktiv bis zum Verkauf · Schweizer Datenschutz
         </p>
       </div>
     </Container>

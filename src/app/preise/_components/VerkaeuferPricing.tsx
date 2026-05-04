@@ -54,7 +54,7 @@ export function VerkaeuferPricing() {
           <div className="flex items-center gap-4 mb-5">
             <span className="overline text-navy">Für Verkäufer</span>
             <span className="h-px flex-1 bg-stone" />
-            <span className="font-mono text-[11px] text-quiet">einmalige Paketgebühr · 0 % Erfolgsprovision</span>
+            <span className="font-mono text-[11px] text-quiet">einmalige Paketgebühr · 12 Monate Laufzeit</span>
           </div>
           <h2 className="font-serif text-display-md text-navy font-light">
             Inserat Light · Pro · Premium.

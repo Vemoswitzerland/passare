@@ -65,7 +65,7 @@ export function TunnelShell({ email, fullName, children }: Props) {
       <footer className="border-t border-stone py-6 mt-auto">
         <div className="mx-auto max-w-content px-6 md:px-10">
           <p className="text-center text-caption text-quiet">
-            passare — «Made in Switzerland» · Pauschalpreis
+            passare — «Made in Switzerland»
           </p>
         </div>
       </footer>

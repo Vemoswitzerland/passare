@@ -25,6 +25,7 @@ type Props = {
     | 'kontakt_funktion'
     | 'kontakt_foto_url'
     | 'kontakt_email_public'
+    | 'kontakt_telefon_nr'
     | 'kontakt_whatsapp_nr'
     | 'linkedin_url'
     | 'firma_name'
@@ -92,17 +93,23 @@ export function VerkaeuferKontaktBox({ listing, isAuthenticated }: Props) {
   const subtitle = [funktion, firmaName].filter(Boolean).join(' · ') || null;
 
   const email = listing.kontakt_email_public?.trim() || null;
-  const phoneRaw = listing.kontakt_whatsapp_nr?.trim() || null;
-  // Telefon ist immer sichtbar wenn vorhanden (entkoppelt von WhatsApp)
+  // Telefon (für tel:-Link) und WhatsApp-Nummer (für wa.me-Link) sind seit
+  // 04.05.2026 entkoppelt — pro Verkäufer gepflegt. Backwards-compat: wenn
+  // kein Telefon-Feld gesetzt ist, fallen wir für die Anzeige auf die
+  // WhatsApp-Nummer zurück (Altdaten haben oft nur ein Feld gepflegt).
+  const phoneRaw = (listing.kontakt_telefon_nr?.trim()
+    || listing.kontakt_whatsapp_nr?.trim()
+    || null);
+  const whatsappRaw = listing.kontakt_whatsapp_nr?.trim() || null;
   const phoneDisplay = phoneRaw ? formatPhone(phoneRaw) : null;
   // WhatsApp-Button ist NUR aktiv wenn whatsapp_enabled UND Nummer vorhanden
-  const whatsappEnabled = Boolean(listing.whatsapp_enabled && phoneRaw);
+  const whatsappEnabled = Boolean(listing.whatsapp_enabled && whatsappRaw);
 
   const inseratLink = `https://passare.ch/inserat/${listing.public_id ?? listing.id}`;
   const greeting = vorname ? `Guten Tag ${vorname}` : 'Guten Tag';
   const waText =
     `${greeting}, ich interessiere mich für Ihr Inserat «${listing.titel}» auf passare.ch.\n\n${inseratLink}`;
-  const whatsappHref = whatsappEnabled ? buildWhatsAppHref(phoneRaw, waText) : null;
+  const whatsappHref = whatsappEnabled ? buildWhatsAppHref(whatsappRaw, waText) : null;
 
   const linkedin = listing.linkedin_url?.trim() || null;
   const linkedinHref = linkedin ? normalizeUrl(linkedin) : null;

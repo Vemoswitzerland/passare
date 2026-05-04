@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import {
   Building2, Check, ArrowRight, ArrowLeft, Sparkles,
   TrendingUp, Users, Calendar, MapPin, Briefcase, Loader2,
-  Info, Mail, FileSignature, MailCheck,
+  Info, Mail, MailCheck, Repeat, Users2, UserCog,
 } from 'lucide-react';
 import { FirmenSuche } from '@/components/zefix/FirmenSuche';
 import { SmartPriceEstimate } from '@/components/valuation/SmartPriceEstimate';
@@ -13,6 +13,9 @@ import { BRANCHEN_LIST, matchBrancheFromPurpose } from '@/data/branchen-multiple
 import { formatCHF, formatCHFShort, type ValuationResult } from '@/lib/valuation';
 import { cn } from '@/lib/utils';
 import { sendValuationByEmailAction } from './actions';
+
+export type FunnelMode = 'bewerten' | 'inserieren';
+type Inhaberabhaengigkeit = 'low' | 'mid' | 'high';
 
 const KANTONE: Array<[string, string]> = [
   ['ZH', 'Zürich'], ['BE', 'Bern'], ['LU', 'Luzern'], ['UR', 'Uri'], ['SZ', 'Schwyz'],
@@ -43,16 +46,49 @@ type Draft = {
   mitarbeitende: number | null;
   umsatz: number | null;
   ebitda: number | null;
+  // Detail-Faktoren — verfeinern die Bewertung im Bewertungs-Funnel
+  wachstum_pct: number | null;            // p.a. in Prozent (-50 bis 200)
+  recurring_pct: number | null;           // 0–100 — Anteil wiederkehrender Umsätze
+  top3_kunden_pct: number | null;         // 0–100 — Anteil Top-3-Kunden
+  inhaberabhaengigkeit: Inhaberabhaengigkeit | null;
   valuation: ValuationResult | null;
 };
 
 const EMPTY: Draft = {
   step: 1, zefix_uid: null, firma_name: null, firma_rechtsform: null,
   firma_sitz_gemeinde: null, branche_id: null, kanton: null,
-  jahr: null, mitarbeitende: null, umsatz: null, ebitda: null, valuation: null,
+  jahr: null, mitarbeitende: null, umsatz: null, ebitda: null,
+  wachstum_pct: null, recurring_pct: null, top3_kunden_pct: null,
+  inhaberabhaengigkeit: null, valuation: null,
 };
 
-export function FirmaOnboarding() {
+/**
+ * STEP-Definition:
+ *  1 = Firma (Handelsregister)
+ *  2 = Branche & Standort
+ *  3 = Finanzen
+ *  4 = Detail-Faktoren (NUR im Bewertungs-Modus)
+ *  5 = Bewertung anzeigen
+ *  6 = Account / Wahl
+ *
+ * Im Inserat-Modus wird Step 4 übersprungen — direkt von 3 → 5 → 6.
+ * Step 6 leitet den User dann immer zur Registrierung (oder, wenn schon
+ * eingeloggt, in den Inserat-Wizard).
+ */
+const STEP_LABELS: Record<number, string> = {
+  1: 'Firma',
+  2: 'Branche',
+  3: 'Finanzen',
+  4: 'Detail',
+  5: 'Bewertung',
+  6: 'Account',
+};
+
+function activeSteps(mode: FunnelMode): number[] {
+  return mode === 'bewerten' ? [1, 2, 3, 4, 5, 6] : [1, 2, 3, 5, 6];
+}
+
+export function FirmaOnboarding({ mode = 'inserieren' }: { mode?: FunnelMode }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [draft, setDraft] = useState<Draft>(EMPTY);
@@ -90,12 +126,23 @@ export function FirmaOnboarding() {
   }, [draft]);
 
   const update = (patch: Partial<Draft>) => setDraft(d => ({ ...d, ...patch }));
-  const next = () => setDraft(d => ({ ...d, step: Math.min(d.step + 1, 5) }));
-  const prev = () => setDraft(d => ({ ...d, step: Math.max(d.step - 1, 1) }));
 
-  // Bei Step 4: Bewertung berechnen
+  const STEPS = activeSteps(mode);
+  const next = () => setDraft(d => {
+    const i = STEPS.indexOf(d.step);
+    const ni = Math.min(i + 1, STEPS.length - 1);
+    return { ...d, step: STEPS[ni] };
+  });
+  const prev = () => setDraft(d => {
+    const i = STEPS.indexOf(d.step);
+    const ni = Math.max(0, i - 1);
+    return { ...d, step: STEPS[ni] };
+  });
+
+  // Bei Step 5 (Bewertung): rechnen — auch im Inserat-Modus, weil
+  // wir die Range trotzdem zeigen wollen, bevor's zur Registrierung geht.
   useEffect(() => {
-    if (draft.step !== 4) return;
+    if (draft.step !== 5) return;
     if (draft.valuation) return;
     if (!draft.branche_id || !draft.umsatz || !draft.ebitda) return;
 
@@ -109,6 +156,12 @@ export function FirmaOnboarding() {
         ebitda: draft.ebitda,
         mitarbeitende: draft.mitarbeitende,
         jahr: draft.jahr,
+        // Detail-Faktoren werden vom API berücksichtigt — bei mode=inserieren
+        // sind sie null/undefined und das API rechnet ohne Modulation.
+        wachstum_pct: draft.wachstum_pct,
+        recurring_pct: draft.recurring_pct,
+        top3_kunden_pct: draft.top3_kunden_pct,
+        inhaberabhaengigkeit: draft.inhaberabhaengigkeit,
       }),
     })
       .then(r => r.json())
@@ -117,7 +170,7 @@ export function FirmaOnboarding() {
       })
       .catch(() => {})
       .finally(() => setValuationLoading(false));
-  }, [draft.step, draft.valuation, draft.branche_id, draft.umsatz, draft.ebitda, draft.mitarbeitende, draft.jahr]);
+  }, [draft.step, draft.valuation, draft.branche_id, draft.umsatz, draft.ebitda, draft.mitarbeitende, draft.jahr, draft.wachstum_pct, draft.recurring_pct, draft.top3_kunden_pct, draft.inhaberabhaengigkeit]);
 
   // Auto-Timeout für enriching: nach 12s erlauben wir Weiter trotzdem
   useEffect(() => {
@@ -145,7 +198,11 @@ export function FirmaOnboarding() {
         && draft.mitarbeitende != null && draft.mitarbeitende > 0
         && draft.jahr != null && draft.jahr >= 1800 && draft.jahr <= new Date().getFullYear();
     }
-    if (draft.step === 4) return Boolean(draft.valuation);
+    if (draft.step === 4) {
+      // Detail-Faktoren sind alle optional — User darf jederzeit weiter.
+      return true;
+    }
+    if (draft.step === 5) return Boolean(draft.valuation);
     return true;
   })();
 
@@ -161,13 +218,23 @@ export function FirmaOnboarding() {
     if (!draft.jahr || draft.jahr < 1800 || draft.jahr > new Date().getFullYear()) step3Missing.push('Gründungsjahr');
   }
 
+  // Footer-Logik — Weiter-Button verbergen wir bei Step 5 (Bewertung) im
+  // Bewertungs-Modus, weil dort die Wahl-Cards eigene CTAs liefern. Im
+  // Inserat-Modus zeigen wir auf Step 5 einen "Zur Registrierung"-Button,
+  // der direkt zu Step 6 (Account-Redirect) führt.
+  const showFooter = draft.step !== 6;
+  const showWeiterButton =
+    showFooter &&
+    !(mode === 'bewerten' && draft.step === 5);
+
   return (
     <div className="space-y-10">
-      <ProgressBar step={draft.step} />
+      <ProgressBar step={draft.step} mode={mode} />
 
       <div>
         {draft.step === 1 && (
           <Step1Firma
+            mode={mode}
             draft={draft}
             update={update}
             mergeIfEmpty={(patch) => setDraft((d) => {
@@ -188,12 +255,14 @@ export function FirmaOnboarding() {
         )}
         {draft.step === 2 && <Step2Branche draft={draft} update={update} />}
         {draft.step === 3 && <Step3Finanzen draft={draft} update={update} />}
-        {draft.step === 4 && (
-          <Step4Bewertung
+        {draft.step === 4 && <Step4Detail draft={draft} update={update} />}
+        {draft.step === 5 && (
+          <Step5Bewertung
+            mode={mode}
             draft={draft}
             loading={valuationLoading}
-            mode={valuationMode}
-            setMode={setValuationMode}
+            valuationMode={valuationMode}
+            setValuationMode={setValuationMode}
             emailValue={emailValue}
             setEmailValue={setEmailValue}
             emailError={emailError}
@@ -229,13 +298,13 @@ export function FirmaOnboarding() {
                 }
               });
             }}
-            onInserieren={() => setDraft(d => ({ ...d, step: 5 }))}
+            onInserieren={() => setDraft(d => ({ ...d, step: 6 }))}
           />
         )}
-        {draft.step === 5 && <Step5Account draft={draft} router={router} startTransition={startTransition} />}
+        {draft.step === 6 && <Step6Account draft={draft} router={router} startTransition={startTransition} />}
       </div>
 
-      {draft.step < 5 && (
+      {showFooter && (
         <div className="flex items-center justify-between pt-4">
           <button
             type="button"
@@ -247,8 +316,7 @@ export function FirmaOnboarding() {
             Zurück
           </button>
 
-          {/* Auf Step 4 keinen Weiter-Button — User wählt zwischen Mail/Inserieren via Cards. */}
-          {draft.step < 4 && (
+          {showWeiterButton && (
             <div className="flex flex-col items-end gap-2">
               <button
                 type="button"
@@ -261,7 +329,11 @@ export function FirmaOnboarding() {
                     : 'bg-stone text-quiet cursor-not-allowed',
                 )}
               >
-                Weiter
+                {mode === 'inserieren' && draft.step === 5
+                  ? 'Zur Registrierung'
+                  : draft.step === 4
+                    ? 'Weiter zur Bewertung'
+                    : 'Weiter'}
                 <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
               </button>
               {!canNext && step3Missing.length > 0 && (
@@ -278,16 +350,16 @@ export function FirmaOnboarding() {
 }
 
 /* ─────────── PROGRESS-BAR ─────────── */
-function ProgressBar({ step }: { step: number }) {
-  const steps = ['Firma', 'Branche', 'Finanzen', 'Bewertung', 'Account'];
+function ProgressBar({ step, mode }: { step: number; mode: FunnelMode }) {
+  const steps = activeSteps(mode);
   return (
     <div className="flex items-center gap-2 md:gap-3">
-      {steps.map((label, i) => {
-        const idx = i + 1;
-        const done = step > idx;
-        const active = step === idx;
+      {steps.map((id, i) => {
+        const label = STEP_LABELS[id];
+        const done = steps.indexOf(step) > i;
+        const active = step === id;
         return (
-          <div key={label} className="flex items-center gap-2 md:gap-3 flex-1 last:flex-initial">
+          <div key={id} className="flex items-center gap-2 md:gap-3 flex-1 last:flex-initial">
             <div className="flex items-center gap-2 min-w-0">
               <div
                 className={cn(
@@ -299,7 +371,7 @@ function ProgressBar({ step }: { step: number }) {
                       : 'bg-stone text-quiet',
                 )}
               >
-                {done ? <Check className="w-3.5 h-3.5" strokeWidth={2.5} /> : idx}
+                {done ? <Check className="w-3.5 h-3.5" strokeWidth={2.5} /> : i + 1}
               </div>
               <span
                 className={cn(
@@ -310,7 +382,7 @@ function ProgressBar({ step }: { step: number }) {
                 {label}
               </span>
             </div>
-            {idx < steps.length && (
+            {i < steps.length - 1 && (
               <div
                 className={cn(
                   'flex-1 h-px transition-colors',
@@ -327,8 +399,9 @@ function ProgressBar({ step }: { step: number }) {
 
 /* ─────────── STEP 1: FIRMA ─────────── */
 function Step1Firma({
-  draft, update, mergeIfEmpty, enriching, setEnriching,
+  mode, draft, update, mergeIfEmpty, enriching, setEnriching,
 }: {
+  mode: FunnelMode;
   draft: Draft;
   update: (p: Partial<Draft>) => void;
   mergeIfEmpty: (patch: Partial<Draft>) => void;
@@ -404,12 +477,16 @@ function Step1Firma({
     return null;
   }
 
+  const totalSteps = mode === 'bewerten' ? 6 : 5;
+  const headline = mode === 'bewerten'
+    ? 'Welche Firma möchtest du bewerten?'
+    : 'Welche Firma möchtest du inserieren?';
   return (
     <div className="space-y-8 animate-fade-up">
       <div className="text-center">
-        <p className="overline mb-4 text-bronze-ink">Schritt 1 von 5</p>
+        <p className="overline mb-4 text-bronze-ink">Schritt 1 von {totalSteps}</p>
         <h1 className="font-serif text-display-sm text-navy font-light mb-3 tracking-tight">
-          Welche Firma möchtest du verkaufen?
+          {headline}
         </h1>
         <p className="text-body-lg text-muted max-w-prose mx-auto">
           Wir suchen dir die Daten direkt aus dem Schweizer Handelsregister — keine doppelte Tipperei.
@@ -529,7 +606,7 @@ function Step2Branche({ draft, update }: { draft: Draft; update: (p: Partial<Dra
   return (
     <div className="space-y-10 animate-fade-up">
       <div className="text-center">
-        <p className="overline mb-4 text-bronze-ink">Schritt 2 von 5</p>
+        <p className="overline mb-4 text-bronze-ink">Schritt 2</p>
         <h1 className="font-serif text-display-sm text-navy font-light mb-3 tracking-tight">
           Branche & Standort bestätigen
         </h1>
@@ -653,7 +730,7 @@ function Step3Finanzen({ draft, update }: { draft: Draft; update: (p: Partial<Dr
   return (
     <div className="space-y-10 animate-fade-up">
       <div className="text-center">
-        <p className="overline mb-4 text-bronze-ink">Schritt 3 von 5</p>
+        <p className="overline mb-4 text-bronze-ink">Schritt 3</p>
         <h1 className="font-serif text-display-sm text-navy font-light mb-3 tracking-tight">
           Finanzdaten
         </h1>
@@ -801,19 +878,178 @@ function Step3Finanzen({ draft, update }: { draft: Draft; update: (p: Partial<Dr
   );
 }
 
-/* ─────────── STEP 4: BEWERTUNG + WAHL ─────────── */
-function Step4Bewertung({
+/* ─────────── STEP 4: DETAIL-FAKTOREN (nur Bewertungs-Funnel) ─────────── */
+function Step4Detail({
+  draft, update,
+}: {
+  draft: Draft;
+  update: (p: Partial<Draft>) => void;
+}) {
+  return (
+    <div className="space-y-10 animate-fade-up">
+      <div className="text-center">
+        <p className="overline mb-4 text-bronze-ink">Schritt 4 · optional</p>
+        <h1 className="font-serif text-display-sm text-navy font-light mb-3 tracking-tight">
+          Verfeinerung der Bewertung
+        </h1>
+        <p className="text-body-lg text-muted max-w-prose mx-auto">
+          Vier Faktoren, die den Multiple realistischer machen. Alle optional —
+          jeder beantwortete Punkt schärft die Range.
+        </p>
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-5 max-w-3xl mx-auto">
+        {/* Wachstum */}
+        <FactorCard
+          Icon={TrendingUp}
+          title="Jahres-Wachstum"
+          subtitle="Durchschnittliches Umsatz-Wachstum p.a. der letzten 3 Jahre"
+          help="Über 10 % p.a. ergibt einen Aufschlag, rückläufiges Wachstum einen Abschlag."
+        >
+          <div className="relative">
+            <input
+              type="text"
+              inputMode="decimal"
+              value={draft.wachstum_pct ?? ''}
+              onChange={(e) => {
+                const cleaned = e.target.value.replace(/[^0-9.,-]/g, '').replace(',', '.');
+                const v = cleaned === '' ? null : Number(cleaned);
+                update({ wachstum_pct: Number.isFinite(v as number) ? v : null });
+              }}
+              placeholder="5"
+              className="w-full pr-10 px-4 py-3 bg-paper border border-stone rounded-soft text-body font-mono focus:outline-none focus:border-bronze focus:shadow-focus transition-all"
+            />
+            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-quiet font-mono text-body-sm pointer-events-none">%</span>
+          </div>
+        </FactorCard>
+
+        {/* Wiederkehrende Umsätze */}
+        <FactorCard
+          Icon={Repeat}
+          title="Wiederkehrende Umsätze"
+          subtitle="Anteil Abos, Service-Verträge, Wartung am Jahresumsatz"
+          help="Höhere wiederkehrende Anteile = höhere Bewertung (bis +20 %)."
+        >
+          <div className="relative">
+            <input
+              type="text"
+              inputMode="numeric"
+              value={draft.recurring_pct ?? ''}
+              onChange={(e) => {
+                const cleaned = e.target.value.replace(/[^0-9]/g, '');
+                update({ recurring_pct: cleaned === '' ? null : Number(cleaned) });
+              }}
+              placeholder="35"
+              className="w-full pr-10 px-4 py-3 bg-paper border border-stone rounded-soft text-body font-mono focus:outline-none focus:border-bronze focus:shadow-focus transition-all"
+            />
+            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-quiet font-mono text-body-sm pointer-events-none">%</span>
+          </div>
+        </FactorCard>
+
+        {/* Kundenkonzentration */}
+        <FactorCard
+          Icon={Users2}
+          title="Kundenkonzentration"
+          subtitle="Anteil Top-3-Kunden am Jahresumsatz"
+          help="Top-3 über 50 % = Käufer fordern Earn-out (Abschlag bis −20 %)."
+        >
+          <div className="relative">
+            <input
+              type="text"
+              inputMode="numeric"
+              value={draft.top3_kunden_pct ?? ''}
+              onChange={(e) => {
+                const cleaned = e.target.value.replace(/[^0-9]/g, '');
+                update({ top3_kunden_pct: cleaned === '' ? null : Number(cleaned) });
+              }}
+              placeholder="28"
+              className="w-full pr-10 px-4 py-3 bg-paper border border-stone rounded-soft text-body font-mono focus:outline-none focus:border-bronze focus:shadow-focus transition-all"
+            />
+            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-quiet font-mono text-body-sm pointer-events-none">%</span>
+          </div>
+        </FactorCard>
+
+        {/* Inhaberabhängigkeit */}
+        <FactorCard
+          Icon={UserCog}
+          title="Inhaberabhängigkeit"
+          subtitle="Wie stark hängt das Tagesgeschäft am Inhaber?"
+          help="Niedrig (delegiert) = Aufschlag, hoch (Inhaber = Firma) = Abschlag."
+        >
+          <div className="grid grid-cols-3 gap-2">
+            {(
+              [
+                { id: 'low',  label: 'Niedrig',  hint: 'Läuft ohne Inhaber' },
+                { id: 'mid',  label: 'Mittel',   hint: 'Inhaber wichtig' },
+                { id: 'high', label: 'Hoch',     hint: 'Inhaber = Firma' },
+              ] as { id: Inhaberabhaengigkeit; label: string; hint: string }[]
+            ).map((opt) => {
+              const selected = draft.inhaberabhaengigkeit === opt.id;
+              return (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => update({ inhaberabhaengigkeit: opt.id })}
+                  className={cn(
+                    'p-3 rounded-soft border text-center transition-all',
+                    selected
+                      ? 'border-bronze bg-bronze/10 shadow-subtle'
+                      : 'border-stone hover:border-bronze/40 hover:bg-bronze/5',
+                  )}
+                >
+                  <p className="font-serif text-[15px] text-navy mb-0.5">{opt.label}</p>
+                  <p className="font-mono text-[10px] text-quiet leading-tight">{opt.hint}</p>
+                </button>
+              );
+            })}
+          </div>
+        </FactorCard>
+      </div>
+    </div>
+  );
+}
+
+function FactorCard({
+  Icon, title, subtitle, help, children,
+}: {
+  Icon: React.ElementType;
+  title: string;
+  subtitle: string;
+  help: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="border border-stone rounded-soft bg-paper p-5">
+      <div className="flex items-start gap-3 mb-4">
+        <div className="w-9 h-9 rounded-soft bg-bronze/10 flex items-center justify-center flex-shrink-0">
+          <Icon className="w-4 h-4 text-bronze" strokeWidth={1.75} />
+        </div>
+        <div className="min-w-0">
+          <p className="font-serif text-[15px] text-navy leading-tight">{title}</p>
+          <p className="font-mono text-[10px] uppercase tracking-widest text-quiet mt-0.5">{subtitle}</p>
+        </div>
+      </div>
+      {children}
+      <p className="font-mono text-[10px] text-quiet mt-3 leading-relaxed">{help}</p>
+    </div>
+  );
+}
+
+/* ─────────── STEP 5: BEWERTUNG ANZEIGEN (+ Wahl im Bewerten-Modus) ─────────── */
+function Step5Bewertung({
+  mode,
   draft, loading,
-  mode, setMode,
+  valuationMode, setValuationMode,
   emailValue, setEmailValue,
   emailError, setEmailError,
   emailPending,
   onSendMail, onInserieren,
 }: {
+  mode: FunnelMode;
   draft: Draft;
   loading: boolean;
-  mode: 'choice' | 'mail-input' | 'mail-sent';
-  setMode: (m: 'choice' | 'mail-input' | 'mail-sent') => void;
+  valuationMode: 'choice' | 'mail-input' | 'mail-sent';
+  setValuationMode: (m: 'choice' | 'mail-input' | 'mail-sent') => void;
   emailValue: string;
   setEmailValue: (v: string) => void;
   emailError: string | null;
@@ -822,29 +1058,36 @@ function Step4Bewertung({
   onSendMail: () => void;
   onInserieren: () => void;
 }) {
+  const stepLabel = mode === 'bewerten' ? 'Schritt 5 · Ergebnis' : 'Schritt 4 · Ergebnis';
+  const headline = mode === 'bewerten' ? 'Deine Bewertung' : 'Deine Smart-Bewertung';
+  const subtitle = mode === 'bewerten'
+    ? 'Marktwert-Range basierend auf Branchen-Multiples + deinen Detail-Faktoren.'
+    : 'Indikativer Marktwert basierend auf 7 Faktoren — in 1.5 Sekunden berechnet.';
+
   return (
     <div className="space-y-10 animate-fade-up">
       <div className="text-center">
-        <p className="overline mb-4 text-bronze-ink">Schritt 4 von 5</p>
+        <p className="overline mb-4 text-bronze-ink">{stepLabel}</p>
         <h1 className="font-serif text-display-sm text-navy font-light mb-3 tracking-tight">
-          Deine Smart-Bewertung
+          {headline}
         </h1>
         <p className="text-body-lg text-muted max-w-prose mx-auto">
-          Indikativer Marktwert basierend auf 7 Faktoren — in 1.5 Sekunden berechnet.
+          {subtitle}
         </p>
       </div>
 
       <SmartPriceEstimate result={draft.valuation} loading={loading} />
 
-      {/* WAHL-BEREICH — erst sichtbar wenn Bewertung fertig */}
-      {draft.valuation && !loading && (
+      {/* WAHL-BEREICH NUR IM BEWERTUNGS-MODUS — bei mode=inserieren
+          schickt der Footer-Weiter-Button den User direkt zur Registrierung. */}
+      {mode === 'bewerten' && draft.valuation && !loading && (
         <div className="space-y-6 max-w-2xl mx-auto">
-          {mode === 'choice' && (
+          {valuationMode === 'choice' && (
             <>
               <div className="text-center">
                 <p className="text-caption text-bronze-ink uppercase tracking-wider mb-2">Wie möchtest du weitermachen?</p>
                 <h2 className="font-serif text-h3 text-navy font-light">
-                  Bewertung mailen oder direkt inserieren?
+                  Bewertung per Mail oder erneut anpassen?
                 </h2>
               </div>
 
@@ -852,13 +1095,13 @@ function Step4Bewertung({
                 {/* Card A: Mail */}
                 <button
                   type="button"
-                  onClick={() => { setEmailError(null); setMode('mail-input'); }}
+                  onClick={() => { setEmailError(null); setValuationMode('mail-input'); }}
                   className="group rounded-soft border border-stone bg-paper p-6 text-left hover:border-bronze hover:shadow-lift transition-all"
                 >
                   <Mail className="w-8 h-8 text-bronze mb-4" strokeWidth={1.5} />
                   <h3 className="font-serif text-head-sm text-navy mb-2">Bewertung per Mail</h3>
                   <p className="text-body-sm text-muted mb-4">
-                    Wir senden dir die Bewertung als PDF — kein Account, kein Inserat. Du entscheidest später, ob du verkaufen willst.
+                    Wir senden dir den Detail-Report als PDF — kein Account, keine Verpflichtung.
                   </p>
                   <span className="inline-flex items-center gap-1.5 text-caption text-bronze group-hover:text-bronze-ink">
                     Mail eingeben
@@ -866,32 +1109,26 @@ function Step4Bewertung({
                   </span>
                 </button>
 
-                {/* Card B: Inserieren */}
-                <button
-                  type="button"
-                  onClick={onInserieren}
+                {/* Card B: Zurück zum Inserat */}
+                <a
+                  href="/verkaufen"
                   className="group rounded-soft border-2 border-navy bg-navy text-cream p-6 text-left hover:bg-ink transition-all shadow-card hover:shadow-lift"
                 >
-                  <FileSignature className="w-8 h-8 text-bronze mb-4" strokeWidth={1.5} />
-                  <h3 className="font-serif text-head-sm text-cream mb-2">Direkt inserieren</h3>
+                  <Sparkles className="w-8 h-8 text-bronze mb-4" strokeWidth={1.5} />
+                  <h3 className="font-serif text-head-sm text-cream mb-2">Bereit zum Inserieren?</h3>
                   <p className="text-body-sm text-cream/80 mb-4">
-                    Account anlegen und Inserat erstellen — alle Daten sind schon drin, du machst nur die letzten Schritte.
+                    Zurück zur Verkäufer-Seite — dort findest du die Inserat-Pakete und startest die Registrierung.
                   </p>
                   <span className="inline-flex items-center gap-1.5 text-caption text-bronze">
-                    Account erstellen
+                    Pakete ansehen
                     <ArrowRight className="w-3.5 h-3.5" strokeWidth={1.5} />
                   </span>
-                </button>
+                </a>
               </div>
-
-              <p className="text-center text-caption text-quiet">
-                <Sparkles className="w-3 h-3 inline-block text-bronze mr-1" strokeWidth={1.5} />
-                Beim Inserieren beträgt die Plattform-Gebühr ab CHF 290 — 0 % Erfolgsprovision.
-              </p>
             </>
           )}
 
-          {mode === 'mail-input' && (
+          {valuationMode === 'mail-input' && (
             <div className="rounded-soft border border-stone bg-paper p-6 md:p-8 space-y-5">
               <div>
                 <h2 className="font-serif text-head-sm text-navy mb-2">Wohin sollen wir die Bewertung senden?</h2>
@@ -919,7 +1156,7 @@ function Step4Bewertung({
               <div className="flex items-center justify-between pt-2">
                 <button
                   type="button"
-                  onClick={() => { setEmailError(null); setMode('choice'); }}
+                  onClick={() => { setEmailError(null); setValuationMode('choice'); }}
                   disabled={emailPending}
                   className="text-body-sm text-muted hover:text-navy transition-colors disabled:opacity-50"
                 >
@@ -952,7 +1189,7 @@ function Step4Bewertung({
             </div>
           )}
 
-          {mode === 'mail-sent' && (
+          {valuationMode === 'mail-sent' && (
             <div className="rounded-soft border border-bronze/30 bg-bronze/5 p-8 text-center space-y-4">
               <MailCheck className="w-12 h-12 text-bronze mx-auto" strokeWidth={1.5} />
               <h2 className="font-serif text-head-md text-navy">Bewertung unterwegs.</h2>
@@ -961,14 +1198,13 @@ function Step4Bewertung({
                 Schau auch im Spam-Ordner nach.
               </p>
               <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
-                <button
-                  type="button"
-                  onClick={onInserieren}
+                <a
+                  href="/verkaufen"
                   className="inline-flex items-center gap-2 px-6 py-3 bg-navy text-cream rounded-soft text-body-sm font-medium hover:bg-ink shadow-card hover:shadow-lift transition-all"
                 >
-                  Doch direkt inserieren
+                  Inserat-Pakete ansehen
                   <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
-                </button>
+                </a>
                 <a
                   href="/"
                   className="text-body-sm text-muted hover:text-navy transition-colors"
@@ -984,12 +1220,13 @@ function Step4Bewertung({
   );
 }
 
-/* ─────────── STEP 5: ACCOUNT REDIRECT ─────────── */
-function Step5Account({
+/* ─────────── STEP 6: ACCOUNT REDIRECT ─────────── */
+function Step6Account({
   draft, router, startTransition,
 }: { draft: Draft; router: ReturnType<typeof useRouter>; startTransition: (cb: () => void) => void }) {
   // Diese Step ist Übergang: speichert Draft + redirected.
-  // Bei eingeloggten Usern direkt ins Verkäufer-Wizard, sonst zur Registrierung.
+  // Bei eingeloggten Usern in den Inserat-Wizard (Tunnel-Layout, kein Sidebar),
+  // sonst zur Registrierung.
   useEffect(() => {
     (async () => {
       try {
@@ -999,7 +1236,7 @@ function Step5Account({
         await fetch('/api/pre-reg', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...draft, step: 5 }),
+          body: JSON.stringify({ ...draft, step: 6 }),
         });
         const isLoggedIn = Boolean(me?.user?.id);
         startTransition(() => {

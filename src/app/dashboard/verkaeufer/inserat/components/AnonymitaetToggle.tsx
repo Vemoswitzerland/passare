@@ -32,6 +32,7 @@ type KontaktDaten = {
   kontakt_nachname: string | null;
   kontakt_funktion: string | null;
   kontakt_email_public: string | null;
+  kontakt_telefon_nr: string | null;
   kontakt_whatsapp_nr: string | null;
   kontakt_foto_url: string | null;
 };
@@ -220,6 +221,7 @@ function KontaktPanel({
   const [nachname, setNachname] = useState(initial.kontakt_nachname ?? '');
   const [funktion, setFunktion] = useState(initial.kontakt_funktion ?? '');
   const [email, setEmail] = useState(initial.kontakt_email_public ?? '');
+  const [telefon, setTelefon] = useState(initial.kontakt_telefon_nr ?? '');
   const [whatsapp, setWhatsapp] = useState(initial.kontakt_whatsapp_nr ?? '');
   const [pending, startTx] = useTransition();
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -232,6 +234,7 @@ function KontaktPanel({
         kontakt_nachname: nachname,
         kontakt_funktion: funktion,
         kontakt_email_public: email,
+        kontakt_telefon_nr: telefon,
         kontakt_whatsapp_nr: whatsapp,
       });
       if (res.ok) {
@@ -314,12 +317,21 @@ function KontaktPanel({
                 required
               />
               <Field
+                label="Telefon (optional)"
+                icon={Phone}
+                type="tel"
+                value={telefon}
+                onChange={setTelefon}
+                placeholder="+41 44 …"
+              />
+              <FieldWithTooltip
                 label="WhatsApp (optional)"
                 icon={Phone}
                 type="tel"
                 value={whatsapp}
                 onChange={setWhatsapp}
                 placeholder="+41 79 …"
+                tooltip="Diese Nummer öffnet bei Klick einen WhatsApp-Chat (wa.me-Link). Wenn du WhatsApp-Anfragen empfangen willst, gib hier die Mobile-Nummer mit Ländervorwahl an. Bleibt das Feld leer, erscheint kein WhatsApp-Button auf deinem Inserat."
               />
             </>
           )}
@@ -379,5 +391,72 @@ function Field({
         className="w-full px-3 py-2 bg-cream/40 border border-stone rounded-soft text-body-sm focus:outline-none focus:border-bronze focus:bg-paper transition-colors"
       />
     </label>
+  );
+}
+
+/**
+ * Wie Field, aber mit Hover/Click-Tooltip neben dem Label. Wird genutzt
+ * für WhatsApp, weil Cyrill möchte, dass der Verkäufer beim Hovern
+ * versteht, wie der Direktlink funktioniert (welche Nummer wird wo
+ * genutzt, was sieht der Käufer).
+ */
+function FieldWithTooltip({
+  label, icon: Icon, value, onChange, placeholder, type = 'text', tooltip,
+}: {
+  label: string;
+  icon: typeof Mail;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  type?: string;
+  tooltip: string;
+}) {
+  return (
+    <label className="block">
+      <div className="flex items-center gap-1.5 mb-1">
+        <Icon className="w-3.5 h-3.5 text-quiet" strokeWidth={1.5} />
+        <span className="text-caption text-quiet">{label}</span>
+        <InfoTooltip text={tooltip} />
+      </div>
+      <input
+        type={type}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="w-full px-3 py-2 bg-cream/40 border border-stone rounded-soft text-body-sm focus:outline-none focus:border-bronze focus:bg-paper transition-colors"
+      />
+    </label>
+  );
+}
+
+function InfoTooltip({ text }: { text: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <span
+      className="relative inline-flex"
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+      onClick={(e) => { e.preventDefault(); setOpen((v) => !v); }}
+    >
+      <span
+        aria-label="Was passiert, wenn ich hier eine Nummer eingebe?"
+        className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full text-quiet hover:text-bronze-ink cursor-help select-none"
+      >
+        <svg viewBox="0 0 16 16" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="1.5">
+          <circle cx="8" cy="8" r="6.5" />
+          <path d="M8 7v3.5" strokeLinecap="round" />
+          <circle cx="8" cy="5.2" r="0.6" fill="currentColor" stroke="none" />
+        </svg>
+      </span>
+      {open && (
+        <span
+          role="tooltip"
+          className="absolute left-1/2 -translate-x-1/2 top-full mt-1.5 z-50 w-64 px-3 py-2 bg-paper border border-stone rounded-soft shadow-lift text-caption text-ink leading-relaxed normal-case tracking-normal"
+        >
+          <span className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-paper border-l border-t border-stone rotate-45" />
+          {text}
+        </span>
+      )}
+    </span>
   );
 }

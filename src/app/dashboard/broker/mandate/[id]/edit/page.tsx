@@ -149,6 +149,7 @@ export default async function BrokerMandatEditPage({ params, searchParams }: Pro
     kontakt_funktion: row.kontakt_funktion ?? null,
     kontakt_foto_url: row.kontakt_foto_url ?? avatarUrl ?? null,
     kontakt_email_public: row.kontakt_email_public ?? null,
+    kontakt_telefon_nr: row.kontakt_telefon_nr ?? null,
     kontakt_whatsapp_nr: row.kontakt_whatsapp_nr ?? null,
   };
 

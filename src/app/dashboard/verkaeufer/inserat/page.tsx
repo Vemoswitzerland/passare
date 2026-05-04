@@ -156,13 +156,13 @@ export default async function InseratIndexPage() {
             auf 1 Höhe. Kein Overline-/ID-Subtext mehr — die ID-Info
             wandert in den «zuletzt geändert»-Hinweis unter dem Titel. */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-6">
-          <div className="flex items-baseline gap-3 min-w-0">
-            <h1 className="font-serif text-head-lg md:text-display-sm text-navy font-light tracking-tight truncate">
-              {inserat.titel || inserat.firma_name || 'Entwurf'}
-            </h1>
+          <h1 className="font-serif text-head-lg md:text-display-sm text-navy font-light tracking-tight truncate min-w-0">
+            {inserat.titel || inserat.firma_name || 'Entwurf'}
+          </h1>
+          {/* Status-Badge + Action-Buttons in einer Reihe — auf Mobile
+              gleicher Container, also fluchtet alles auf gleicher Höhe. */}
+          <div className="flex items-center gap-2 flex-wrap md:flex-nowrap flex-shrink-0">
             <StatusBadge status={inserat.status} />
-          </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
             {/* bei live → Public-Inserat (Käufer-Sicht), sonst Vorschau */}
             {isLive ? (
               <Link
@@ -228,6 +228,7 @@ export default async function InseratIndexPage() {
             kontakt_nachname: (inserat.kontakt_nachname as string | null) ?? null,
             kontakt_funktion: (inserat.kontakt_funktion as string | null) ?? null,
             kontakt_email_public: (inserat.kontakt_email_public as string | null) ?? null,
+            kontakt_telefon_nr: (inserat.kontakt_telefon_nr as string | null) ?? null,
             kontakt_whatsapp_nr: (inserat.kontakt_whatsapp_nr as string | null) ?? null,
             kontakt_foto_url: (inserat.kontakt_foto_url as string | null) ?? null,
           }}

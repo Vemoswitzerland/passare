@@ -109,6 +109,7 @@ export type InseratDetail = InseratPublic & {
   kontakt_funktion: string | null;
   kontakt_foto_url: string | null;
   kontakt_email_public: string | null;
+  kontakt_telefon_nr: string | null;
   kontakt_whatsapp_nr: string | null;
 };
 
@@ -341,7 +342,7 @@ export const getListingById = cache(async (idOrSlug: string): Promise<InseratDet
        website_url, linkedin_url, twitter_url, facebook_url, verkaeufer_id, status,
        anonymitaet_level, whatsapp_enabled,
        kontakt_vorname, kontakt_nachname, kontakt_funktion,
-       kontakt_foto_url, kontakt_email_public, kontakt_whatsapp_nr`,
+       kontakt_foto_url, kontakt_email_public, kontakt_telefon_nr, kontakt_whatsapp_nr`,
     )
     .match(filter)
     .eq('status', 'live')
@@ -405,6 +406,7 @@ export const getListingById = cache(async (idOrSlug: string): Promise<InseratDet
     kontakt_funktion: row.kontakt_funktion as string | null,
     kontakt_foto_url: row.kontakt_foto_url as string | null,
     kontakt_email_public: row.kontakt_email_public as string | null,
+    kontakt_telefon_nr: row.kontakt_telefon_nr as string | null,
     kontakt_whatsapp_nr: row.kontakt_whatsapp_nr as string | null,
   };
 });

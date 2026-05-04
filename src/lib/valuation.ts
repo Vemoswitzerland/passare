@@ -15,6 +15,12 @@ export type ValuationInput = {
   jahr: number;               // Gründungsjahr
   inhaber_dependency?: 1 | 2 | 3 | 4 | 5;  // optional, 1=keine, 5=extrem
   eigenkapital?: number;      // optional Buchwert-Floor
+  // Erweiterte Detail-Faktoren (Bewertungs-Funnel) — alle optional. Werden
+  // sie weggelassen, fällt der jeweilige Modulator auf 1.0 (= neutral).
+  wachstum_pct?: number | null;             // p.a. in % (-50 … 200)
+  recurring_pct?: number | null;            // 0–100 — Anteil wiederkehrend
+  top3_kunden_pct?: number | null;          // 0–100 — Top-3-Klumpenrisiko
+  inhaberabhaengigkeit?: 'low' | 'mid' | 'high' | null;
 };
 
 export type ValuationBasis = {
@@ -76,6 +82,40 @@ function marginModFromMargin(margin: number): number {
   return 0.85;
 }
 
+/* ────────── Detail-Faktoren-Modulatoren ────────── */
+function growthMod(pct: number | null | undefined): number {
+  if (pct == null || !Number.isFinite(pct)) return 1.0;
+  if (pct >= 25) return 1.18;
+  if (pct >= 15) return 1.12;
+  if (pct >= 8)  return 1.06;
+  if (pct >= 0)  return 1.0;
+  if (pct >= -5) return 0.92;
+  return 0.82;
+}
+
+function recurringMod(pct: number | null | undefined): number {
+  if (pct == null || !Number.isFinite(pct)) return 1.0;
+  if (pct >= 70) return 1.18;
+  if (pct >= 50) return 1.10;
+  if (pct >= 30) return 1.05;
+  if (pct >= 10) return 1.0;
+  return 0.97;
+}
+
+function top3Mod(pct: number | null | undefined): number {
+  if (pct == null || !Number.isFinite(pct)) return 1.0;
+  if (pct >= 70) return 0.78;
+  if (pct >= 50) return 0.85;
+  if (pct >= 30) return 0.95;
+  return 1.02;
+}
+
+function inhaberMod(level: 'low' | 'mid' | 'high' | null | undefined): number {
+  if (level === 'low')  return 1.10;
+  if (level === 'high') return 0.80;
+  return 1.0; // 'mid' oder unset
+}
+
 function roundToNearestThousand(n: number) {
   return Math.round(n / 1000) * 1000;
 }
@@ -86,12 +126,22 @@ export function calculateValuation(input: ValuationInput): ValuationResult {
 
   const sizeMod = sizeModFromMa(input.mitarbeitende || 0);
   const ageMod = ageModFromYear(input.jahr || new Date().getFullYear());
-  const ownerMod = ownerModFromDep(input.inhaber_dependency);
+  // ownerMod kommt aus zwei Quellen: numerischer Inhaber-Dependency-Wert
+  // (alter Heuristik) ODER aus dem 'low|mid|high' Wert des Bewertungs-Funnel.
+  // Wenn beide gesetzt sind, gewinnt der explizite low/mid/high.
+  const ownerModNumeric = ownerModFromDep(input.inhaber_dependency);
+  const ownerModExplicit = input.inhaberabhaengigkeit ? inhaberMod(input.inhaberabhaengigkeit) : null;
+  const ownerMod = ownerModExplicit ?? ownerModNumeric;
   const margin = input.umsatz > 0 ? input.ebitda / input.umsatz : 0;
   const marginMod = marginModFromMargin(margin);
 
-  const ebitdaMultAdj = branche.ebitda * sizeMod * ageMod * ownerMod * marginMod;
-  const umsatzMultAdj = branche.umsatz * sizeMod * ageMod * ownerMod;
+  // Detail-Faktor-Modulatoren — neutral (1.0) wenn nicht gesetzt
+  const gMod = growthMod(input.wachstum_pct);
+  const rMod = recurringMod(input.recurring_pct);
+  const k3Mod = top3Mod(input.top3_kunden_pct);
+
+  const ebitdaMultAdj = branche.ebitda * sizeMod * ageMod * ownerMod * marginMod * gMod * rMod * k3Mod;
+  const umsatzMultAdj = branche.umsatz * sizeMod * ageMod * ownerMod * gMod * rMod * k3Mod;
 
   const valEbitda = Math.max(input.ebitda, 0) * ebitdaMultAdj;
   const valUmsatz = (input.umsatz || 0) * umsatzMultAdj;
