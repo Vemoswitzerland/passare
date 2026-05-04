@@ -102,8 +102,12 @@ export function VerkaeuferKontaktBox({ listing, isAuthenticated }: Props) {
     || null);
   const whatsappRaw = listing.kontakt_whatsapp_nr?.trim() || null;
   const phoneDisplay = phoneRaw ? formatPhone(phoneRaw) : null;
-  // WhatsApp-Button ist NUR aktiv wenn whatsapp_enabled UND Nummer vorhanden
-  const whatsappEnabled = Boolean(listing.whatsapp_enabled && whatsappRaw);
+  // WhatsApp-Button erscheint, sobald eine Nummer im WhatsApp-Feld steht.
+  // Cyrill 04.05.2026: Wenn der Verkäufer eine WhatsApp-Nummer einträgt,
+  // soll der Button automatisch erscheinen — der frühere `whatsapp_enabled`-
+  // Flag verlangte einen separaten Toggle, der via AnonymitaetToggle nie
+  // gesetzt wurde, sodass der Button trotz eingetragener Nummer fehlte.
+  const whatsappEnabled = Boolean(whatsappRaw);
 
   const inseratLink = `https://passare.ch/inserat/${listing.public_id ?? listing.id}`;
   const greeting = vorname ? `Guten Tag ${vorname}` : 'Guten Tag';

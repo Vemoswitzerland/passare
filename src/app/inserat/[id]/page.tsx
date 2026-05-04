@@ -371,7 +371,8 @@ function ContactPanel({
     level === 'voll_offen' &&
     Boolean(
       listing.kontakt_email_public?.trim() ||
-        (listing.whatsapp_enabled && listing.kontakt_whatsapp_nr?.trim()) ||
+        listing.kontakt_telefon_nr?.trim() ||
+        listing.kontakt_whatsapp_nr?.trim() ||
         listing.linkedin_url?.trim(),
     );
 

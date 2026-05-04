@@ -302,13 +302,20 @@ export async function updateKontaktFelder(
   if (!u.user) return { ok: false, error: 'Nicht angemeldet.' };
 
   // Whitelist-Patch — nur erlaubte Felder
-  const patch: Record<string, string | null> = {};
+  const patch: Record<string, string | boolean | null> = {};
   if ('kontakt_vorname' in data) patch.kontakt_vorname = trimOrNull(data.kontakt_vorname);
   if ('kontakt_nachname' in data) patch.kontakt_nachname = trimOrNull(data.kontakt_nachname);
   if ('kontakt_funktion' in data) patch.kontakt_funktion = trimOrNull(data.kontakt_funktion);
   if ('kontakt_email_public' in data) patch.kontakt_email_public = trimOrNull(data.kontakt_email_public);
   if ('kontakt_telefon_nr' in data) patch.kontakt_telefon_nr = trimOrNull(data.kontakt_telefon_nr);
-  if ('kontakt_whatsapp_nr' in data) patch.kontakt_whatsapp_nr = trimOrNull(data.kontakt_whatsapp_nr);
+  if ('kontakt_whatsapp_nr' in data) {
+    patch.kontakt_whatsapp_nr = trimOrNull(data.kontakt_whatsapp_nr);
+    // Sync whatsapp_enabled-Flag mit dem Feld — Cyrill 04.05.2026: Sobald
+    // eine WhatsApp-Nummer eingetragen ist, soll der Button im Marktplatz
+    // erscheinen. Vorher musste das Flag separat gesetzt werden, was via
+    // AnonymitaetToggle nie passierte.
+    patch.whatsapp_enabled = Boolean(patch.kontakt_whatsapp_nr);
+  }
   if ('kontakt_foto_url' in data) patch.kontakt_foto_url = trimOrNull(data.kontakt_foto_url);
 
   if (Object.keys(patch).length === 0) {
@@ -316,7 +323,8 @@ export async function updateKontaktFelder(
   }
 
   // Email basic-validate
-  if (patch.kontakt_email_public && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(patch.kontakt_email_public)) {
+  if (typeof patch.kontakt_email_public === 'string' && patch.kontakt_email_public
+      && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(patch.kontakt_email_public)) {
     return { ok: false, error: 'Ungültige E-Mail.' };
   }
 
