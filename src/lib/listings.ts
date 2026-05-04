@@ -138,48 +138,84 @@ export type ListingFilters = {
 };
 
 /**
- * Lädt alle live-Inserate aus `inserate_public` mit optionalen Filtern.
+ * Lädt alle live-Inserate mit optionalen Filtern.
+ *
+ * Liest direkt aus der `inserate`-Tabelle (RLS-Policy `ins_public_read_live`
+ * erlaubt anon-Read auf `status='live'`). Wir brauchen das, weil die
+ * `inserate_public` VIEW keine numerischen Spalten (umsatz_chf, kaufpreis_chf,
+ * mitarbeitende) exposed — die Filter `preis_min/max`, `umsatz_min/max`,
+ * `ma_min/max` sowie korrekte numerische Sortierung wären ohne Direktzugriff
+ * unmöglich.
+ *
  * Liefert leeres Array bei leerer DB oder Fehler — niemals throw.
+ *
+ * Premium-Gating: Wenn `userTier` nicht 'plus'/'max' ist, werden die letzten
+ * 7 Tage Inserate ausgeblendet (Frühzugang nur für Käufer+).
  */
-export async function getListings(filters: ListingFilters = {}): Promise<InseratPublic[]> {
+export async function getListings(
+  filters: ListingFilters = {},
+  userTier: string | null = null,
+): Promise<InseratPublic[]> {
   const supabase = await createClient();
-  let q = supabase.from('inserate_public').select('*');
+  // Live-DB-Schema (vgl. getListingById): `branche` (text), `gruendungsjahr`,
+  // `grund`, `kaufpreis_label`, `ebitda_pct`. KEINE *_bucket-Spalten.
+  let q = supabase
+    .from('inserate')
+    .select(
+      `id, public_id, titel, teaser, branche, kanton, gruendungsjahr,
+       mitarbeitende, umsatz_chf, ebitda_chf, ebitda_pct,
+       kaufpreis_chf, kaufpreis_min_chf, kaufpreis_max_chf,
+       kaufpreis_label, kaufpreis_vhb, grund,
+       cover_url, sales_points, paket, featured_until, published_at, views`,
+    )
+    .eq('status', 'live');
 
   if (filters.branche && filters.branche !== 'all') {
-    q = q.eq('branche_id', filters.branche);
+    q = q.eq('branche', filters.branche);
   }
   if (filters.kanton && filters.kanton !== 'all') {
     q = q.eq('kanton', filters.kanton.toUpperCase());
   }
   if (filters.gruende && filters.gruende.length > 0) {
-    q = q.in('uebergabe_grund', filters.gruende);
+    q = q.in('grund', filters.gruende);
   }
   if (filters.ebitda_min != null) {
-    q = q.gte('ebitda_marge_pct', filters.ebitda_min);
+    q = q.gte('ebitda_pct', filters.ebitda_min);
   }
-  if (filters.fruehzugang_gesperrt) {
+  // Numerische Filter (jetzt direkt aus `inserate` möglich)
+  if (filters.preis_min != null) q = q.gte('kaufpreis_chf', filters.preis_min);
+  if (filters.preis_max != null) q = q.lte('kaufpreis_chf', filters.preis_max);
+  if (filters.umsatz_min != null) q = q.gte('umsatz_chf', filters.umsatz_min);
+  if (filters.umsatz_max != null) q = q.lte('umsatz_chf', filters.umsatz_max);
+  if (filters.ma_min != null) q = q.gte('mitarbeitende', filters.ma_min);
+  if (filters.ma_max != null) q = q.lte('mitarbeitende', filters.ma_max);
+
+  // Frühzugang: Wenn User nicht Käufer+/MAX → letzte 7 Tage ausblenden.
+  // Cyrill: Käufer+ haben 7-Tage-Vorsprung auf neue Inserate.
+  const isPremium = userTier === 'plus' || userTier === 'max';
+  if (!isPremium || filters.fruehzugang_gesperrt) {
     const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-    q = q.lt('published_at', cutoff);
+    q = q.lte('published_at', cutoff);
   }
   if (filters.suche && filters.suche.trim().length > 0) {
     const term = filters.suche.trim();
     q = q.or(`titel.ilike.%${term}%,teaser.ilike.%${term}%`);
   }
 
-  // Sortierung: Featured zuerst, dann nach gewählter Sortierung
+  // Sortierung: numerisch. Inserate ohne kaufpreis_chf landen via
+  // nullsFirst:false hinten — Range-Inserate (nur min/max) ebenfalls.
   switch (filters.sort) {
     case 'preis_asc':
-      // kaufpreis_bucket ist String — sortiere alphabetisch (besser als nichts)
-      q = q.order('kaufpreis_bucket', { ascending: true, nullsFirst: false });
+      q = q.order('kaufpreis_chf', { ascending: true, nullsFirst: false });
       break;
     case 'preis_desc':
-      q = q.order('kaufpreis_bucket', { ascending: false, nullsFirst: false });
+      q = q.order('kaufpreis_chf', { ascending: false, nullsFirst: false });
       break;
     case 'umsatz_desc':
-      q = q.order('umsatz_bucket', { ascending: false, nullsFirst: false });
+      q = q.order('umsatz_chf', { ascending: false, nullsFirst: false });
       break;
     case 'ebitda_desc':
-      q = q.order('ebitda_marge_pct', { ascending: false, nullsFirst: false });
+      q = q.order('ebitda_pct', { ascending: false, nullsFirst: false });
       break;
     case 'neu':
     default:
@@ -195,9 +231,42 @@ export async function getListings(filters: ListingFilters = {}): Promise<Inserat
     return [];
   }
 
-  // Featured-First: Inserate mit aktivem featured_until vorne
+  // DB-Row → InseratPublic mappen (DB-Schema → UI-Type).
   const now = Date.now();
-  const rows = (data ?? []) as InseratPublic[];
+  const rows = (data ?? []).map((r) => {
+    const row = r as Record<string, unknown>;
+    return {
+      id: row.id as string,
+      slug: (row.public_id as string | null) ?? null,
+      public_id: row.public_id as string | undefined,
+      titel: row.titel as string,
+      teaser: row.teaser as string | null,
+      branche_id: row.branche as string | null,
+      kanton: row.kanton as string | null,
+      region: null,
+      jahr: row.gruendungsjahr as number | null,
+      mitarbeitende: row.mitarbeitende as number | null,
+      mitarbeitende_bucket: null,
+      umsatz_chf: row.umsatz_chf as number | null,
+      umsatz_bucket: null,
+      ebitda_chf: row.ebitda_chf as number | null,
+      ebitda_marge_pct: row.ebitda_pct as number | null,
+      kaufpreis_chf: row.kaufpreis_chf as number | null,
+      kaufpreis_min_chf: (row.kaufpreis_min_chf as number | null) ?? null,
+      kaufpreis_max_chf: (row.kaufpreis_max_chf as number | null) ?? null,
+      kaufpreis_bucket: row.kaufpreis_label as string | null,
+      kaufpreis_vhb: Boolean(row.kaufpreis_vhb),
+      uebergabe_grund: row.grund as string | null,
+      cover_url: row.cover_url as string | null,
+      sales_points: (row.sales_points as string[] | null) ?? [],
+      paket: row.paket as string | null,
+      featured_until: row.featured_until as string | null,
+      published_at: row.published_at as string,
+      views: (row.views as number) ?? 0,
+    } as InseratPublic;
+  });
+
+  // Featured-First: Inserate mit aktivem featured_until vorne
   return rows.sort((a, b) => {
     const aF = a.featured_until ? new Date(a.featured_until).getTime() > now : false;
     const bF = b.featured_until ? new Date(b.featured_until).getTime() > now : false;
@@ -209,18 +278,35 @@ export async function getListings(filters: ListingFilters = {}): Promise<Inserat
 
 /**
  * Zählt live-Inserate mit Filtern (für Hero-Counter).
+ *
+ * Liest aus `inserate` direkt (vgl. getListings), damit numerische Filter
+ * funktionieren. RLS-Policy `ins_public_read_live` greift.
  */
-export async function countListings(filters: ListingFilters = {}): Promise<number> {
+export async function countListings(
+  filters: ListingFilters = {},
+  userTier: string | null = null,
+): Promise<number> {
   const supabase = await createClient();
-  let q = supabase.from('inserate_public').select('id', { count: 'exact', head: true });
+  let q = supabase
+    .from('inserate')
+    .select('id', { count: 'exact', head: true })
+    .eq('status', 'live');
 
-  if (filters.branche && filters.branche !== 'all') q = q.eq('branche_id', filters.branche);
+  if (filters.branche && filters.branche !== 'all') q = q.eq('branche', filters.branche);
   if (filters.kanton && filters.kanton !== 'all') q = q.eq('kanton', filters.kanton.toUpperCase());
-  if (filters.gruende?.length) q = q.in('uebergabe_grund', filters.gruende);
-  if (filters.ebitda_min != null) q = q.gte('ebitda_marge_pct', filters.ebitda_min);
-  if (filters.fruehzugang_gesperrt) {
+  if (filters.gruende?.length) q = q.in('grund', filters.gruende);
+  if (filters.ebitda_min != null) q = q.gte('ebitda_pct', filters.ebitda_min);
+  if (filters.preis_min != null) q = q.gte('kaufpreis_chf', filters.preis_min);
+  if (filters.preis_max != null) q = q.lte('kaufpreis_chf', filters.preis_max);
+  if (filters.umsatz_min != null) q = q.gte('umsatz_chf', filters.umsatz_min);
+  if (filters.umsatz_max != null) q = q.lte('umsatz_chf', filters.umsatz_max);
+  if (filters.ma_min != null) q = q.gte('mitarbeitende', filters.ma_min);
+  if (filters.ma_max != null) q = q.lte('mitarbeitende', filters.ma_max);
+
+  const isPremium = userTier === 'plus' || userTier === 'max';
+  if (!isPremium || filters.fruehzugang_gesperrt) {
     const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-    q = q.lt('published_at', cutoff);
+    q = q.lte('published_at', cutoff);
   }
 
   const { count, error } = await q;
@@ -330,28 +416,79 @@ export const getListingById = cache(async (idOrSlug: string): Promise<InseratDet
 /**
  * Lädt mehrere Inserate per ID (für Favoriten-Liste).
  * Returns Map<id, InseratPublic> für O(1)-Lookup.
+ *
+ * Liest direkt aus `inserate` (Live-DB-Schema), damit numerische Felder
+ * für die Card-Darstellung (Match-Score, Umsatz/Preis-Display) verfügbar
+ * sind — die View `inserate_public` hat diese nicht.
  */
 export async function getListingsByIds(ids: string[]): Promise<Map<string, InseratPublic>> {
   if (ids.length === 0) return new Map();
   const supabase = await createClient();
   const { data, error } = await supabase
-    .from('inserate_public')
-    .select('*')
+    .from('inserate')
+    .select(
+      `id, public_id, titel, teaser, branche, kanton, gruendungsjahr,
+       mitarbeitende, umsatz_chf, ebitda_chf, ebitda_pct,
+       kaufpreis_chf, kaufpreis_min_chf, kaufpreis_max_chf,
+       kaufpreis_label, kaufpreis_vhb, grund,
+       cover_url, sales_points, paket, featured_until, published_at, views`,
+    )
+    .eq('status', 'live')
     .in('id', ids);
 
   if (error) {
     console.error('[listings] getListingsByIds failed:', error.message);
     return new Map();
   }
-  return new Map((data ?? []).map((row) => [row.id, row as InseratPublic]));
+  const map = new Map<string, InseratPublic>();
+  for (const r of data ?? []) {
+    const row = r as Record<string, unknown>;
+    map.set(row.id as string, {
+      id: row.id as string,
+      slug: (row.public_id as string | null) ?? null,
+      public_id: row.public_id as string | undefined,
+      titel: row.titel as string,
+      teaser: row.teaser as string | null,
+      branche_id: row.branche as string | null,
+      kanton: row.kanton as string | null,
+      region: null,
+      jahr: row.gruendungsjahr as number | null,
+      mitarbeitende: row.mitarbeitende as number | null,
+      mitarbeitende_bucket: null,
+      umsatz_chf: row.umsatz_chf as number | null,
+      umsatz_bucket: null,
+      ebitda_chf: row.ebitda_chf as number | null,
+      ebitda_marge_pct: row.ebitda_pct as number | null,
+      kaufpreis_chf: row.kaufpreis_chf as number | null,
+      kaufpreis_min_chf: (row.kaufpreis_min_chf as number | null) ?? null,
+      kaufpreis_max_chf: (row.kaufpreis_max_chf as number | null) ?? null,
+      kaufpreis_bucket: row.kaufpreis_label as string | null,
+      kaufpreis_vhb: Boolean(row.kaufpreis_vhb),
+      uebergabe_grund: row.grund as string | null,
+      cover_url: row.cover_url as string | null,
+      sales_points: (row.sales_points as string[] | null) ?? [],
+      paket: row.paket as string | null,
+      featured_until: row.featured_until as string | null,
+      published_at: row.published_at as string,
+      views: (row.views as number) ?? 0,
+    } as InseratPublic);
+  }
+  return map;
 }
 
 /**
  * Daily-Digest für einen Käufer: top-3 Inserate, neuester first.
  * Wenn der Käufer aktive Suchprofile hat, werden die Branche/Kanton-Vorlieben
  * berücksichtigt. Sonst: einfach die 3 neuesten.
+ *
+ * `userTier` wird an `getListings` durchgereicht, damit Käufer+/MAX die
+ * Frühzugang-Logik korrekt umgeht und neueste Inserate sieht.
  */
-export async function getDailyDigest(kaeuferId: string, limit = 3): Promise<InseratPublic[]> {
+export async function getDailyDigest(
+  kaeuferId: string,
+  limit = 3,
+  userTier: string | null = null,
+): Promise<InseratPublic[]> {
   const supabase = await createClient();
 
   // Aktives Suchprofil holen (max 1, das erste nicht-pausierte)
@@ -377,13 +514,13 @@ export async function getDailyDigest(kaeuferId: string, limit = 3): Promise<Inse
     filters.kanton = profile.kantone[0];
   }
 
-  const matches = await getListings(filters);
+  const matches = await getListings(filters, userTier);
   if (matches.length >= limit) return matches;
 
   // Auffüllen mit den neuesten Listings ohne Filter
-  if (matches.length === 0) return getListings({ sort: 'neu', limit });
+  if (matches.length === 0) return getListings({ sort: 'neu', limit }, userTier);
   const fillCount = limit - matches.length;
-  const fillers = await getListings({ sort: 'neu', limit: limit + fillCount });
+  const fillers = await getListings({ sort: 'neu', limit: limit + fillCount }, userTier);
   const seenIds = new Set(matches.map((m) => m.id));
   const additional = fillers.filter((f) => !seenIds.has(f.id)).slice(0, fillCount);
   return [...matches, ...additional];

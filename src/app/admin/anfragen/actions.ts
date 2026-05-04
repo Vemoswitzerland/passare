@@ -22,6 +22,12 @@ export async function setAnfrageStatusAction(
   notes?: string,
 ) {
   await assertAdmin();
+
+  // Bei 'abgelehnt' ist eine Begründung erforderlich.
+  if (status === 'abgelehnt' && (!notes || notes.trim().length === 0)) {
+    return { ok: false, error: 'Begründung erforderlich beim Ablehnen einer Anfrage.' };
+  }
+
   const admin = createAdminClient();
   const patch: Record<string, unknown> = { status };
   if (notes) patch.admin_notes = notes;

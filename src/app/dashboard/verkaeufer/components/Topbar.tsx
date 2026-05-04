@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Menu, Bell, Store } from 'lucide-react';
+import { Menu, Store } from 'lucide-react';
 
 type Props = {
   email: string;
@@ -14,13 +14,8 @@ type Props = {
 /**
  * Verkäufer-Topbar — schlank.
  *
- * Cyrill 30.04.2026: «Diese Live-Badge oben neben Verkäufer wegnehmen,
- * das macht 0 Sinn. Auch das Verkäufer-Badge wegnehmen — er sieht ja
- * dass er im Verkäufer-Bereich ist.»
- *
- * Profil + Logout sind unten in der Sidebar (SidebarAccountFooter).
- * Topbar enthält jetzt nur: Mobile-Menü-Toggle, Marktplatz-Knopf,
- * Notifications-Bell.
+ * Topbar enthält: Mobile-Menü-Toggle, Marktplatz-Knopf.
+ * Notifications-Bell wurde entfernt — funktional nicht aktiv.
  */
 export function VerkaeuferTopbar({
   email: _email, fullName: _fullName, isAdmin: _isAdmin, onMenuToggle,
@@ -47,15 +42,6 @@ export function VerkaeuferTopbar({
           <Store className="w-4 h-4" strokeWidth={1.5} />
           Marktplatz
         </Link>
-
-        {/* Notifications-Bell (Stub) */}
-        <button
-          type="button"
-          className="hidden sm:flex relative w-9 h-9 items-center justify-center rounded-soft hover:bg-stone/40 transition-colors"
-          aria-label="Benachrichtigungen"
-        >
-          <Bell className="w-4 h-4 text-navy" strokeWidth={1.5} />
-        </button>
       </div>
     </header>
   );

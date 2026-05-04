@@ -36,6 +36,8 @@ export type ValuationResult = {
   mid: number;
   high: number;
   basis: ValuationBasis;
+  /** Optionale Warnung — z.B. bei negativem EBITDA. */
+  warning?: string;
 };
 
 function clamp(v: number, lo: number, hi: number) {
@@ -103,6 +105,11 @@ export function calculateValuation(input: ValuationInput): ValuationResult {
     low = Math.max(low, input.eigenkapital * 0.9);
   }
 
+  // Warnung bei negativem EBITDA — Bewertung dann nur Umsatz-basiert.
+  const warning = input.ebitda < 0
+    ? 'Negative EBITDA — Bewertung nur Umsatz-basiert, ggf. unrealistisch'
+    : undefined;
+
   return {
     low: roundToNearestThousand(low),
     mid: roundToNearestThousand(mid),
@@ -120,6 +127,7 @@ export function calculateValuation(input: ValuationInput): ValuationResult {
       weight_ebitda: Number(wEbitda.toFixed(2)),
       margin_pct: Number((margin * 100).toFixed(1)),
     },
+    ...(warning ? { warning } : {}),
   };
 }
 

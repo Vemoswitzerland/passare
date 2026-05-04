@@ -1,5 +1,44 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
+import { isSafeNextPath, safeNextPath } from '@/lib/auth/safe-redirect';
+import { routeAfterAuth } from '@/lib/auth/routing';
+import { AGB_VERSION, DATENSCHUTZ_VERSION } from '@/app/auth/constants';
+
+// SECURITY: pre_reg_draft kommt vom Browser-Cookie und wird an einen
+// security-definer-RPC weitergereicht — daher MÜSSEN wir vor der
+// Übergabe schema-validieren und Bounds checken.
+const PreRegDraftSchema = z.object({
+  firma_name: z.string().trim().max(200).optional().nullable(),
+  zefix_uid: z.string().trim().max(50).optional().nullable(),
+  firma_rechtsform: z.string().trim().max(50).optional().nullable(),
+  firma_sitz_gemeinde: z.string().trim().max(120).optional().nullable(),
+  branche_id: z.string().trim().max(50).optional().nullable(),
+  kanton: z.string().trim().max(2).optional().nullable(),
+  jahr: z.coerce.number().int().min(1800).max(2100).optional().nullable(),
+  mitarbeitende: z.coerce.number().min(0).max(100_000).optional().nullable(),
+  umsatz: z.coerce.number().min(0).max(1_000_000_000).optional().nullable(),
+  ebitda: z.coerce.number().min(-1_000_000_000).max(1_000_000_000).optional().nullable(),
+  valuation: z.union([
+    z.object({
+      min: z.number().min(0).max(10_000_000_000).optional().nullable(),
+      mid: z.number().min(0).max(10_000_000_000).optional().nullable(),
+      max: z.number().min(0).max(10_000_000_000).optional().nullable(),
+    }).passthrough(),
+    z.null(),
+  ]).optional(),
+}).passthrough();
+
+type PreRegDraft = z.infer<typeof PreRegDraftSchema>;
+
+function parsePreRegDraft(raw: unknown): PreRegDraft | null {
+  const result = PreRegDraftSchema.safeParse(raw);
+  if (!result.success) {
+    console.warn('[auth-callback] pre_reg_draft schema invalid — verwerfen');
+    return null;
+  }
+  return result.data;
+}
 
 /**
  * Supabase-Redirect-Ziel für Bestätigungs- und Recovery-E-Mails.
@@ -23,7 +62,9 @@ export async function GET(req: NextRequest) {
   const code = searchParams.get('code');
   const tokenHash = searchParams.get('token_hash');
   const type = searchParams.get('type'); // signup | recovery | invite | magiclink | email_change
-  const next = searchParams.get('next') ?? '';
+  // SECURITY: `next` MUSS validiert werden — sonst Open-Redirect via `//evil.com`.
+  const rawNext = searchParams.get('next') ?? '';
+  const next = isSafeNextPath(rawNext) ? rawNext : '';
 
   const supabase = await createClient();
 
@@ -43,9 +84,22 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(`${origin}/auth/login?error=invalid_callback`);
   }
 
-  // Recovery → direkter Redirect zur Confirm-Seite
+  // Recovery → direkter Redirect zur Confirm-Seite.
+  // SECURITY: Recovery-Session ist sofort eingeloggt — würde der User
+  // einfach navigieren, käme er aufs Dashboard ohne neues Passwort.
+  // Wir setzen ein kurzlebiges Cookie das die Middleware bei jedem Request
+  // gegenchecken kann; bis das Passwort neu gesetzt ist (updatePasswordAction
+  // räumt das Cookie weg) sind alle Routes ausser /auth/reset/confirm gesperrt.
   if (type === 'recovery') {
-    return NextResponse.redirect(`${origin}/auth/reset/confirm`);
+    const res = NextResponse.redirect(`${origin}/auth/reset/confirm`);
+    res.cookies.set('passare_recovery_only', '1', {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+      path: '/',
+      maxAge: 60 * 30, // 30 Minuten
+    });
+    return res;
   }
 
   const { data: u } = await supabase.auth.getUser();
@@ -54,53 +108,14 @@ export async function GET(req: NextRequest) {
   }
 
   // ════════════════════════════════════════════════════════════════
-  //  WIEDERKEHRER-ERKENNUNG — der Schutz gegen den Tunnel-Loop
-  // ────────────────────────────────────────────────────────────────
-  //  Wenn das Auth-Account schon älter als 5 Min ist, ist das ein
-  //  Wiederkehrer. Egal welche Cookies noch im Browser kleben — KEIN
-  //  neues Inserat aus Pre-Reg-Daten anlegen, immer ins Dashboard,
-  //  Cookies clearen.
+  //  WIEDERKEHRER-ERKENNUNG via geteiltem Helper.
+  //  Wenn das Auth-Account schon älter als 5 Min ist ODER der User
+  //  schon ein Inserat hat → kein neues Inserat aus Pre-Reg-Daten,
+  //  immer rolle-basiert ins Dashboard, Cookies clearen.
   // ════════════════════════════════════════════════════════════════
-  const accountAgeMs = Date.now() - new Date(u.user.created_at).getTime();
-  const isWiederkehrer = accountAgeMs > 5 * 60 * 1000; // 5 Minuten
-
-  // Bestehende Inserate des Users laden — wenn welche da, dann ist es
-  // SOWIESO ein Wiederkehrer (Doppel-Sicherung).
-  const { data: existingInserate } = await supabase
-    .from('inserate')
-    .select('id, status, paid_at')
-    .eq('verkaeufer_id', u.user.id)
-    .order('updated_at', { ascending: false });
-
-  const hasInserat = (existingInserate?.length ?? 0) > 0;
-
-  if (isWiederkehrer || hasInserat) {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('rolle')
-      .eq('id', u.user.id)
-      .maybeSingle();
-
-    const hasSpecificNext = next && next !== '/dashboard' && next !== '/';
-    const nextMatchesRole =
-      hasSpecificNext && (
-        !profile?.rolle || // rolle=null → next respektieren (kein 3-Optionen-Wähler)
-        (profile.rolle === 'admin' && next.startsWith('/admin')) ||
-        (profile.rolle === 'broker' && next.startsWith('/dashboard/broker')) ||
-        (profile.rolle === 'kaeufer' && (next.startsWith('/dashboard/kaeufer') || next.startsWith('/onboarding/kaeufer'))) ||
-        (profile.rolle === 'verkaeufer' && (next.startsWith('/dashboard/verkaeufer') || next.startsWith('/verkaufen')))
-      );
-
-    const targetPath = nextMatchesRole
-      ? next!
-      : profile?.rolle === 'admin' ? '/admin'
-      : profile?.rolle === 'broker' ? '/dashboard/broker'
-      : profile?.rolle === 'kaeufer' ? '/dashboard/kaeufer'
-      : profile?.rolle === 'verkaeufer' ? '/dashboard/verkaeufer'
-      : hasInserat ? '/dashboard/verkaeufer'
-      : '/dashboard';
-
-    const targetUrl = `${origin}${targetPath}`;
+  const routing = await routeAfterAuth(supabase, u.user, next);
+  if (routing.isWiederkehrer || routing.hasInserat) {
+    const targetUrl = `${origin}${routing.targetPath}`;
     const res = NextResponse.redirect(targetUrl);
     res.cookies.set('pre_reg_draft', '', { maxAge: 0, path: '/' });
     res.cookies.set('passare_intent_verkaeufer', '', { maxAge: 0, path: '/' });
@@ -117,17 +132,26 @@ export async function GET(req: NextRequest) {
   //  und wird ignoriert.
   // ════════════════════════════════════════════════════════════════
   const preRegRaw = req.cookies.get('pre_reg_draft')?.value;
-  let preReg: any = null;
+  let preReg: PreRegDraft | null = null;
   if (preRegRaw) {
-    try { preReg = JSON.parse(preRegRaw); } catch { /* invalid */ }
+    try {
+      const parsed = JSON.parse(preRegRaw);
+      // SECURITY: Cookie kommt vom Browser — vor Weitergabe an die DB-RPC
+      // strikt validieren. Sonst kann ein Angreifer mit forge'd Cookie
+      // beliebige Werte (auch Numbers ausserhalb von Bounds) durchreichen.
+      preReg = parsePreRegDraft(parsed);
+    } catch {
+      preReg = null;
+    }
   }
 
-  const hasFreshPreReg = preReg && typeof preReg === 'object' &&
+  const hasFreshPreReg = preReg !== null &&
     (preReg.firma_name || preReg.zefix_uid || preReg.branche_id);
 
   if (!hasFreshPreReg) {
-    // Kein echter Pre-Reg-Flow → Cookies clearen + Dashboard
-    const targetUrl = `${origin}${next || '/dashboard'}`;
+    // Kein echter Pre-Reg-Flow → Cookies clearen + Dashboard.
+    // `next` ist oben bereits whitelist-validiert.
+    const targetUrl = `${origin}${safeNextPath(next, '/dashboard')}`;
     const res = NextResponse.redirect(targetUrl);
     res.cookies.set('pre_reg_draft', '', { maxAge: 0, path: '/' });
     res.cookies.set('passare_intent_verkaeufer', '', { maxAge: 0, path: '/' });
@@ -146,8 +170,8 @@ export async function GET(req: NextRequest) {
     p_full_name: fullName,
     p_kanton: kanton,
     p_sprache: sprache,
-    p_agb_version: '2026-04',
-    p_datenschutz_version: '2026-04',
+    p_agb_version: AGB_VERSION,
+    p_datenschutz_version: DATENSCHUTZ_VERSION,
     p_ip: ip,
     p_user_agent: ua,
   });

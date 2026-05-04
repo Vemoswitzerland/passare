@@ -1,6 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { cookies } from 'next/headers';
 import { z } from 'zod';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { logAuditEvent } from '@/lib/admin/audit';
@@ -17,6 +18,56 @@ async function assertAdmin() {
     .maybeSingle();
 
   if (profile?.rolle !== 'admin') throw new Error('Keine Admin-Berechtigung.');
+  return data.user;
+}
+
+/**
+ * Impersonation aktivieren — setzt httpOnly-Cookie und schreibt Audit-Log.
+ *
+ * Nur Admin kann diese Action aufrufen. Cookie wird via `httpOnly` und
+ * `sameSite=lax` gesetzt, damit Client-JS es nicht mehr sehen kann.
+ */
+export async function enterImpersonationAction(rolle: 'verkaeufer' | 'kaeufer') {
+  const adminUser = await assertAdmin();
+  const cookieStore = await cookies();
+  cookieStore.set('admin_impersonation', rolle, {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    path: '/',
+    maxAge: 60 * 60 * 24, // 24h
+  });
+  await logAuditEvent({
+    type: 'admin_action',
+    user_id: adminUser.id,
+    user_email: adminUser.email ?? null,
+    beschreibung: `Impersonation gestartet als ${rolle}`,
+    metadata: { rolle, action: 'enter_impersonation' },
+  });
+  return { ok: true as const };
+}
+
+/**
+ * Impersonation beenden — löscht das Cookie und audit-loggt das Event.
+ */
+export async function exitImpersonationAction() {
+  const adminUser = await assertAdmin();
+  const cookieStore = await cookies();
+  cookieStore.set('admin_impersonation', '', {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    path: '/',
+    maxAge: 0,
+  });
+  await logAuditEvent({
+    type: 'admin_action',
+    user_id: adminUser.id,
+    user_email: adminUser.email ?? null,
+    beschreibung: 'Impersonation beendet',
+    metadata: { action: 'exit_impersonation' },
+  });
+  return { ok: true as const };
 }
 
 const ScoreSchema = z.object({
@@ -88,21 +139,46 @@ export async function setVerificationAction(input: {
 
 const RoleSchema = z.object({
   user_id: z.string().uuid(),
-  rolle: z.enum(['verkaeufer', 'kaeufer', 'admin']),
+  rolle: z.enum(['verkaeufer', 'kaeufer', 'admin', 'broker']),
 });
 
-export async function setUserRoleAction(input: { user_id: string; rolle: 'verkaeufer' | 'kaeufer' | 'admin' }) {
+export async function setUserRoleAction(input: { user_id: string; rolle: 'verkaeufer' | 'kaeufer' | 'admin' | 'broker' }) {
   await assertAdmin();
   const parsed = RoleSchema.parse(input);
   const supabase = await createClient();
+
+  // Self-Lockout-Check: Wenn Admin sich selber auf nicht-admin-Rolle setzt,
+  // prüfen ob mindestens noch ein anderer Admin existiert. Sonst reject.
+  const { data: meData } = await supabase.auth.getUser();
+  if (meData.user?.id === parsed.user_id && parsed.rolle !== 'admin') {
+    const admin = createAdminClient();
+    const { count } = await admin
+      .from('profiles')
+      .select('id', { count: 'exact', head: true })
+      .eq('rolle', 'admin');
+    if ((count ?? 0) <= 1) {
+      return { ok: false, error: 'Letzter Admin kann sich nicht selbst degradieren — vorher anderen Admin ernennen.' };
+    }
+  }
+
   const { error } = await supabase.rpc('admin_set_user_role', {
     p_user_id: parsed.user_id,
     p_rolle: parsed.rolle,
   });
   if (error) return { ok: false, error: error.message };
+
+  // Email-Backfill für Audit-Log
+  const adminCl = createAdminClient();
+  const { data: targetProfile } = await adminCl
+    .from('profiles')
+    .select('email')
+    .eq('id', parsed.user_id)
+    .maybeSingle();
+
   await logAuditEvent({
     type: 'admin_action',
     user_id: parsed.user_id,
+    user_email: targetProfile?.email ?? undefined,
     beschreibung: `Rolle auf «${parsed.rolle}» gesetzt (Admin-Override)`,
     metadata: { rolle: parsed.rolle },
   });
@@ -156,9 +232,27 @@ export async function deleteUserAction(input: { user_id: string }) {
     // Fallback: direkt via Service-Role
     const admin = createAdminClient();
     try {
-      // Manuelle Cascade-Cleanups
-      await admin.from('inserate').delete().eq('verkaeufer_id', parsed.user_id);
-      await admin.from('anfragen').delete().eq('kaeufer_id', parsed.user_id);
+      // Manuelle Cascade-Cleanups — Reihenfolge ist wichtig wegen FK.
+      // Wir umschliessen jeden Delete in try/catch, damit ein einzelner
+      // FK-Fehler den Gesamtablauf nicht abbricht.
+      const cleanups: Array<{ name: string; fn: () => Promise<unknown> }> = [
+        { name: 'favoriten',           fn: () => admin.from('favoriten').delete().eq('kaeufer_id', parsed.user_id) },
+        { name: 'kaeufer_profil',      fn: () => admin.from('kaeufer_profil').delete().eq('user_id', parsed.user_id) },
+        { name: 'broker_profiles',     fn: () => admin.from('broker_profiles').delete().eq('user_id', parsed.user_id) },
+        { name: 'bewertungs_anfragen', fn: () => admin.from('bewertungs_anfragen').delete().eq('user_id', parsed.user_id) },
+        { name: 'terms_acceptances',   fn: () => admin.from('terms_acceptances').delete().eq('user_id', parsed.user_id) },
+        { name: 'email_log',           fn: () => admin.from('email_log').delete().eq('user_id', parsed.user_id) },
+        { name: 'inserat_audit_messages', fn: () => admin.from('inserat_audit_messages').delete().eq('from_user', parsed.user_id) },
+        { name: 'anfrage_messages',    fn: () => admin.from('anfrage_messages').delete().eq('from_user', parsed.user_id) },
+        { name: 'anfragen',            fn: () => admin.from('anfragen').delete().eq('kaeufer_id', parsed.user_id) },
+        { name: 'inserate',            fn: () => admin.from('inserate').delete().eq('verkaeufer_id', parsed.user_id) },
+        // audit_log behalten wir aus Compliance-Gründen — Foreign-Key
+        // ist in Supabase auf SET NULL konfiguriert.
+      ];
+      for (const c of cleanups) {
+        try { await c.fn(); } catch (e) { console.warn(`[delete-user-cleanup:${c.name}]`, e); }
+      }
+
       const { error: authErr } = await admin.auth.admin.deleteUser(parsed.user_id);
       if (authErr) return { ok: false, error: authErr.message };
     } catch (e) {

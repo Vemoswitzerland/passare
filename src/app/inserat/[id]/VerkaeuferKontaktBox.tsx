@@ -12,6 +12,7 @@
  * Mailto mit Subject + Body — Käufer kommt mit Kontext direkt rein.
  */
 
+import { Lock } from 'lucide-react';
 import type { InseratDetail } from '@/lib/listings';
 
 type Props = {
@@ -31,11 +32,32 @@ type Props = {
     | 'public_id'
     | 'id'
   >;
+  /**
+   * Wenn `false`, werden Telefon/Email/WhatsApp/LinkedIn NICHT gerendert,
+   * stattdessen erscheint ein Hinweis dass Kontaktdaten nach Login + NDA-
+   * Freigabe sichtbar werden. Schützt PII vor anonymen Besuchern.
+   */
+  isAuthenticated: boolean;
 };
 
-export function VerkaeuferKontaktBox({ listing }: Props) {
+export function VerkaeuferKontaktBox({ listing, isAuthenticated }: Props) {
   const level = listing.anonymitaet_level;
   if (!level || level === 'voll_anonym') return null;
+
+  // PII-Schutz: Anonyme Besucher sehen NUR den Hinweis-Text, KEINE
+  // Telefonnummer / Email / WhatsApp / LinkedIn — auch nicht im
+  // halb-öffentlichen `vorname_funktion`-Modus. Cyrill 2026-05-04.
+  if (!isAuthenticated) {
+    return (
+      <div className="bg-bronze/5 border border-bronze/20 rounded-card p-4 flex items-start gap-3">
+        <Lock className="w-4 h-4 text-bronze flex-shrink-0 mt-0.5" strokeWidth={1.5} />
+        <p className="text-caption text-muted leading-relaxed">
+          Kontaktdaten werden nach Anmeldung &amp; NDA-Freigabe sichtbar. Stelle
+          unten eine Anfrage — der Verkäufer entscheidet über die Freigabe.
+        </p>
+      </div>
+    );
+  }
 
   const vorname = listing.kontakt_vorname?.trim() || null;
   const nachname = listing.kontakt_nachname?.trim() || null;
@@ -68,15 +90,17 @@ export function VerkaeuferKontaktBox({ listing }: Props) {
   const subtitle = [funktion, firmaName].filter(Boolean).join(' · ') || null;
 
   const email = listing.kontakt_email_public?.trim() || null;
-  const whatsappRaw = listing.kontakt_whatsapp_nr?.trim() || null;
-  const whatsappEnabled = Boolean(listing.whatsapp_enabled && whatsappRaw);
-  const whatsappDisplay = whatsappEnabled ? formatPhone(whatsappRaw) : null;
+  const phoneRaw = listing.kontakt_whatsapp_nr?.trim() || null;
+  // Telefon ist immer sichtbar wenn vorhanden (entkoppelt von WhatsApp)
+  const phoneDisplay = phoneRaw ? formatPhone(phoneRaw) : null;
+  // WhatsApp-Button ist NUR aktiv wenn whatsapp_enabled UND Nummer vorhanden
+  const whatsappEnabled = Boolean(listing.whatsapp_enabled && phoneRaw);
 
   const inseratLink = `https://passare.ch/inserat/${listing.public_id ?? listing.id}`;
   const greeting = vorname ? `Guten Tag ${vorname}` : 'Guten Tag';
   const waText =
     `${greeting}, ich interessiere mich für Ihr Inserat «${listing.titel}» auf passare.ch.\n\n${inseratLink}`;
-  const whatsappHref = whatsappEnabled ? buildWhatsAppHref(whatsappRaw, waText) : null;
+  const whatsappHref = whatsappEnabled ? buildWhatsAppHref(phoneRaw, waText) : null;
 
   const linkedin = listing.linkedin_url?.trim() || null;
   const linkedinHref = linkedin ? normalizeUrl(linkedin) : null;
@@ -123,14 +147,14 @@ export function VerkaeuferKontaktBox({ listing }: Props) {
       </div>
 
       {/* Telefonnummer + E-Mail über volle Breite (eigene Zeilen) */}
-      {(whatsappDisplay || email) && (
+      {(phoneDisplay || email) && (
         <div className="flex flex-col gap-1 pt-1 border-t border-bronze/15">
-          {whatsappDisplay && (
+          {phoneDisplay && (
             <a
-              href={`tel:${whatsappRaw?.replace(/\s/g, '')}`}
+              href={`tel:${phoneRaw?.replace(/\s/g, '')}`}
               className="block font-mono text-body-sm text-navy hover:text-bronze transition-colors pt-2"
             >
-              {whatsappDisplay}
+              {phoneDisplay}
             </a>
           )}
           {email && (

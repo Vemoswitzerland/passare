@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useRef } from 'react';
 import { Upload, FileText, FileSpreadsheet, FileImage, File as FileIcon, Trash2, Eye, Download, Loader2, Folder, History } from 'lucide-react';
-import { deleteDatenraumFile } from './actions';
+import { deleteDatenraumFile, getSignedDownloadUrl } from './actions';
 import { cn } from '@/lib/utils';
 
 const ORDNER = [
@@ -37,9 +37,11 @@ type Props = {
   inseratId: string;
   files: DatenraumFile[];
   accessLog: AccessLog[];
+  /** Map kaeufer_id → full_name für Audit-Tabelle (statt UUID). */
+  kaeuferNames?: Record<string, string>;
 };
 
-export function DatenraumClient({ inseratId, files, accessLog }: Props) {
+export function DatenraumClient({ inseratId, files, accessLog, kaeuferNames }: Props) {
   const [tab, setTab] = useState<typeof ORDNER[number]['id'] | 'audit'>('finanzen');
   const [uploading, setUploading] = useState(false);
   const [uploadOrdner, setUploadOrdner] = useState<string>('finanzen');
@@ -193,7 +195,7 @@ export function DatenraumClient({ inseratId, files, accessLog }: Props) {
       </div>
 
       {tab === 'audit' ? (
-        <AuditView log={accessLog} files={files} />
+        <AuditView log={accessLog} files={files} kaeuferNames={kaeuferNames ?? {}} />
       ) : (
         <FileList files={filteredFiles} accessLog={accessLog} onDelete={(id) => {
           startTransition(async () => {
@@ -204,6 +206,17 @@ export function DatenraumClient({ inseratId, files, accessLog }: Props) {
       )}
     </div>
   );
+}
+
+async function handleDownload(fileId: string) {
+  const res = await getSignedDownloadUrl(fileId);
+  if (!res.ok) {
+    alert(`Fehler: ${res.error}`);
+    return;
+  }
+  // Öffnet das File in einem neuen Tab — Browser triggert Download anhand
+  // Content-Disposition vom Storage.
+  window.open(res.url, '_blank', 'noopener,noreferrer');
 }
 
 function FileList({
@@ -250,6 +263,15 @@ function FileList({
             </div>
             <button
               type="button"
+              onClick={() => handleDownload(f.id)}
+              className="text-quiet hover:text-navy p-2 transition-colors"
+              aria-label="Download"
+              title="Datei herunterladen"
+            >
+              <Download className="w-4 h-4" strokeWidth={1.5} />
+            </button>
+            <button
+              type="button"
               onClick={() => {
                 if (confirm(`«${f.name}» löschen?`)) onDelete(f.id);
               }}
@@ -265,7 +287,7 @@ function FileList({
   );
 }
 
-function AuditView({ log, files }: { log: AccessLog[]; files: DatenraumFile[] }) {
+function AuditView({ log, files, kaeuferNames }: { log: AccessLog[]; files: DatenraumFile[]; kaeuferNames: Record<string, string> }) {
   const fileMap = Object.fromEntries(files.map((f) => [f.id, f]));
   if (log.length === 0) {
     return (
@@ -292,8 +314,8 @@ function AuditView({ log, files }: { log: AccessLog[]; files: DatenraumFile[] })
               <td className="px-4 py-3 text-body-sm text-navy truncate max-w-[200px]">
                 {fileMap[a.file_id]?.name ?? '—'}
               </td>
-              <td className="px-4 py-3 text-caption text-muted font-mono">
-                {a.kaeufer_id.slice(0, 8)}…
+              <td className="px-4 py-3 text-caption text-muted">
+                {kaeuferNames[a.kaeufer_id] ?? `${a.kaeufer_id.slice(0, 8)}…`}
               </td>
               <td className="px-4 py-3 text-caption">
                 <span className={

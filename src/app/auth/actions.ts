@@ -5,6 +5,8 @@ import { revalidatePath } from 'next/cache';
 import { headers, cookies } from 'next/headers';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
+import { isSafeNextPath } from '@/lib/auth/safe-redirect';
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 import { AGB_VERSION, DATENSCHUTZ_VERSION, KANTONE, type ActionResult } from './constants';
 
 const VALID_KANTON = new Set(KANTONE.map(([c]) => c));
@@ -48,6 +50,7 @@ const registerSchema = z
 const loginSchema = z.object({
   email: emailSchema,
   password: z.string().min(1, 'Passwort erforderlich'),
+  next: z.string().optional(),
 });
 
 const resetRequestSchema = z.object({ email: emailSchema });
@@ -137,6 +140,7 @@ export async function loginAction(_prev: ActionResult | null, formData: FormData
   const parsed = loginSchema.safeParse({
     email: formData.get('email'),
     password: formData.get('password'),
+    next: formData.get('next') || undefined,
   });
 
   if (!parsed.success) {
@@ -154,15 +158,25 @@ export async function loginAction(_prev: ActionResult | null, formData: FormData
     return { ok: false, error: translateAuthError(error.message) };
   }
 
+  // SECURITY: `next` strikt whitelisten — sonst Open-Redirect via `//evil.com`.
+  const safeNext = parsed.data.next && isSafeNextPath(parsed.data.next)
+    ? parsed.data.next
+    : null;
+
   // Rolle laden — Admins direkt in den Admin-Bereich leiten
-  let target = '/dashboard';
+  let target = safeNext ?? '/dashboard';
   if (signIn.user) {
     const { data: profile } = await supabase
       .from('profiles')
       .select('rolle')
       .eq('id', signIn.user.id)
       .maybeSingle();
-    if (profile?.rolle === 'admin') target = '/admin';
+    if (profile?.rolle === 'admin') {
+      // Admins: /admin gewinnt, AUSSER es kommt ein expliziter Admin-Pfad rein.
+      target = safeNext && safeNext.startsWith('/admin') ? safeNext : '/admin';
+    } else if (safeNext) {
+      target = safeNext;
+    }
   }
 
   revalidatePath('/', 'layout');
@@ -176,6 +190,26 @@ export async function requestResetAction(_prev: ActionResult | null, formData: F
   const parsed = resetRequestSchema.safeParse({ email: formData.get('email') });
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? 'E-Mail ungültig' };
+  }
+
+  // ════════════════════════════════════════════════════════════════
+  // SECURITY: Rate-Limit gegen Reset-Spam (Brute-Force / E-Mail-Bombing)
+  // ────────────────────────────────────────────────────────────────
+  // Schlüssel = ip + ':reset:' + email — verhindert dass jemand 1000×
+  // pro Minute Reset-Mails an eine fremde Adresse schickt.
+  // ════════════════════════════════════════════════════════════════
+  try {
+    const h = await headers();
+    const ip = h.get('x-forwarded-for')?.split(',')[0]?.trim() || h.get('x-real-ip') || '0.0.0.0';
+    const limitKey = `reset:${parsed.data.email}`;
+    const rl = await checkRateLimit(ip, limitKey, 3);
+    if (!rl.allowed) {
+      // Wir liefern wie bei Erfolg `ok: true` zurück — kein User-Enumeration-Leak.
+      return { ok: true };
+    }
+  } catch (err) {
+    // Rate-Limit-Backend down? Best-effort — kein hartes Fail.
+    console.warn('[requestResetAction] rate-limit-check failed:', err);
   }
 
   const supabase = await createClient();
@@ -211,6 +245,15 @@ export async function updatePasswordAction(_prev: ActionResult | null, formData:
   const { error } = await supabase.auth.updateUser({ password: parsed.data.password });
   if (error) {
     return { ok: false, error: translateAuthError(error.message) };
+  }
+
+  // Recovery-Lockdown beenden — Cookie wegräumen, sonst hängt der User
+  // weiter auf /auth/reset/confirm.
+  try {
+    const cookieStore = await cookies();
+    cookieStore.set('passare_recovery_only', '', { maxAge: 0, path: '/' });
+  } catch {
+    // render-mode — Cookie wird beim nächsten Response-Cycle weg sein.
   }
 
   revalidatePath('/', 'layout');
@@ -322,5 +365,7 @@ function translateAuthError(msg: string): string {
   if (m.includes('password should be at least')) return 'Passwort zu kurz (min. 8 Zeichen)';
   if (m.includes('weak password')) return 'Passwort zu schwach';
   if (m.includes('signups not allowed')) return 'Registrierung derzeit nicht möglich';
-  return msg;
+  // SECURITY: Original-Message NICHT zurückgeben — Supabase-Backend-Texte
+  // können interne Hinweise enthalten (z.B. "user_id not found in auth.users").
+  return 'Anmeldung fehlgeschlagen';
 }

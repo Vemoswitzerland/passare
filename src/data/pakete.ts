@@ -237,11 +237,18 @@ export function getInkludierteNewsletterSlots(
 
 /**
  * Smart-Empfehlung: welches Paket schlagen wir vor?
- * Default = Pro (Mittelpaket, Decoy-Anker).
- * Bei sehr grossen Firmen (>5 Mio Verkaufswert) → Premium.
+ *  - <CHF 500'000 → Light (Klein-Inserat)
+ *  - <CHF 5'000'000 → Pro (Standard-Mittelpaket, Decoy-Anker)
+ *  - >=CHF 5'000'000 → Premium
+ *
+ * Wenn kein Verkaufswert vorhanden, default Pro.
  */
 export function recommendPaket(verkaufswertChf: number | null | undefined): PaketTier {
-  if (verkaufswertChf && verkaufswertChf > 5_000_000) return 'premium';
+  if (verkaufswertChf != null) {
+    if (verkaufswertChf < 500_000) return 'light';
+    if (verkaufswertChf < 5_000_000) return 'pro';
+    return 'premium';
+  }
   return 'pro';
 }
 

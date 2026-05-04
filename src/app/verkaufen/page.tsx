@@ -144,7 +144,7 @@ function Benefits() {
     { Icon: ShieldCheck, title: 'Anonym inserieren', body: 'Teaser öffentlich, Details erst nach Ihrer Freigabe. Ihre Mitarbeitenden, Lieferanten und Kunden erfahren nichts vom Verkauf.' },
     { Icon: Clock, title: '10–15 Min. live', body: 'Zefix-Import, KI-Assistent, Foto-Upload. Ihr Inserat läuft noch heute.' },
     { Icon: TrendingUp, title: 'Pauschal-Preis', body: 'Sie zahlen einmalig für Ihr Inserat — egal ob Ihre Firma am Ende für CHF 500\'000 oder CHF 25 Mio den Besitzer wechselt.' },
-    { Icon: Users, title: 'Verifizierte Käufer', body: 'Über 300 registrierte Käufer mit KYC und ernstem Interesse. Keine Schaulustigen.' },
+    { Icon: Users, title: 'Verifizierte KMU-Käufer', body: 'Schweizer Marktplatz für KMU-Nachfolge — Käufer registrieren sich mit Profil und werden vor jeder Anfrage von dir freigeschaltet.' },
   ];
 
   return (
@@ -573,8 +573,7 @@ function Footer() {
             <p className="overline mb-4">Haus</p>
             <ul className="space-y-3 text-body-sm text-muted">
               <li><Link className="hover:text-navy" href="/">Über passare</Link></li>
-              <li><Link className="hover:text-navy" href="/">Kontakt</Link></li>
-              <li><Link className="hover:text-navy" href="/design">Design System</Link></li>
+              <li><Link className="hover:text-navy" href="/kontakt">Kontakt</Link></li>
             </ul>
           </div>
         </div>
@@ -584,9 +583,9 @@ function Footer() {
             &copy; {new Date().getFullYear()} passare &middot; «Made in Switzerland»
           </p>
           <div className="flex gap-6">
-            <Link className="hover:text-navy" href="/">Impressum</Link>
-            <Link className="hover:text-navy" href="/">Datenschutz</Link>
-            <Link className="hover:text-navy" href="/">AGB</Link>
+            <Link className="hover:text-navy" href="/impressum">Impressum</Link>
+            <Link className="hover:text-navy" href="/datenschutz">Datenschutz</Link>
+            <Link className="hover:text-navy" href="/agb">AGB</Link>
           </div>
         </div>
       </Container>

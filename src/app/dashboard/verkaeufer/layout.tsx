@@ -107,11 +107,35 @@ export default async function VerkaeuferLayout({ children }: { children: React.R
       }
 
       if (await hasTable('nda_signaturen')) {
-        const { count: ndaPending } = await supabase
-          .from('nda_signaturen')
-          .select('id', { count: 'exact', head: true })
-          .eq('status', 'pending');
-        counts.ndaPending = ndaPending ?? 0;
+        // NDA-Counter: nur eigene Inserate zählen — der vorige Code
+        // zählte plattformweit (kompletter Datenleak).
+        // 2-Step: erst eigene Inserat-IDs holen, dann darauf joinen.
+        const ownerCol2 = isBroker ? 'broker_id' : 'verkaeufer_id';
+        const { data: meineInserate } = await supabase
+          .from('inserate')
+          .select('id')
+          .eq(ownerCol2, userData.user.id);
+        const meineInseratIds = (meineInserate ?? []).map((r: { id: string }) => r.id);
+        if (meineInseratIds.length > 0 && (await hasTable('anfragen'))) {
+          // anfragen liefert die kaeufer_id-Anfragen, die zu meinen Inseraten gehören
+          const { data: meineAnfragen } = await supabase
+            .from('anfragen')
+            .select('id')
+            .in('inserat_id', meineInseratIds);
+          const meineAnfrageIds = (meineAnfragen ?? []).map((r: { id: string }) => r.id);
+          if (meineAnfrageIds.length > 0) {
+            const { count: ndaPending } = await supabase
+              .from('nda_signaturen')
+              .select('id', { count: 'exact', head: true })
+              .eq('status', 'pending')
+              .in('anfrage_id', meineAnfrageIds);
+            counts.ndaPending = ndaPending ?? 0;
+          } else {
+            counts.ndaPending = 0;
+          }
+        } else {
+          counts.ndaPending = 0;
+        }
       }
 
       if (await hasTable('datenraum_files')) {

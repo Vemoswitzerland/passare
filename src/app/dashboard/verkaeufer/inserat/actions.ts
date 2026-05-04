@@ -339,7 +339,13 @@ function trimOrNull(v: string | null | undefined): string | null {
 /** Inserat löschen (nur Entwurf erlaubt durch RLS). */
 export async function deleteInserat(inseratId: string): Promise<ActionResult> {
   const supabase = await createClient();
-  const { error } = await supabase.from('inserate').delete().eq('id', inseratId);
+  const { data: u } = await supabase.auth.getUser();
+  if (!u.user) return { ok: false, error: 'Nicht angemeldet.' };
+  const { error } = await supabase
+    .from('inserate')
+    .delete()
+    .eq('id', inseratId)
+    .eq('verkaeufer_id', u.user.id);
   if (error) return { ok: false, error: error.message };
   revalidatePath('/dashboard/verkaeufer');
   return { ok: true };
@@ -351,18 +357,89 @@ export async function setInseratStatus(
   status: 'pausiert' | 'live' | 'verkauft',
 ): Promise<ActionResult> {
   const supabase = await createClient();
+  const { data: u } = await supabase.auth.getUser();
+  if (!u.user) return { ok: false, error: 'Nicht angemeldet.' };
   const { error } = await supabase
     .from('inserate')
     .update({ status })
-    .eq('id', inseratId);
+    .eq('id', inseratId)
+    .eq('verkaeufer_id', u.user.id);
   if (error) return { ok: false, error: error.message };
   revalidatePath('/dashboard/verkaeufer');
   return { ok: true };
 }
 
-/** Inserat zur Prüfung einreichen (publish_inserat RPC). */
+/** Inserat um zusätzliche Monate verlängern.
+ *
+ * Verlängert `expires_at` um `additionalMonths` und setzt `paid_at`
+ * neu. Wird vom «Verlängern»-Button auf der Paket-Seite aufgerufen.
+ */
+export async function extendInserat(
+  inseratId: string,
+  additionalMonths: number = 6,
+): Promise<ActionResult> {
+  const supabase = await createClient();
+  const { data: u } = await supabase.auth.getUser();
+  if (!u.user) return { ok: false, error: 'Nicht angemeldet.' };
+
+  // Aktuelles expires_at lesen — wir verlängern ab Maximum von (heute, expires_at)
+  const { data: ins } = await supabase
+    .from('inserate')
+    .select('id, expires_at, verkaeufer_id')
+    .eq('id', inseratId)
+    .eq('verkaeufer_id', u.user.id)
+    .maybeSingle();
+  if (!ins) return { ok: false, error: 'Keine Berechtigung oder Inserat nicht gefunden.' };
+
+  const now = new Date();
+  const base = ins.expires_at && new Date(ins.expires_at) > now
+    ? new Date(ins.expires_at)
+    : now;
+  base.setMonth(base.getMonth() + additionalMonths);
+
+  const { error } = await supabase
+    .from('inserate')
+    .update({
+      expires_at: base.toISOString(),
+      paid_at: new Date().toISOString(),
+    })
+    .eq('id', inseratId)
+    .eq('verkaeufer_id', u.user.id);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath('/dashboard/verkaeufer');
+  revalidatePath('/dashboard/verkaeufer/paket');
+  return { ok: true };
+}
+
+/** Inserat zur Prüfung einreichen (publish_inserat RPC).
+ *
+ * Sicherheits- und Validations-Hardening:
+ *  - Auth-Check (User muss eingeloggt sein)
+ *  - Owner-Check (nur eigenes Inserat einreichbar)
+ *  - Pflichtfelder müssen gefüllt sein, sonst kein Submit
+ */
 export async function submitForReview(inseratId: string): Promise<ActionResult> {
   const supabase = await createClient();
+
+  // Auth-Check
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData.user) return { ok: false, error: 'Nicht angemeldet.' };
+
+  // Owner-Check + Pflichtfeld-Validation
+  const { data: ins } = await supabase
+    .from('inserate')
+    .select('*')
+    .eq('id', inseratId)
+    .eq('verkaeufer_id', userData.user.id)
+    .maybeSingle();
+  if (!ins) return { ok: false, error: 'Keine Berechtigung oder Inserat nicht gefunden.' };
+
+  // Branche / branche_id-Schema-Drift abdecken
+  const branche = (ins as Record<string, unknown>).branche_id ?? (ins as Record<string, unknown>).branche;
+  if (!ins.titel || !branche || !ins.kanton || !ins.umsatz_chf || !ins.beschreibung) {
+    return { ok: false, error: 'Pflichtfelder fehlen — bitte Titel, Branche, Kanton, Umsatz und Beschreibung ergänzen.' };
+  }
+
   const { error } = await supabase.rpc('publish_inserat', { p_id: inseratId });
   if (error) return { ok: false, error: error.message };
   revalidatePath('/dashboard/verkaeufer');

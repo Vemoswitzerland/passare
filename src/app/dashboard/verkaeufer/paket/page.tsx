@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { hasTable } from '@/lib/db/has-table';
 import { POWERUPS, type Powerup } from '@/data/pakete';
+import { ExtendButton, UpgradeButton } from './PaketActionButtons';
 
 export const metadata = { title: 'Paket — passare Verkäufer' };
 
@@ -129,12 +130,7 @@ export default async function PaketPage() {
                     <p className="text-body-sm text-muted mb-3">
                       Verlängere für CHF {paket.renew} um weitere {paket.monate} Monate. Inserat bleibt aktiv ohne Daten-Verlust.
                     </p>
-                    <button
-                      type="button"
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-bronze text-cream rounded-soft text-body-sm font-medium hover:bg-bronze-ink transition-colors"
-                    >
-                      Verlängern (Stripe-Mock)
-                    </button>
+                    <ExtendButton inseratId={inserat.id} monate={paket.monate} label={`Verlängern (+${paket.monate}M)`} />
                   </div>
                 </div>
               </div>
@@ -242,12 +238,7 @@ export default async function PaketPage() {
                         <div key={p} className="rounded-soft border border-stone p-4 hover:border-bronze/40 transition-colors">
                           <p className="font-serif text-head-sm text-navy">{info.name}</p>
                           <p className="text-caption text-muted font-mono mt-1">CHF {info.price} · {info.monate}M</p>
-                          <button
-                            type="button"
-                            className="mt-3 w-full text-caption text-bronze-ink hover:underline"
-                          >
-                            Upgrade prüfen →
-                          </button>
+                          <UpgradeButton inseratId={inserat.id} paket={p} />
                         </div>
                       );
                     })}

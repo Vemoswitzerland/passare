@@ -95,6 +95,21 @@ export default async function AnfrageDetailPage({ params }: Props) {
 
   const isMax = profile?.subscription_tier === 'plus' || profile?.subscription_tier === 'max';
 
+  // Logo-URL hardenen — nur http/https-URLs erlauben.
+  // Schützt vor javascript:, data:, etc. — auch wenn so eine URL nie
+  // valide vom Käufer-Profil-Upload kommt, sind wir gegen DB-Manipulation
+  // oder Migration-Bugs sicher.
+  const safeLogoUrl: string | null = (() => {
+    const raw = kaeuferProfil?.logo_url;
+    if (!raw) return null;
+    try {
+      const u = new URL(raw);
+      return ['http:', 'https:'].includes(u.protocol) ? u.toString() : null;
+    } catch {
+      return null;
+    }
+  })();
+
   return (
     <div className="px-6 md:px-10 py-8 md:py-10">
       <div className="max-w-content mx-auto">
@@ -110,9 +125,9 @@ export default async function AnfrageDetailPage({ params }: Props) {
         <div className="rounded-card bg-paper border border-stone p-6 mb-6">
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div className="flex items-center gap-4 min-w-0">
-              {kaeuferProfil?.logo_url ? (
+              {safeLogoUrl ? (
                 <img
-                  src={kaeuferProfil.logo_url}
+                  src={safeLogoUrl}
                   alt={profile?.full_name ? `Logo ${profile.full_name}` : 'Käufer-Logo'}
                   width={56}
                   height={56}

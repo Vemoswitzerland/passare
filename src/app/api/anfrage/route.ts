@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
   const filter = isUuid ? { id: body.listing_id } : { public_id: body.listing_id };
   const { data: listing } = await admin
     .from('inserate')
-    .select('id, titel, public_id, verkaeufer_id, status')
+    .select('id, titel, public_id, verkaeufer_id, broker_id, status')
     .match(filter)
     .maybeSingle();
 
@@ -90,34 +90,48 @@ export async function POST(req: NextRequest) {
     }
 
     // Erste Chat-Message anlegen — sonst zeigt die Inbox einen leeren Thread
+    // Echte Rolle aus profiles lesen statt hardcoded 'kaeufer'.
     if (anfrageRow?.id) {
+      const { data: profile } = await admin
+        .from('profiles')
+        .select('rolle')
+        .eq('id', authData.user.id)
+        .single();
+      const fromRole = profile?.rolle ?? 'kaeufer';
       await admin.from('anfrage_messages').insert({
         anfrage_id: anfrageRow.id,
         from_user: authData.user.id,
-        from_role: 'kaeufer',
+        from_role: fromRole,
         message: body.nachricht,
       });
     }
 
-    // Verkäufer per Mail benachrichtigen
-    if (listing.verkaeufer_id) {
-      const { data: ownerData } = await admin.auth.admin.getUserById(listing.verkaeufer_id);
-      const verkaeuferEmail = ownerData?.user?.email ?? null;
-      if (verkaeuferEmail) {
+    // Mail-Empfänger bestimmen: Broker-Mandat → Broker, sonst Verkäufer.
+    const recipientUserId = !listing.verkaeufer_id && listing.broker_id
+      ? listing.broker_id
+      : listing.verkaeufer_id;
+
+    if (recipientUserId) {
+      const { data: ownerData } = await admin.auth.admin.getUserById(recipientUserId);
+      const recipientEmail = ownerData?.user?.email ?? null;
+      if (recipientEmail) {
         const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://passare-ch.vercel.app';
+        const dashboardRole = listing.broker_id && !listing.verkaeufer_id ? 'broker' : 'verkaeufer';
+        // Subject sanitisieren: Header-Injection (CRLF) + Length-Limit.
+        const safeTitel = String(listing.titel ?? '').replace(/[\r\n]/g, ' ').slice(0, 150);
         await sendEmail({
           template: 'anfrage_eingegangen',
-          to: verkaeuferEmail,
+          to: recipientEmail,
           vars: {
-            verkaeuferName: 'Verkäufer',
-            inseratTitel: listing.titel,
+            verkaeuferName: dashboardRole === 'broker' ? 'Broker' : 'Verkäufer',
+            inseratTitel: safeTitel,
             kaeuferTyp: `${body.name} · ${body.email}`,
             nachrichtSnippet: body.nachricht,
             anfrageId: anfrageRow?.id ?? listing.id,
             appUrl,
-            link: `${appUrl}/dashboard/verkaeufer/anfragen`,
+            link: `${appUrl}/dashboard/${dashboardRole}/anfragen`,
           },
-          subject_override: `Neue Anfrage: ${listing.titel}`,
+          subject_override: `Neue Anfrage: ${safeTitel}`,
           related_id: anfrageRow?.id ?? undefined,
         });
       }

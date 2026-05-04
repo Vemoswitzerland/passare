@@ -69,7 +69,7 @@ function popupHTML(p: Record<string, unknown>): string {
         ${row('Kaufpreis', p.kaufpreis)}
         ${row('Grund', p.grund)}
       </div>
-      <a href="/auth/register?ref=atlas&dossier=${safe(p.id)}"
+      <a href="/onboarding/kaeufer/tunnel?ref=atlas&dossier=${safe(p.id)}"
          class="inline-flex items-center justify-center w-full gap-2 bg-navy text-cream rounded-soft px-4 py-2 text-[13px] font-medium hover:bg-ink transition-colors">
         Dossier anfragen →
       </a>

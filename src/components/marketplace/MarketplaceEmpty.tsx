@@ -78,7 +78,7 @@ const VARIANTS: Record<Variant, {
     beschreibung:
       'Aktuell sind noch keine Firmen öffentlich gelistet. Stell dein Unternehmen vor — anonym, mit klarer Bewertung und transparenten Pauschalpreisen.',
     cta1: { label: 'Firma inserieren', href: '/verkaufen' },
-    cta2: { label: 'Suchprofil anlegen', href: '/auth/register?role=kaeufer' },
+    cta2: { label: 'Suchprofil anlegen', href: '/onboarding/kaeufer/tunnel' },
   },
   atlas: {
     icon: FileSearch,

@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import {
   Crown, Check, X, ArrowRight, CreditCard, FileText, Zap, Bell,
-  MessageSquare, FileLock2,
+  MessageSquare, ShieldCheck,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { hasTable } from '@/lib/db/has-table';
@@ -22,7 +22,6 @@ export default async function AboPage() {
     .maybeSingle();
 
   const isPlus = isPlusKaeufer(profile);
-  const isBroker = profile?.is_broker === true;
 
   let zahlungen: { id: string; amount_gross: number; created_at: string; pdf_url?: string | null }[] = [];
   if (await hasTable('zahlungen')) {
@@ -121,13 +120,12 @@ export default async function AboPage() {
               { text: 'Geschlossene Inserate', has: false },
               { text: '7 Tage Frühzugang', has: false },
               { text: 'Echtzeit-E-Mail-Alerts', has: false },
-              { text: 'Eigenes Logo im Käuferprofil', has: false },
             ]}
           />
           <PlanCompareCard
             title="Käufer+"
-            price="CHF 199"
-            interval="/ Monat (oder CHF 1'990/Jahr)"
+            price="CHF 199 / Mt"
+            interval="oder CHF 1'990 / Jahr (≈ CHF 166 / Mt)"
             current={isPlus}
             highlighted
             features={[
@@ -137,7 +135,6 @@ export default async function AboPage() {
               { text: 'Geschlossene Inserate sehen', has: true },
               { text: '7 Tage Frühzugang auf neue Inserate', has: true },
               { text: 'Echtzeit-E-Mail-Alerts bei Match', has: true },
-              { text: 'Eigenes Logo im Käuferprofil', has: true },
             ]}
           />
         </div>
@@ -152,7 +149,7 @@ export default async function AboPage() {
           <ROIStat icon={Zap} value="7 Tage" label="Frühzugang vor Basic" />
           <ROIStat icon={Bell} value="Echtzeit" label="E-Mail-Alerts bei Match" />
           <ROIStat icon={MessageSquare} value="100 %" label="Alle Inserate sichtbar" />
-          <ROIStat icon={FileLock2} value="Logo" label="Trust-Signal im Profil" />
+          <ROIStat icon={ShieldCheck} value="Geschlossen" label="Inserate auch nach Closing" />
         </div>
         <p className="text-caption text-quiet mt-5 leading-relaxed border-t border-stone pt-4">
           Die meisten Top-Inserate werden in den ersten 7 Tagen weggeschnappt. Mit Basic siehst du sie erst, wenn diese Phase fast vorbei ist.

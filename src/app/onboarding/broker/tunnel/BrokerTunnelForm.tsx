@@ -120,7 +120,21 @@ export function BrokerTunnelForm({ userName }: Props) {
         return;
       }
 
-      window.location.href = `/api/stripe/broker-checkout?tier=${form.paket}&interval=${form.interval}`;
+      try {
+        const checkoutRes = await fetch('/api/stripe/broker-checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tier: form.paket, interval: form.interval }),
+        });
+        const checkoutData = await checkoutRes.json().catch(() => null);
+        if (!checkoutRes.ok) {
+          setError(checkoutData?.error ?? 'Checkout fehlgeschlagen');
+          return;
+        }
+        window.location.assign(checkoutData?.redirect ?? '/dashboard/broker/welcome?paid=1');
+      } catch {
+        setError('Netzwerkfehler beim Checkout');
+      }
     });
   }
 

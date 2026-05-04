@@ -7,6 +7,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { validateFileSignature } from '@/lib/file-validation';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -45,6 +46,11 @@ export async function POST(req: NextRequest) {
   const ext = file.type === 'image/jpeg' ? 'jpg' : file.type === 'image/png' ? 'png' : 'webp';
   const path = `${userData.user.id}/${inseratId}-${Date.now()}.${ext}`;
   const arrayBuf = await file.arrayBuffer();
+
+  // Magic-Bytes-Check (Anti-Spoof)
+  if (!validateFileSignature(arrayBuf, file.type)) {
+    return NextResponse.json({ error: 'Datei sieht nicht wie ein gültiges Bild aus.' }, { status: 415 });
+  }
 
   const { error: upErr } = await supabase.storage
     .from('inserate-cover')

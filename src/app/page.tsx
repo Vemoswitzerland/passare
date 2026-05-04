@@ -7,6 +7,7 @@ import { Container, Section } from '@/components/ui/container';
 import { Button } from '@/components/ui/button';
 import { Divider } from '@/components/ui/divider';
 import { Reveal } from '@/components/ui/reveal';
+import { MobileNav } from '@/components/site/MobileNav';
 import { CardActions } from '@/components/marketplace/CardActions';
 import { MarketplaceEmpty } from '@/components/marketplace/MarketplaceEmpty';
 import { SortSelect } from '@/components/marketplace/SortSelect';
@@ -184,7 +185,7 @@ export async function SiteHeader({ activeSell = false }: { activeSell?: boolean 
                   Anmelden
                 </Button>
                 <Button
-                  href={activeSell ? '/verkaufen/start' : '/auth/register'}
+                  href={activeSell ? '/verkaufen/start' : '/onboarding/kaeufer/tunnel'}
                   size="sm"
                   className="hidden md:inline-flex"
                 >
@@ -192,6 +193,11 @@ export async function SiteHeader({ activeSell = false }: { activeSell?: boolean 
                 </Button>
               </>
             )}
+            <MobileNav
+              dashboardHref={dashboardHref}
+              registerHref={activeSell ? '/verkaufen/start' : '/onboarding/kaeufer/tunnel'}
+              registerLabel={activeSell ? 'Bewerten & inserieren' : 'Registrieren'}
+            />
           </div>
         </div>
       </Container>
@@ -229,7 +235,7 @@ export function SiteFooter() {
             <p className="overline mb-4">Konto</p>
             <ul className="space-y-3 text-body-sm text-muted">
               <li><Link className="hover:text-navy" href="/auth/login">Anmelden</Link></li>
-              <li><Link className="hover:text-navy" href="/auth/register">Registrieren</Link></li>
+              <li><Link className="hover:text-navy" href="/onboarding/kaeufer/tunnel">Registrieren</Link></li>
             </ul>
           </div>
         </div>
@@ -238,7 +244,11 @@ export function SiteFooter() {
           <p className="font-mono text-[11px] uppercase tracking-widest">
             &copy; {new Date().getFullYear()} passare &middot; «Made in Switzerland»
           </p>
-          <div className="flex gap-6">
+          <div className="flex flex-wrap gap-x-6 gap-y-2">
+            <Link href="/impressum" className="hover:text-navy">Impressum</Link>
+            <Link href="/datenschutz" className="hover:text-navy">Datenschutz</Link>
+            <Link href="/agb" className="hover:text-navy">AGB</Link>
+            <Link href="/kontakt" className="hover:text-navy">Kontakt</Link>
             <a href="mailto:info@passare.ch" className="hover:text-navy">info@passare.ch</a>
           </div>
         </div>

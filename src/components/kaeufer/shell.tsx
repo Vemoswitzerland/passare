@@ -10,13 +10,13 @@ import { cn } from '@/lib/utils';
 type Props = {
   email: string;
   fullName: string | null;
-  isMax: boolean;
+  isPlus: boolean;
   isAdmin: boolean;
   counts?: SidebarCounts;
   children: React.ReactNode;
 };
 
-export function KaeuferShell({ email, fullName, isMax, isAdmin, counts, children }: Props) {
+export function KaeuferShell({ email, fullName, isPlus, isAdmin, counts, children }: Props) {
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   // Cyrill: «Profil bei jedem Dashboard nicht oben — Ausloggen + Profil
@@ -29,7 +29,7 @@ export function KaeuferShell({ email, fullName, isMax, isAdmin, counts, children
       profileLabel="Käufer-Profil"
       secondary={{
         href: '/dashboard/kaeufer/abo',
-        label: isMax ? 'Käufer+ verwalten' : 'Auf Käufer+ upgraden',
+        label: isPlus ? 'Käufer+ verwalten' : 'Auf Käufer+ upgraden',
         icon: 'crown',
       }}
     />
@@ -40,7 +40,7 @@ export function KaeuferShell({ email, fullName, isMax, isAdmin, counts, children
       <KaeuferTopbar
         email={email}
         fullName={fullName}
-        isMax={isMax}
+        isPlus={isPlus}
         isAdmin={isAdmin}
         onMenuToggle={() => setDrawerOpen(true)}
       />

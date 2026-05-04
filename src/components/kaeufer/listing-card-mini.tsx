@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { TrendingUp, FileLock2, Heart } from 'lucide-react';
+import { TrendingUp, FileLock2 } from 'lucide-react';
 import { branchenStockfoto } from '@/data/branchen-stockfotos';
 import { renderKeyFacts } from '@/lib/key-facts';
 import {

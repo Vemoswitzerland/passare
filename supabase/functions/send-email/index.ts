@@ -43,49 +43,72 @@ const FROM_DEFAULT    = Deno.env.get('EMAIL_FROM')      ?? 'passare <noreply@pas
 // @ts-ignore
 const REPLY_TO        = Deno.env.get('EMAIL_REPLY_TO')  ?? 'info@passare.ch';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin':  '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
+const ALLOWED_ORIGINS = [
+  'https://passare.ch',
+  'https://www.passare.ch',
+  'https://passare-ch.vercel.app',
+];
 
-const json = (status: number, payload: unknown) =>
+function corsHeadersFor(origin: string | null) {
+  const allow = origin && ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  return {
+    'Access-Control-Allow-Origin':  allow,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-internal-key',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Vary': 'Origin',
+  };
+}
+
+const json = (status: number, payload: unknown, headers: Record<string, string>) =>
   new Response(JSON.stringify(payload), {
     status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    headers: { ...headers, 'Content-Type': 'application/json' },
   });
 
 // ─── Handler ─────────────────────────────────────────────────────
 // @ts-ignore — Deno
 Deno.serve(async (req: Request) => {
+  const origin = req.headers.get('origin');
+  const corsHeaders = corsHeadersFor(origin);
+
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
   if (req.method !== 'POST') {
-    return json(405, { error: 'Method not allowed' });
+    return json(405, { error: 'Method not allowed' }, corsHeaders);
+  }
+
+  // ── Internal-API-Key statt JWT-Verify (siehe Comment oben) ──
+  // @ts-ignore
+  const expectedKey = Deno.env.get('INTERNAL_EMAIL_KEY');
+  if (expectedKey) {
+    const provided = req.headers.get('x-internal-key');
+    if (provided !== expectedKey) {
+      return json(401, { error: 'Unauthorized' }, corsHeaders);
+    }
   }
 
   if (!RESEND_API_KEY) {
-    return json(500, { error: 'RESEND_API_KEY nicht konfiguriert' });
+    return json(500, { error: 'RESEND_API_KEY nicht konfiguriert' }, corsHeaders);
   }
   if (!SUPABASE_URL || !SERVICE_ROLE) {
-    return json(500, { error: 'Supabase-Service-Credentials fehlen' });
+    return json(500, { error: 'Supabase-Service-Credentials fehlen' }, corsHeaders);
   }
 
   let body: SendBody;
   try {
     body = await req.json();
   } catch {
-    return json(400, { error: 'Ungültiger JSON-Body' });
+    return json(400, { error: 'Ungültiger JSON-Body' }, corsHeaders);
   }
 
   const { template, to, vars = {}, log_id, user_id, related_id, subject_override } = body;
 
   if (!template || !to) {
-    return json(400, { error: 'template und to sind Pflicht' });
+    return json(400, { error: 'template und to sind Pflicht' }, corsHeaders);
   }
   if (!KNOWN_TEMPLATES.includes(template as typeof KNOWN_TEMPLATES[number])) {
-    return json(400, { error: `Unbekanntes Template: ${template}` });
+    return json(400, { error: `Unbekanntes Template: ${template}` }, corsHeaders);
   }
 
   // ─── Render ──
@@ -93,7 +116,7 @@ Deno.serve(async (req: Request) => {
   try {
     rendered = renderEmail(template, vars);
   } catch (err) {
-    return json(500, { error: 'Render-Fehler', detail: String(err) });
+    return json(500, { error: 'Render-Fehler', detail: String(err) }, corsHeaders);
   }
 
   const subject = subject_override ?? rendered.subject;
@@ -118,7 +141,7 @@ Deno.serve(async (req: Request) => {
       .select('id')
       .single();
     if (error) {
-      return json(500, { error: 'email_log-Insert fehlgeschlagen', detail: error.message });
+      return json(500, { error: 'email_log-Insert fehlgeschlagen', detail: error.message }, corsHeaders);
     }
     logId = data.id;
   }
@@ -165,8 +188,8 @@ Deno.serve(async (req: Request) => {
     .eq('id', logId);
 
   if (sendError) {
-    return json(502, { error: sendError, log_id: logId });
+    return json(502, { error: sendError, log_id: logId }, corsHeaders);
   }
 
-  return json(200, { ok: true, log_id: logId, resend_id: resendId });
+  return json(200, { ok: true, log_id: logId, resend_id: resendId }, corsHeaders);
 });

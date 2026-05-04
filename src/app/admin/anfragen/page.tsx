@@ -38,10 +38,14 @@ export default async function AdminAnfragenPage({ searchParams }: Props) {
   // passare↔Verkäufer-Threads sollen aber AUCH ohne Käufer-Anfragen
   // sichtbar sein. Daher hier KEIN Early-Return mehr — wir aggregieren
   // alle Quellen und zeigen den Empty-State erst nach der Threads-Liste.
+  // Pagination: Limit auf 200 — bei mehr Anfragen sollten wir UI-Pagination
+  // einbauen. Vorher gab es kein Limit, was bei tausenden Anfragen die Page
+  // langsam machen würde.
   const { data: allAnfragen } = await adminClient
     .from('anfragen')
     .select('id, kaeufer_id, inserat_id, status, nachricht, created_at, updated_at')
-    .order('updated_at', { ascending: false });
+    .order('updated_at', { ascending: false })
+    .limit(200);
 
   const anfrageList = (allAnfragen ?? []) as Array<Record<string, unknown>>;
   const anfrageIds = anfrageList.map((a) => a.id as string);

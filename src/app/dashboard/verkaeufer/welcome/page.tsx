@@ -30,11 +30,31 @@ export default async function WelcomePage({ searchParams }: Props) {
   const target = sp.next || '/dashboard/verkaeufer';
   const paid = sp.paid === '1';
 
+  // Prüfe ob die Welcome-Animation schon einmal gezeigt wurde.
+  // Bei welcome_seen_at = null → Animation zeigen + setzen.
+  // Sonst direkt aufs Dashboard.
   const { data: profile } = await supabase
     .from('profiles')
-    .select('full_name')
+    .select('full_name, welcome_seen_at')
     .eq('id', userData.user.id)
     .maybeSingle();
+
+  const alreadySeen = Boolean(profile?.welcome_seen_at);
+  if (alreadySeen && !paid) {
+    redirect(target);
+  }
+
+  // Welcome_seen_at setzen (best effort — wenn Spalte fehlt, ignorieren)
+  if (!alreadySeen) {
+    try {
+      await supabase
+        .from('profiles')
+        .update({ welcome_seen_at: new Date().toISOString() })
+        .eq('id', userData.user.id);
+    } catch {
+      /* Spalte ggf. noch nicht in DB-Schema */
+    }
+  }
 
   const firstName = profile?.full_name?.split(' ')[0] ?? '';
 

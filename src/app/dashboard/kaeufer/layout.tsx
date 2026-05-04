@@ -59,7 +59,14 @@ export default async function KaeuferLayout({ children }: { children: React.Reac
           .from('anfragen')
           .select('*', { count: 'exact', head: true })
           .eq('kaeufer_id', userId)
-          .in('status', ['neu', 'in_pruefung', 'akzeptiert', 'nda_pending'])
+          .in('status', [
+            'neu',
+            'in_pruefung',
+            'akzeptiert',
+            'nda_pending',
+            'nda_signed',
+            'released',
+          ])
       : null,
   ]);
 
@@ -76,7 +83,7 @@ export default async function KaeuferLayout({ children }: { children: React.Reac
     <KaeuferShell
       email={u.user.email ?? ''}
       fullName={profile?.full_name ?? null}
-      isMax={isPlus}
+      isPlus={isPlus}
       isAdmin={isAdmin}
       counts={counts}
     >

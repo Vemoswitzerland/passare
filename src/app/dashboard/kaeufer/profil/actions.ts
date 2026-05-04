@@ -11,13 +11,19 @@ const investorTypEnum = z.enum([
 ]);
 
 const profilSchema = z.object({
-  investor_typ: investorTypEnum.optional(),
+  // investor_typ ist Pflichtfeld — leer/undefined wird abgelehnt
+  investor_typ: investorTypEnum,
   budget_min: z.coerce.number().int().min(0).optional(),
   budget_max: z.coerce.number().int().min(0).optional(),
   budget_undisclosed: z.union([z.literal('on'), z.literal(''), z.literal('false')]).optional()
     .transform((v) => v === 'on'),
+  ist_oeffentlich: z.union([z.literal('on'), z.literal(''), z.literal('false')]).optional()
+    .transform((v) => v === 'on'),
   regionen: z.string().transform((s) => s.split(',').filter(Boolean)).pipe(z.array(z.string()).max(27)),
-  branche_praeferenzen: z.string().transform((s) => s.split(',').filter(Boolean)).pipe(z.array(z.string()).max(20)),
+  // mind. 1 Branche Pflicht
+  branche_praeferenzen: z.string()
+    .transform((s) => s.split(',').filter(Boolean))
+    .pipe(z.array(z.string()).min(1, 'Mindestens eine Branche auswählen').max(20)),
   timing: z.enum(['sofort', '3_monate', '6_monate', '12_monate', 'nur_browsing']).optional(),
   erfahrung: z.enum(['erstkaeufer', '1_3_deals', '4_plus_deals']).optional(),
   beschreibung: z.string().trim().max(2000).optional(),
@@ -33,6 +39,7 @@ export async function updateKaeuferProfilAction(formData: FormData): Promise<Act
     budget_min: formData.get('budget_min') || undefined,
     budget_max: formData.get('budget_max') || undefined,
     budget_undisclosed: formData.get('budget_undisclosed'),
+    ist_oeffentlich: formData.get('ist_oeffentlich'),
     regionen: formData.get('regionen') ?? '',
     branche_praeferenzen: formData.get('branche_praeferenzen') ?? '',
     timing: formData.get('timing') || undefined,
@@ -48,13 +55,17 @@ export async function updateKaeuferProfilAction(formData: FormData): Promise<Act
   if (!u.user) return { ok: false, error: 'Nicht eingeloggt' };
 
   const undisclosed = parsed.data.budget_undisclosed ?? false;
+  // ist_oeffentlich kommt jetzt aus FormData (Toggle in ProfilForm).
+  // Wenn das Feld fehlt (z.B. unticked Checkbox), bleibt false — Käufer
+  // hat sich aktiv gegen Sichtbarkeit entschieden.
+  const istOeffentlich = parsed.data.ist_oeffentlich ?? false;
 
   const { error } = await supabase
     .from('kaeufer_profil')
     .upsert(
       {
         user_id: u.user.id,
-        investor_typ: parsed.data.investor_typ ?? null,
+        investor_typ: parsed.data.investor_typ,
         budget_min: undisclosed ? null : (parsed.data.budget_min ?? null),
         budget_max: undisclosed ? null : (parsed.data.budget_max ?? null),
         budget_undisclosed: undisclosed,
@@ -63,8 +74,7 @@ export async function updateKaeuferProfilAction(formData: FormData): Promise<Act
         timing: parsed.data.timing ?? null,
         erfahrung: parsed.data.erfahrung ?? null,
         beschreibung: parsed.data.beschreibung || null,
-        // Käufer-Profile sind IMMER sichtbar — kein Anonym-Modus mehr.
-        ist_oeffentlich: true,
+        ist_oeffentlich: istOeffentlich,
         linkedin_url: parsed.data.linkedin_url || null,
       },
       { onConflict: 'user_id' },

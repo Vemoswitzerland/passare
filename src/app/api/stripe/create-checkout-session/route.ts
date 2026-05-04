@@ -15,6 +15,11 @@ export const dynamic = 'force-dynamic';
  * gebaut (Code in Git-History).
  */
 export async function POST(req: NextRequest) {
+  // Production-Schutz: Mock nur wenn explizit erlaubt.
+  if (process.env.STRIPE_MOCK_ALLOWED !== 'true') {
+    return NextResponse.json({ error: 'mock_disabled' }, { status: 501 });
+  }
+
   let interval: 'monthly' | 'yearly' = 'monthly';
   const ct = req.headers.get('content-type') ?? '';
   if (ct.includes('application/json')) {

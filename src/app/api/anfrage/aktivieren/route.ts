@@ -15,7 +15,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { verifyAnfrageToken } from '@/lib/anfrage-token';
+import { anfrageTokenHash, verifyAnfrageToken } from '@/lib/anfrage-token';
 import { sendEmail } from '@/lib/email';
 import { createAdminClient, createClient } from '@/lib/supabase/server';
 
@@ -48,6 +48,33 @@ export async function POST(req: NextRequest) {
   // Listing aus DB ziehen (Service-Role wegen RLS — verkaeufer_id ist in der
   // Public-View nicht enthalten, brauchen wir aber fürs Anfrage-Routing).
   const adminClient = createAdminClient();
+
+  // ════════════════════════════════════════════════════════════════
+  // SECURITY: Anti-Replay — Token darf nur einmal verwendet werden.
+  // Vor jeder DB-Änderung prüfen ob der Token-Hash schon in der
+  // anfrage_tokens_used-Tabelle liegt; wenn ja → 410 Gone.
+  // Falls die Tabelle (noch) nicht existiert (Migration nicht applied),
+  // skippen wir den Check defensiv damit der Endpoint funktioniert.
+  // ════════════════════════════════════════════════════════════════
+  const tokenHash = anfrageTokenHash(body.token);
+  try {
+    const { data: replayRow, error: replayErr } = await adminClient
+      .from('anfrage_tokens_used')
+      .select('token_hash')
+      .eq('token_hash', tokenHash)
+      .maybeSingle();
+    if (replayErr && !/relation.*does not exist|42P01/i.test(replayErr.message)) {
+      console.warn('[anfrage:aktivieren] replay-check fehlgeschlagen:', replayErr.message);
+    }
+    if (replayRow) {
+      return NextResponse.json(
+        { error: 'Verifizierungs-Link wurde bereits verwendet.' },
+        { status: 410 },
+      );
+    }
+  } catch (err) {
+    console.warn('[anfrage:aktivieren] replay-check-Exception:', err);
+  }
   const { data: listing } = await adminClient
     .from('inserate')
     .select('id, titel, slug, verkaeufer_id')
@@ -58,6 +85,7 @@ export async function POST(req: NextRequest) {
   // Käufer-Basic-Konto in Supabase Auth anlegen (oder existierenden User holen)
   let createdUser = false;
   let kaeuferId: string | null = null;
+  let userAlreadyExisted = false;
   try {
     const { data: createData, error } = await adminClient.auth.admin.createUser({
       email: payload.e,
@@ -68,8 +96,11 @@ export async function POST(req: NextRequest) {
     if (error) {
       // Wenn User bereits existiert, ist das OK — Anfrage geht trotzdem raus
       const msg = error.message?.toLowerCase() ?? '';
-      if (!msg.includes('already') && !msg.includes('registered')) {
+      const looksLikeExists = msg.includes('already') || msg.includes('registered');
+      if (!looksLikeExists) {
         console.warn('[anfrage:aktivieren] createUser error:', error.message);
+      } else {
+        userAlreadyExisted = true;
       }
       // User existiert schon → ID via Lookup holen
       try {
@@ -95,6 +126,7 @@ export async function POST(req: NextRequest) {
   // (Die SSR-cookies()-API setzt zwar im Route-Handler — das war aber nicht zuverlässig
   // genug, weil der Hard-Redirect die fresh gesetzten Cookies nicht immer mitnimmt.)
   let session: { access_token: string; refresh_token: string } | null = null;
+  let signInOk = false;
   try {
     const sb = await createClient();
     const { data, error: signInError } = await sb.auth.signInWithPassword({
@@ -104,6 +136,7 @@ export async function POST(req: NextRequest) {
     if (signInError) {
       console.warn('[anfrage:aktivieren] signInWithPassword:', signInError.message);
     } else if (data.session) {
+      signInOk = true;
       session = {
         access_token: data.session.access_token,
         refresh_token: data.session.refresh_token,
@@ -111,6 +144,22 @@ export async function POST(req: NextRequest) {
     }
   } catch (err) {
     console.warn('[anfrage:aktivieren] signIn-Exception:', err);
+  }
+
+  // ════════════════════════════════════════════════════════════════
+  // SECURITY: Account-Hijacking-Schutz
+  // ────────────────────────────────────────────────────────────────
+  // Wenn ein User mit `payload.e` schon existiert UND der Login mit dem
+  // mitgesendeten Passwort fehlgeschlagen ist, ist der Anfragende NICHT
+  // im Besitz des Accounts — sehr wahrscheinlich versucht er per
+  // gestohlenem Token im Namen eines fremden Users Anfragen zu stellen.
+  // Wir brechen ALLE folgenden DB-Writes ab und liefern 401.
+  // ════════════════════════════════════════════════════════════════
+  if (userAlreadyExisted && !signInOk) {
+    return NextResponse.json(
+      { error: 'auth_failed' },
+      { status: 401 },
+    );
   }
 
   // Anfrage-Datensatz in `anfragen` anlegen — Service-Role bypasst die RLS-Policy
@@ -216,6 +265,19 @@ export async function POST(req: NextRequest) {
         loginUrl: `${appUrl}/auth/login`,
       },
     });
+  }
+
+  // Token als verwendet markieren — Anti-Replay.
+  // Best-effort: bei Migration-Lücke loggen aber Endpoint nicht failen.
+  try {
+    const { error: replayInsertErr } = await adminClient
+      .from('anfrage_tokens_used')
+      .insert({ token_hash: tokenHash });
+    if (replayInsertErr && !/relation.*does not exist|42P01|duplicate|unique/i.test(replayInsertErr.message)) {
+      console.warn('[anfrage:aktivieren] replay-insert fehlgeschlagen:', replayInsertErr.message);
+    }
+  } catch (err) {
+    console.warn('[anfrage:aktivieren] replay-insert-Exception:', err);
   }
 
   return NextResponse.json({ ok: true, listing_id: payload.l, session });

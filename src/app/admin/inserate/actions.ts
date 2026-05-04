@@ -27,7 +27,21 @@ export async function setInseratStatusAction(
   await assertAdmin();
   const admin = createAdminClient();
   const patch: Record<string, unknown> = { status };
-  if (status === 'live') patch.published_at = new Date().toISOString();
+
+  // published_at darf nur einmal gesetzt werden — bei wiederholter
+  // live-Status-Änderung soll der originale published_at-Wert erhalten
+  // bleiben (z.B. nach Pause → wieder Live darf nicht der "Erst-Publish"
+  // überschrieben werden).
+  if (status === 'live') {
+    const { data: existing } = await admin
+      .from('inserate')
+      .select('published_at')
+      .eq('id', id)
+      .maybeSingle();
+    if (!existing?.published_at) {
+      patch.published_at = new Date().toISOString();
+    }
+  }
   if (status === 'pausiert') patch.paused_at = new Date().toISOString();
   if (reason) patch.rejection_reason = reason;
 

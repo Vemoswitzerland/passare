@@ -20,27 +20,30 @@ export default async function KaeuferDashboardPage({ searchParams }: Props) {
   if (!u.user) return null;
 
   const { welcome } = await searchParams;
+  const userId = u.user.id;
 
   const [{ data: profile }, { data: completenessData }] = await Promise.all([
     supabase
       .from('profiles')
       .select('full_name, subscription_tier, is_broker, created_at')
-      .eq('id', u.user.id)
+      .eq('id', userId)
       .maybeSingle(),
-    supabase.rpc('profile_completeness', { p_user_id: u.user.id }),
+    supabase.rpc('profile_completeness', { p_user_id: userId }),
   ]);
 
   const isPlus = isPlusKaeufer(profile);
+  const userTier = profile?.subscription_tier ?? null;
   const completeness = typeof completenessData === 'number' ? completenessData : 0;
 
   // Erstes Suchprofil laden (für Daily Digest Match-Score-Badge in der Card)
   let suchprofil: Suchprofil | null = null;
   let suchprofilName = '';
-  if (await hasTable('suchprofile')) {
+  const suchprofileExists = await hasTable('suchprofile');
+  if (suchprofileExists) {
     const { data } = await supabase
       .from('suchprofile')
       .select('id, name, branche, kantone, umsatz_min, umsatz_max, ebitda_min')
-      .eq('kaeufer_id', u.user.id)
+      .eq('kaeufer_id', userId)
       .eq('ist_pausiert', false)
       .order('created_at', { ascending: true })
       .limit(1)
@@ -58,12 +61,38 @@ export default async function KaeuferDashboardPage({ searchParams }: Props) {
   }
 
   // Daily-Digest aus DB laden (helper kümmert sich um Suchprofil-Matching + Fallback)
-  const topMatches = await getDailyDigest(u.user.id, 3);
+  const topMatches = await getDailyDigest(userId, 3, userTier);
 
   // "Mehr aus dem Marktplatz" — die nächsten 3 nach den Daily-Digest-Treffern
-  const moreListingsRaw = await getListings({ sort: 'neu', limit: 6 });
+  const moreListingsRaw = await getListings({ sort: 'neu', limit: 6 }, userTier);
   const topIds = new Set(topMatches.map((t) => t.id));
   const moreListings = moreListingsRaw.filter((l) => !topIds.has(l.id)).slice(0, 3);
+
+  // ── Echte Counts aus DB (für StatCards + Wochen-Recap) ──────────
+  // Anfragen / Favoriten / Suchprofile parallel laden — bei fehlender
+  // Tabelle bleibt der Wert 0 (defensives ?? 0).
+  const [favRes, anfOpenRes, anfTotalRes, suchprofileCountRes] = await Promise.all([
+    (await hasTable('favoriten'))
+      ? supabase.from('favoriten').select('*', { count: 'exact', head: true }).eq('kaeufer_id', userId)
+      : Promise.resolve({ count: 0 } as { count: number | null }),
+    (await hasTable('anfragen'))
+      ? supabase
+          .from('anfragen')
+          .select('*', { count: 'exact', head: true })
+          .eq('kaeufer_id', userId)
+          .in('status', ['neu', 'in_pruefung', 'akzeptiert', 'nda_pending', 'nda_signed', 'released'])
+      : Promise.resolve({ count: 0 } as { count: number | null }),
+    (await hasTable('anfragen'))
+      ? supabase.from('anfragen').select('*', { count: 'exact', head: true }).eq('kaeufer_id', userId)
+      : Promise.resolve({ count: 0 } as { count: number | null }),
+    suchprofileExists
+      ? supabase.from('suchprofile').select('*', { count: 'exact', head: true }).eq('kaeufer_id', userId)
+      : Promise.resolve({ count: 0 } as { count: number | null }),
+  ]);
+  const favoritenCount = favRes?.count ?? 0;
+  const anfragenOpenCount = anfOpenRes?.count ?? 0;
+  const anfragenTotalCount = anfTotalRes?.count ?? 0;
+  const suchprofileCount = suchprofileCountRes?.count ?? 0;
 
   // Tage seit Registrierung
   const daysSinceRegister = profile?.created_at
@@ -95,7 +124,7 @@ export default async function KaeuferDashboardPage({ searchParams }: Props) {
           </p>
           <div className="flex items-center gap-4 flex-wrap">
             <Link
-              href="/kaufen"
+              href="/"
               className="inline-flex items-center gap-2 px-5 py-2.5 bg-bronze text-cream rounded-soft text-body-sm font-medium hover:bg-bronze-ink transition-colors"
             >
               Marktplatz öffnen <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
@@ -155,9 +184,26 @@ export default async function KaeuferDashboardPage({ searchParams }: Props) {
 
       {/* Quick Stats */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        <StatCard icon={MessageSquare} label="Offene Anfragen" value="0" trend="+0" href="/dashboard/kaeufer/anfragen" />
-        <StatCard icon={Bell} label="Neue Treffer" value={String(topMatches.length)} trend={isPlus ? 'Echtzeit-Alerts' : 'Wöchentlich'} href="/kaufen" />
-        <StatCard icon={Calendar} label="Tage seit Start" value={String(daysSinceRegister || 1)} trend={daysSinceRegister < 7 ? 'Neu' : 'Aktiv'} />
+        <StatCard
+          icon={MessageSquare}
+          label="Offene Anfragen"
+          value={String(anfragenOpenCount)}
+          trend={anfragenOpenCount > 0 ? 'Aktiv' : 'Keine offen'}
+          href="/dashboard/kaeufer/anfragen"
+        />
+        <StatCard
+          icon={Bell}
+          label="Neue Treffer"
+          value={String(topMatches.length)}
+          trend={isPlus ? 'Echtzeit-Alerts' : 'Wöchentlich'}
+          href="/"
+        />
+        <StatCard
+          icon={Calendar}
+          label="Tage seit Start"
+          value={String(daysSinceRegister || 1)}
+          trend={daysSinceRegister < 7 ? 'Neu' : 'Aktiv'}
+        />
       </div>
 
       {/* Aktuelle Top-Matches */}
@@ -211,10 +257,11 @@ export default async function KaeuferDashboardPage({ searchParams }: Props) {
           <h3 className="font-serif text-head-sm text-navy font-normal">Diese Woche auf passare</h3>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {/* Inserate-Views werden noch nicht getrackt → bleibt bei 0 */}
           <RecapStat label="Inserate angeschaut" value="0" />
-          <RecapStat label="Anfragen gesendet" value="0" />
-          <RecapStat label="Favoriten gespeichert" value="0" />
-          <RecapStat label="Suchprofile aktiv" value="0" />
+          <RecapStat label="Anfragen gesendet" value={String(anfragenTotalCount)} />
+          <RecapStat label="Favoriten gespeichert" value={String(favoritenCount)} />
+          <RecapStat label="Suchprofile aktiv" value={String(suchprofileCount)} />
         </div>
         <p className="text-caption text-quiet mt-4 leading-relaxed">
           Sobald du den Marktplatz nutzt, siehst du hier deinen Wochen-Verlauf.
@@ -229,7 +276,7 @@ export default async function KaeuferDashboardPage({ searchParams }: Props) {
               Mehr aus dem Marktplatz<span className="text-bronze">.</span>
             </h2>
             <Link
-              href="/kaufen"
+              href="/"
               className="font-mono text-caption uppercase tracking-widest text-quiet hover:text-navy inline-flex items-center gap-1"
             >
               Alle ansehen <ArrowRight className="w-3 h-3" strokeWidth={1.5} />

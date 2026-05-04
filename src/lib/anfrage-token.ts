@@ -8,14 +8,15 @@
  * Server-only — wird in API-Route + RSC verwendet, niemals im Client-Bundle.
  *
  * Secret-Hierarchie:
- *   1. ANFRAGE_TOKEN_SECRET (dediziert, sollte gesetzt werden)
- *   2. SUPABASE_SERVICE_ROLE_KEY (Fallback — pro Projekt einzigartig)
- *   3. NEXT_PUBLIC_SUPABASE_ANON_KEY (letzter Fallback — public, aber pro Projekt)
+ *   1. ANFRAGE_TOKEN_SECRET (dediziert)
+ *   2. SUPABASE_SERVICE_ROLE_KEY (Fallback — pro Projekt einzigartig + nicht öffentlich)
  *
- * Für V1 reicht (3); ab Etappe 2 sollte (1) gesetzt werden.
+ * SECURITY: Der `NEXT_PUBLIC_SUPABASE_ANON_KEY` darf NIE als Token-Secret
+ * dienen — er ist im Client-Bundle exposed und damit jedem Angreifer bekannt.
+ * Damit liessen sich beliebige Anfrage-Tokens forgen.
  */
 
-import { createHmac } from 'crypto';
+import { createHash, createHmac } from 'crypto';
 
 export type AnfragePayload = {
   /** Anfrager-Name */
@@ -30,11 +31,24 @@ export type AnfragePayload = {
   x: number;
 };
 
-const SECRET =
-  process.env.ANFRAGE_TOKEN_SECRET ||
-  process.env.SUPABASE_SERVICE_ROLE_KEY ||
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-  'passare-dev-fallback-only-change-in-prod';
+function resolveSecret(): string {
+  const secret = process.env.ANFRAGE_TOKEN_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!secret) {
+    throw new Error(
+      'ANFRAGE_TOKEN_SECRET fehlt — bitte ANFRAGE_TOKEN_SECRET oder SUPABASE_SERVICE_ROLE_KEY setzen.',
+    );
+  }
+  return secret;
+}
+
+// Lazy: erst beim ersten Token-Sign/Verify auflösen — sonst crashed das
+// Build/Edge-Pre-Rendering wenn Env nicht gesetzt ist.
+let _cachedSecret: string | null = null;
+function getSecret(): string {
+  if (_cachedSecret) return _cachedSecret;
+  _cachedSecret = resolveSecret();
+  return _cachedSecret;
+}
 
 const TOKEN_TTL_MS = 24 * 60 * 60 * 1000; // 24 Stunden
 
@@ -52,7 +66,7 @@ function base64UrlDecode(s: string): Buffer {
 }
 
 function sign(payload: string): string {
-  return base64UrlEncode(createHmac('sha256', SECRET).update(payload).digest());
+  return base64UrlEncode(createHmac('sha256', getSecret()).update(payload).digest());
 }
 
 /** Erzeugt einen signierten Token für einen Verifikations-Link. */
@@ -62,6 +76,15 @@ export function createAnfrageToken(input: Omit<AnfragePayload, 'x'>): string {
   const encoded = base64UrlEncode(json);
   const sig = sign(encoded);
   return `${encoded}.${sig}`;
+}
+
+/**
+ * Hash-Funktion für die Replay-Tabelle `anfrage_tokens_used`.
+ * Stabil über alle Verifizierungen — zwei mal den selben Token ein-
+ * setzen liefert den selben Hash.
+ */
+export function anfrageTokenHash(token: string): string {
+  return base64UrlEncode(createHash('sha256').update(token).digest());
 }
 
 /** Validiert einen Token und gibt das Payload zurück, oder null bei Fehler. */

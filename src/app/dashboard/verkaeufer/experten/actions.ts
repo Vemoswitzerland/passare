@@ -45,29 +45,43 @@ export async function bookExpertTermin(input: {
   const dauer = Math.max(15, Math.min(180, input.dauerMin || (experte.slot_dauer_min as number)));
   const honorar = (Number(experte.honorar_chf_pro_stunde) * dauer) / 60;
 
-  // Kollision prüfen — Doppelbuchungen verhindern
+  // Kollision prüfen — robuster Overlap-Check.
+  // Wir laden ALLE pending/confirmed-Termine ohne Window-Heuristik (die
+  // 4h-Heuristik vorher hat z.B. 6h-Termine verfehlt). Bei tausenden
+  // Terminen pro Experte kann das später durch ein DB-Range-Query mit
+  // tstzrange ersetzt werden.
   const startIso = new Date(input.startAt).toISOString();
-  const endIso = new Date(new Date(input.startAt).getTime() + dauer * 60_000).toISOString();
+  const newStart = new Date(startIso).getTime();
+  const newEnd = newStart + dauer * 60_000;
+  const nowIso = new Date().toISOString();
+
+  // Pending-Slots haben TTL: nur als Kollision zählen wenn pending_until
+  // in der Zukunft liegt. Confirmed-Slots zählen immer.
   const { data: kollisionen } = await supabase
     .from('experten_termine')
-    .select('id, start_at, dauer_min')
+    .select('id, start_at, dauer_min, status, pending_until')
     .eq('experte_id', input.experteId)
-    .in('status', ['pending', 'paid', 'confirmed'])
-    .gte('start_at', new Date(new Date(startIso).getTime() - 4 * 60 * 60_000).toISOString())
-    .lte('start_at', endIso);
+    .in('status', ['pending', 'paid', 'confirmed']);
+
   if (kollisionen && kollisionen.length > 0) {
-    // Pruefen ob wirklich überlappung
     const overlap = kollisionen.some((k) => {
+      // Pending-Slots: nur wenn pending_until > now ODER nicht gesetzt
+      if (k.status === 'pending') {
+        const pu = (k as { pending_until?: string | null }).pending_until;
+        if (pu && new Date(pu).getTime() < Date.now()) return false; // abgelaufen
+      }
       const kStart = new Date(k.start_at as string).getTime();
       const kEnd = kStart + (k.dauer_min as number) * 60_000;
-      const newStart = new Date(startIso).getTime();
-      const newEnd = newStart + dauer * 60_000;
+      // Echter Overlap-Check: start < end UND end > start
       return newStart < kEnd && newEnd > kStart;
     });
     if (overlap) {
       return { ok: false, error: 'Dieser Slot ist bereits gebucht. Bitte wähle einen anderen.' };
     }
   }
+
+  // 30 Min TTL für pending Slots
+  const pendingUntil = new Date(Date.now() + 30 * 60_000).toISOString();
 
   // Termin anlegen
   const { data: created, error } = await supabase
@@ -84,6 +98,7 @@ export async function bookExpertTermin(input: {
       notizen: input.notizen ?? null,
       honorar_chf: honorar,
       status: 'pending',
+      pending_until: pendingUntil,
       stripe_session_id: `mock_${Date.now()}`,
     })
     .select('id')

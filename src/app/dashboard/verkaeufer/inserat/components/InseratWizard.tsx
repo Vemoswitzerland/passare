@@ -174,6 +174,12 @@ export function InseratWizard({ inserat, initialStep, fromPreReg }: Props) {
       const umsatzN = Number(data.umsatz_chf ?? 0);
       const ebitdaN = Number(data.ebitda_chf ?? 0);
       const ebitdaUngueltig = umsatzN > 0 && ebitdaN > umsatzN;
+      // Kaufpreis: entweder fester Betrag, VHB-Flag, oder Range
+      const hatKaufpreis = Boolean(
+        data.kaufpreis_chf ||
+        data.kaufpreis_vhb ||
+        (data.kaufpreis_min_chf && data.kaufpreis_max_chf),
+      );
       return Boolean(
         data.titel && data.titel.length >= 10 &&
         data.branche_id &&
@@ -182,7 +188,8 @@ export function InseratWizard({ inserat, initialStep, fromPreReg }: Props) {
         data.mitarbeitende &&
         data.umsatz_chf &&
         data.ebitda_chf !== null && data.ebitda_chf !== undefined &&
-        !ebitdaUngueltig,
+        !ebitdaUngueltig &&
+        hatKaufpreis,
       );
     }
     if (step === 3) return Boolean(data.cover_url);
@@ -446,14 +453,22 @@ function Step2Basis({
     startDelay: beschreibungStartDelay,
     charDelay: 5,
   });
-  // Live-Anonymitäts-Coach (V1: Regex)
+  // Live-Anonymitäts-Coach (V1: Regex).
+  // Wir nehmen alle Tokens des Firmennamens, die >3 Zeichen sind und
+  // KEINE Rechtsform-Abkürzungen (AG, GmbH, SA, SARL, Ltd) — und prüfen
+  // ob irgend eines davon im Titel oder Beschreibung auftaucht. Vorher
+  // schauten wir nur das erste Wort an, was z.B. bei «Müller AG» nichts
+  // erwischt hat.
   const anonymityWarning = (() => {
     if (!data.firma_name) return null;
-    const firstName = data.firma_name.split(/[\s,]/)[0]?.toLowerCase();
     const titleLower = (data.titel ?? '').toLowerCase();
     const descLower = (data.beschreibung ?? '').toLowerCase();
-    if (firstName && firstName.length > 3) {
-      if (titleLower.includes(firstName) || descLower.includes(firstName)) {
+    const tokens = data.firma_name
+      .split(/[\s,]/)
+      .filter((w) => w.length > 3 && !['AG', 'GmbH', 'SA', 'SARL', 'Ltd'].includes(w.toUpperCase()));
+    for (const token of tokens) {
+      const lower = token.toLowerCase();
+      if (titleLower.includes(lower) || descLower.includes(lower)) {
         return `Achtung: Dein Firmenname "${data.firma_name}" taucht im Titel oder der Beschreibung auf. Anonymisiere ihn.`;
       }
     }
@@ -1570,6 +1585,8 @@ function Step5Paket({
       inserat: inseratId,
       paket: selectedPaket,
     });
+    params.set('laufzeit', String(laufzeit));
+    if (klein) params.set('klein', '1');
     if (selectedPowerups.size > 0) {
       params.set('powerups', Array.from(selectedPowerups).join(','));
     }

@@ -9,6 +9,9 @@ export const dynamic = 'force-dynamic';
  * Wir routen den User zurück zur Abo-Seite mit einem Info-Hinweis.
  */
 async function handle(req: NextRequest) {
+  if (process.env.STRIPE_MOCK_ALLOWED !== 'true') {
+    return NextResponse.json({ error: 'mock_disabled' }, { status: 501 });
+  }
   const ctx = req.nextUrl.searchParams.get('ctx');
   const returnPath = ctx === 'broker' ? '/dashboard/broker/paket' : '/dashboard/kaeufer/abo';
   return NextResponse.redirect(new URL(`${returnPath}?info=stripe_mock`, req.url), { status: 303 });

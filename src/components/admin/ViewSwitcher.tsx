@@ -1,12 +1,11 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useTransition } from 'react';
 import { ChevronDown, Eye, ShieldCheck, Store, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { enterImpersonationAction, exitImpersonationAction } from '@/app/admin/actions';
 
 type View = 'admin' | 'verkaeufer' | 'kaeufer';
-
-const COOKIE_NAME = 'admin_impersonation';
 
 const OPTIONS: { value: View; label: string; icon: React.ComponentType<{ className?: string; strokeWidth?: number }>; desc: string }[] = [
   { value: 'admin', label: 'Admin-Ansicht', icon: ShieldCheck, desc: 'Alle Verwaltungs-Funktionen' },
@@ -14,28 +13,23 @@ const OPTIONS: { value: View; label: string; icon: React.ComponentType<{ classNa
   { value: 'kaeufer', label: 'Als Käufer ansehen', icon: Search, desc: 'Plattform aus Käufer-Sicht' },
 ];
 
-function setCookie(name: string, value: string) {
-  document.cookie = `${name}=${encodeURIComponent(value)}; Path=/; Max-Age=86400; SameSite=Lax`;
-}
-function clearCookie(name: string) {
-  document.cookie = `${name}=; Path=/; Max-Age=0; SameSite=Lax`;
-}
-function readCookie(name: string): string | null {
-  if (typeof document === 'undefined') return null;
-  const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
-  return match ? decodeURIComponent(match[2]) : null;
-}
-
 export function ViewSwitcher() {
   const [open, setOpen] = useState(false);
   const [current, setCurrent] = useState<View>('admin');
+  const [pending, startTransition] = useTransition();
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const stored = readCookie(COOKIE_NAME);
-    if (stored === 'verkaeufer' || stored === 'kaeufer') {
-      setCurrent(stored);
-    } else {
+    // Cookie ist httpOnly → wir lesen den View-State aus localStorage
+    // (nur als UI-Hint; die echte Quelle ist das httpOnly-Cookie auf dem Server).
+    try {
+      const stored = localStorage.getItem('admin_view');
+      if (stored === 'verkaeufer' || stored === 'kaeufer') {
+        setCurrent(stored);
+      } else {
+        setCurrent('admin');
+      }
+    } catch {
       setCurrent('admin');
     }
   }, []);
@@ -51,15 +45,17 @@ export function ViewSwitcher() {
 
   const select = (view: View) => {
     setOpen(false);
-    if (view === 'admin') {
-      clearCookie(COOKIE_NAME);
-      try { localStorage.setItem('admin_view', 'admin'); } catch {}
-      window.location.href = '/admin';
-    } else {
-      setCookie(COOKIE_NAME, view);
-      try { localStorage.setItem('admin_view', view); } catch {}
-      window.location.href = '/dashboard';
-    }
+    startTransition(async () => {
+      if (view === 'admin') {
+        await exitImpersonationAction();
+        try { localStorage.setItem('admin_view', 'admin'); } catch {}
+        window.location.href = '/admin';
+      } else {
+        await enterImpersonationAction(view);
+        try { localStorage.setItem('admin_view', view); } catch {}
+        window.location.href = '/dashboard';
+      }
+    });
   };
 
   const active = OPTIONS.find((o) => o.value === current) ?? OPTIONS[0];
@@ -70,7 +66,8 @@ export function ViewSwitcher() {
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="inline-flex items-center gap-2 px-3 py-2 rounded-soft border border-stone hover:border-navy/40 bg-paper text-navy text-caption font-medium transition-colors"
+        disabled={pending}
+        className="inline-flex items-center gap-2 px-3 py-2 rounded-soft border border-stone hover:border-navy/40 bg-paper text-navy text-caption font-medium transition-colors disabled:opacity-50"
         aria-haspopup="menu"
         aria-expanded={open}
       >

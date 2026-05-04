@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export const runtime = 'edge';
 
-const STATUS_CODE = '2827';
+// Code aus ENV, Fallback nur für lokale Dev (Vercel sollte STATUS_CODE setzen).
+const STATUS_CODE = process.env.STATUS_CODE ?? '2827';
 
 export async function POST(req: NextRequest) {
   const { code } = await req.json().catch(() => ({ code: '' }));

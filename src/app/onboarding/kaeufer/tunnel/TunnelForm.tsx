@@ -36,6 +36,7 @@ export function TunnelForm({ branchen }: { branchen: Branche[] }) {
   const [budgetUndisclosed, setBudgetUndisclosed] = useState(false);
   const [budgetMin, setBudgetMin] = useState(500_000);
   const [budgetMax, setBudgetMax] = useState(5_000_000);
+  const [acceptTerms, setAcceptTerms] = useState(false);
   // Beschreibung wurde aus dem Tunnel entfernt (gehört zur Anfrage, nicht zum Profil) —
   // wird leer mitgeschickt damit die bestehende Action-Schema-Validation passt.
   const beschreibung = '';
@@ -46,10 +47,10 @@ export function TunnelForm({ branchen }: { branchen: Branche[] }) {
   const canNext = useMemo(() => {
     switch (step) {
       case 0: return branchenSelected.length > 0 && (chWeit || kantone.length > 0);
-      case 1: return budgetUndisclosed || budgetMax >= budgetMin;
+      case 1: return (budgetUndisclosed || budgetMax >= budgetMin) && acceptTerms;
       default: return false;
     }
-  }, [step, branchenSelected, chWeit, kantone, budgetUndisclosed, budgetMin, budgetMax]);
+  }, [step, branchenSelected, chWeit, kantone, budgetUndisclosed, budgetMin, budgetMax, acceptTerms]);
 
   const toggleBranche = (b: string) => {
     setBranchenSelected((prev) => prev.includes(b) ? prev.filter((x) => x !== b) : [...prev, b]);
@@ -90,6 +91,7 @@ export function TunnelForm({ branchen }: { branchen: Branche[] }) {
         <input type="hidden" name="budget_max" value={budgetUndisclosed ? '' : String(budgetMax)} />
         <input type="hidden" name="budget_undisclosed" value={budgetUndisclosed ? 'on' : ''} />
         <input type="hidden" name="beschreibung" value={beschreibung} />
+        <input type="hidden" name="accept_terms" value={acceptTerms ? 'on' : ''} />
 
         {/* ─── STEP 0: Was suchst du? (Branchen + Kantone) ─── */}
         {step === 0 && (
@@ -264,6 +266,23 @@ export function TunnelForm({ branchen }: { branchen: Branche[] }) {
                 </>
               )}
             </div>
+
+            {/* AGB & Datenschutz: Pflicht-Akzeptanz (rechtlich notwendig fürs Profil-Erstellen) */}
+            <label className="flex items-start gap-3 p-4 border border-stone rounded-soft cursor-pointer hover:border-bronze/50 transition-colors">
+              <input
+                type="checkbox"
+                checked={acceptTerms}
+                onChange={(e) => setAcceptTerms(e.target.checked)}
+                className="mt-[3px] h-4 w-4 accent-bronze cursor-pointer flex-shrink-0"
+                required
+              />
+              <span className="text-body-sm text-muted leading-snug">
+                Ich akzeptiere die{' '}
+                <Link href="/agb" target="_blank" rel="noopener noreferrer" className="editorial text-navy underline">AGB</Link>
+                {' '}und die{' '}
+                <Link href="/datenschutz" target="_blank" rel="noopener noreferrer" className="editorial text-navy underline">Datenschutzerklärung</Link>.
+              </span>
+            </label>
 
             {/* Suchprofil-Hinweis als finaler Trust-Anker direkt vor dem Submit */}
             <div className="flex items-start gap-3 p-4 bg-bronze/5 border border-bronze/20 rounded-soft">

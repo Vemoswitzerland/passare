@@ -10,10 +10,14 @@ export const runtime = 'nodejs';
  * Stripe-Webhook für Käufer-Subscriptions (Käufer+-Abo).
  *
  * Events die wir handhaben:
- * - customer.subscription.created   ��� tier auf 'plus' setzen
+ * - customer.subscription.created   → tier auf 'plus' / 'max' setzen
  * - customer.subscription.updated   → tier sync (active/canceled)
  * - customer.subscription.deleted   → tier auf 'basic' zurücksetzen
  * - invoice.payment_succeeded       → renewed_at aktualisieren + Zahlung loggen
+ *
+ * Idempotency: Vor dem switch wird gecheckt, ob `event.id` schon in
+ * `stripe_events` steht. Wenn ja → no-op-Response. Sonst nach
+ * erfolgreichem Handling Insert.
  */
 export async function POST(req: NextRequest) {
   const secretKey = process.env.STRIPE_SECRET_KEY;
@@ -36,6 +40,20 @@ export async function POST(req: NextRequest) {
 
   const admin = createAdminClient();
 
+  // ── Idempotency-Check (Stripe sendet Events at-least-once) ──
+  try {
+    const { data: existing } = await admin
+      .from('stripe_events')
+      .select('id')
+      .eq('id', event.id)
+      .maybeSingle();
+    if (existing) {
+      return NextResponse.json({ received: true, idempotent: true });
+    }
+  } catch {
+    // stripe_events-Tabelle existiert evtl. noch nicht — nicht blockieren
+  }
+
   try {
     switch (event.type) {
       case 'customer.subscription.created':
@@ -51,6 +69,9 @@ export async function POST(req: NextRequest) {
 
         const isActive = sub.status === 'active' || sub.status === 'trialing';
         const cancelAt = sub.cancel_at ? new Date(sub.cancel_at * 1000).toISOString() : null;
+        const renewedAt = sub.current_period_start
+          ? new Date(sub.current_period_start * 1000).toISOString()
+          : null;
         const interval = sub.metadata?.interval ?? 'monthly';
 
         // Broker-Subscription
@@ -61,35 +82,42 @@ export async function POST(req: NextRequest) {
 
           await admin
             .from('broker_profiles')
-            .update({
-              tier: brokerTier,
-              mandate_limit: mandateLimit,
-              team_seats_limit: teamSeats,
-              subscription_status: isActive ? 'active' : 'canceled',
-              stripe_subscription_id: sub.id,
-              subscription_interval: interval,
-              subscription_renewed_at: new Date(sub.current_period_start * 1000).toISOString(),
-              subscription_cancel_at: cancelAt,
-            })
-            .eq('id', userId);
+            .upsert(
+              {
+                id: userId,
+                tier: brokerTier,
+                mandate_limit: mandateLimit,
+                team_seats_limit: teamSeats,
+                subscription_status: isActive ? 'active' : 'canceled',
+                stripe_subscription_id: sub.id,
+                subscription_interval: interval,
+                subscription_renewed_at: renewedAt,
+                subscription_cancel_at: cancelAt,
+              },
+              { onConflict: 'id' },
+            );
 
           await admin
             .from('profiles')
-            .update({ is_broker: isActive })
-            .eq('id', userId);
+            .upsert({ id: userId, is_broker: isActive }, { onConflict: 'id' });
         }
 
         // Käufer-Subscription
         if (isKaeuferTier) {
+          // Bug-Fix: vorher hardcoded 'plus' — jetzt korrekter Tier aus Metadata.
+          const targetTier = tier === 'max' ? 'max' : 'plus';
           await admin
             .from('profiles')
-            .update({
-              subscription_tier: isActive ? 'plus' : 'basic',
-              stripe_subscription_id: sub.id,
-              subscription_renewed_at: new Date(sub.current_period_start * 1000).toISOString(),
-              subscription_cancel_at: cancelAt,
-            })
-            .eq('id', userId);
+            .upsert(
+              {
+                id: userId,
+                subscription_tier: isActive ? targetTier : 'basic',
+                stripe_subscription_id: sub.id,
+                subscription_renewed_at: renewedAt,
+                subscription_cancel_at: cancelAt,
+              },
+              { onConflict: 'id' },
+            );
         }
 
         if (event.type === 'customer.subscription.created' && isActive) {
@@ -117,33 +145,72 @@ export async function POST(req: NextRequest) {
         if (isBrokerTier) {
           await admin
             .from('broker_profiles')
-            .update({
-              subscription_status: 'canceled',
-              stripe_subscription_id: null,
-              subscription_cancel_at: new Date().toISOString(),
-            })
-            .eq('id', userId);
+            .upsert(
+              {
+                id: userId,
+                subscription_status: 'canceled',
+                stripe_subscription_id: null,
+                subscription_cancel_at: new Date().toISOString(),
+              },
+              { onConflict: 'id' },
+            );
 
           await admin
             .from('profiles')
-            .update({ is_broker: false })
-            .eq('id', userId);
+            .upsert({ id: userId, is_broker: false }, { onConflict: 'id' });
 
           // Aktive Mandate pausieren — sonst bleiben sie public sichtbar.
+          // Vor dem Update Liste fetchen, damit wir Verkäufer benachrichtigen können.
+          const { data: pausedListings } = await admin
+            .from('inserate')
+            .select('id, titel, verkaeufer_id')
+            .eq('broker_id', userId)
+            .eq('status', 'live');
+
           await admin
             .from('inserate')
             .update({ status: 'pausiert', paused_at: new Date().toISOString() })
             .eq('broker_id', userId)
             .eq('status', 'live');
+
+          // Pro pausiertem Inserat eine Mail an den Verkäufer (sofern vorhanden).
+          if (Array.isArray(pausedListings) && pausedListings.length > 0) {
+            const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://passare-ch.vercel.app';
+            for (const listing of pausedListings) {
+              if (!listing.verkaeufer_id) continue;
+              const { data: ownerData } = await admin.auth.admin.getUserById(listing.verkaeufer_id);
+              const email = ownerData?.user?.email;
+              if (!email) continue;
+              const safeTitel = String(listing.titel ?? '').replace(/[\r\n]/g, ' ').slice(0, 150);
+              void sendEmail({
+                // Note: Eigenes 'inserat_pausiert'-Template existiert nicht
+                // (TODO: Phase 2). Nutzen 'inserat_bald_abgelaufen' als
+                // semantisch verwandtes Template + subject_override.
+                template: 'inserat_bald_abgelaufen',
+                to: email,
+                vars: {
+                  inseratTitel: safeTitel,
+                  link: `${appUrl}/dashboard/verkaeufer`,
+                  reason: 'broker_subscription_canceled',
+                },
+                subject_override: `Dein Inserat «${safeTitel}» wurde pausiert`,
+                user_id: listing.verkaeufer_id,
+                related_id: listing.id,
+              });
+            }
+          }
         } else {
           await admin
             .from('profiles')
-            .update({
-              subscription_tier: 'basic',
-              stripe_subscription_id: null,
-              subscription_cancel_at: null,
-            })
-            .eq('id', userId);
+            .upsert(
+              {
+                id: userId,
+                subscription_tier: 'basic',
+                stripe_subscription_id: null,
+                subscription_cancel_at: null,
+              },
+              { onConflict: 'id' },
+            );
         }
         break;
       }
@@ -183,6 +250,13 @@ export async function POST(req: NextRequest) {
       default:
         // Andere Events (refunds, disputes, ...) — Chat 2 / Admin-Bereich
         break;
+    }
+
+    // ── Idempotency-Marker erst NACH erfolgreichem Handling setzen ──
+    try {
+      await admin.from('stripe_events').insert({ id: event.id, type: event.type });
+    } catch {
+      // Tabelle existiert evtl. noch nicht / Race-Condition mit Doppel-Webhook → ignorieren
     }
   } catch (err) {
     console.error('[stripe-webhook] processing error:', err);

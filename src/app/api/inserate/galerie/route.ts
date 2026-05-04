@@ -8,6 +8,7 @@
 // ════════════════════════════════════════════════════════════════════
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { validateFileSignature } from '@/lib/file-validation';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -81,6 +82,11 @@ export async function POST(req: NextRequest) {
   const path = `${u.user.id}/${inseratId}-galerie-${Date.now()}.${ext}`;
   const arrayBuf = await file.arrayBuffer();
 
+  // Magic-Bytes-Check: verhindert Spoofing (z.B. exe als image/png).
+  if (!validateFileSignature(arrayBuf, file.type)) {
+    return NextResponse.json({ error: 'Datei sieht nicht wie ein gültiges Bild aus.' }, { status: 415 });
+  }
+
   const { error: upErr } = await supabase.storage
     .from(BUCKET)
     .upload(path, Buffer.from(arrayBuf), { contentType: file.type, upsert: false });
@@ -88,16 +94,11 @@ export async function POST(req: NextRequest) {
 
   const { data: pub } = supabase.storage.from(BUCKET).getPublicUrl(path);
 
-  // Maximale Sortierung ermitteln
-  const { data: maxRow } = await supabase
-    .from('inserat_medien')
-    .select('sortierung')
-    .eq('inserat_id', inseratId)
-    .eq('typ', 'bild')
-    .order('sortierung', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  const nextSort = (maxRow?.sortierung ?? -1) + 1;
+  // Sortierung: pragmatischer Fix für die Race-Condition. Wir nutzen
+  // einen Timestamp-basierten Wert (now-ms seit Epoch) — bei parallelen
+  // Uploads gibt es Mini-Drift, aber keine Kollision.
+  // Long-term: trigger oder generated column.
+  const nextSort = Date.now();
 
   const { data: row, error: insErr } = await supabase
     .from('inserat_medien')
@@ -165,10 +166,20 @@ export async function DELETE(req: NextRequest) {
 
   await supabase.from('inserat_medien').delete().eq('id', id);
 
-  // Storage-File löschen (best-effort)
+  // Storage-File löschen (best-effort) — robuste Pfad-Extraktion via URL-Parser,
+  // damit Query-Strings (?token=…) nicht den Pfad korrumpieren.
   if (medium.url) {
-    const m = medium.url.match(/inserate-cover\/(.+)$/);
-    if (m) await supabase.storage.from(BUCKET).remove([m[1]]);
+    try {
+      const pathname = new URL(medium.url).pathname;
+      const marker = '/storage/v1/object/public/inserate-cover/';
+      const idx = pathname.indexOf(marker);
+      if (idx !== -1) {
+        const filePath = decodeURIComponent(pathname.slice(idx + marker.length));
+        if (filePath) await supabase.storage.from(BUCKET).remove([filePath]);
+      }
+    } catch {
+      // URL nicht parsbar — best-effort, ignorieren.
+    }
   }
 
   return NextResponse.json({ ok: true });

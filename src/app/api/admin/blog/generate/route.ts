@@ -37,21 +37,62 @@ Antworte AUSSCHLIESSLICH als JSON mit den Feldern:
   "content": "Markdown-Body. KEIN H1 (Titel kommt extern). Beginne mit einem Lead-Absatz, dann ## Abschnitte."
 }`;
 
-async function isAdmin() {
+async function getAdminUserId(): Promise<string | null> {
   const supabase = await createClient();
   const { data } = await supabase.auth.getUser();
-  if (!data.user) return false;
+  if (!data.user) return null;
   const { data: profile } = await supabase
     .from('profiles')
     .select('rolle')
     .eq('id', data.user.id)
     .maybeSingle();
-  return profile?.rolle === 'admin';
+  return profile?.rolle === 'admin' ? data.user.id : null;
+}
+
+// Simples In-Memory-Rate-Limit pro Admin-User (max 5 Generierungen / Min).
+// Für Production sollte das durch Redis / Upstash ersetzt werden, hier reicht
+// ein Map als Schutz vor versehentlichen Floods aus dem Admin-UI.
+const blogGenLog = new Map<string, number[]>();
+const BLOG_GEN_WINDOW_MS = 60_000;
+const BLOG_GEN_MAX = 5;
+
+function checkBlogRateLimit(userId: string): { allowed: boolean; retryAfterSec?: number } {
+  const now = Date.now();
+  const arr = blogGenLog.get(userId) ?? [];
+  const recent = arr.filter((t) => now - t < BLOG_GEN_WINDOW_MS);
+  if (recent.length >= BLOG_GEN_MAX) {
+    const oldest = recent[0];
+    return { allowed: false, retryAfterSec: Math.ceil((BLOG_GEN_WINDOW_MS - (now - oldest)) / 1000) };
+  }
+  recent.push(now);
+  blogGenLog.set(userId, recent);
+  return { allowed: true };
+}
+
+/**
+ * Topic-Sanitization — entfernt unsichere Zeichen und limitiert Länge.
+ * Erlaubt: alphanumerisch, Umlaute, Leerzeichen, einfache Punktuation.
+ */
+function sanitizeTopic(input: unknown): string {
+  return String(input ?? '')
+    .replace(/[^a-zA-Z0-9 äöüÄÖÜß\.\-,!?]/g, '')
+    .slice(0, 200)
+    .trim();
 }
 
 export async function POST(req: Request) {
-  if (!(await isAdmin())) {
+  const adminUserId = await getAdminUserId();
+  if (!adminUserId) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
+  // Rate-Limit
+  const rl = checkBlogRateLimit(adminUserId);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: `Rate-Limit: max ${BLOG_GEN_MAX} Blog-Generierungen pro Minute. Versuch's in ${rl.retryAfterSec}s nochmal.` },
+      { status: 429, headers: { 'Retry-After': String(rl.retryAfterSec ?? 60) } },
+    );
   }
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -69,7 +110,8 @@ export async function POST(req: Request) {
     /* leerer body OK */
   }
 
-  let topic = body.topic?.trim();
+  // Topic sanitizen — nur alphanumerisch + Schweizer Umlaute + Punktuation
+  let topic = sanitizeTopic(body.topic);
   let kategorie = (body.kategorie as BlogKategorie | undefined) ?? undefined;
 
   if (!topic) {

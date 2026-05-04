@@ -1,6 +1,49 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { createHmac } from 'crypto';
+import { z } from 'zod';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
+import { isSafeNextPath, safeNextPath } from '@/lib/auth/safe-redirect';
+import { routeAfterAuth } from '@/lib/auth/routing';
+import { AGB_VERSION, DATENSCHUTZ_VERSION } from '@/app/auth/constants';
+
+// SECURITY: Wie im /auth/callback — pre_reg_draft strikt validieren bevor
+// wir den Inhalt an den DB-RPC weiterreichen.
+const PreRegDraftSchema = z.object({
+  firma_name: z.string().trim().max(200).optional().nullable(),
+  zefix_uid: z.string().trim().max(50).optional().nullable(),
+  firma_rechtsform: z.string().trim().max(50).optional().nullable(),
+  firma_sitz_gemeinde: z.string().trim().max(120).optional().nullable(),
+  branche_id: z.string().trim().max(50).optional().nullable(),
+  kanton: z.string().trim().max(2).optional().nullable(),
+  jahr: z.coerce.number().int().min(1800).max(2100).optional().nullable(),
+  mitarbeitende: z.coerce.number().min(0).max(100_000).optional().nullable(),
+  umsatz: z.coerce.number().min(0).max(1_000_000_000).optional().nullable(),
+  ebitda: z.coerce.number().min(-1_000_000_000).max(1_000_000_000).optional().nullable(),
+  valuation: z.union([
+    z.object({
+      min: z.number().min(0).max(10_000_000_000).optional().nullable(),
+      mid: z.number().min(0).max(10_000_000_000).optional().nullable(),
+      max: z.number().min(0).max(10_000_000_000).optional().nullable(),
+    }).passthrough(),
+    z.null(),
+  ]).optional(),
+}).passthrough();
+type PreRegDraft = z.infer<typeof PreRegDraftSchema>;
+function parsePreRegDraft(raw: unknown): PreRegDraft | null {
+  const result = PreRegDraftSchema.safeParse(raw);
+  if (!result.success) {
+    console.warn('[google-callback] pre_reg_draft schema invalid — verwerfen');
+    return null;
+  }
+  return result.data;
+}
+
+// Selber HMAC-Salt wie in middleware.ts und /api/beta — wir vergleichen
+// das Cookie gegen `betaCookieValue(BETA_ACCESS_CODE)`.
+function betaCookieValue(code: string): string {
+  return createHmac('sha256', code).update('passare_beta_v1').digest('hex');
+}
 
 /**
  * Empfängt den Google-OAuth-Callback und tauscht den Code gegen Tokens,
@@ -47,10 +90,26 @@ export async function GET(req: NextRequest) {
   if (googleError) return errorRedirect(req, `google_${googleError}`);
   if (!code || !state) return errorRedirect(req, 'oauth_missing_params');
 
+  // SECURITY: Beta-Gate auch im Google-Callback gegenchecken — sonst
+  // kann ein Angreifer den Beta-Schutz via direkten OAuth-Link umgehen.
+  if (process.env.BETA_GATE_ENABLED === 'true') {
+    const beta = req.cookies.get('passare_beta')?.value;
+    const expected = process.env.BETA_ACCESS_CODE
+      ? betaCookieValue(process.env.BETA_ACCESS_CODE)
+      : null;
+    if (!beta || !expected || beta !== expected) {
+      return errorRedirect(req, 'beta_required');
+    }
+  }
+
   const cookieStore = await cookies();
   const expectedState = cookieStore.get('passare_oauth_state')?.value;
   const verifier = cookieStore.get('passare_oauth_pkce')?.value;
-  const next = cookieStore.get('passare_oauth_next')?.value ?? '/dashboard';
+  // SECURITY: `next` kommt aus `/api/auth/google/start` (Cookie) — der
+  // wiederum kommt aus dem Query der Start-Route. Wir whitelisten daher
+  // nochmal. Sonst Open-Redirect via `//evil.com`.
+  const rawNext = cookieStore.get('passare_oauth_next')?.value ?? '/dashboard';
+  const next = isSafeNextPath(rawNext) ? rawNext : '/dashboard';
 
   if (!expectedState || state !== expectedState) return errorRedirect(req, 'oauth_state_mismatch');
   if (!verifier) return errorRedirect(req, 'oauth_pkce_missing');
@@ -127,25 +186,25 @@ export async function GET(req: NextRequest) {
     return errorRedirect(req, 'session_failed');
   }
 
-  // Wiederkehrer-Erkennung: Account älter als 5 Min ODER hat schon Inserate
-  const accountAgeMs = Date.now() - new Date(u.user.created_at).getTime();
-  const isWiederkehrer = accountAgeMs > 5 * 60 * 1000;
+  // Wiederkehrer-Erkennung: per geteiltem Helper berechnen.
+  const routing = await routeAfterAuth(supabase, u.user, next);
+  const isWiederkehrer = routing.isWiederkehrer;
+  const hasInserat = routing.hasInserat;
 
-  const { data: existingInserate } = await supabase
-    .from('inserate')
-    .select('id')
-    .eq('verkaeufer_id', u.user.id)
-    .limit(1);
-  const hasInserat = (existingInserate?.length ?? 0) > 0;
-
-  // Pre-Reg-Daten prüfen (nur ECHTE Funnel-Daten zählen)
+  // Pre-Reg-Daten prüfen (nur ECHTE Funnel-Daten zählen).
+  // SECURITY: Cookie wird strikt validiert via Zod-Schema.
   const preRegRaw = req.cookies.get('pre_reg_draft')?.value;
-  let preReg: any = null;
+  let preReg: PreRegDraft | null = null;
   if (preRegRaw) {
-    try { preReg = JSON.parse(preRegRaw); } catch { /* invalid */ }
+    try {
+      const parsed = JSON.parse(preRegRaw);
+      preReg = parsePreRegDraft(parsed);
+    } catch {
+      preReg = null;
+    }
   }
-  const hasFreshPreReg = preReg && typeof preReg === 'object' &&
-    (preReg.firma_name || preReg.zefix_uid || preReg.branche_id);
+  const hasFreshPreReg: boolean = preReg !== null &&
+    Boolean(preReg.firma_name || preReg.zefix_uid || preReg.branche_id);
 
   // Helper: finalen Redirect mit Auth-Cookies (mit Options!) bauen
   function buildFinalRedirect(targetUrl: string, clearPreReg: boolean): NextResponse {
@@ -166,54 +225,22 @@ export async function GET(req: NextRequest) {
   }
 
   // Wiederkehrer ODER hat schon Inserate → rolle-basiert ins richtige Dashboard.
-  //
-  // VORHER (Bug): hart auf /dashboard/verkaeufer für ALLE Wiederkehrer —
-  // Admins (info@vemo.ch) landeten dadurch nach jedem Google-Login fälschlich
-  // im Verkäufer-Bereich. Jetzt prüfen wir die Profil-Rolle direkt:
-  //   admin       → /admin
-  //   kaeufer     → /dashboard/kaeufer
-  //   verkaeufer  → /dashboard/verkaeufer
-  //   null + hasInserat → /dashboard/verkaeufer (Verkäufer-Default)
-  //   sonst       → /dashboard (Fallback-Router)
+  // Logik liegt im geteilten Helper `routeAfterAuth` (gleiches Verhalten wie
+  // /auth/callback). Admins landen über die Rollen-Auswertung im Helper auf
+  // /admin — der vorherige Bug (alle Wiederkehrer hart auf /dashboard/verkaeufer)
+  // ist damit behoben.
   if (isWiederkehrer || hasInserat) {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('rolle')
-      .eq('id', u.user.id)
-      .maybeSingle();
-
-    // Wiederkehrer mit rolle=null (z.B. alter Google-Login ohne abgeschlossenes
-    // Onboarding): wenn ein spezifischer `next` mitkam (Käufer+/Broker-CTA),
-    // hat der IMMER Vorrang — sonst landet der User wieder auf /onboarding
-    // mit dem 3-Optionen-Wähler.
-    const hasSpecificNext = next && next !== '/dashboard' && next !== '/';
-    const nextMatchesRole =
-      hasSpecificNext && (
-        !profile?.rolle || // rolle=null → next respektieren statt 3-Optionen
-        (profile.rolle === 'admin' && next.startsWith('/admin')) ||
-        (profile.rolle === 'broker' && next.startsWith('/dashboard/broker')) ||
-        (profile.rolle === 'kaeufer' && (next.startsWith('/dashboard/kaeufer') || next.startsWith('/onboarding/kaeufer'))) ||
-        (profile.rolle === 'verkaeufer' && (next.startsWith('/dashboard/verkaeufer') || next.startsWith('/verkaufen')))
-      );
-
-    const targetPath = nextMatchesRole
-      ? next!
-      : profile?.rolle === 'admin' ? '/admin'
-      : profile?.rolle === 'broker' ? '/dashboard/broker'
-      : profile?.rolle === 'kaeufer' ? '/dashboard/kaeufer'
-      : profile?.rolle === 'verkaeufer' ? '/dashboard/verkaeufer'
-      : hasInserat ? '/dashboard/verkaeufer'
-      : '/dashboard';
-
-    return buildFinalRedirect(`${siteUrl(req)}${targetPath}`, true);
+    return buildFinalRedirect(`${siteUrl(req)}${routing.targetPath}`, true);
   }
 
-  // Kein Pre-Reg-Flow → einfacher Redirect zur next-URL
-  if (!hasFreshPreReg) {
-    return buildFinalRedirect(new URL(next, siteUrl(req)).toString(), true);
+  // Kein Pre-Reg-Flow → einfacher Redirect zur next-URL.
+  // `next` ist oben bereits whitelist-validiert.
+  if (!hasFreshPreReg || preReg === null) {
+    return buildFinalRedirect(`${siteUrl(req)}${safeNextPath(next, '/dashboard')}`, true);
   }
 
   // ── NEUER User mit Pre-Reg-Daten — Auto-Onboarding via RPC ─────
+  // preReg ist hier garantiert nicht null (durch Guard oben).
   const fullName = u.user.user_metadata?.full_name ?? u.user.email?.split('@')[0] ?? 'User';
   const sprache = u.user.user_metadata?.sprache ?? 'de';
   const ip = (req.headers.get('x-forwarded-for') ?? '').split(',')[0]?.trim() || null;
@@ -226,8 +253,8 @@ export async function GET(req: NextRequest) {
     p_full_name: fullName,
     p_kanton: kanton,
     p_sprache: sprache,
-    p_agb_version: '2026-04',
-    p_datenschutz_version: '2026-04',
+    p_agb_version: AGB_VERSION,
+    p_datenschutz_version: DATENSCHUTZ_VERSION,
     p_ip: ip,
     p_user_agent: ua,
   });

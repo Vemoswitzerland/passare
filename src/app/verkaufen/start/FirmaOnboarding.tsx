@@ -988,25 +988,38 @@ function Step4Bewertung({
 function Step5Account({
   draft, router, startTransition,
 }: { draft: Draft; router: ReturnType<typeof useRouter>; startTransition: (cb: () => void) => void }) {
-  // Diese Step ist faktisch nur Übergangs-Animation: speichert Draft + redirected zu /auth/register
+  // Diese Step ist Übergang: speichert Draft + redirected.
+  // Bei eingeloggten Usern direkt ins Verkäufer-Wizard, sonst zur Registrierung.
   useEffect(() => {
-    fetch('/api/pre-reg', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...draft, step: 5 }),
-    }).then(() => {
-      startTransition(() => {
-        router.push('/auth/register?from=pre-reg');
-      });
-    });
+    (async () => {
+      try {
+        // Auth-Status prüfen via API-Call (Browser hat das auth-Cookie)
+        const meRes = await fetch('/api/me', { method: 'GET', cache: 'no-store' });
+        const me = await meRes.json().catch(() => ({}));
+        await fetch('/api/pre-reg', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...draft, step: 5 }),
+        });
+        const isLoggedIn = Boolean(me?.user?.id);
+        startTransition(() => {
+          router.push(isLoggedIn
+            ? '/dashboard/verkaeufer/inserat/new?from=pre-reg'
+            : '/auth/register?from=pre-reg');
+        });
+      } catch {
+        // Fallback: zur Registrierung
+        startTransition(() => router.push('/auth/register?from=pre-reg'));
+      }
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
     <div className="text-center py-16 animate-fade-up">
       <Loader2 className="w-12 h-12 mx-auto text-bronze animate-spin mb-6" strokeWidth={1.5} />
-      <h2 className="font-serif text-head-md text-navy mb-2">Wir bringen dich zur Registrierung …</h2>
-      <p className="text-body text-muted">Deine Daten sind gespeichert und werden nach dem Login automatisch übernommen.</p>
+      <h2 className="font-serif text-head-md text-navy mb-2">Wir bringen dich zum Inserat-Wizard …</h2>
+      <p className="text-body text-muted">Deine Daten sind gespeichert und werden automatisch übernommen.</p>
     </div>
   );
 }

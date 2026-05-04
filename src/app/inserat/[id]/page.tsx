@@ -58,10 +58,11 @@ export default async function InseratDetailPage({ params, searchParams }: Params
   let prefill: { name: string; email: string; isLoggedIn: boolean; rolle: string | null } = {
     name: '', email: '', isLoggedIn: false, rolle: null,
   };
+  let userTier: string | null = null;
   if (u.user) {
     const { data: prof } = await supabase
       .from('profiles')
-      .select('full_name, rolle')
+      .select('full_name, rolle, subscription_tier')
       .eq('id', u.user.id)
       .maybeSingle();
     prefill = {
@@ -70,28 +71,50 @@ export default async function InseratDetailPage({ params, searchParams }: Params
       isLoggedIn: true,
       rolle: prof?.rolle ?? null,
     };
+    userTier = (prof as { subscription_tier?: string | null } | null)?.subscription_tier ?? null;
   }
+
+  const isAuthenticated = !!u.user;
+  const isPlusOrMax = userTier === 'plus' || userTier === 'max';
 
   return (
     <main className="min-h-screen flex flex-col bg-cream">
       <SiteHeader />
-      {anfrage === 'ok' && <AnfrageErfolgBanner />}
+      {anfrage === 'ok' && (
+        <AnfrageErfolgBanner isAuthenticated={isAuthenticated} isPlusOrMax={isPlusOrMax} />
+      )}
       <DetailHero listing={listing} brancheLabel={brancheLabel} />
-      <DetailBody listing={listing} brancheLabel={brancheLabel} prefill={prefill} />
+      <DetailBody
+        listing={listing}
+        brancheLabel={brancheLabel}
+        prefill={prefill}
+        isAuthenticated={isAuthenticated}
+      />
       <SiteFooter />
     </main>
   );
 }
 
-function AnfrageErfolgBanner() {
+function AnfrageErfolgBanner({
+  isAuthenticated,
+  isPlusOrMax,
+}: {
+  isAuthenticated: boolean;
+  isPlusOrMax: boolean;
+}) {
+  // MAX/Plus-User haben bereits ein vollwertiges Konto — kein Basic-Hinweis.
+  // Anonyme Besucher / frisch erstellte Basic-Accounts bekommen den Hinweis,
+  // dass das Käufer-Basic-Konto jetzt aktiv ist.
+  const message = isAuthenticated && isPlusOrMax
+    ? 'Anfrage erfasst — wir benachrichtigen dich, sobald der Verkäufer reagiert.'
+    : 'Der Verkäufer wurde informiert — Ihr Käufer-Basic-Konto ist aktiv.';
   return (
     <div className="bg-success/10 border-b border-success/30">
       <Container>
         <div className="py-3 flex items-center gap-3">
           <CheckCircle2 className="w-5 h-5 text-success flex-shrink-0" strokeWidth={1.5} />
           <p className="text-body-sm text-navy">
-            <span className="font-medium">Anfrage gesendet.</span>{' '}
-            Der Verkäufer wurde informiert — Ihr Käufer-Basic-Konto ist aktiv.
+            <span className="font-medium">Anfrage gesendet.</span> {message}
           </p>
         </div>
       </Container>
@@ -172,10 +195,12 @@ function DetailBody({
   listing,
   brancheLabel,
   prefill,
+  isAuthenticated,
 }: {
   listing: InseratDetail;
   brancheLabel: string;
   prefill: { name: string; email: string; isLoggedIn: boolean; rolle: string | null };
+  isAuthenticated: boolean;
 }) {
   const grundLabel = uebergabeGrundLabel(listing.uebergabe_grund);
   const umsatzStr = formatUmsatz({ umsatz_chf: listing.umsatz_chf, umsatz_bucket: listing.umsatz_bucket });
@@ -264,7 +289,12 @@ function DetailBody({
           {/* ─── Rechte Spalte: Kontakt-Sidebar ─── */}
           <aside className="lg:sticky lg:top-24 lg:self-start">
             <Reveal delay={0.1}>
-              <ContactPanel listing={listing} brancheLabel={brancheLabel} prefill={prefill} />
+              <ContactPanel
+                listing={listing}
+                brancheLabel={brancheLabel}
+                prefill={prefill}
+                isAuthenticated={isAuthenticated}
+              />
             </Reveal>
           </aside>
         </div>
@@ -326,14 +356,18 @@ function ContactPanel({
   listing,
   brancheLabel,
   prefill,
+  isAuthenticated,
 }: {
   listing: InseratDetail;
   brancheLabel: string;
   prefill: { name: string; email: string; isLoggedIn: boolean; rolle: string | null };
+  isAuthenticated: boolean;
 }) {
   const umsatzStr = formatUmsatz({ umsatz_chf: listing.umsatz_chf, umsatz_bucket: listing.umsatz_bucket });
   const level = listing.anonymitaet_level;
+  // Direkt-Kontakt-Hinweis nur wenn User angemeldet ist (sonst Daten ohnehin maskiert).
   const hatDirektKontakt =
+    isAuthenticated &&
     level === 'voll_offen' &&
     Boolean(
       listing.kontakt_email_public?.trim() ||
@@ -350,7 +384,7 @@ function ContactPanel({
         </h2>
       </div>
 
-      <VerkaeuferKontaktBox listing={listing} />
+      <VerkaeuferKontaktBox listing={listing} isAuthenticated={isAuthenticated} />
 
       {hatDirektKontakt && (
         <p className="font-mono text-[10px] uppercase tracking-widest text-quiet text-center -mt-1">

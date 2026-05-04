@@ -182,7 +182,7 @@ function Newsletter() {
           </Reveal>
           <Reveal delay={0.2}>
             <div className="flex flex-col sm:flex-row gap-4 items-start">
-              <Button href="/auth/register?ref=ratgeber" variant="bronze" size="lg">
+              <Button href="/onboarding/kaeufer/tunnel?ref=newsletter" variant="bronze" size="lg">
                 Newsletter abonnieren <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
               </Button>
               <Button href="/bewerten" size="lg" className="bg-transparent border border-cream/25 text-cream hover:bg-cream/10">

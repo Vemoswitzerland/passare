@@ -177,7 +177,7 @@ export function VerkaeuferPricing() {
             {PAKETE_LIST.map((p) => (
               <div key={p.id} className="p-4 border-l border-stone">
                 <Button
-                  href={`/auth/register?paket=${p.id}&laufzeit=${laufzeit}${klein ? '&klein=1' : ''}`}
+                  href={`/verkaufen/start?paket=${p.id}&laufzeit=${laufzeit}${klein ? '&klein=1' : ''}`}
                   variant={p.highlight ? 'primary' : 'secondary'}
                   size="sm"
                   className="w-full justify-center"

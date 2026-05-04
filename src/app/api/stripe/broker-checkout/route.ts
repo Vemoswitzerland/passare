@@ -6,28 +6,53 @@ import { sendEmail } from '@/lib/email';
 export const dynamic = 'force-dynamic';
 
 /**
- * MOCKUP — Broker Checkout
+ * MOCKUP — Broker Checkout (POST + JSON)
  *
  * Aktuell läuft kein echter Stripe-Flow. Der Endpoint setzt direkt
  * broker_profiles.subscription_status='active' + tier/mandate_limit
  * passend zum gewählten Paket und routet zurück ins Broker-Dashboard.
+ *
+ * Sicherheits-Hinweis:
+ *  - POST + JSON statt GET (CSRF-Schutz, keine Side-Effects via Link).
+ *  - Production-Schutz via STRIPE_MOCK_ALLOWED.
+ *
+ * Body: { tier: 'starter'|'pro', interval?: 'monthly'|'yearly' }
+ * Response: { ok: true, redirect: string }  (Frontend macht den window.location.href)
  */
-export async function GET(req: NextRequest) {
-  const { searchParams } = req.nextUrl;
-  const tier = searchParams.get('tier') ?? 'starter';
-  const interval = searchParams.get('interval') === 'yearly' ? 'yearly' : 'monthly';
+export async function POST(req: NextRequest) {
+  // Production-Schutz
+  if (process.env.STRIPE_MOCK_ALLOWED !== 'true') {
+    return NextResponse.json({ error: 'mock_disabled' }, { status: 501 });
+  }
+
+  // Content-Type-Check (CSRF: nur JSON, kein Form-POST)
+  const ct = req.headers.get('content-type') ?? '';
+  if (!ct.toLowerCase().includes('application/json')) {
+    return NextResponse.json({ error: 'unsupported_content_type' }, { status: 415 });
+  }
+
+  let payload: { tier?: string; interval?: string };
+  try {
+    payload = await req.json();
+  } catch {
+    return NextResponse.json({ error: 'invalid_json' }, { status: 400 });
+  }
+
+  const tier = (payload.tier ?? 'starter').toString();
+  const interval = payload.interval === 'yearly' ? 'yearly' : 'monthly';
 
   if (!['starter', 'pro'].includes(tier)) {
-    return NextResponse.redirect(new URL('/dashboard/broker/paket?error=invalid_tier', req.url));
+    return NextResponse.json({ error: 'invalid_tier' }, { status: 400 });
   }
 
   const supabase = await createClient();
   const { data: u } = await supabase.auth.getUser();
-  if (!u.user) return NextResponse.redirect(new URL('/auth/login', req.url));
+  if (!u.user) {
+    return NextResponse.json({ error: 'unauthenticated' }, { status: 401 });
+  }
 
   const admin = createAdminClient();
 
-  // Sicherstellen dass ein broker_profiles-Row existiert
   const { data: existing } = await admin
     .from('broker_profiles')
     .select('id, subscription_status, tier')
@@ -35,8 +60,9 @@ export async function GET(req: NextRequest) {
     .maybeSingle();
 
   if (!existing) {
-    return NextResponse.redirect(
-      new URL('/onboarding/broker/tunnel?error=profile_missing', req.url),
+    return NextResponse.json(
+      { error: 'profile_missing', redirect: '/onboarding/broker/tunnel?error=profile_missing' },
+      { status: 404 },
     );
   }
 
@@ -63,11 +89,8 @@ export async function GET(req: NextRequest) {
     .update({ is_broker: true })
     .eq('id', u.user.id);
 
-  // Cache invalidieren — sonst zeigt das Layout/Sidebar den alten Tier
   revalidatePath('/dashboard/broker', 'layout');
 
-  // Welcome-Email NUR bei der ERSTEN Aktivierung — nicht bei jedem
-  // Tier-Wechsel oder Re-Klick (sonst Mail-Spam).
   if (isFirstActivation && u.user.email) {
     void sendEmail({
       template: 'welcome',
@@ -77,9 +100,8 @@ export async function GET(req: NextRequest) {
     });
   }
 
-  // Welcome-Animation zeigen, danach automatisch zum Dashboard
-  return NextResponse.redirect(
-    new URL('/dashboard/broker/welcome?paid=1&next=/dashboard/broker', req.url),
-    { status: 303 },
-  );
+  return NextResponse.json({
+    ok: true,
+    redirect: '/dashboard/broker/welcome?paid=1&next=/dashboard/broker',
+  });
 }

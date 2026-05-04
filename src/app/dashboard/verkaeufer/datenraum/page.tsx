@@ -53,6 +53,19 @@ export default async function DatenraumPage() {
         .order('accessed_at', { ascending: false })
     : { data: [] };
 
+  // Käufer-Namen lookup für Audit-Tabelle (statt nackter UUID).
+  const kaeuferIds = Array.from(new Set((accessLog.data ?? []).map((a: any) => a.kaeufer_id))) as string[];
+  const kaeuferNames: Record<string, string> = {};
+  if (kaeuferIds.length > 0) {
+    const { data: kProfiles } = await supabase
+      .from('profiles')
+      .select('id, full_name')
+      .in('id', kaeuferIds);
+    for (const p of (kProfiles ?? []) as Array<{ id: string; full_name: string | null }>) {
+      if (p.full_name) kaeuferNames[p.id] = p.full_name;
+    }
+  }
+
   return (
     <div className="px-6 md:px-10 py-8 md:py-12">
       <div className="max-w-content mx-auto">
@@ -72,6 +85,7 @@ export default async function DatenraumPage() {
           inseratId={inserat.id}
           files={(files ?? []) as any}
           accessLog={(accessLog.data ?? []) as any}
+          kaeuferNames={kaeuferNames}
         />
       </div>
     </div>

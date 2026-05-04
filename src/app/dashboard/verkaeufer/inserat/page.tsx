@@ -3,14 +3,14 @@ import Link from 'next/link';
 import {
   Edit2, Eye, FileText, ArrowRight, CheckCircle, Sparkles, Image as ImageIcon,
   Type as TypeIcon, BarChart3, Users, Heart, MessageSquare, ShieldCheck, Tag,
-  Pause, Play, Trash2,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { hasTable } from '@/lib/db/has-table';
-import { submitForReview } from './actions';
+import { submitForReview, setInseratStatus, deleteInserat } from './actions';
 import { formatCHFShort } from '@/lib/valuation';
 import { InseratStatusBanner } from '@/components/verkaeufer/InseratStatusBanner';
 import { AnonymitaetToggle } from './components/AnonymitaetToggle';
+import { InseratActionButtons } from './components/InseratActionButtons';
 
 export const metadata = { title: 'Mein Inserat — passare Verkäufer' };
 
@@ -367,47 +367,15 @@ export default async function InseratIndexPage() {
         )}
 
         {/* ─── FOOTER-AKTIONEN ─────────────────────────────────── */}
-        <div className="border-t border-stone pt-6 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap gap-2">
-            {isLive && (
-              <button
-                type="button"
-                disabled
-                className="inline-flex items-center gap-1.5 px-3 py-2 border border-stone rounded-soft text-body-sm text-muted cursor-not-allowed opacity-60"
-                title="Pausieren — kommt in der nächsten Etappe"
-              >
-                <Pause className="w-4 h-4" strokeWidth={1.5} />
-                Pausieren
-              </button>
-            )}
-            {isPaused && (
-              <button
-                type="button"
-                disabled
-                className="inline-flex items-center gap-1.5 px-3 py-2 border border-stone rounded-soft text-body-sm text-muted cursor-not-allowed opacity-60"
-                title="Wieder live setzen — kommt in der nächsten Etappe"
-              >
-                <Play className="w-4 h-4" strokeWidth={1.5} />
-                Wieder live
-              </button>
-            )}
-            <Link
-              href="/dashboard/verkaeufer/statistik"
-              className="inline-flex items-center gap-1.5 px-3 py-2 border border-stone hover:border-navy/40 rounded-soft text-body-sm text-navy transition-all"
-            >
-              <BarChart3 className="w-4 h-4" strokeWidth={1.5} />
-              Detail-Statistik
-            </Link>
-          </div>
-          <button
-            type="button"
-            disabled
-            className="inline-flex items-center gap-1.5 px-3 py-2 text-caption text-quiet hover:text-danger transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            title="Inserat löschen — kommt in der nächsten Etappe"
+        <div className="border-t border-stone pt-6 space-y-3">
+          <Link
+            href="/dashboard/verkaeufer/statistik"
+            className="inline-flex items-center gap-1.5 px-3 py-2 border border-stone hover:border-navy/40 rounded-soft text-body-sm text-navy transition-all"
           >
-            <Trash2 className="w-3.5 h-3.5" strokeWidth={1.5} />
-            Inserat löschen
-          </button>
+            <BarChart3 className="w-4 h-4" strokeWidth={1.5} />
+            Detail-Statistik
+          </Link>
+          <InseratActionButtons inseratId={inserat.id} isLive={isLive} isPaused={isPaused} />
         </div>
       </div>
     </div>

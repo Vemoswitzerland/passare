@@ -1,13 +1,24 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowRight } from 'lucide-react';
 import { Input, Label } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 
+// SECURITY: Whitelist für `from`-Param — sonst Open-Redirect via `//evil.com`.
+function isSafeFrom(value: string | null): value is string {
+  if (!value) return false;
+  if (value.length === 0) return false;
+  if (!value.startsWith('/')) return false;
+  if (value.startsWith('//')) return false;
+  if (value.startsWith('/\\')) return false;
+  return true;
+}
+
 export function BetaForm() {
   const router = useRouter();
+  const params = useSearchParams();
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -23,7 +34,11 @@ export function BetaForm() {
       });
       if (res.ok) {
         router.refresh();
-        router.push('/');
+        const fromRaw = params.get('from');
+        const target = isSafeFrom(fromRaw) ? fromRaw : '/';
+        // Hard-Reload damit das frisch gesetzte httpOnly-Beta-Cookie
+        // garantiert mitkommt (next/router refresh reicht teils nicht).
+        window.location.assign(target);
       } else {
         const data = await res.json().catch(() => ({}));
         setError(data.error || 'Ungültiger Code');

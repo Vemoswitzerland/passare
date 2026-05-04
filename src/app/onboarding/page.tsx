@@ -11,6 +11,7 @@ import { cookies, headers } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
 import { RolleWaehlen } from './RolleWaehlen';
 import { logoutAction } from '@/app/auth/actions';
+import { AGB_VERSION, DATENSCHUTZ_VERSION } from '@/app/auth/constants';
 
 export const metadata = {
   title: 'Konto einrichten — passare',
@@ -68,6 +69,14 @@ export default async function OnboardingPage() {
   // das). Sonst entsteht ein Loop: upsert silent fail → onboarding bleibt
   // null → /dashboard redirected wieder zu /onboarding.
   if (intended === 'verkaeufer' || hasFreshPreReg) {
+    // GET-Idempotenz: wenn rolle schon gesetzt ist, skippen wir den
+    // Side-Effect-RPC und routen direkt weiter. Sonst wird bei jedem
+    // GET ein neuer terms_acceptances-Eintrag erzeugt (ungewollt).
+    if (profile?.rolle === 'verkaeufer') {
+      if (hasFreshPreReg) redirect('/dashboard/verkaeufer/inserat/new?from=pre-reg');
+      redirect('/dashboard/verkaeufer');
+    }
+
     const h = await headers();
     const ip = (h.get('x-forwarded-for') ?? '').split(',')[0]?.trim() || null;
     const ua = h.get('user-agent') ?? null;
@@ -78,8 +87,8 @@ export default async function OnboardingPage() {
       p_full_name: fullName || u.user.email?.split('@')[0] || 'User',
       p_kanton: kanton,
       p_sprache: sprache,
-      p_agb_version: '2026-04',
-      p_datenschutz_version: '2026-04',
+      p_agb_version: AGB_VERSION,
+      p_datenschutz_version: DATENSCHUTZ_VERSION,
       p_ip: ip,
       p_user_agent: ua,
     });

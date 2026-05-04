@@ -2,6 +2,7 @@
 
 import { useActionState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
@@ -11,6 +12,10 @@ import { loginAction } from './actions';
 import type { ActionResult } from './constants';
 
 export function LoginForm() {
+  const params = useSearchParams();
+  // `next` aus Query mitnehmen — Action validiert Whitelist serverseitig.
+  const next = params.get('next') ?? '';
+
   const [state, action, pending] = useActionState<ActionResult | null, FormData>(
     loginAction,
     null,
@@ -22,6 +27,7 @@ export function LoginForm() {
       <AuthDivider />
 
       <form action={action} className="space-y-5">
+        {next && <input type="hidden" name="next" value={next} />}
         <div>
           <Label htmlFor="email">E-Mail</Label>
           <Input

@@ -21,6 +21,9 @@ type Initial = {
   beschreibung: string | null;
   finanzierungsnachweis_verified: boolean;
   linkedin_url: string | null;
+  /** Optional damit Broker-Profil-Page (die dieses Form mit-nutzt) nicht
+   *  alle DB-Spalten sofort selecten muss — Default true für bestehende User. */
+  ist_oeffentlich?: boolean | null;
 } | null;
 
 const INVESTOR_OPTIONS = [
@@ -56,11 +59,22 @@ export function ProfilForm({ initial, branchen }: { initial: Initial; branchen: 
   const [erfahrung, setErfahrung] = useState(initial?.erfahrung ?? '');
   const [beschreibung, setBeschreibung] = useState(initial?.beschreibung ?? '');
   const [linkedin, setLinkedin] = useState(initial?.linkedin_url ?? '');
+  // Default true für bestehende User (DB-Default). Toggle erlaubt opt-out.
+  const [istOeffentlich, setIstOeffentlich] = useState(initial?.ist_oeffentlich ?? true);
   const [pending, setPending] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const submit = async (formData: FormData) => {
+    // Client-side Pflichtfeld-Checks (Server-side Validation in actions.ts)
+    if (!investorTyp) {
+      setError('Bitte wähle einen Investor-Typ aus.');
+      return;
+    }
+    if (branchenSelected.length === 0) {
+      setError('Bitte wähle mindestens eine Branche aus.');
+      return;
+    }
     setPending(true);
     setError(null);
     setSuccess(false);
@@ -78,18 +92,20 @@ export function ProfilForm({ initial, branchen }: { initial: Initial; branchen: 
 
   return (
     <form action={submit} className="bg-paper border border-stone rounded-card p-6 md:p-8 space-y-6">
-      {/* Investor-Typ */}
+      {/* Investor-Typ — Pflichtfeld */}
       <div>
-        <Label>Investor-Typ</Label>
+        <Label>Investor-Typ <span className="text-bronze">*</span></Label>
         <select
           name="investor_typ"
           value={investorTyp}
           onChange={(e) => setInvestorTyp(e.target.value)}
+          required
           className="w-full bg-paper border border-stone rounded-soft px-4 py-3 text-body font-sans text-ink focus:outline-none focus:border-bronze"
         >
-          <option value="">— Noch nicht entschieden —</option>
+          <option value="">— Bitte wählen —</option>
           {INVESTOR_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
+        <p className="text-caption text-quiet mt-1">Pflichtfeld — Verkäufer sehen, mit wem sie reden.</p>
       </div>
 
       {/* Budget */}
@@ -167,9 +183,11 @@ export function ProfilForm({ initial, branchen }: { initial: Initial; branchen: 
         <p className="text-caption text-quiet mt-2">Leer lassen für schweizweit.</p>
       </fieldset>
 
-      {/* Branchen */}
+      {/* Branchen — mind. 1 Pflicht */}
       <fieldset className="border-t border-stone pt-6">
-        <legend className="overline text-bronze-ink mb-3">Branche-Präferenzen</legend>
+        <legend className="overline text-bronze-ink mb-3">
+          Branche-Präferenzen <span className="text-bronze">*</span>
+        </legend>
         <div className="flex flex-wrap gap-2">
           {branchen.map((b) => {
             const active = branchenSelected.includes(b.id);
@@ -194,6 +212,9 @@ export function ProfilForm({ initial, branchen }: { initial: Initial; branchen: 
             );
           })}
         </div>
+        <p className="text-caption text-quiet mt-2">
+          Mindestens eine Branche auswählen. {branchenSelected.length === 0 ? '(noch keine gewählt)' : `${branchenSelected.length} ausgewählt`}
+        </p>
       </fieldset>
 
       {/* Timing + Erfahrung */}
@@ -254,6 +275,27 @@ export function ProfilForm({ initial, branchen }: { initial: Initial; branchen: 
           className="w-full bg-paper border border-stone rounded-soft px-4 py-3 text-body font-sans text-ink focus:outline-none focus:border-bronze"
         />
       </div>
+
+      {/* Sichtbarkeits-Toggle */}
+      <fieldset className="border-t border-stone pt-6">
+        <legend className="overline text-bronze-ink mb-3">Sichtbarkeit</legend>
+        <label className="flex items-start gap-3 p-3 border border-stone rounded-soft cursor-pointer hover:border-bronze">
+          <input
+            type="checkbox"
+            name="ist_oeffentlich"
+            checked={istOeffentlich}
+            onChange={(e) => setIstOeffentlich(e.target.checked)}
+            className="mt-0.5 h-4 w-4 accent-bronze"
+          />
+          <div className="flex-1">
+            <p className="text-body-sm text-navy font-medium">Profil öffentlich sichtbar</p>
+            <p className="text-caption text-quiet leading-relaxed mt-0.5">
+              Verkäufer können dein Käuferprofil ansehen, bevor sie eine Anfrage akzeptieren.
+              Schalt es aus, wenn du anonym browsen willst — du bekommst dann weniger Antworten.
+            </p>
+          </div>
+        </label>
+      </fieldset>
 
       {error && (
         <div className="text-body-sm text-danger bg-danger/5 border border-danger/20 rounded-soft px-4 py-3">

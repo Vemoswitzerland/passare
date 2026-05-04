@@ -85,7 +85,7 @@ export function ProfilPreview(p: Props) {
           <div className="hidden sm:flex flex-col items-end gap-1">
             <span className={cn(
               'text-caption font-medium px-2 py-0.5 rounded-pill',
-              verifiedCount === 3 ? 'bg-success/30 text-cream' : verifiedCount >= 1 ? 'bg-bronze/30 text-cream' : 'bg-stone/20 text-cream/70',
+              verifiedCount >= 4 ? 'bg-success/30 text-cream' : verifiedCount >= 1 ? 'bg-bronze/30 text-cream' : 'bg-stone/20 text-cream/70',
             )}>
               <ShieldCheck className="inline w-3 h-3 mr-1" strokeWidth={2} />
               {verifiedCount}/4 verifiziert

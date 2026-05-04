@@ -34,13 +34,34 @@ function parseUmsatz(s: string): number | null {
   return num;
 }
 
+/**
+ * Normalisiert Branche-Werte für Vergleich: ID, Display-Label oder gemischte
+ * Eingabe → einheitliche lowercase-Form (Whitespace, Sonderzeichen entfernt).
+ *
+ * Vorher: `profil.branche` enthielt IDs (z.B. 'software_saas'), während
+ * `inserat.branche` das Display-Label (z.B. 'Software & SaaS') hatte —
+ * Vergleich schlug immer fehl. Jetzt matchen ID↔ID, Label↔Label,
+ * sowie ID↔Label-Heuristik via Slug-Normalisierung.
+ */
+function normalizeBranche(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[äöüé&]/g, (c) =>
+      ({ ä: 'a', ö: 'o', ü: 'u', é: 'e', '&': 'und' })[c] ?? c,
+    )
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+}
+
 export function matchScore(profil: Suchprofil, inserat: Inserat): number {
   let score = 0;
   let possible = 0;
 
-  // Branche-Match (Gewicht 40)
+  // Branche-Match (Gewicht 40) — beide Seiten normalisieren, dann Set-Lookup.
   possible += 40;
-  if (profil.branche.length === 0 || profil.branche.includes(inserat.branche)) {
+  const inseratNorm = normalizeBranche(inserat.branche);
+  const profilNormSet = new Set(profil.branche.map(normalizeBranche));
+  if (profil.branche.length === 0 || profilNormSet.has(inseratNorm)) {
     score += 40;
   }
 

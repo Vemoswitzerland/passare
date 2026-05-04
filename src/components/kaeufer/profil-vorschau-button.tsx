@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Eye, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -18,9 +18,11 @@ export function ProfilVorschauButton({ children }: { children: React.ReactNode }
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
 
-  if (typeof window !== 'undefined' && !mounted) {
+  // useEffect läuft NUR client-side — vermeidet SSR-Render-Loop von
+  // setState-im-Render. Klassisches Pattern für portal-mounted Komponenten.
+  useEffect(() => {
     setMounted(true);
-  }
+  }, []);
 
   return (
     <>

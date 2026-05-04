@@ -25,6 +25,7 @@ const tunnelSchema = z.object({
   budget_max: z.coerce.number().int().min(0).max(100_000_000).optional().or(z.literal(NaN).transform(() => undefined)),
   budget_undisclosed: z.string().optional().transform((v) => v === 'on' || v === 'true'),
   beschreibung: z.string().trim().max(2000).optional(),
+  accept_terms: z.string().optional().transform((v) => v === 'on' || v === 'true'),
 });
 
 async function ensureKaeuferRolle(userId: string) {
@@ -81,10 +82,16 @@ export async function submitKaeuferTunnelAction(
     budget_max: formData.get('budget_max') || undefined,
     budget_undisclosed: (formData.get('budget_undisclosed') as string) ?? '',
     beschreibung: formData.get('beschreibung') || undefined,
+    accept_terms: (formData.get('accept_terms') as string) ?? '',
   });
 
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? 'Eingaben prüfen' };
+  }
+
+  // Pflicht: AGB + Datenschutz akzeptiert (rechtlich notwendig).
+  if (!parsed.data.accept_terms) {
+    return { ok: false, error: 'Bitte AGB & Datenschutz akzeptieren' };
   }
 
   const supabase = await createClient();
@@ -145,13 +152,11 @@ export async function submitKaeuferTunnelAction(
     }
   }
 
-  // 4) Welcome-Email (fire-and-forget)
+  // 4) Welcome-Email (fire-and-forget) — nur wenn noch nicht gesendet.
   if (u.user.email) {
-    void sendEmail({
-      template: 'welcome',
-      to: u.user.email,
-      vars: { rolle: 'kaeufer', branchen: parsed.data.branchen },
-      user_id: u.user.id,
+    await sendWelcomeOnce(supabase, u.user.id, u.user.email, {
+      rolle: 'kaeufer',
+      branchen: parsed.data.branchen,
     });
   }
 
@@ -171,16 +176,64 @@ export async function skipKaeuferTunnelAction() {
 
   await ensureKaeuferRolle(u.user.id);
 
-  // Welcome-Email auch beim Skip
+  // Welcome-Email auch beim Skip — aber nur einmal.
   if (u.user.email) {
-    void sendEmail({
-      template: 'welcome',
-      to: u.user.email,
-      vars: { rolle: 'kaeufer', skipped: true },
-      user_id: u.user.id,
+    await sendWelcomeOnce(supabase, u.user.id, u.user.email, {
+      rolle: 'kaeufer',
+      skipped: true,
     });
   }
 
   revalidatePath('/', 'layout');
   redirect('/dashboard/kaeufer?welcome=skipped');
+}
+
+/**
+ * Sendet die Welcome-Mail an den Käufer GENAU EINMAL.
+ * Trick: vorher `profiles.welcome_email_sent_at` checken; wenn schon
+ * gesetzt → skip. Sonst senden + Spalte schreiben.
+ *
+ * Wenn die Migration noch nicht applied ist (Spalte fehlt), liefern
+ * wir defensiv `false` zurück und senden trotzdem (best-effort) damit
+ * Bestandsuser nicht ohne Mail bleiben.
+ */
+async function sendWelcomeOnce(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  email: string,
+  vars: Record<string, unknown>,
+): Promise<void> {
+  let alreadySent = false;
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('welcome_email_sent_at')
+      .eq('id', userId)
+      .maybeSingle();
+    if (error && !/column.*welcome_email_sent_at|42703/i.test(error.message)) {
+      console.warn('[welcome-once] check failed:', error.message);
+    }
+    alreadySent = !!(data && (data as { welcome_email_sent_at?: string | null }).welcome_email_sent_at);
+  } catch (err) {
+    console.warn('[welcome-once] exception:', err);
+  }
+  if (alreadySent) return;
+
+  await sendEmail({
+    template: 'welcome',
+    to: email,
+    vars,
+    user_id: userId,
+  });
+
+  // Markieren — best-effort. Wenn die Migration noch nicht applied ist,
+  // schreibt das fehl, aber wir wollen den Action-Flow nicht blockieren.
+  try {
+    await supabase
+      .from('profiles')
+      .update({ welcome_email_sent_at: new Date().toISOString() })
+      .eq('id', userId);
+  } catch (err) {
+    console.warn('[welcome-once] update failed:', err);
+  }
 }

@@ -5,6 +5,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { validateFileSignature } from '@/lib/file-validation';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -61,6 +62,12 @@ export async function POST(req: NextRequest) {
 
   const path = `${inseratId}/${ordner}/${Date.now()}-v${version}-${encodeURIComponent(file.name)}`;
   const buf = await file.arrayBuffer();
+
+  // Magic-Bytes-Check (Anti-Spoof) — verhindert, dass z.B. eine .exe als
+  // application/pdf in den Datenraum gelangt.
+  if (!validateFileSignature(buf, file.type)) {
+    return NextResponse.json({ error: 'Datei-Signatur passt nicht zum MIME-Typ.' }, { status: 415 });
+  }
 
   const { error: upErr } = await supabase.storage
     .from('datenraum-files')

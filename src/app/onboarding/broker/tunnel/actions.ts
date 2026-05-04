@@ -2,6 +2,7 @@
 
 import { headers } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
+import { AGB_VERSION, DATENSCHUTZ_VERSION } from '@/app/auth/constants';
 
 export async function completeBrokerOnboarding(data: {
   full_name: string;
@@ -45,8 +46,8 @@ export async function completeBrokerOnboarding(data: {
     p_full_name: data.full_name,
     p_kanton: data.kanton,
     p_sprache: 'de',
-    p_agb_version: '2026-05',
-    p_datenschutz_version: '2026-05',
+    p_agb_version: AGB_VERSION,
+    p_datenschutz_version: DATENSCHUTZ_VERSION,
     p_ip: ip,
     p_user_agent: ua,
   });

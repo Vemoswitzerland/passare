@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import { LayoutGrid, Columns3, BarChart3, X } from 'lucide-react';
 import Link from 'next/link';
 import { ListingCardMini } from '@/components/kaeufer/listing-card-mini';
 import type { InseratPublic } from '@/lib/listings';
 import type { Suchprofil } from '@/lib/match-score';
 import { cn } from '@/lib/utils';
+import { updateFavoritStageAction } from './actions';
 
 type FavoritEntry = {
   inserat_id: string;
@@ -21,9 +22,12 @@ type Props = {
   suchprofil?: Suchprofil;
 };
 
+// Reihenfolge logisch: gespeichert → kontaktiert → NDA → DD → LOI → won/lost.
+// Cyrill: «'nda' war in der Action gültig aber unsichtbar — drin behalten.»
 const STAGES: { key: string; label: string }[] = [
   { key: 'neu', label: 'Neu' },
   { key: 'kontaktiert', label: 'Kontaktiert' },
+  { key: 'nda', label: 'NDA gesendet' },
   { key: 'dd', label: 'Due Diligence' },
   { key: 'loi', label: 'LOI' },
   { key: 'won', label: 'Gewonnen' },
@@ -188,27 +192,62 @@ function shortId(id: string): string {
 function KanbanCard({ entry }: { entry: FavoritEntry }) {
   const l = entry.listing;
   const slugOrId = l.slug ?? l.id;
+  const [pending, startTransition] = useTransition();
+
+  // Pragmatischer Drag-and-Drop-Ersatz: Dropdown pro Karte. Cyrill 2026-05-04.
+  const onChangeStage = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newStage = e.target.value;
+    if (newStage === entry.stage) return;
+    const fd = new FormData();
+    fd.set('inserat_id', entry.inserat_id);
+    fd.set('stage', newStage);
+    startTransition(async () => {
+      await updateFavoritStageAction(fd);
+    });
+  };
+
   return (
-    <Link
-      href={`/inserat/${slugOrId}`}
-      className="block bg-cream border border-stone rounded-soft p-3 hover:border-bronze transition-colors"
-    >
-      <p className="font-mono text-[10px] uppercase tracking-widest text-quiet mb-1">
-        {shortId(slugOrId)}
-      </p>
-      <p className="text-caption text-navy font-medium leading-snug mb-2 line-clamp-2">
-        {l.titel}
-      </p>
-      <div className="flex items-center justify-between text-caption">
-        <span className="text-quiet">{l.kanton ?? '—'}</span>
-        <span className="font-mono text-navy">{displayUmsatz(l)}</span>
-      </div>
-      {entry.note && (
-        <p className="text-caption text-muted italic mt-2 pt-2 border-t border-stone leading-snug line-clamp-2">
-          {entry.note}
-        </p>
+    <div
+      className={cn(
+        'block bg-cream border border-stone rounded-soft p-3 transition-colors',
+        pending && 'opacity-60',
       )}
-    </Link>
+    >
+      <Link
+        href={`/inserat/${slugOrId}`}
+        className="block hover:opacity-90 transition-opacity"
+      >
+        <p className="font-mono text-[10px] uppercase tracking-widest text-quiet mb-1">
+          {shortId(slugOrId)}
+        </p>
+        <p className="text-caption text-navy font-medium leading-snug mb-2 line-clamp-2">
+          {l.titel}
+        </p>
+        <div className="flex items-center justify-between text-caption">
+          <span className="text-quiet">{l.kanton ?? '—'}</span>
+          <span className="font-mono text-navy">{displayUmsatz(l)}</span>
+        </div>
+        {entry.note && (
+          <p className="text-caption text-muted italic mt-2 pt-2 border-t border-stone leading-snug line-clamp-2">
+            {entry.note}
+          </p>
+        )}
+      </Link>
+      {/* Stage-Wechsel via Select (kein dnd-kit, pragmatisch) */}
+      <select
+        value={entry.stage}
+        onChange={onChangeStage}
+        disabled={pending}
+        aria-label="Stage ändern"
+        className="mt-2 w-full text-[11px] font-mono bg-paper border border-stone rounded-soft px-2 py-1 text-navy focus:outline-none focus:border-bronze"
+      >
+        {STAGES.map((s) => (
+          <option key={s.key} value={s.key}>
+            {s.label}
+          </option>
+        ))}
+      </select>
+    </div>
   );
 }
 

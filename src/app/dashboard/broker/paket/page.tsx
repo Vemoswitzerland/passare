@@ -3,6 +3,7 @@ import { Check, ArrowRight, Crown, AlertCircle } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { hasTable } from '@/lib/db/has-table';
 import { BERATER_TIERS } from '@/data/pakete';
+import BrokerCheckoutButton from './BrokerCheckoutButton';
 
 export const metadata = { title: 'Paket — passare Broker' };
 export const dynamic = 'force-dynamic';
@@ -116,13 +117,11 @@ export default async function BrokerPaketPage({ searchParams }: Props) {
                 </ul>
 
                 {!isCurrent && (
-                  <Link
-                    href={`/api/stripe/broker-checkout?tier=${tier.id}&interval=${brokerProfile?.subscription_interval ?? 'yearly'}`}
-                    className="inline-flex items-center justify-center gap-2 w-full px-5 py-2.5 bg-navy text-cream rounded-soft text-body-sm font-medium hover:bg-ink transition-colors"
-                  >
-                    {isActive && tier.id === 'pro' ? 'Auf Pro upgraden' : `${tier.label} wählen`}
-                    <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
-                  </Link>
+                  <BrokerCheckoutButton
+                    tier={tier.id as 'starter' | 'pro'}
+                    interval={(brokerProfile?.subscription_interval ?? 'yearly') as 'monthly' | 'yearly'}
+                    label={isActive && tier.id === 'pro' ? 'Auf Pro upgraden' : `${tier.label} wählen`}
+                  />
                 )}
               </div>
             );

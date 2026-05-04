@@ -1,15 +1,13 @@
 'use client';
 
 import Link from 'next/link';
-import {
-  Menu, Search, Bell, Crown, Store,
-} from 'lucide-react';
+import { Menu, Search, Crown, Store } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 type Props = {
   email: string;
   fullName: string | null;
-  isMax: boolean;
+  isPlus: boolean;
   isAdmin: boolean;
   onMenuToggle: () => void;
 };
@@ -18,11 +16,12 @@ type Props = {
  * Käufer-Topbar — schlank.
  *
  * Cyrill 30.04.2026: «Käufer-Badge wegnehmen — er sieht ja dass er
- * im Käufer-Bereich ist. Live-Knopf überall weg.» MAX-Badge nur
- * wenn der User MAX hat — als Auszeichnung, nicht als Bereich-
- * Indikator (kommt nur bei isMax).
+ * im Käufer-Bereich ist. Live-Knopf überall weg.» Käufer+-Badge nur
+ * wenn der User wirklich Käufer+ hat (Auszeichnung).
+ *
+ * Cyrill 2026-05-04: «Notifications-Bell entfernen — toter Button.»
  */
-export function KaeuferTopbar({ email: _email, fullName: _fullName, isMax, isAdmin: _isAdmin, onMenuToggle }: Props) {
+export function KaeuferTopbar({ email: _email, fullName: _fullName, isPlus, isAdmin: _isAdmin, onMenuToggle }: Props) {
   return (
     <header className="h-16 border-b border-stone bg-cream/85 backdrop-blur-md sticky top-0 z-40 flex items-center px-4 md:px-6 gap-3 md:gap-6">
       <button
@@ -39,7 +38,7 @@ export function KaeuferTopbar({ email: _email, fullName: _fullName, isMax, isAdm
       </Link>
 
       {/* Käufer+-Badge nur als Auszeichnung wenn der User wirklich Käufer+ hat */}
-      {isMax && (
+      {isPlus && (
         <span className={cn(
           'hidden sm:inline-flex items-center gap-1 px-1.5 py-0.5 rounded-soft text-[10px] uppercase tracking-widest font-mono font-medium leading-none',
           'bg-bronze-soft text-bronze-ink border border-bronze/30',
@@ -53,7 +52,7 @@ export function KaeuferTopbar({ email: _email, fullName: _fullName, isMax, isAdm
         <div className="relative w-full">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-quiet" strokeWidth={1.5} />
           <Link
-            href="/kaufen"
+            href="/"
             className="block w-full pl-10 pr-3 py-2 bg-paper border border-stone rounded-soft text-body-sm text-quiet hover:border-bronze transition-colors"
           >
             Inserate suchen …
@@ -72,15 +71,6 @@ export function KaeuferTopbar({ email: _email, fullName: _fullName, isMax, isAdm
           <Store className="w-4 h-4" strokeWidth={1.5} />
           Marktplatz
         </Link>
-
-        {/* Notifications-Bell (Stub — kommt mit Push-Notifications) */}
-        <button
-          type="button"
-          className="hidden sm:flex relative w-9 h-9 items-center justify-center rounded-soft hover:bg-stone/40 transition-colors"
-          aria-label="Benachrichtigungen"
-        >
-          <Bell className="w-4 h-4 text-navy" strokeWidth={1.5} />
-        </button>
       </div>
     </header>
   );

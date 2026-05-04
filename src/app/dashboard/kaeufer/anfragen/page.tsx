@@ -65,7 +65,7 @@ export default async function KaeuferInboxPage({ searchParams }: Props) {
 
   // Last-Message pro Thread
   type LastMsg = { anfrage_id: string; message: string; created_at: string };
-  let lastMsgsByAnfrage = new Map<string, LastMsg>();
+  const lastMsgsByAnfrage = new Map<string, LastMsg>();
   if ((await hasTable('anfrage_messages'))) {
     const { data: rawLasts } = await adminClient
       .from('anfrage_messages')

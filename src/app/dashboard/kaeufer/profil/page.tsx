@@ -40,12 +40,13 @@ export default async function ProfilPage() {
     finanzierungsnachweis_verified: boolean;
     linkedin_url: string | null;
     logo_url: string | null;
+    ist_oeffentlich: boolean;
   } | null = null;
 
   if (await hasTable('kaeufer_profil')) {
     const { data } = await supabase
       .from('kaeufer_profil')
-      .select('investor_typ, budget_min, budget_max, budget_undisclosed, regionen, branche_praeferenzen, timing, erfahrung, beschreibung, finanzierungsnachweis_verified, linkedin_url, logo_url')
+      .select('investor_typ, budget_min, budget_max, budget_undisclosed, regionen, branche_praeferenzen, timing, erfahrung, beschreibung, finanzierungsnachweis_verified, linkedin_url, logo_url, ist_oeffentlich')
       .eq('user_id', u.user.id)
       .maybeSingle();
     kaeuferProfil = data;
