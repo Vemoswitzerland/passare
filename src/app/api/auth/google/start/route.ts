@@ -19,10 +19,15 @@ function base64url(buf: Buffer): string {
 }
 
 function siteUrl(req: NextRequest): string {
-  // Force-https für passare.ch — local-dev kann auch http sein
+  // Force-https für passare.ch — local-dev kann auch http sein.
+  // Cyrill 02.05.2026: www-Subdomain abstreifen, damit redirect_uri IMMER
+  // auf canonical passare.ch zeigt (Google Cloud Console hat nur
+  // passare.ch ohne www registriert). Diego hatte den Fehler weil er
+  // auf www.passare.ch eingestiegen war.
   const env = process.env.NEXT_PUBLIC_SITE_URL;
   if (env) return env.replace(/\/$/, '');
-  const host = req.headers.get('host') ?? 'passare.ch';
+  let host = req.headers.get('host') ?? 'passare.ch';
+  if (host.startsWith('www.')) host = host.slice(4);
   const proto = host.startsWith('localhost') ? 'http' : 'https';
   return `${proto}://${host}`;
 }

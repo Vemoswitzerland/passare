@@ -22,6 +22,22 @@ const nextConfig = {
       },
     ];
   },
+  // Cyrill 02.05.2026 (Diego konnte sich nicht via Google registrieren, weil
+  // er auf www.passare.ch landete und der OAuth-redirect_uri dadurch
+  // www.passare.ch wurde — Google Cloud Console hat aber nur passare.ch
+  // registriert). Lösung: alle www-Requests permanent auf canonical
+  // passare.ch umleiten. Damit landet niemand mehr auf www., und der
+  // OAuth-Mismatch kann nicht mehr auftreten.
+  async redirects() {
+    return [
+      {
+        source: '/:path*',
+        has: [{ type: 'host', value: 'www.passare.ch' }],
+        destination: 'https://passare.ch/:path*',
+        permanent: true,
+      },
+    ];
+  },
 };
 
 module.exports = nextConfig;
