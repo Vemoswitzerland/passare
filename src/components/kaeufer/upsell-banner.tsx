@@ -26,7 +26,7 @@ export function MaxUpsellBanner({ variant = 'card', reason }: Props) {
         <Crown className="w-5 h-5 text-bronze flex-shrink-0" strokeWidth={1.5} />
         <p className="text-body-sm text-muted flex-1 min-w-[240px]">
           <span className="text-navy font-medium">{reason ?? '7 Tage Frühzugang.'}</span>{' '}
-          Käufer+-Mitglieder sehen neue Inserate eine Woche vor allen anderen.
+          Käufer+ Mitglieder sehen neue Inserate eine Woche vor allen anderen.
         </p>
         <Link
           href="/dashboard/kaeufer/abo"

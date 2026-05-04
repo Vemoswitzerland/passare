@@ -526,7 +526,7 @@ function Marketplace({
                     Mit Käufer+ sehen Sie alles zuerst.
                   </h3>
                   <p className="text-body-sm text-muted mb-6 max-w-md mx-auto">
-                    Neue Inserate sind 7 Tage lang nur für Käufer+-Mitglieder sichtbar,
+                    Neue Inserate sind 7 Tage lang nur für Käufer+ Mitglieder sichtbar,
                     bevor sie öffentlich werden. Plus geschlossene Inserate, Echtzeit-Alerts
                     und ein eigenes Logo im Käuferprofil.
                   </p>

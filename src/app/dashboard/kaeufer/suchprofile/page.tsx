@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Bell, Crown, Pause, Play, Trash2, Mail, Plus, AlertCircle } from 'lucide-react';
+import { Bell, Crown, Pause, Play, Trash2, Mail, Plus, AlertCircle, Pencil } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { hasTable } from '@/lib/db/has-table';
 import { deleteSuchprofilAction, togglePauseSuchprofilAction } from './actions';
@@ -71,16 +71,34 @@ export default async function SuchprofilePage() {
           </h1>
           <p className="text-body-sm text-muted mt-2 max-w-2xl">
             Definiere deine Such-Kriterien und erhalte automatisch Alerts wenn ein neues Inserat passt.
+            {!isPlus && (
+              <span className="block mt-1">
+                Mit Basic kannst du <span className="text-navy font-medium">1 Suchprofil</span> anlegen — Käufer+ erlaubt unbegrenzt viele.
+              </span>
+            )}
           </p>
         </div>
         {profileTableExists && (
-          <Link
-            href="/dashboard/kaeufer/suchprofile/neu"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-navy text-cream rounded-soft text-caption font-medium hover:bg-ink transition-colors"
-          >
-            <Plus className="w-3.5 h-3.5" strokeWidth={1.5} />
-            Neues Profil
-          </Link>
+          (() => {
+            const blockedByLimit = !isPlus && profile.length >= 1;
+            return blockedByLimit ? (
+              <Link
+                href="/dashboard/kaeufer/abo"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-bronze text-cream rounded-soft text-caption font-medium hover:bg-bronze-ink transition-colors"
+              >
+                <Crown className="w-3.5 h-3.5" strokeWidth={1.5} />
+                Käufer+ für mehrere Profile
+              </Link>
+            ) : (
+              <Link
+                href="/dashboard/kaeufer/suchprofile/neu"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-navy text-cream rounded-soft text-caption font-medium hover:bg-ink transition-colors"
+              >
+                <Plus className="w-3.5 h-3.5" strokeWidth={1.5} />
+                Neues Profil
+              </Link>
+            );
+          })()
         )}
       </div>
 
@@ -210,6 +228,13 @@ function ProfilCard({
       </div>
 
       <div className="flex items-center gap-2 flex-wrap">
+        <Link
+          href={`/dashboard/kaeufer/suchprofile/${profil.id}/bearbeiten`}
+          className="inline-flex items-center gap-1.5 text-caption text-navy hover:text-bronze px-2 py-1 rounded-soft hover:bg-stone/30 transition-colors font-medium"
+        >
+          <Pencil className="w-3.5 h-3.5" strokeWidth={1.5} />
+          Bearbeiten
+        </Link>
         <form action={togglePauseSuchprofilAction}>
           <input type="hidden" name="id" value={profil.id} />
           <input type="hidden" name="pause" value={profil.ist_pausiert ? 'false' : 'true'} />

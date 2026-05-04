@@ -215,8 +215,9 @@ export default async function PaketPage({ searchParams }: Props) {
               <ul className="space-y-2.5 text-body-sm mb-8">
                 <FeatureRow text="Öffentliche Inserate ansehen" />
                 <FeatureRow text="Alle 18 Filter" />
-                <FeatureRow text="Gespeicherte Suchen" />
+                <FeatureRow text="1 Suchprofil" />
                 <FeatureRow text="Wöchentlicher E-Mail-Digest" />
+                <FeatureRow text="Mehrere Suchprofile" available={false} />
                 <FeatureRow text="Geschlossene Inserate" available={false} />
                 <FeatureRow text="7 Tage Frühzugang" available={false} />
                 <FeatureRow text="Echtzeit-E-Mail-Alerts" available={false} />
@@ -263,10 +264,11 @@ export default async function PaketPage({ searchParams }: Props) {
               <ul className="space-y-2.5 text-body-sm mb-6">
                 <FeatureRow text="Öffentliche Inserate" />
                 <FeatureRow text="Alle 18 Filter" />
-                <FeatureRow text="Gespeicherte Suchen" />
+                <FeatureRow text="Unbegrenzt Suchprofile" highlight />
                 <FeatureRow text="Geschlossene Inserate sehen" highlight />
                 <FeatureRow text="7 Tage Frühzugang auf neue Inserate" highlight />
                 <FeatureRow text="Echtzeit-E-Mail-Alerts bei Match" highlight />
+                <FeatureRow text="Eigenes Logo im Käuferprofil" highlight />
               </ul>
 
               {/* Stripe-Form */}

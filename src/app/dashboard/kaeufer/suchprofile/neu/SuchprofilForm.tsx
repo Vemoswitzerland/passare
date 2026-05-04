@@ -5,10 +5,23 @@ import Link from 'next/link';
 import { Crown, Mail, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
-import { createSuchprofilAction } from '../actions';
+import { createSuchprofilAction, updateSuchprofilAction } from '../actions';
 import { KANTON_CODES } from '@/lib/constants';
 import type { Branche } from '@/lib/branchen';
 import { cn } from '@/lib/utils';
+
+export type SuchprofilInitial = {
+  id: string;
+  name: string;
+  branche: string[];
+  kantone: string[];
+  umsatz_min: number | null;
+  umsatz_max: number | null;
+  ebitda_min: number | null;
+  ma_min: number | null;
+  ma_max: number | null;
+  email_alert: boolean;
+};
 
 type Props = {
   isMax: boolean;
@@ -16,6 +29,7 @@ type Props = {
   successUrl?: string;
   backUrl?: string; // wo "Abbrechen" hinführt (default: /dashboard/kaeufer/suchprofile)
   upsellUrl?: string; // wo der Käufer+-Upsell hinführt (default: /dashboard/kaeufer/abo)
+  initial?: SuchprofilInitial; // wenn gesetzt: Edit-Modus statt Create
 };
 
 export function SuchprofilForm({
@@ -24,10 +38,12 @@ export function SuchprofilForm({
   successUrl,
   backUrl = '/dashboard/kaeufer/suchprofile',
   upsellUrl = '/dashboard/kaeufer/abo',
+  initial,
 }: Props) {
-  const [branchenSelected, setBranchenSelected] = useState<string[]>([]);
-  const [kantone, setKantone] = useState<string[]>([]);
-  const [name, setName] = useState('Mein Suchprofil');
+  const isEdit = !!initial;
+  const [branchenSelected, setBranchenSelected] = useState<string[]>(initial?.branche ?? []);
+  const [kantone, setKantone] = useState<string[]>(initial?.kantone ?? []);
+  const [name, setName] = useState(initial?.name ?? 'Mein Suchprofil');
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
@@ -36,7 +52,9 @@ export function SuchprofilForm({
     setError(null);
     formData.set('branche', branchenSelected.join(','));
     formData.set('kantone', kantone.join(','));
-    const result = await createSuchprofilAction(formData);
+    const result = isEdit && initial
+      ? await updateSuchprofilAction(initial.id, formData)
+      : await createSuchprofilAction(formData);
     setPending(false);
     if (result.ok) {
       window.location.href = successUrl ?? '/dashboard/kaeufer/suchprofile';
@@ -117,26 +135,65 @@ export function SuchprofilForm({
       <div className="grid sm:grid-cols-2 gap-4">
         <div>
           <Label htmlFor="umsatz_min">Umsatz-Min (CHF)</Label>
-          <Input id="umsatz_min" name="umsatz_min" type="number" min={0} step={100000} placeholder="0" />
+          <Input
+            id="umsatz_min"
+            name="umsatz_min"
+            type="number"
+            min={0}
+            step={100000}
+            placeholder="0"
+            defaultValue={initial?.umsatz_min ?? undefined}
+          />
         </div>
         <div>
           <Label htmlFor="umsatz_max">Umsatz-Max (CHF)</Label>
-          <Input id="umsatz_max" name="umsatz_max" type="number" min={0} step={100000} placeholder="50000000" />
+          <Input
+            id="umsatz_max"
+            name="umsatz_max"
+            type="number"
+            min={0}
+            step={100000}
+            placeholder="50000000"
+            defaultValue={initial?.umsatz_max ?? undefined}
+          />
         </div>
       </div>
 
       <div className="grid sm:grid-cols-3 gap-4">
         <div>
           <Label htmlFor="ebitda_min">EBITDA-Marge min (%)</Label>
-          <Input id="ebitda_min" name="ebitda_min" type="number" min={0} max={100} step={0.5} placeholder="10" />
+          <Input
+            id="ebitda_min"
+            name="ebitda_min"
+            type="number"
+            min={0}
+            max={100}
+            step={0.5}
+            placeholder="10"
+            defaultValue={initial?.ebitda_min ?? undefined}
+          />
         </div>
         <div>
           <Label htmlFor="ma_min">Mitarbeitende min</Label>
-          <Input id="ma_min" name="ma_min" type="number" min={0} placeholder="0" />
+          <Input
+            id="ma_min"
+            name="ma_min"
+            type="number"
+            min={0}
+            placeholder="0"
+            defaultValue={initial?.ma_min ?? undefined}
+          />
         </div>
         <div>
           <Label htmlFor="ma_max">Mitarbeitende max</Label>
-          <Input id="ma_max" name="ma_max" type="number" min={0} placeholder="500" />
+          <Input
+            id="ma_max"
+            name="ma_max"
+            type="number"
+            min={0}
+            placeholder="500"
+            defaultValue={initial?.ma_max ?? undefined}
+          />
         </div>
       </div>
 
@@ -147,7 +204,7 @@ export function SuchprofilForm({
             name="email_alert"
             icon={Mail}
             label={isMax ? 'E-Mail · Echtzeit bei jedem Match (Käufer+)' : 'E-Mail · wöchentlicher Digest (Basic)'}
-            defaultChecked
+            defaultChecked={initial?.email_alert ?? true}
           />
         </div>
         {!isMax && (
@@ -175,7 +232,9 @@ export function SuchprofilForm({
           Abbrechen
         </Link>
         <Button type="submit" disabled={pending}>
-          {pending ? 'Speichern…' : (
+          {pending ? 'Speichern…' : isEdit ? (
+            <>Änderungen speichern <ArrowRight className="w-4 h-4" strokeWidth={1.5} /></>
+          ) : (
             <>Profil erstellen <ArrowRight className="w-4 h-4" strokeWidth={1.5} /></>
           )}
         </Button>

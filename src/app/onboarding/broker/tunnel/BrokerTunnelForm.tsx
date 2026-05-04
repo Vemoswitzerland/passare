@@ -379,7 +379,7 @@ export function BrokerTunnelForm({ userName }: Props) {
               Starter oder Pro.
             </h2>
             <p className="mt-3 text-body-sm text-muted leading-relaxed">
-              Beide Pakete enthalten alle Verkaufs- und Käufer+-Funktionen. Was die zwei Pakete unterscheidet:
+              Beide Pakete enthalten alle Verkaufs- und Käufer+ Funktionen. Was die zwei Pakete unterscheidet:
             </p>
           </div>
 

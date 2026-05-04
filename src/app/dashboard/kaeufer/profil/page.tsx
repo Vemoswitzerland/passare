@@ -144,11 +144,22 @@ export default async function ProfilPage() {
       </section>
 
       {/* ─── Verifizierungen — Käufer+ Marketing-Sektion ─── */}
-      <section>
-        <div className="flex items-baseline justify-between gap-3 mb-3 flex-wrap">
-          <h2 className="font-serif text-head-sm text-navy font-normal">
-            Verifizierungen <span className="font-mono text-caption text-quiet">{verifiedCount}/4</span>
-          </h2>
+      {/* Cyrills Vorgabe: «umrandere den ganzen Teil und schreibe den Benefit
+          hin, dass das extrem wichtig ist für die Verkäufer zu sehen, dass es
+          hier echt sich um ein verifiziertes Profil handelt». */}
+      <section className="bg-paper border-2 border-bronze/30 rounded-card p-6 md:p-8 shadow-card">
+        <div className="flex items-start justify-between gap-3 mb-4 flex-wrap">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-bronze/10 flex items-center justify-center flex-shrink-0">
+              <ShieldCheck className="w-5 h-5 text-bronze" strokeWidth={1.5} />
+            </div>
+            <div>
+              <h2 className="font-serif text-head-sm text-navy font-normal leading-tight">
+                Verifizierungen <span className="font-mono text-caption text-quiet">{verifiedCount}/4</span>
+              </h2>
+              <p className="overline text-bronze mt-1">Vertrauen für Verkäufer</p>
+            </div>
+          </div>
           {!isPlus && (
             <Link
               href="/dashboard/kaeufer/abo"
@@ -159,11 +170,17 @@ export default async function ProfilPage() {
             </Link>
           )}
         </div>
-        <p className="text-body-sm text-muted mb-4 max-w-xl">
-          {isPlus
-            ? 'Verifizierte Profile bekommen 2× schneller Antworten von Verkäufern.'
-            : 'Verifizierungen sind ein Käufer+-Feature. Verifizierte Profile bekommen 2× schneller Antworten — Käufer+ schaltet alle vier Verifizierungs-Wege frei.'}
-        </p>
+
+        {/* Benefit-Text — extrem wichtig: zeigt Verkäufern, dass das Profil echt ist. */}
+        <div className="bg-bronze/5 border border-bronze/20 rounded-soft px-4 py-3 mb-5">
+          <p className="text-body-sm text-navy leading-relaxed">
+            <span className="font-medium">Extrem wichtig für deine Antwort-Quote.</span>{' '}
+            {isPlus
+              ? 'Verifizierte Profile bekommen 2× schneller Antworten — Verkäufer sehen sofort, dass du ein echter, geprüfter Käufer bist und nicht ein anonymer Mitbewerber, Bot oder Tire-Kicker.'
+              : 'Verifizierte Profile bekommen 2× schneller Antworten von Verkäufern. Sie zeigen schwarz auf weiss, dass du ein echter, geprüfter Käufer bist — nicht ein anonymer Mitbewerber oder Tire-Kicker. Käufer+ schaltet alle vier Verifizierungs-Wege frei.'}
+          </p>
+        </div>
+
         <div className="grid sm:grid-cols-2 gap-3">
           {verifications.map((v) => (
             <VerifyItem

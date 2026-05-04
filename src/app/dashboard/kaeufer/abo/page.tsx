@@ -8,7 +8,7 @@ import { hasTable } from '@/lib/db/has-table';
 import { cn } from '@/lib/utils';
 import { isPlusKaeufer } from '@/lib/kaeufer/is-plus';
 
-export const metadata = { title: 'Käufer+-Abo — passare', robots: { index: false, follow: false } };
+export const metadata = { title: 'Käufer+ Abo — passare', robots: { index: false, follow: false } };
 
 export default async function AboPage() {
   const supabase = await createClient();
@@ -39,7 +39,7 @@ export default async function AboPage() {
       <div>
         <p className="overline text-bronze mb-2">Abonnement · Zahlungen · Rechnungen</p>
         <h1 className="font-serif text-display-sm md:text-head-lg text-navy font-light">
-          Käufer+-Abo<span className="text-bronze">.</span>
+          Käufer+ Abo<span className="text-bronze">.</span>
         </h1>
         <p className="text-body-sm text-muted mt-2 max-w-2xl">
           Hier verwaltest du dein Käufer-Abonnement, siehst alle Zahlungen und kannst jederzeit upgraden, downgraden oder pausieren.
@@ -115,8 +115,9 @@ export default async function AboPage() {
             features={[
               { text: 'Öffentliche Inserate', has: true },
               { text: 'Alle 18 Filter', has: true },
-              { text: 'Gespeicherte Suchen', has: true },
+              { text: '1 Suchprofil', has: true },
               { text: 'Wöchentlicher E-Mail-Digest', has: true },
+              { text: 'Mehrere Suchprofile', has: false },
               { text: 'Geschlossene Inserate', has: false },
               { text: '7 Tage Frühzugang', has: false },
               { text: 'Echtzeit-E-Mail-Alerts', has: false },
@@ -131,10 +132,11 @@ export default async function AboPage() {
             features={[
               { text: 'Öffentliche Inserate', has: true },
               { text: 'Alle 18 Filter', has: true },
-              { text: 'Gespeicherte Suchen', has: true },
+              { text: 'Unbegrenzt Suchprofile', has: true },
               { text: 'Geschlossene Inserate sehen', has: true },
               { text: '7 Tage Frühzugang auf neue Inserate', has: true },
               { text: 'Echtzeit-E-Mail-Alerts bei Match', has: true },
+              { text: 'Eigenes Logo im Käuferprofil', has: true },
             ]}
           />
         </div>
@@ -166,7 +168,7 @@ export default async function AboPage() {
           <div className="bg-paper border border-dashed border-stone rounded-card p-8 text-center">
             <FileText className="w-6 h-6 text-quiet mx-auto mb-3" strokeWidth={1.5} />
             <p className="text-body-sm text-muted">
-              Sobald du eine Käufer+-Zahlung tätigst, erscheint hier die Rechnung als PDF zum Download.
+              Sobald du eine Käufer+ Zahlung tätigst, erscheint hier die Rechnung als PDF zum Download.
             </p>
           </div>
         ) : (

@@ -226,7 +226,7 @@ function Vergleich({ ctaPlus, ctaBasic }: { ctaPlus: string; ctaBasic: string })
     // Was beide haben — oben
     { feature: 'Öffentliche Inserate sehen',                 basic: '✓',           plus: '✓' },
     { feature: 'Alle 18 Filter',                             basic: '✓',           plus: '✓' },
-    { feature: 'Gespeicherte Suchen',                        basic: '✓',           plus: '✓' },
+    { feature: 'Suchprofile',                                basic: '1',           plus: 'Unbegrenzt' },
     // Sektion-Trenner: Käufer+ exklusive Vorteile
     { feature: '__SECTION__', basic: 'Vorteile mit Käufer+', plus: '' },
     // Käufer+ Vorteile — unten
@@ -244,7 +244,7 @@ function Vergleich({ ctaPlus, ctaBasic }: { ctaPlus: string; ctaBasic: string })
             <div className="flex items-center gap-4 mb-5">
               <span className="overline text-navy">Vergleich</span>
               <span className="h-px flex-1 bg-stone" />
-              <span className="font-mono text-[11px] text-quiet">Basic gratis · Käufer+-Abo</span>
+              <span className="font-mono text-[11px] text-quiet">Basic gratis · Käufer+ Abo</span>
             </div>
             <h2 className="font-serif text-display-md text-navy font-light">
               Basic oder <KaeuferPlus />.
@@ -389,11 +389,11 @@ function Faq() {
   const items = [
     {
       q: 'Wie funktioniert der 7-Tage-Frühzugang?',
-      a: 'Sobald ein Verkäufer ein Inserat veröffentlicht, ist es für Käufer+-Mitglieder sofort sichtbar. Basic-Käufer sehen das Inserat erst 7 Tage später. Diese Phase entscheidet bei beliebten Inseraten oft über die Anfrage-Reihenfolge.',
+      a: 'Sobald ein Verkäufer ein Inserat veröffentlicht, ist es für Käufer+ Mitglieder sofort sichtbar. Basic-Käufer sehen das Inserat erst 7 Tage später. Diese Phase entscheidet bei beliebten Inseraten oft über die Anfrage-Reihenfolge.',
     },
     {
       q: 'Wo bekomme ich die Echtzeit-Alerts?',
-      a: 'In jedem Käufer+-Abo enthalten: E-Mail-Benachrichtigungen innerhalb von Sekunden, sobald ein neues Inserat einem deiner Suchprofile entspricht. Basic-Käufer bekommen einen wöchentlichen Digest.',
+      a: 'In jedem Käufer+ Abo enthalten: E-Mail-Benachrichtigungen innerhalb von Sekunden, sobald ein neues Inserat einem deiner Suchprofile entspricht. Basic-Käufer bekommen einen wöchentlichen Digest.',
     },
     {
       q: 'Kann ich Käufer+ jederzeit kündigen?',

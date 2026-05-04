@@ -69,7 +69,7 @@ export function LogoUpload({ currentUrl }: Props) {
       <div className="flex items-start gap-5">
         <div
           className={cn(
-            'w-20 h-20 rounded-soft border flex items-center justify-center flex-shrink-0 overflow-hidden',
+            'w-20 h-20 rounded-full border flex items-center justify-center flex-shrink-0 overflow-hidden',
             url ? 'border-bronze/30 bg-cream' : 'border-dashed border-stone bg-stone/20',
           )}
         >
@@ -80,7 +80,7 @@ export function LogoUpload({ currentUrl }: Props) {
               width={80}
               height={80}
               loading="lazy"
-              className="w-full h-full object-contain"
+              className="w-full h-full object-cover"
             />
           ) : (
             <ImagePlus className="w-6 h-6 text-quiet" strokeWidth={1.5} />

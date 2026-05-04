@@ -194,7 +194,7 @@ export default async function BrokerDashboard({ searchParams }: Props) {
             href="/dashboard/broker/suchprofile"
             icon={Search}
             title="Suchprofile"
-            desc="Käufer+-Suche für deine Mandanten"
+            desc="Käufer+ Suche für deine Mandanten"
           />
         </div>
       </div>
