@@ -117,7 +117,7 @@ export default async function BrokerPaketPage({ searchParams }: Props) {
 
                 {!isCurrent && (
                   <Link
-                    href={`/api/stripe/broker-checkout?tier=${tier.id}&interval=monthly`}
+                    href={`/api/stripe/broker-checkout?tier=${tier.id}&interval=${brokerProfile?.subscription_interval ?? 'yearly'}`}
                     className="inline-flex items-center justify-center gap-2 w-full px-5 py-2.5 bg-navy text-cream rounded-soft text-body-sm font-medium hover:bg-ink transition-colors"
                   >
                     {isActive && tier.id === 'pro' ? 'Auf Pro upgraden' : `${tier.label} wählen`}

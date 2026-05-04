@@ -13,6 +13,7 @@ export async function completeBrokerOnboarding(data: {
   kanton: string;
   paket: 'starter' | 'pro';
   interval: 'monthly' | 'yearly';
+  handelsregister_uid?: string | null;
 }): Promise<{ error?: string; success?: boolean }> {
   const supabase = await createClient();
   const { data: userData } = await supabase.auth.getUser();
@@ -54,7 +55,7 @@ export async function completeBrokerOnboarding(data: {
     return { error: `Onboarding fehlgeschlagen: ${onboardingErr.message}` };
   }
 
-  // 3. Create broker profile
+  // 3. Create broker profile — UID aus Zefix-Hit übernehmen falls vorhanden
   const { error: profileErr } = await supabase.rpc('create_broker_profile', {
     p_agentur_name: data.agentur_name,
     p_slug: data.slug,
@@ -62,7 +63,7 @@ export async function completeBrokerOnboarding(data: {
     p_website: data.website || null,
     p_telefon: data.telefon || null,
     p_logo_url: null,
-    p_handelsregister_uid: null,
+    p_handelsregister_uid: data.handelsregister_uid ?? null,
   });
 
   if (profileErr) {

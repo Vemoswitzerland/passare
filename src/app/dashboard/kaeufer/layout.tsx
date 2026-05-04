@@ -36,8 +36,11 @@ export default async function KaeuferLayout({ children }: { children: React.Reac
 
   // Admin darf den Käufer-Bereich auch betreten (zum Testen via View-Switcher)
   const isAdmin = profile?.rolle === 'admin';
-  // Nur Verkäufer wegleiten — alle anderen (kaeufer, admin, null) durch
+  // Verkäufer und Broker werden in ihren eigenen Bereich umgeleitet —
+  // Broker hat eigene Mirror-Routen unter /dashboard/broker/* damit er
+  // nicht ins Käufer-Layout fällt.
   if (profile?.rolle === 'verkaeufer') redirect('/dashboard/verkaeufer');
+  if (profile?.rolle === 'broker') redirect('/dashboard/broker');
 
   const isPlus = isPlusKaeufer(profile);
 

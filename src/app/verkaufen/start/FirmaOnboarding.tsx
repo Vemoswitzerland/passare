@@ -5,13 +5,14 @@ import { useRouter } from 'next/navigation';
 import {
   Building2, Check, ArrowRight, ArrowLeft, Sparkles,
   TrendingUp, Users, Calendar, MapPin, Briefcase, Loader2,
-  Info,
+  Info, Mail, FileSignature, MailCheck,
 } from 'lucide-react';
 import { FirmenSuche } from '@/components/zefix/FirmenSuche';
 import { SmartPriceEstimate } from '@/components/valuation/SmartPriceEstimate';
 import { BRANCHEN_LIST, matchBrancheFromPurpose } from '@/data/branchen-multiples';
 import { formatCHF, formatCHFShort, type ValuationResult } from '@/lib/valuation';
 import { cn } from '@/lib/utils';
+import { sendValuationByEmailAction } from './actions';
 
 const KANTONE: Array<[string, string]> = [
   ['ZH', 'Zürich'], ['BE', 'Bern'], ['LU', 'Luzern'], ['UR', 'Uri'], ['SZ', 'Schwyz'],
@@ -58,6 +59,15 @@ export function FirmaOnboarding() {
   const [valuationLoading, setValuationLoading] = useState(false);
   const [enriching, setEnriching] = useState(false);
   const [enrichStartedAt, setEnrichStartedAt] = useState<number | null>(null);
+
+  // Step 4-Wahl: nach Bewertungs-Reveal kann der User entscheiden
+  //   'choice'      = beide CTAs sichtbar
+  //   'mail-input'  = Email eingeben für Bewertungs-Mail
+  //   'mail-sent'   = Mail wurde geschickt — Confirmation
+  const [valuationMode, setValuationMode] = useState<'choice' | 'mail-input' | 'mail-sent'>('choice');
+  const [emailValue, setEmailValue] = useState('');
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [emailPending, startEmailTransition] = useTransition();
 
   // Resume aus Cookie
   useEffect(() => {
@@ -179,7 +189,48 @@ export function FirmaOnboarding() {
         {draft.step === 2 && <Step2Branche draft={draft} update={update} />}
         {draft.step === 3 && <Step3Finanzen draft={draft} update={update} />}
         {draft.step === 4 && (
-          <Step4Bewertung draft={draft} loading={valuationLoading} />
+          <Step4Bewertung
+            draft={draft}
+            loading={valuationLoading}
+            mode={valuationMode}
+            setMode={setValuationMode}
+            emailValue={emailValue}
+            setEmailValue={setEmailValue}
+            emailError={emailError}
+            setEmailError={setEmailError}
+            emailPending={emailPending}
+            onSendMail={() => {
+              setEmailError(null);
+              const trimmed = emailValue.trim().toLowerCase();
+              if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+                setEmailError('Bitte gib eine gültige E-Mail-Adresse ein.');
+                return;
+              }
+              if (!draft.valuation) {
+                setEmailError('Bewertung fehlt — bitte oben warten.');
+                return;
+              }
+              startEmailTransition(async () => {
+                const res = await sendValuationByEmailAction({
+                  email: trimmed,
+                  firma_name: draft.firma_name,
+                  branche_id: draft.branche_id,
+                  kanton: draft.kanton,
+                  jahr: draft.jahr,
+                  mitarbeitende: draft.mitarbeitende,
+                  umsatz: draft.umsatz,
+                  ebitda: draft.ebitda,
+                  valuation: draft.valuation!,
+                });
+                if (res.ok) {
+                  setValuationMode('mail-sent');
+                } else {
+                  setEmailError(res.error);
+                }
+              });
+            }}
+            onInserieren={() => setDraft(d => ({ ...d, step: 5 }))}
+          />
         )}
         {draft.step === 5 && <Step5Account draft={draft} router={router} startTransition={startTransition} />}
       </div>
@@ -196,27 +247,30 @@ export function FirmaOnboarding() {
             Zurück
           </button>
 
-          <div className="flex flex-col items-end gap-2">
-            <button
-              type="button"
-              onClick={next}
-              disabled={!canNext}
-              className={cn(
-                'inline-flex items-center gap-2 px-6 py-3 rounded-soft text-body-sm font-medium transition-all',
-                canNext
-                  ? 'bg-navy text-cream hover:bg-ink shadow-card hover:shadow-lift hover:-translate-y-px'
-                  : 'bg-stone text-quiet cursor-not-allowed',
+          {/* Auf Step 4 keinen Weiter-Button — User wählt zwischen Mail/Inserieren via Cards. */}
+          {draft.step < 4 && (
+            <div className="flex flex-col items-end gap-2">
+              <button
+                type="button"
+                onClick={next}
+                disabled={!canNext}
+                className={cn(
+                  'inline-flex items-center gap-2 px-6 py-3 rounded-soft text-body-sm font-medium transition-all',
+                  canNext
+                    ? 'bg-navy text-cream hover:bg-ink shadow-card hover:shadow-lift hover:-translate-y-px'
+                    : 'bg-stone text-quiet cursor-not-allowed',
+                )}
+              >
+                Weiter
+                <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
+              </button>
+              {!canNext && step3Missing.length > 0 && (
+                <p className="text-caption text-warn">
+                  Noch fehlt: {step3Missing.join(', ')}
+                </p>
               )}
-            >
-              {draft.step === 4 ? 'Account erstellen' : 'Weiter'}
-              <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
-            </button>
-            {!canNext && step3Missing.length > 0 && (
-              <p className="text-caption text-warn">
-                Noch fehlt: {step3Missing.join(', ')}
-              </p>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -747,12 +801,29 @@ function Step3Finanzen({ draft, update }: { draft: Draft; update: (p: Partial<Dr
   );
 }
 
-/* ─────────── STEP 4: BEWERTUNG ─────────── */
+/* ─────────── STEP 4: BEWERTUNG + WAHL ─────────── */
 function Step4Bewertung({
   draft, loading,
-}: { draft: Draft; loading: boolean }) {
+  mode, setMode,
+  emailValue, setEmailValue,
+  emailError, setEmailError,
+  emailPending,
+  onSendMail, onInserieren,
+}: {
+  draft: Draft;
+  loading: boolean;
+  mode: 'choice' | 'mail-input' | 'mail-sent';
+  setMode: (m: 'choice' | 'mail-input' | 'mail-sent') => void;
+  emailValue: string;
+  setEmailValue: (v: string) => void;
+  emailError: string | null;
+  setEmailError: (v: string | null) => void;
+  emailPending: boolean;
+  onSendMail: () => void;
+  onInserieren: () => void;
+}) {
   return (
-    <div className="space-y-8 animate-fade-up">
+    <div className="space-y-10 animate-fade-up">
       <div className="text-center">
         <p className="overline mb-4 text-bronze-ink">Schritt 4 von 5</p>
         <h1 className="font-serif text-display-sm text-navy font-light mb-3 tracking-tight">
@@ -765,10 +836,148 @@ function Step4Bewertung({
 
       <SmartPriceEstimate result={draft.valuation} loading={loading} />
 
+      {/* WAHL-BEREICH — erst sichtbar wenn Bewertung fertig */}
       {draft.valuation && !loading && (
-        <div className="text-center text-caption text-muted">
-          <Sparkles className="w-3.5 h-3.5 inline-block text-bronze mr-1" strokeWidth={1.5} />
-          Klicke <strong className="text-navy">«Account erstellen»</strong> um dein Inserat zu starten.
+        <div className="space-y-6 max-w-2xl mx-auto">
+          {mode === 'choice' && (
+            <>
+              <div className="text-center">
+                <p className="text-caption text-bronze-ink uppercase tracking-wider mb-2">Wie möchtest du weitermachen?</p>
+                <h2 className="font-serif text-h3 text-navy font-light">
+                  Bewertung mailen oder direkt inserieren?
+                </h2>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Card A: Mail */}
+                <button
+                  type="button"
+                  onClick={() => { setEmailError(null); setMode('mail-input'); }}
+                  className="group rounded-soft border border-stone bg-paper p-6 text-left hover:border-bronze hover:shadow-lift transition-all"
+                >
+                  <Mail className="w-8 h-8 text-bronze mb-4" strokeWidth={1.5} />
+                  <h3 className="font-serif text-head-sm text-navy mb-2">Bewertung per Mail</h3>
+                  <p className="text-body-sm text-muted mb-4">
+                    Wir senden dir die Bewertung als PDF — kein Account, kein Inserat. Du entscheidest später, ob du verkaufen willst.
+                  </p>
+                  <span className="inline-flex items-center gap-1.5 text-caption text-bronze group-hover:text-bronze-ink">
+                    Mail eingeben
+                    <ArrowRight className="w-3.5 h-3.5" strokeWidth={1.5} />
+                  </span>
+                </button>
+
+                {/* Card B: Inserieren */}
+                <button
+                  type="button"
+                  onClick={onInserieren}
+                  className="group rounded-soft border-2 border-navy bg-navy text-cream p-6 text-left hover:bg-ink transition-all shadow-card hover:shadow-lift"
+                >
+                  <FileSignature className="w-8 h-8 text-bronze mb-4" strokeWidth={1.5} />
+                  <h3 className="font-serif text-head-sm text-cream mb-2">Direkt inserieren</h3>
+                  <p className="text-body-sm text-cream/80 mb-4">
+                    Account anlegen und Inserat erstellen — alle Daten sind schon drin, du machst nur die letzten Schritte.
+                  </p>
+                  <span className="inline-flex items-center gap-1.5 text-caption text-bronze">
+                    Account erstellen
+                    <ArrowRight className="w-3.5 h-3.5" strokeWidth={1.5} />
+                  </span>
+                </button>
+              </div>
+
+              <p className="text-center text-caption text-quiet">
+                <Sparkles className="w-3 h-3 inline-block text-bronze mr-1" strokeWidth={1.5} />
+                Beim Inserieren beträgt die Plattform-Gebühr ab CHF 290 — 0 % Erfolgsprovision.
+              </p>
+            </>
+          )}
+
+          {mode === 'mail-input' && (
+            <div className="rounded-soft border border-stone bg-paper p-6 md:p-8 space-y-5">
+              <div>
+                <h2 className="font-serif text-head-sm text-navy mb-2">Wohin sollen wir die Bewertung senden?</h2>
+                <p className="text-body-sm text-muted">
+                  Du bekommst die Bewertung sofort als PDF in dein Postfach. Kein Account nötig.
+                </p>
+              </div>
+              <div>
+                <label className="overline text-bronze-ink mb-2 block">E-Mail-Adresse</label>
+                <input
+                  type="email"
+                  inputMode="email"
+                  autoFocus
+                  value={emailValue}
+                  onChange={(e) => { setEmailValue(e.target.value); if (emailError) setEmailError(null); }}
+                  onKeyDown={(e) => { if (e.key === 'Enter' && !emailPending) onSendMail(); }}
+                  placeholder="anna.muster@beispiel.ch"
+                  className="w-full px-4 py-3 bg-cream border border-stone rounded-soft text-body focus:outline-none focus:border-bronze focus:shadow-focus transition-all"
+                  disabled={emailPending}
+                />
+                {emailError && (
+                  <p className="mt-2 text-caption text-warn">{emailError}</p>
+                )}
+              </div>
+              <div className="flex items-center justify-between pt-2">
+                <button
+                  type="button"
+                  onClick={() => { setEmailError(null); setMode('choice'); }}
+                  disabled={emailPending}
+                  className="text-body-sm text-muted hover:text-navy transition-colors disabled:opacity-50"
+                >
+                  Zurück
+                </button>
+                <button
+                  type="button"
+                  onClick={onSendMail}
+                  disabled={emailPending || !emailValue.trim()}
+                  className={cn(
+                    'inline-flex items-center gap-2 px-6 py-3 rounded-soft text-body-sm font-medium transition-all',
+                    !emailPending && emailValue.trim()
+                      ? 'bg-navy text-cream hover:bg-ink shadow-card hover:shadow-lift'
+                      : 'bg-stone text-quiet cursor-not-allowed',
+                  )}
+                >
+                  {emailPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" strokeWidth={1.5} />
+                      Wird gesendet…
+                    </>
+                  ) : (
+                    <>
+                      Bewertung senden
+                      <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {mode === 'mail-sent' && (
+            <div className="rounded-soft border border-bronze/30 bg-bronze/5 p-8 text-center space-y-4">
+              <MailCheck className="w-12 h-12 text-bronze mx-auto" strokeWidth={1.5} />
+              <h2 className="font-serif text-head-md text-navy">Bewertung unterwegs.</h2>
+              <p className="text-body text-muted max-w-md mx-auto">
+                Wir haben dir die Bewertung an <strong className="text-navy font-mono text-body-sm">{emailValue}</strong> gesendet.
+                Schau auch im Spam-Ordner nach.
+              </p>
+              <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
+                <button
+                  type="button"
+                  onClick={onInserieren}
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-navy text-cream rounded-soft text-body-sm font-medium hover:bg-ink shadow-card hover:shadow-lift transition-all"
+                >
+                  Doch direkt inserieren
+                  <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
+                </button>
+                <a
+                  href="/"
+                  className="text-body-sm text-muted hover:text-navy transition-colors"
+                >
+                  Zur Startseite
+                </a>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

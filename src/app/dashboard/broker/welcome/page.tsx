@@ -27,8 +27,13 @@ export default async function BrokerWelcomePage({ searchParams }: Props) {
   if (!userData.user) redirect('/auth/login');
 
   const sp = await searchParams;
-  const target = sp.next || '/dashboard/broker';
-  const paid = sp.paid === '1' || true; // bei Broker kommt man IMMER nach Bezahlung
+  // Target IMMER mit ?welcome=1 anhängen, sonst feuert das Erfolgs-Banner
+  // im Dashboard nicht.
+  const baseTarget = sp.next || '/dashboard/broker';
+  const target = baseTarget.includes('?')
+    ? `${baseTarget}&welcome=1`
+    : `${baseTarget}?welcome=1`;
+  const paid = true; // Broker kommt IMMER nach erfolgreicher Aktivierung hier her
 
   const { data: profile } = await supabase
     .from('profiles')

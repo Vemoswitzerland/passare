@@ -52,8 +52,8 @@ export async function createSuchprofilAction(formData: FormData): Promise<Action
   });
 
   if (error) return { ok: false, error: error.message };
-  revalidatePath('/dashboard/kaeufer/suchprofile');
-  revalidatePath('/dashboard/broker/suchprofile');
+  revalidatePath('/dashboard/kaeufer', 'layout');
+  revalidatePath('/dashboard/broker', 'layout');
   return { ok: true };
 }
 
@@ -71,8 +71,8 @@ export async function deleteSuchprofilAction(formData: FormData): Promise<void> 
     .eq('id', id)
     .eq('kaeufer_id', u.user.id);
 
-  revalidatePath('/dashboard/kaeufer/suchprofile');
-  revalidatePath('/dashboard/broker/suchprofile');
+  revalidatePath('/dashboard/kaeufer', 'layout');
+  revalidatePath('/dashboard/broker', 'layout');
 }
 
 export async function togglePauseSuchprofilAction(formData: FormData): Promise<void> {
@@ -90,6 +90,6 @@ export async function togglePauseSuchprofilAction(formData: FormData): Promise<v
     .eq('id', id)
     .eq('kaeufer_id', u.user.id);
 
-  revalidatePath('/dashboard/kaeufer/suchprofile');
-  revalidatePath('/dashboard/broker/suchprofile');
+  revalidatePath('/dashboard/kaeufer', 'layout');
+  revalidatePath('/dashboard/broker', 'layout');
 }

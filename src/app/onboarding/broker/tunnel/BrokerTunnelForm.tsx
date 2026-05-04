@@ -112,6 +112,7 @@ export function BrokerTunnelForm({ userName }: Props) {
         kanton: form.kanton,
         paket: form.paket,
         interval: form.interval,
+        handelsregister_uid: form.handelsregister_uid || null,
       });
 
       if (result.error) {

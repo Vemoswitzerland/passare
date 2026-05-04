@@ -7,6 +7,8 @@ import { updateBrokerProfileAction } from './actions';
 export default function BrokerEinstellungenPage() {
   const [pending, startTransition] = useTransition();
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({
     agentur_name: '',
     slug: '',
@@ -29,14 +31,20 @@ export default function BrokerEinstellungenPage() {
           });
         }
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, []);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSaved(false);
+    setError(null);
     startTransition(async () => {
-      await updateBrokerProfileAction(form);
+      const result = await updateBrokerProfileAction(form);
+      if (result?.error) {
+        setError(result.error);
+        return;
+      }
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     });
@@ -130,9 +138,15 @@ export default function BrokerEinstellungenPage() {
             </div>
           </div>
 
+          {error && (
+            <div className="rounded-soft bg-danger/10 border border-danger/30 px-4 py-2.5">
+              <p className="text-caption text-danger">{error}</p>
+            </div>
+          )}
+
           <button
             type="submit"
-            disabled={pending}
+            disabled={pending || loading}
             className="inline-flex items-center gap-2 px-6 py-3 bg-navy text-cream rounded-soft text-body-sm font-medium hover:bg-ink transition-colors disabled:opacity-50"
           >
             {saved ? (
@@ -143,7 +157,7 @@ export default function BrokerEinstellungenPage() {
             ) : (
               <>
                 <Save className="w-4 h-4" strokeWidth={1.5} />
-                {pending ? 'Speichern…' : 'Speichern'}
+                {pending ? 'Speichern…' : loading ? 'Lade…' : 'Speichern'}
               </>
             )}
           </button>
