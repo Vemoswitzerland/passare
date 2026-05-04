@@ -190,13 +190,13 @@ export async function getListings(
   if (filters.ma_min != null) q = q.gte('mitarbeitende', filters.ma_min);
   if (filters.ma_max != null) q = q.lte('mitarbeitende', filters.ma_max);
 
-  // Frühzugang: Wenn User nicht Käufer+/MAX → letzte 7 Tage ausblenden.
-  // Cyrill: Käufer+ haben 7-Tage-Vorsprung auf neue Inserate.
-  const isPremium = userTier === 'plus' || userTier === 'max';
-  if (!isPremium || filters.fruehzugang_gesperrt) {
-    const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-    q = q.lte('published_at', cutoff);
-  }
+  // Frühzugang-Filter — Cyrill 2026-05-04: vorerst deaktiviert.
+  // Reaktivieren wenn DB genug Inserate hat, dass das Gating Sinn ergibt.
+  // const isPremium = userTier === 'plus' || userTier === 'max';
+  // if (!isPremium || filters.fruehzugang_gesperrt) {
+  //   const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  //   q = q.lte('published_at', cutoff);
+  // }
   if (filters.suche && filters.suche.trim().length > 0) {
     const term = filters.suche.trim();
     q = q.or(`titel.ilike.%${term}%,teaser.ilike.%${term}%`);
@@ -303,11 +303,7 @@ export async function countListings(
   if (filters.ma_min != null) q = q.gte('mitarbeitende', filters.ma_min);
   if (filters.ma_max != null) q = q.lte('mitarbeitende', filters.ma_max);
 
-  const isPremium = userTier === 'plus' || userTier === 'max';
-  if (!isPremium || filters.fruehzugang_gesperrt) {
-    const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-    q = q.lte('published_at', cutoff);
-  }
+  // Frühzugang-Filter deaktiviert (siehe getListings).
 
   const { count, error } = await q;
   if (error) {
