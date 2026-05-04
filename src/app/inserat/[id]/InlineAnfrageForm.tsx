@@ -24,7 +24,7 @@ export function InlineAnfrageForm({
   prefill,
 }: {
   listing: Pick<InseratDetail, 'id' | 'titel' | 'slug'>;
-  prefill?: { name: string; email: string; isLoggedIn: boolean };
+  prefill?: { name: string; email: string; isLoggedIn: boolean; rolle?: string | null };
 }) {
   const [name, setName] = useState(prefill?.name ?? '');
   const [email, setEmail] = useState(prefill?.email ?? '');
@@ -33,6 +33,10 @@ export function InlineAnfrageForm({
   const [popOpen, setPopOpen] = useState(false);
   const [fehler, setFehler] = useState<string | null>(null);
   const isLoggedIn = !!prefill?.isLoggedIn;
+  // Anfragen-Inbox je nach Rolle: Broker hat eigenes Layout
+  const inboxPath = prefill?.rolle === 'broker'
+    ? '/dashboard/broker/anfragen'
+    : '/dashboard/kaeufer/anfragen';
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -55,7 +59,7 @@ export function InlineAnfrageForm({
       }
       // Eingeloggter User: Anfrage wurde direkt gespeichert → zur Inbox
       if (data?.direct) {
-        window.location.href = '/dashboard/kaeufer/anfragen';
+        window.location.href = inboxPath;
         return;
       }
       // Nicht eingeloggt: Mail-Verifizierungs-Popup zeigen

@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, FileText, MessageSquare, Search,
-  Users, Package, Settings, X, Heart,
+  Users, Package, Settings, X, Heart, UserCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -77,6 +77,11 @@ export function BrokerSidebar({ tier, counts, onClose }: Props) {
       href: '/dashboard/broker/favoriten',
       icon: Heart,
       label: 'Favoriten',
+    },
+    {
+      href: '/dashboard/broker/profil',
+      icon: UserCircle,
+      label: 'Käufer-Profil',
     },
   ];
 

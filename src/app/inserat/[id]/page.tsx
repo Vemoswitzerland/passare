@@ -55,19 +55,20 @@ export default async function InseratDetailPage({ params, searchParams }: Params
   // Eingeloggte Käufer-Daten für Pre-Fill der Anfrage-Form
   const supabase = await createClient();
   const { data: u } = await supabase.auth.getUser();
-  let prefill: { name: string; email: string; isLoggedIn: boolean } = {
-    name: '', email: '', isLoggedIn: false,
+  let prefill: { name: string; email: string; isLoggedIn: boolean; rolle: string | null } = {
+    name: '', email: '', isLoggedIn: false, rolle: null,
   };
   if (u.user) {
     const { data: prof } = await supabase
       .from('profiles')
-      .select('full_name')
+      .select('full_name, rolle')
       .eq('id', u.user.id)
       .maybeSingle();
     prefill = {
       name: prof?.full_name ?? '',
       email: u.user.email ?? '',
       isLoggedIn: true,
+      rolle: prof?.rolle ?? null,
     };
   }
 
@@ -174,7 +175,7 @@ function DetailBody({
 }: {
   listing: InseratDetail;
   brancheLabel: string;
-  prefill: { name: string; email: string; isLoggedIn: boolean };
+  prefill: { name: string; email: string; isLoggedIn: boolean; rolle: string | null };
 }) {
   const grundLabel = uebergabeGrundLabel(listing.uebergabe_grund);
   const umsatzStr = formatUmsatz({ umsatz_chf: listing.umsatz_chf, umsatz_bucket: listing.umsatz_bucket });
@@ -328,7 +329,7 @@ function ContactPanel({
 }: {
   listing: InseratDetail;
   brancheLabel: string;
-  prefill: { name: string; email: string; isLoggedIn: boolean };
+  prefill: { name: string; email: string; isLoggedIn: boolean; rolle: string | null };
 }) {
   const umsatzStr = formatUmsatz({ umsatz_chf: listing.umsatz_chf, umsatz_bucket: listing.umsatz_bucket });
   const level = listing.anonymitaet_level;
