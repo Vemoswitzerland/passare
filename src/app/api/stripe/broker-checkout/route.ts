@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
   // Sicherstellen dass ein broker_profiles-Row existiert
   const { data: existing } = await admin
     .from('broker_profiles')
-    .select('id')
+    .select('id, subscription_status, tier')
     .eq('id', u.user.id)
     .maybeSingle();
 
@@ -42,6 +42,8 @@ export async function GET(req: NextRequest) {
 
   const mandateLimit = tier === 'pro' ? 25 : 5;
   const teamSeats = tier === 'pro' ? 5 : 0;
+  const wasActive = existing.subscription_status === 'active';
+  const isFirstActivation = !wasActive;
 
   await admin
     .from('broker_profiles')
@@ -64,7 +66,9 @@ export async function GET(req: NextRequest) {
   // Cache invalidieren — sonst zeigt das Layout/Sidebar den alten Tier
   revalidatePath('/dashboard/broker', 'layout');
 
-  if (u.user.email) {
+  // Welcome-Email NUR bei der ERSTEN Aktivierung — nicht bei jedem
+  // Tier-Wechsel oder Re-Klick (sonst Mail-Spam).
+  if (isFirstActivation && u.user.email) {
     void sendEmail({
       template: 'welcome',
       to: u.user.email,

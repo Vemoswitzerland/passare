@@ -20,7 +20,7 @@ type SearchParams = {
 type UserRow = {
   id: string;
   full_name: string | null;
-  rolle: 'verkaeufer' | 'kaeufer' | 'admin' | null;
+  rolle: 'verkaeufer' | 'kaeufer' | 'admin' | 'broker' | null;
   kanton: string | null;
   sprache: string | null;
   subscription_tier: 'basic' | 'plus' | 'max' | null;
@@ -32,6 +32,7 @@ type UserRow = {
 /** Subtile Text-Anzeige der Rolle — kleines Mono-Label statt Badge. */
 const ROLLE_DISPLAY: Record<string, { label: string; color: string }> = {
   admin: { label: 'admin', color: 'text-navy' },
+  broker: { label: 'broker', color: 'text-bronze-ink font-medium' },
   verkaeufer: { label: 'verkäufer', color: 'text-bronze-ink' },
   kaeufer: { label: 'käufer', color: 'text-quiet' },
 };
@@ -62,7 +63,7 @@ export default async function AdminUsersPage({
     )
     .order('created_at', { ascending: false });
 
-  if (rolleFilter !== 'alle' && ['verkaeufer', 'kaeufer', 'admin'].includes(rolleFilter)) {
+  if (rolleFilter !== 'alle' && ['verkaeufer', 'kaeufer', 'admin', 'broker'].includes(rolleFilter)) {
     q = q.eq('rolle', rolleFilter);
   }
 

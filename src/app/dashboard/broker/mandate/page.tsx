@@ -106,7 +106,7 @@ function MandatCard({ mandat }: { mandat: any }) {
 
   return (
     <Link
-      href={`/dashboard/verkaeufer/inserat/${mandat.id}/edit`}
+      href={`/dashboard/broker/mandate/${mandat.id}/edit`}
       className="group flex items-center gap-4 rounded-card bg-paper border border-stone p-5 hover:border-bronze/40 hover:shadow-card transition-all"
     >
       <div className="w-10 h-10 rounded-soft bg-bronze/10 flex items-center justify-center flex-shrink-0">

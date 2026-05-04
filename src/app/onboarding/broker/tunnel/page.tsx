@@ -44,8 +44,8 @@ export default async function BrokerTunnelPage() {
         </div>
       </header>
 
-      <section className="flex-1 flex items-center justify-center px-6 py-12">
-        <div className="w-full max-w-lg">
+      <section className="flex-1 px-6 py-12">
+        <div className="w-full max-w-3xl mx-auto">
           <p className="overline text-bronze mb-3 text-center">Broker-Onboarding</p>
           <h1 className="font-serif text-display-sm text-navy font-light text-center mb-2">
             Deine Agentur einrichten
