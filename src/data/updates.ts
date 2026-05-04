@@ -67,6 +67,27 @@ export const CURRENT_STEP = {
 export const UPDATES: Update[] = [
   {
     date: '2026-05-04',
+    type: 'fix',
+    titel: 'Käufer-Funnel-Bugs behoben: kein Loop, Pakete-Pflicht, Min/Max',
+    beschreibung:
+      'Sechs Bugs aus dem Käufer-Onboarding gefixt: (1) Der «Profil speichern»-Knopf hat den Käufer manchmal zurück zu den Fragen geschickt — jetzt landet er garantiert auf der Paket-Wahl, weil die Käufer-Rolle defensiv gesetzt wird falls etwas im Hintergrund schief läuft. (2) «Fragen überspringen» führt nicht mehr direkt ins Dashboard, sondern zur Paket-Auswahl mit einem freundlichen Hinweis-Banner — niemand kann mehr ohne Paket-Entscheidung ins Dashboard. (3) Im Budget-Schritt kann das Maximum nicht mehr kleiner sein als das Minimum — die Auswahl korrigiert sich automatisch.',
+  },
+  {
+    date: '2026-05-04',
+    type: 'feature',
+    titel: 'Suchprofile: Bearbeiten + Mehrere mit Käufer+',
+    beschreibung:
+      'Bestehende Suchprofile lassen sich jetzt bearbeiten (neuer Bearbeiten-Knopf neben Pausieren und Löschen) — Such-Kriterien, Branchen, Regionen, Umsatz-Range und Alert-Kanal anpassen, Alerts werden ab sofort nach den neuen Kriterien gefiltert. Zusätzlich neuer Käufer+ Vorteil: Mit Basic kann man 1 Suchprofil anlegen, mit Käufer+ unbegrenzt viele — sinnvoll wenn man parallel mehrere Strategien laufen lassen will (z.B. «Maschinenbau ZH/AG» und «Treuhand Westschweiz»). Limit serverseitig durchgesetzt, mit Upsell-Card statt Fehler wenn das Limit erreicht ist.',
+  },
+  {
+    date: '2026-05-04',
+    type: 'design',
+    titel: 'Käufer-Profil: Verifizierungen umrandet + runde Profilbilder + sauberere Schreibweise',
+    beschreibung:
+      'Drei Verbesserungen am Käufer-Profil: (1) Der Verifizierungs-Bereich ist jetzt prominent umrandet mit einem klaren Benefit-Hinweis — verifizierte Profile bekommen 2× schneller Antworten, weil Verkäufer sofort sehen dass es sich um einen echten geprüften Käufer handelt und nicht um einen Mitbewerber, Bot oder Tire-Kicker. (2) Die Logo-Vorschau im Profil ist jetzt rund (war eckig) und passt zu allen anderen Profilbildern in der App. (3) Die Schreibweise «Käufer+-Abo / Käufer+-Mitglieder» wurde überall mit Space getrennt zu «Käufer+ Abo» — das Bindestrich-direkt-nach-dem-Plus las sich wie ein Minus-Zeichen.',
+  },
+  {
+    date: '2026-05-04',
     type: 'feature',
     titel: 'Ein Funnel: Bewerten ODER Inserieren — User wählt am Ende',
     beschreibung:
