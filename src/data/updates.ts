@@ -68,6 +68,13 @@ export const UPDATES: Update[] = [
   {
     date: '2026-05-04',
     type: 'fix',
+    titel: 'Inserat-Freigabe + Verkäufer-Wizard-Pflichtfelder gefixt',
+    beschreibung:
+      'Zwei Fehler beim Inserieren behoben: (1) Beim Freischalten neuer Inserate kam eine Fehlermeldung — der Hintergrundprozess für Käufer-Alerts hatte ein internes Feld falsch benannt, jetzt korrigiert. (2) Im Verkäufer-Wizard sind jetzt Titelbild, mindestens 3 Highlights und (bei offenem Profil) Name + Funktion + ein Direkt-Kontakt echte Pflichtfelder — verhindert halb leere Inserate die der Admin nicht freigeben kann.',
+  },
+  {
+    date: '2026-05-04',
+    type: 'fix',
     titel: 'Käufer-Funnel-Bugs behoben: kein Loop, Pakete-Pflicht, Min/Max',
     beschreibung:
       'Sechs Bugs aus dem Käufer-Onboarding gefixt: (1) Der «Profil speichern»-Knopf hat den Käufer manchmal zurück zu den Fragen geschickt — jetzt landet er garantiert auf der Paket-Wahl, weil die Käufer-Rolle defensiv gesetzt wird falls etwas im Hintergrund schief läuft. (2) «Fragen überspringen» führt nicht mehr direkt ins Dashboard, sondern zur Paket-Auswahl mit einem freundlichen Hinweis-Banner — niemand kann mehr ohne Paket-Entscheidung ins Dashboard. (3) Im Budget-Schritt kann das Maximum nicht mehr kleiner sein als das Minimum — die Auswahl korrigiert sich automatisch.',

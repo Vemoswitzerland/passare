@@ -193,7 +193,24 @@ export function InseratWizard({ inserat, initialStep, fromPreReg }: Props) {
       );
     }
     if (step === 3) return Boolean(data.cover_url);
-    if (step === 4) return data.sales_points.length > 0;
+    if (step === 4) {
+      const points = data.sales_points ?? [];
+      if (points.length < 3) return false;
+      const lvl = data.anonymitaet_level ?? 'voll_anonym';
+      if (lvl === 'vorname_funktion') {
+        if (!data.kontakt_vorname?.trim() || !data.kontakt_funktion?.trim()) return false;
+      }
+      if (lvl === 'voll_offen') {
+        if (
+          !data.kontakt_vorname?.trim() ||
+          !data.kontakt_nachname?.trim() ||
+          !data.kontakt_funktion?.trim()
+        ) return false;
+        // Mindestens ein Direkt-Kontakt: E-Mail ODER WhatsApp
+        if (!data.kontakt_email_public?.trim() && !data.kontakt_whatsapp_nr?.trim()) return false;
+      }
+      return true;
+    }
     return true;
   })();
 
@@ -873,8 +890,12 @@ function Step3Cover({
   return (
     <div className="space-y-8 animate-fade-up">
       <div>
-        <h2 className="font-serif text-display-sm text-navy font-light mb-2">Titelbild wählen</h2>
-        <p className="text-body text-muted">Wähle ein passendes Bild zur Branche oder lade ein eigenes hoch.</p>
+        <h2 className="font-serif text-display-sm text-navy font-light mb-2">
+          Titelbild wählen <span className="text-warn">*</span>
+        </h2>
+        <p className="text-body text-muted">
+          Pflicht — wähle ein passendes Bild zur Branche oder lade ein eigenes hoch.
+        </p>
       </div>
 
       <div className="inline-flex bg-stone/40 rounded-soft p-1">
@@ -1247,7 +1268,7 @@ function Step4Strengths({
 
       {/* ── Anonymitätsstufen ──────────────────────────────────── */}
       <div>
-        <p className="overline text-bronze-ink mb-3">Wer du bist <span className="text-quiet font-sans normal-case tracking-normal">— wähle dein Anonymitäts-Level</span></p>
+        <p className="overline text-bronze-ink mb-3">Wer du bist <span className="text-warn">*</span> <span className="text-quiet font-sans normal-case tracking-normal">— wähle dein Anonymitäts-Level (Pflicht)</span></p>
         <div className="grid md:grid-cols-3 gap-3">
           {([
             ['voll_anonym', 'Voll Anonym', 'Käufer sieht nur «Anfragen» — empfohlen für Standard-Verkauf'],
@@ -1285,9 +1306,10 @@ function Step4Strengths({
           <p className="overline text-bronze-ink">Deine Daten <span className="text-quiet font-sans normal-case tracking-normal">— Käufer sehen «{data.kontakt_vorname || 'Vorname'}, {data.kontakt_funktion || 'Funktion'}»</span></p>
           <div className="grid md:grid-cols-2 gap-3">
             <label className="block">
-              <span className="text-caption text-quiet block mb-1.5">Vorname</span>
+              <span className="text-caption text-quiet block mb-1.5">Vorname <span className="text-warn">*</span></span>
               <input
                 type="text"
+                required
                 value={data.kontakt_vorname ?? ''}
                 onChange={(e) => update({ kontakt_vorname: e.target.value })}
                 placeholder="z.B. Marc"
@@ -1296,9 +1318,10 @@ function Step4Strengths({
               />
             </label>
             <label className="block">
-              <span className="text-caption text-quiet block mb-1.5">Funktion</span>
+              <span className="text-caption text-quiet block mb-1.5">Funktion <span className="text-warn">*</span></span>
               <input
                 type="text"
+                required
                 value={data.kontakt_funktion ?? ''}
                 onChange={(e) => update({ kontakt_funktion: e.target.value })}
                 placeholder="z.B. Inhaber, CEO, CFO"
@@ -1312,7 +1335,7 @@ function Step4Strengths({
 
       {level === 'voll_offen' && (
         <div className="space-y-5 animate-fade-up">
-          <p className="overline text-bronze-ink">Deine Daten <span className="text-quiet font-sans normal-case tracking-normal">— alles optional, fülle aus was Käufer sehen sollen</span></p>
+          <p className="overline text-bronze-ink">Deine Daten <span className="text-quiet font-sans normal-case tracking-normal">— Käufer sehen Name, Funktion und mind. einen Direkt-Kontakt (Pflicht)</span></p>
 
           {/* Profilbild — File-Upload */}
           <KontaktFotoUpload
@@ -1325,9 +1348,10 @@ function Step4Strengths({
           {/* Name + Funktion */}
           <div className="grid md:grid-cols-3 gap-3">
             <label className="block">
-              <span className="text-caption text-quiet block mb-1.5">Vorname</span>
+              <span className="text-caption text-quiet block mb-1.5">Vorname <span className="text-warn">*</span></span>
               <input
                 type="text"
+                required
                 value={data.kontakt_vorname ?? ''}
                 onChange={(e) => update({ kontakt_vorname: e.target.value })}
                 placeholder="Marc"
@@ -1336,9 +1360,10 @@ function Step4Strengths({
               />
             </label>
             <label className="block">
-              <span className="text-caption text-quiet block mb-1.5">Nachname</span>
+              <span className="text-caption text-quiet block mb-1.5">Nachname <span className="text-warn">*</span></span>
               <input
                 type="text"
+                required
                 value={data.kontakt_nachname ?? ''}
                 onChange={(e) => update({ kontakt_nachname: e.target.value })}
                 placeholder="Müller"
@@ -1347,9 +1372,10 @@ function Step4Strengths({
               />
             </label>
             <label className="block">
-              <span className="text-caption text-quiet block mb-1.5">Funktion</span>
+              <span className="text-caption text-quiet block mb-1.5">Funktion <span className="text-warn">*</span></span>
               <input
                 type="text"
+                required
                 value={data.kontakt_funktion ?? ''}
                 onChange={(e) => update({ kontakt_funktion: e.target.value })}
                 placeholder="Inhaber, CEO"
@@ -1360,27 +1386,30 @@ function Step4Strengths({
           </div>
 
           {/* Direkt-Kontakte */}
-          <div className="grid md:grid-cols-2 gap-3">
-            <label className="block">
-              <span className="text-caption text-quiet block mb-1.5">E-Mail (öffentlich sichtbar)</span>
-              <input
-                type="email"
-                value={data.kontakt_email_public ?? ''}
-                onChange={(e) => update({ kontakt_email_public: e.target.value })}
-                placeholder="kontakt@firma.ch"
-                className="w-full px-4 py-3 bg-paper border border-stone rounded-soft text-body focus:outline-none focus:border-bronze focus:shadow-focus transition-all"
-              />
-            </label>
-            <label className="block">
-              <span className="text-caption text-quiet block mb-1.5">WhatsApp-Nummer</span>
-              <input
-                type="tel"
-                value={data.kontakt_whatsapp_nr ?? ''}
-                onChange={(e) => update({ kontakt_whatsapp_nr: e.target.value })}
-                placeholder="+41 79 123 45 67"
-                className="w-full px-4 py-3 bg-paper border border-stone rounded-soft text-body focus:outline-none focus:border-bronze focus:shadow-focus transition-all"
-              />
-            </label>
+          <div>
+            <p className="text-caption text-quiet mb-2">Mindestens ein Direkt-Kontakt erforderlich <span className="text-warn">*</span></p>
+            <div className="grid md:grid-cols-2 gap-3">
+              <label className="block">
+                <span className="text-caption text-quiet block mb-1.5">E-Mail (öffentlich sichtbar)</span>
+                <input
+                  type="email"
+                  value={data.kontakt_email_public ?? ''}
+                  onChange={(e) => update({ kontakt_email_public: e.target.value })}
+                  placeholder="kontakt@firma.ch"
+                  className="w-full px-4 py-3 bg-paper border border-stone rounded-soft text-body focus:outline-none focus:border-bronze focus:shadow-focus transition-all"
+                />
+              </label>
+              <label className="block">
+                <span className="text-caption text-quiet block mb-1.5">WhatsApp-Nummer</span>
+                <input
+                  type="tel"
+                  value={data.kontakt_whatsapp_nr ?? ''}
+                  onChange={(e) => update({ kontakt_whatsapp_nr: e.target.value })}
+                  placeholder="+41 79 123 45 67"
+                  className="w-full px-4 py-3 bg-paper border border-stone rounded-soft text-body focus:outline-none focus:border-bronze focus:shadow-focus transition-all"
+                />
+              </label>
+            </div>
           </div>
 
           {/* LinkedIn */}
@@ -1399,7 +1428,7 @@ function Step4Strengths({
 
       {/* ── Sales-Points / Stärken ─────────────────────────────── */}
       <div>
-        <p className="overline text-bronze-ink mb-3">Highlights <span className="text-quiet font-sans normal-case tracking-normal">— 3 bis 5 Punkte, die Käufer sofort überzeugen · Reihenfolge per Drag &amp; Drop ändern</span></p>
+        <p className="overline text-bronze-ink mb-3">Highlights <span className="text-warn">*</span> <span className="text-quiet font-sans normal-case tracking-normal">— mindestens 3, maximal 5 Punkte (Pflicht) · Reihenfolge per Drag &amp; Drop ändern</span></p>
       </div>
 
       <ul className="space-y-2">
@@ -1503,7 +1532,12 @@ function Step4Strengths({
         </div>
       )}
 
-      <p className="text-caption text-quiet">{points.length} / 5 Stärken</p>
+      <p className={cn(
+        'text-caption',
+        points.length < 3 ? 'text-warn font-medium' : 'text-quiet',
+      )}>
+        {points.length} / 5 Stärken{points.length < 3 ? ` · noch ${3 - points.length} bis Pflichtminimum` : ''}
+      </p>
     </div>
   );
 }
