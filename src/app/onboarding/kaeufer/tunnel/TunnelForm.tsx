@@ -1,8 +1,9 @@
 'use client';
 
 import { useActionState, useState, useMemo } from 'react';
+import Link from 'next/link';
 import {
-  ArrowRight, Building2, Briefcase, Landmark, UserPlus, Handshake,
+  ArrowRight, ArrowLeft, Building2, Briefcase, Landmark, UserPlus, Handshake,
   Check, Sparkles, X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -284,14 +285,25 @@ export function TunnelForm({ branchen }: { branchen: Branche[] }) {
 
         {/* ─── Navigation ─── */}
         <div className="flex items-center justify-between pt-4 border-t border-stone">
-          <button
-            type="button"
-            onClick={() => setStep((s) => Math.max(0, s - 1))}
-            disabled={step === 0 || pending}
-            className="font-mono text-caption uppercase tracking-widest text-quiet hover:text-navy disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-          >
-            ← Zurück
-          </button>
+          {step === 0 ? (
+            <Link
+              href="/"
+              className="inline-flex items-center gap-1.5 font-mono text-caption uppercase tracking-widest text-quiet hover:text-navy transition-colors"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" strokeWidth={1.5} />
+              Zurück zum Marktplatz
+            </Link>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setStep((s) => Math.max(0, s - 1))}
+              disabled={pending}
+              className="inline-flex items-center gap-1.5 font-mono text-caption uppercase tracking-widest text-quiet hover:text-navy disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" strokeWidth={1.5} />
+              Zurück
+            </button>
+          )}
 
           {step < totalSteps - 1 ? (
             <Button

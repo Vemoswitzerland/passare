@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { Building2, ArrowRight, Check, Search, Sparkles, X } from 'lucide-react';
+import Link from 'next/link';
+import { Building2, ArrowRight, ArrowLeft, Check, Search, Sparkles, X } from 'lucide-react';
 import { completeBrokerOnboarding } from './actions';
 import { FirmenSuche, type FirmaHit } from '@/components/zefix/FirmenSuche';
 import { KANTONE } from '@/app/auth/constants';
@@ -272,13 +273,22 @@ export function BrokerTunnelForm({ userName }: Props) {
 
           {error && <p className="text-caption text-danger">{error}</p>}
 
-          <button
-            type="button"
-            onClick={next}
-            className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-navy text-cream rounded-soft text-body-sm font-medium hover:bg-ink transition-colors"
-          >
-            Weiter <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
-          </button>
+          <div className="flex gap-3">
+            <Link
+              href="/broker"
+              className="inline-flex items-center gap-1.5 px-5 py-3 border border-stone rounded-soft text-body-sm text-navy font-medium hover:bg-stone/30 transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" strokeWidth={1.5} />
+              Abbrechen
+            </Link>
+            <button
+              type="button"
+              onClick={next}
+              className="flex-1 inline-flex items-center justify-center gap-2 px-5 py-3 bg-navy text-cream rounded-soft text-body-sm font-medium hover:bg-ink transition-colors"
+            >
+              Weiter <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
+            </button>
+          </div>
         </div>
       )}
 
