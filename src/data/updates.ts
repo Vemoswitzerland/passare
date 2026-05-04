@@ -66,6 +66,20 @@ export const CURRENT_STEP = {
  */
 export const UPDATES: Update[] = [
   {
+    date: '2026-05-04',
+    type: 'feature',
+    titel: 'Ein Funnel: Bewerten ODER Inserieren — User wählt am Ende',
+    beschreibung:
+      'Bewerten und Inserieren waren bisher zwei getrennte Funnels mit unterschiedlicher Logik — verwirrend. Jetzt gibt es genau einen: Handelsregister-Suche zuerst, dann nur die Daten die das Register nicht kennt (Branche, Finanzen, Mitarbeitende), dann die Smart-Bewertung. Am Ende wählt der User: Bewertung als Mail erhalten (kein Konto, keine weiteren Schritte) oder direkt mit allen vorhandenen Daten ins Inserat einsteigen. Wer bewerten will, kann nachher trotzdem inserieren — die Daten sind schon da, es fehlt nur die Registrierung.',
+  },
+  {
+    date: '2026-05-04',
+    type: 'fix',
+    titel: 'Login ohne Pre-Reg landet nicht mehr im Verkäufer-Tunnel',
+    beschreibung:
+      'Wer sich via Google anmeldet ohne vorher den Bewertungs-Funnel durchlaufen zu haben, landet jetzt auf einer Rollenwahl-Seite ("Ich verkaufe / Ich kaufe / Ich bin Broker") statt automatisch im Verkäufer-Dashboard. Drei Bug-Quellen behoben: alte Cookies aus abgebrochenen Funnel-Versuchen triggerten fälschlich den Verkäufer-Flow, das Verkäufer-Layout setzte defensiv die Rolle, das Onboarding leitete blind zum leeren Inserat-Wizard.',
+  },
+  {
     date: '2026-05-02',
     type: 'fix',
     titel: 'Käufer+ Audit-Welle: 30+ Bugs behoben, Stripe als Mockup',
