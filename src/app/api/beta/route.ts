@@ -1,9 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { betaCookieValue } from '@/lib/auth/beta-hmac';
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 
 export const runtime = 'nodejs';
 
 export async function POST(req: NextRequest) {
+  // Brute-Force-Schutz: max. 5 Versuche pro Minute pro IP.
+  const ip = getClientIp(req);
+  const rl = await checkRateLimit(ip, 'beta-attempt', 5);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: 'Zu viele Versuche. Bitte 60 Sekunden warten.' },
+      { status: 429, headers: { 'Retry-After': String(rl.retryAfter) } },
+    );
+  }
+
   const { code } = await req.json().catch(() => ({ code: '' }));
 
   const valid = process.env.BETA_ACCESS_CODE;

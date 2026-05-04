@@ -33,17 +33,21 @@ export default async function BrokerLayout({ children }: { children: React.React
   }
 
   let tier: string | null = null;
+  let suspendedAt: string | null = null;
+  let publicProfileSlug: string | null = null;
   let counts = { mandateActive: 0, anfragenNeu: 0, suchprofile: 0, teamMembers: 0 };
 
   if (await hasTable('broker_profiles')) {
     const { data: bp } = await supabase
       .from('broker_profiles')
-      .select('tier, subscription_status')
+      .select('tier, subscription_status, suspended_at, slug')
       .eq('id', userData.user.id)
       .maybeSingle();
 
     if (bp) {
       tier = bp.tier;
+      suspendedAt = bp.suspended_at ?? null;
+      publicProfileSlug = bp.slug ?? null;
     }
 
     if (await hasTable('inserate')) {
@@ -95,7 +99,25 @@ export default async function BrokerLayout({ children }: { children: React.React
       fullName={profile.full_name}
       tier={tier}
       counts={counts}
+      publicProfileSlug={publicProfileSlug}
     >
+      {/* Suspended-Banner — wird ÜBER allen Broker-Pages gerendert.
+          Profil ist im Verzeichnis nicht sichtbar (siehe View-Filter
+          `suspended_at IS NULL` in 20260502 Migration). */}
+      {suspendedAt && (
+        <div className="bg-danger/10 border-b border-danger/40 px-6 md:px-10 py-3">
+          <div className="max-w-content mx-auto flex flex-wrap items-center gap-2 text-body-sm text-danger">
+            <span className="font-medium">Profil gesperrt</span>
+            <span className="text-danger/80">
+              — Mandate sind im Verzeichnis nicht sichtbar. Bitte wende dich an{' '}
+              <a href="mailto:info@passare.ch" className="underline underline-offset-2 hover:no-underline">
+                info@passare.ch
+              </a>
+              .
+            </span>
+          </div>
+        </div>
+      )}
       {children}
     </BrokerShell>
   );

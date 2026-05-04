@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { logAuditEvent } from '@/lib/admin/audit';
 
 export type AdminActionResult = { ok: true; id?: string } | { ok: false; error: string };
 
@@ -100,12 +101,27 @@ export async function deleteExperteAction(id: string): Promise<AdminActionResult
   if (!guard.ok) return { ok: false, error: guard.error ?? 'Nicht autorisiert.' };
 
   const supabase = await createClient();
+  // Vor Soft-Delete den Namen lesen für nachvollziehbares Audit-Log.
+  const { data: expert } = await supabase
+    .from('experten')
+    .select('name')
+    .eq('id', id)
+    .maybeSingle();
+
   // Soft-Delete: deactivate statt permanent löschen (Termine-Historie bleibt)
   const { error } = await supabase
     .from('experten')
     .update({ is_active: false })
     .eq('id', id);
   if (error) return { ok: false, error: error.message };
+
+  await logAuditEvent({
+    type: 'admin_action',
+    user_id: guard.userId ?? null,
+    beschreibung: `Experte deaktiviert: ${(expert?.name as string | undefined) ?? id}`,
+    metadata: { experte_id: id, action: 'soft_delete' },
+  });
+
   revalidatePath('/admin/experten');
   revalidatePath('/dashboard/verkaeufer/experten');
   return { ok: true };

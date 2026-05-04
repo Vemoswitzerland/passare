@@ -33,7 +33,10 @@ export default async function BrokerWelcomePage({ searchParams }: Props) {
   const target = baseTarget.includes('?')
     ? `${baseTarget}&welcome=1`
     : `${baseTarget}?welcome=1`;
-  const paid = true; // Broker kommt IMMER nach erfolgreicher Aktivierung hier her
+  // Echter Stripe-Erfolg setzt ?paid=1; ohne den Param zeigen wir keine
+  // «erfolgreich gezahlt»-Animation (z. B. wenn der User die Seite manuell
+  // aufruft).
+  const paid = sp.paid === '1';
 
   const { data: profile } = await supabase
     .from('profiles')

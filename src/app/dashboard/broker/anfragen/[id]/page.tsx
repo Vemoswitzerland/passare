@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ArrowLeft, MessageSquare, Building2, Calendar, FileText } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
+import { getMandatLabel } from '@/lib/broker/labels';
 
 export const metadata = { title: 'Anfrage — passare Broker', robots: { index: false, follow: false } };
 export const dynamic = 'force-dynamic';
@@ -56,7 +57,7 @@ export default async function BrokerAnfrageDetailPage({ params }: Props) {
             {isAlsKaeufer ? 'Anfrage gesendet' : 'Anfrage erhalten'}
           </p>
           <h1 className="font-serif text-display-sm text-navy font-light tracking-tight">
-            {inseratData?.titel ?? inseratData?.firma_name ?? 'Anfrage'}
+            {inseratData ? getMandatLabel(inseratData) : 'Anfrage'}
           </h1>
           <p className="text-caption text-quiet font-mono mt-1">
             ID {anfrage.id.slice(0, 8)} · {new Date(anfrage.created_at).toLocaleDateString('de-CH', { day: '2-digit', month: 'long', year: 'numeric' })}

@@ -46,24 +46,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Datei sieht nicht wie JPG/PNG/WebP aus.' }, { status: 415 });
   }
 
-  // Altes Logo aus Storage entfernen (sonst Speichermüll).
+  // Race-Fix: Reihenfolge ist 1) Storage-Upload, 2) DB-Update auf neue URL,
+  // 3) Alte URL aus Storage löschen (best-effort, kann nicht zu Inkonsistenz
+  // führen weil DB schon zeigt). Vorher konnte ein paralleler DELETE die
+  // alte Datei löschen während wir noch die neue hochluden — Storage-Müll
+  // oder kaputte Logo-URL.
   const { data: oldProfile } = await supabase
     .from('kaeufer_profil')
     .select('logo_url')
     .eq('user_id', userData.user.id)
     .maybeSingle();
-  if (oldProfile?.logo_url) {
-    try {
-      const oldPath = new URL(oldProfile.logo_url).pathname.split('/kaeufer-logos/').pop();
-      if (oldPath) await supabase.storage.from('kaeufer-logos').remove([decodeURIComponent(oldPath)]);
-    } catch {
-      // best-effort: alter Pfad nicht parsbar — egal
-    }
-  }
 
   const ext = file.type === 'image/jpeg' ? 'jpg' : file.type === 'image/png' ? 'png' : 'webp';
   const path = `${userData.user.id}/logo-${Date.now()}.${ext}`;
 
+  // 1) Neues Logo zuerst in Storage uploaden.
   const { error: upErr } = await supabase.storage
     .from('kaeufer-logos')
     .upload(path, arrayBuf, {
@@ -78,6 +75,7 @@ export async function POST(req: NextRequest) {
 
   const { data: pub } = supabase.storage.from('kaeufer-logos').getPublicUrl(path);
 
+  // 2) DB-Update mit neuer URL — erst danach ist der Wechsel "atomar wirksam".
   const { error: dbErr } = await supabase
     .from('kaeufer_profil')
     .update({ logo_url: pub.publicUrl })
@@ -86,6 +84,16 @@ export async function POST(req: NextRequest) {
   if (dbErr) {
     console.error('[upload-logo] db error:', dbErr.message);
     return NextResponse.json({ error: 'Logo gespeichert, Profil-Update fehlgeschlagen.' }, { status: 500 });
+  }
+
+  // 3) Erst nach erfolgreichem DB-Update das alte Logo aufräumen (best-effort).
+  if (oldProfile?.logo_url && oldProfile.logo_url !== pub.publicUrl) {
+    try {
+      const oldPath = new URL(oldProfile.logo_url).pathname.split('/kaeufer-logos/').pop();
+      if (oldPath) await supabase.storage.from('kaeufer-logos').remove([decodeURIComponent(oldPath)]);
+    } catch {
+      // best-effort: alter Pfad nicht parsbar — egal
+    }
   }
 
   return NextResponse.json({ url: pub.publicUrl, path });
@@ -102,18 +110,26 @@ export async function DELETE(req: NextRequest) {
     .eq('user_id', userData.user.id)
     .maybeSingle();
 
-  if (kp?.logo_url) {
-    const url = new URL(kp.logo_url);
-    const storagePath = url.pathname.split('/kaeufer-logos/').pop();
-    if (storagePath) {
-      await supabase.storage.from('kaeufer-logos').remove([decodeURIComponent(storagePath)]);
-    }
-  }
-
+  // Race-Fix: 1) DB zuerst auf null setzen — danach kann ein paralleler
+  // POST das neue Logo nicht mehr aus Versehen löschen, weil er nur die
+  // dann-aktuelle (also seine eigene) URL kennt. 2) Storage löschen
+  // (best-effort).
   await supabase
     .from('kaeufer_profil')
     .update({ logo_url: null })
     .eq('user_id', userData.user.id);
+
+  if (kp?.logo_url) {
+    try {
+      const url = new URL(kp.logo_url);
+      const storagePath = url.pathname.split('/kaeufer-logos/').pop();
+      if (storagePath) {
+        await supabase.storage.from('kaeufer-logos').remove([decodeURIComponent(storagePath)]);
+      }
+    } catch {
+      // best-effort: alter Pfad nicht parsbar — egal
+    }
+  }
 
   return NextResponse.json({ ok: true });
 }

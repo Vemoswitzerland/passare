@@ -3,6 +3,15 @@
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 
+/**
+ * Bucket für öffentliche Broker-Logos (Verzeichnis + /broker/[slug]).
+ * Existiert seit Migration 20260502 und ist public-readable.
+ */
+const BROKER_LOGOS_BUCKET = 'broker-logos';
+
+const ALLOWED_LOGO_MIME = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/svg+xml'];
+const MAX_LOGO_BYTES = 2 * 1024 * 1024; // 2 MB
+
 export async function updateBrokerProfileAction(data: {
   agentur_name: string;
   slug: string;
@@ -56,4 +65,70 @@ export async function updateBrokerProfileAction(data: {
   // Layout neu laden — Slug erscheint in Sidebar/Topbar
   revalidatePath('/dashboard/broker', 'layout');
   return { success: true };
+}
+
+/**
+ * Lädt ein Broker-Logo in den `broker-logos`-Bucket hoch und speichert die
+ * Public-URL in `broker_profiles.logo_url`. Dieses Logo erscheint im
+ * Verzeichnis (`/broker/verzeichnis`) und auf dem Public-Profil
+ * (`/broker/[slug]`) — getrennt vom Käufer-Profil-Logo (das landet im
+ * `kaeufer-logos`-Bucket via `LogoUpload`-Komponente).
+ *
+ * Sicherheits-Notes:
+ *  - Pfad ist `<user_id>/<filename>` — RLS-Policy aus 20260502 erlaubt nur
+ *    Owner-Writes auf den eigenen Folder.
+ *  - MIME-Whitelist + 2 MB Cap.
+ */
+export async function updateBrokerLogoAction(formData: FormData): Promise<{
+  error?: string;
+  success?: boolean;
+  url?: string;
+}> {
+  const supabase = await createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData.user) return { error: 'Nicht eingeloggt' };
+
+  const file = formData.get('logo') as File | null;
+  if (!file || file.size === 0) {
+    return { error: 'Bitte wähle eine Bilddatei aus.' };
+  }
+  if (file.size > MAX_LOGO_BYTES) {
+    return { error: 'Bilddatei ist zu gross (max. 2 MB).' };
+  }
+  if (!ALLOWED_LOGO_MIME.includes(file.type)) {
+    return { error: 'Nur PNG, JPG, WebP oder SVG erlaubt.' };
+  }
+
+  const ext = file.name.includes('.') ? file.name.split('.').pop()!.toLowerCase() : 'png';
+  // Wir packen den Timestamp dran damit Browser den alten Cache-Eintrag
+  // umgeht — sonst sieht der Broker "noch das alte Logo" trotz Upload.
+  const path = `${userData.user.id}/logo-${Date.now()}.${ext}`;
+
+  const { error: uploadErr } = await supabase.storage
+    .from(BROKER_LOGOS_BUCKET)
+    .upload(path, file, {
+      cacheControl: '3600',
+      upsert: false,
+      contentType: file.type,
+    });
+
+  if (uploadErr) {
+    return { error: `Upload fehlgeschlagen: ${uploadErr.message}` };
+  }
+
+  const { data: pub } = supabase.storage.from(BROKER_LOGOS_BUCKET).getPublicUrl(path);
+  const publicUrl = pub.publicUrl;
+
+  const { error: updErr } = await supabase
+    .from('broker_profiles')
+    .update({ logo_url: publicUrl })
+    .eq('id', userData.user.id);
+
+  if (updErr) {
+    return { error: `Datenbank-Update fehlgeschlagen: ${updErr.message}` };
+  }
+
+  revalidatePath('/dashboard/broker', 'layout');
+  revalidatePath('/dashboard/broker/einstellungen');
+  return { success: true, url: publicUrl };
 }

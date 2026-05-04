@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { Building2, ArrowRight, ArrowLeft, Check, Search, Sparkles, X } from 'lucide-react';
 import { completeBrokerOnboarding } from './actions';
 import { FirmenSuche, type FirmaHit } from '@/components/zefix/FirmenSuche';
@@ -30,6 +31,10 @@ export function BrokerTunnelForm({ userName }: Props) {
   // Standard ist Handelsregister-Suche (faster, robuster) — manuell ist Fallback.
   const [showZefix, setShowZefix] = useState(true);
 
+  const searchParams = useSearchParams();
+  const initialPaket: 'starter' | 'pro' =
+    searchParams?.get('paket') === 'starter' ? 'starter' : 'pro';
+
   const [form, setForm] = useState({
     agentur_name: '',
     slug: '',
@@ -40,14 +45,25 @@ export function BrokerTunnelForm({ userName }: Props) {
     kanton: '',
     full_name: userName,
     handelsregister_uid: '',
-    paket: 'pro' as 'starter' | 'pro',
+    paket: initialPaket,
     interval: 'yearly' as 'monthly' | 'yearly',
   });
 
+  /**
+   * Slug-Generator mit kompletter Akzent-Entfernung (NFD-Normalisierung).
+   * Ersetzt zusätzlich deutsche Umlaute korrekt (ä→ae, ö→oe, ü→ue, ß→ss),
+   * was NFD allein nicht macht (NFD zerlegt nur ä→a+̈, ß bleibt).
+   * Beispiele: "André M&A" → "andre-m-a", "Müller-Käch" → "mueller-kaech"
+   */
   function generateSlug(name: string): string {
-    return name
+    return String(name)
       .toLowerCase()
+      // ß und Umlaute explizit (NFD lässt sie sonst stehen oder zerlegt nur)
+      .replace(/ß/g, 'ss')
       .replace(/[äöü]/g, (c) => ({ ä: 'ae', ö: 'oe', ü: 'ue' }[c] ?? c))
+      // NFD: zerlegt è→e+̀, à→a+̀, ñ→n+̃ etc. — wir killen die Combining-Marks
+      .normalize('NFD')
+      .replace(/[̀-ͯ]/g, '')
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-|-$/g, '')
       .slice(0, 40);

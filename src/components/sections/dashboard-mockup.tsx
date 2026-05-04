@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion';
 import {
-  LayoutDashboard, FileText, MessageSquare, Archive, BarChart3,
+  LayoutDashboard, FileText, Inbox, Archive, BarChart3,
   Sparkles, Package, Eye, Heart, TrendingUp,
 } from 'lucide-react';
 
@@ -12,8 +12,10 @@ import {
  *
  * Cyrill 02.05.2026: «Mockup ist veraltet — NDA und Mandate raus,
  * an den aktuellen Stand anpassen». Aktuelle Sidebar: Übersicht ·
- * Mein Inserat · Nachrichten · Datenraum · Statistik · Experten · Paket.
- * KPIs: Views · Nachrichten · Favoriten. «0 % Erfolgsprovision» als
+ * Mein Inserat · Anfragen · Datenraum · Statistik · Experten · Paket
+ * (NDA-Pipeline ist Teil von «Anfragen», keine eigene Sektion mehr;
+ * «Mandate» gibt's nur im Broker-Bereich, nicht im Verkäufer-Dashboard).
+ * KPIs: Views · Anfragen · Favoriten. «0 % Erfolgsprovision» als
  * USP-Banner unten — passt zur Self-Service-Plattform-Positionierung.
  */
 export function DashboardMockup() {
@@ -51,7 +53,7 @@ export function DashboardMockup() {
             <nav className="space-y-0.5">
               <NavItem Icon={LayoutDashboard} label="Übersicht" active />
               <NavItem Icon={FileText} label="Mein Inserat" badge="Live" tone="success" />
-              <NavItem Icon={MessageSquare} label="Nachrichten" badge="3" />
+              <NavItem Icon={Inbox} label="Anfragen" badge="3" />
               <NavItem Icon={Archive} label="Datenraum" />
               <NavItem Icon={BarChart3} label="Statistik" />
               <NavItem Icon={Sparkles} label="Experten" />
@@ -77,7 +79,7 @@ export function DashboardMockup() {
 
             <div className="grid grid-cols-3 gap-2 mb-4">
               <KpiTile label="Views" value="247" delta="+18" Icon={Eye} />
-              <KpiTile label="Nachrichten" value="12" delta="+4" Icon={MessageSquare} highlight />
+              <KpiTile label="Anfragen" value="12" delta="+4" Icon={Inbox} highlight />
               <KpiTile label="Favoriten" value="34" delta="+6" Icon={Heart} />
             </div>
 

@@ -79,6 +79,13 @@ async function getAppOrigin() {
 //  REGISTRIERUNG
 // ═══════════════════════════════════════════════════════════════
 export async function registerAction(_prev: ActionResult | null, formData: FormData): Promise<ActionResult> {
+  // Field-spezifischer Pre-Check für accept_terms — sonst landet das in
+  // der generischen Zod-Fehlermeldung und der User sieht nur «Eingaben
+  // unvollständig», statt klarem «Du musst die AGB akzeptieren».
+  if (!formData.get('accept_terms')) {
+    return { ok: false, error: 'Du musst die AGB & Datenschutzerklärung akzeptieren' };
+  }
+
   const parsed = registerSchema.safeParse({
     email: formData.get('email'),
     password: formData.get('password'),
@@ -96,7 +103,7 @@ export async function registerAction(_prev: ActionResult | null, formData: FormD
   }
 
   if (!parsed.data.accept_terms) {
-    return { ok: false, error: 'Bitte AGB & Datenschutz akzeptieren' };
+    return { ok: false, error: 'Du musst die AGB & Datenschutzerklärung akzeptieren' };
   }
 
   const supabase = await createClient();

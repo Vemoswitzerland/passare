@@ -121,6 +121,40 @@ export async function POST(req: NextRequest) {
     console.warn('[anfrage:aktivieren] admin client error:', err);
   }
 
+  // ════════════════════════════════════════════════════════════════
+  // SECURITY: Session-Hijack-Schutz für andere Tabs
+  // ────────────────────────────────────────────────────────────────
+  // Wenn der User in diesem Browser bereits als jemand ANDERES eingeloggt
+  // ist (= andere Email als payload.e), darf signInWithPassword NICHT
+  // einfach drüberbügeln — sonst ist die laufende Session in allen Tabs
+  // weg und gehört plötzlich dem Anfrage-Account.
+  //
+  // Logik:
+  //   - keine Session   → signIn ausführen (normaler Auto-Login)
+  //   - Session = same  → signIn ausführen (Refresh ist OK)
+  //   - Session = other → 409, Frontend leitet auf Login mit
+  //                       ?logout=other_session.
+  // ════════════════════════════════════════════════════════════════
+  const sb = await createClient();
+  let existingEmail: string | null = null;
+  try {
+    const { data: existing } = await sb.auth.getUser();
+    existingEmail = existing?.user?.email?.toLowerCase() ?? null;
+  } catch {
+    // keine Session — egal
+  }
+
+  if (existingEmail && existingEmail !== payload.e.toLowerCase()) {
+    const next = `/anfrage/passwort?token=${encodeURIComponent(body.token)}&logout=other_session`;
+    return NextResponse.json(
+      {
+        error: 'session_conflict',
+        redirect: `/auth/login?next=${encodeURIComponent(next)}`,
+      },
+      { status: 409 },
+    );
+  }
+
   // Auto-Login: Session-Tokens generieren UND zusätzlich an den Client zurückgeben,
   // damit dieser via supabase.auth.setSession() die Cookies sicher im Browser setzt.
   // (Die SSR-cookies()-API setzt zwar im Route-Handler — das war aber nicht zuverlässig
@@ -128,7 +162,6 @@ export async function POST(req: NextRequest) {
   let session: { access_token: string; refresh_token: string } | null = null;
   let signInOk = false;
   try {
-    const sb = await createClient();
     const { data, error: signInError } = await sb.auth.signInWithPassword({
       email: payload.e,
       password: body.passwort,

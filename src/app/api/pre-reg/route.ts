@@ -50,8 +50,13 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
-  const raw = req.cookies.get(COOKIE)?.value;
+  const raw = req.cookies.get(COOKIE)?.value ?? '';
   if (!raw) return NextResponse.json({ data: null });
+  // Symmetrisch zum POST-Limit: defekte / manipulierte Cookies (>8KB)
+  // ablehnen statt parsen — schützt vor JSON-Bombs / DoS.
+  if (raw.length > 8192) {
+    return NextResponse.json({ error: 'too_large' }, { status: 413 });
+  }
   try {
     return NextResponse.json({ data: JSON.parse(raw) });
   } catch {

@@ -38,7 +38,7 @@ export async function takeOverPreRegDraft(): Promise<string | null> {
     .maybeSingle();
 
   if (anyInserat) {
-    try { cookieStore.set('pre_reg_draft', '', { maxAge: 0, path: '/' }); } catch { /* render-mode */ }
+    deletePreRegCookie(cookieStore);
     // Wenn das bestehende Inserat aus diesem Draft stammt (gleiche UID)
     // → return die ID damit der User da weitermacht
     if (anyInserat.zefix_uid && anyInserat.zefix_uid === draft.zefix_uid) {
@@ -68,7 +68,7 @@ export async function takeOverPreRegDraft(): Promise<string | null> {
   // wir aus einer Server-Component aufgerufen werden (Next 16
   // verbietet Cookie-Set ausserhalb Server-Action / Route-Handler).
   // Das Cookie hat 30 Min TTL und expired sowieso.
-  try { cookieStore.set('pre_reg_draft', '', { maxAge: 0, path: '/' }); } catch { /* render-mode */ }
+  deletePreRegCookie(cookieStore);
 
   if (error) {
     console.error('[pre-reg-takeover]', error);
@@ -334,6 +334,32 @@ function trimOrNull(v: string | null | undefined): string | null {
   if (v == null) return null;
   const t = v.trim();
   return t.length === 0 ? null : t;
+}
+
+/**
+ * Pre-Reg-Cookie sauber löschen. Vorher: `try/catch` um `cookieStore.set('pre_reg_draft', '')`
+ * — Fehler wurden silent geschluckt, bei fehlgeschlagenem Cleanup blieb das Cookie aktiv
+ * und der User landete in einem Tunnel-Loop.
+ *
+ * Jetzt: bevorzugt `cookies().delete()` (Next 15+), Fallback zu `set('', maxAge: 0)`.
+ * Beide Wege werden mit `console.error`-Logging gewrapped, statt silent zu schlucken.
+ */
+function deletePreRegCookie(
+  cookieStore: Awaited<ReturnType<typeof cookies>>,
+): void {
+  try {
+    if (typeof (cookieStore as { delete?: unknown }).delete === 'function') {
+      // Next 15+: native delete-Methode
+      (cookieStore as { delete: (name: string) => void }).delete('pre_reg_draft');
+      return;
+    }
+    cookieStore.set('pre_reg_draft', '', { maxAge: 0, path: '/' });
+  } catch (e) {
+    // Wenn wir aus einer Server-Component (render-mode) aufgerufen werden,
+    // verbietet Next 16 Cookie-Mutation — Cookie hat 30 Min TTL und expired
+    // sowieso. Wir loggen aber statt silent zu schlucken.
+    console.error('[deletePreRegCookie] cleanup failed:', e);
+  }
 }
 
 /** Inserat löschen (nur Entwurf erlaubt durch RLS). */

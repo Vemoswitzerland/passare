@@ -101,6 +101,57 @@ export default async function EditInseratPage({ params, searchParams }: Props) {
   const avatarUrl = (meta.avatar_url ?? meta.picture) as string | undefined;
   const linkedinFromMeta = (meta.linkedin_url ?? meta.url) as string | undefined;
 
+  // ── PERSISTENZ: OAuth-Metadata einmalig in DB schreiben ──────────
+  // Cyrill 04.05.: Vorher waren die OAuth-Daten NUR Display-Fallback — sobald
+  // der User die Edit-Seite verließ, war alles weg. Jetzt persistieren wir
+  // die Werte einmalig in `inserate.kontakt_*`, aber NUR:
+  //   - wenn das jeweilige DB-Feld leer ist
+  //   - und der User NICHT vollständig anonym sein will (anonymitaet_level)
+  //   - und es überhaupt einen Wert aus OAuth gibt
+  // User-Eingaben werden NIE überschrieben (nur leere Felder werden gefüllt).
+  const anonLevel = row.anonymitaet_level ?? 'voll_anonym';
+  if (anonLevel !== 'voll_anonym') {
+    const oauthPatch: Record<string, string> = {};
+    if (!row.kontakt_email && userData.user.email) {
+      oauthPatch.kontakt_email = userData.user.email;
+    }
+    if (!row.kontakt_email_public && userData.user.email) {
+      // Nur dann setzen, wenn `kontakt_email` (interne Spalte) auch nicht
+      // existiert — `kontakt_email_public` ist die Public-Anzeige.
+      oauthPatch.kontakt_email_public = userData.user.email;
+    }
+    if (!row.kontakt_vorname && givenName) {
+      oauthPatch.kontakt_vorname = givenName;
+    }
+    if (!row.kontakt_nachname && familyName) {
+      oauthPatch.kontakt_nachname = familyName;
+    }
+    if (!row.kontakt_foto_url && avatarUrl) {
+      oauthPatch.kontakt_foto_url = avatarUrl;
+    }
+    if (Object.keys(oauthPatch).length > 0) {
+      try {
+        await supabase.from('inserate').update(oauthPatch).eq('id', row.id);
+        Object.assign(row, oauthPatch);
+      } catch (e) {
+        // Edge-Case: Spalte `kontakt_email` existiert vielleicht nicht in
+        // dieser Migration. Defensiv: wir entfernen das Feld und retry.
+        console.warn('[oauth-persist] update failed:', e);
+        if ('kontakt_email' in oauthPatch) {
+          const { kontakt_email: _kontakt_email, ...patchWithoutEmail } = oauthPatch;
+          if (Object.keys(patchWithoutEmail).length > 0) {
+            try {
+              await supabase.from('inserate').update(patchWithoutEmail).eq('id', row.id);
+              Object.assign(row, patchWithoutEmail);
+            } catch (e2) {
+              console.warn('[oauth-persist] retry failed:', e2);
+            }
+          }
+        }
+      }
+    }
+  }
+
   // DB-Spaltennamen → Wizard-Type (Frontend nutzt branche_id/jahr/uebergabe_grund,
   // DB hat branche/gruendungsjahr/grund)
   const inserat = {

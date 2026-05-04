@@ -3,7 +3,10 @@ import { FileText, MessageSquare, Search, ArrowRight, Plus, Building2, Eye, Cloc
 import { createClient } from '@/lib/supabase/server';
 import { hasTable } from '@/lib/db/has-table';
 
-export const metadata = { title: 'Übersicht — passare Broker' };
+export const metadata = {
+  title: 'Übersicht — passare Broker',
+  robots: { index: false, follow: false },
+};
 
 type Props = { searchParams: Promise<{ welcome?: string }> };
 

@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import {
   ArrowRight, Check, X, Crown, ShieldCheck, Zap, MessageSquare, Bell, FileLock2,
+  AlertTriangle,
 } from 'lucide-react';
 import { Container } from '@/components/ui/container';
 import { createClient } from '@/lib/supabase/server';
@@ -91,6 +92,24 @@ export default async function PaketPage({ searchParams }: Props) {
           {sp.canceled === '1' && (
             <div className="max-w-2xl mx-auto mb-8 bg-warn/5 border border-warn/20 rounded-soft px-4 py-3 text-body-sm text-warn">
               Stripe-Bezahlung abgebrochen — du kannst trotzdem mit Basic gratis weitermachen.
+            </div>
+          )}
+
+          {/* Tech-Banner: kaeufer_profil-Tabelle fehlt → Setup nicht verfügbar.
+              Vorher schluckte der Code das silent — User wusste nie, warum
+              keine personalisierten Treffer erscheinen. */}
+          {!profilTableExists && (
+            <div className="max-w-2xl mx-auto mb-8 bg-danger/5 border border-danger/30 rounded-soft px-4 py-3 flex items-start gap-3">
+              <AlertTriangle className="w-4 h-4 text-danger mt-0.5 flex-shrink-0" strokeWidth={1.75} />
+              <div className="text-body-sm text-ink">
+                <p className="font-medium text-navy">Käuferprofil-Setup ist gerade nicht verfügbar.</p>
+                <p className="text-caption text-muted mt-1">
+                  Du kannst trotzdem ein Paket wählen — bitte wende dich bei Bedarf an{' '}
+                  <a href="mailto:info@passare.ch" className="editorial text-bronze-ink underline">
+                    info@passare.ch
+                  </a>.
+                </p>
+              </div>
             </div>
           )}
 

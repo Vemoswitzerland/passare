@@ -1,6 +1,7 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { Search as SearchIcon, FileText, Users, MessageSquare, Newspaper } from 'lucide-react';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { Badge } from '@/components/ui/badge';
 import { PageHeader, EmptyState } from '@/components/admin/PageHeader';
 
@@ -29,6 +30,20 @@ export default async function AdminSearchPage({
   const params = await searchParams;
   const query = (params.q ?? '').trim();
 
+  // Defense-in-Depth: Auth-Check zusätzlich zum Layout-Guard, falls
+  // jemand die Page unbeabsichtigt aus dem Admin-Layout zieht. Volltext-
+  // Suche über `anfragen.nachricht` (sensibel) muss zwingend admin-only
+  // bleiben.
+  const supabase = await createClient();
+  const { data: u } = await supabase.auth.getUser();
+  if (!u.user) redirect('/auth/login?next=/admin/search');
+  const { data: meProfile } = await supabase
+    .from('profiles')
+    .select('rolle')
+    .eq('id', u.user.id)
+    .maybeSingle();
+  if (meProfile?.rolle !== 'admin') redirect('/dashboard');
+
   if (!query) {
     return (
       <div className="max-w-3xl">
@@ -39,7 +54,15 @@ export default async function AdminSearchPage({
   }
 
   const like = `%${query}%`;
-  const supabase = await createClient();
+
+  // Volltext-Suchen laufen via Service-Role, damit RLS auf `anfragen`
+  // umgangen wird (Admin sieht alle Anfragen, nicht nur eigene).
+  const admin = createAdminClient();
+
+  type InseratRow = { id: string; public_id: string | null; titel: string; branche: string | null; kanton: string | null; status: string };
+  type AnfrageRow = { id: string; public_id: string | null; status: string; nachricht: string | null };
+  type BlogRow = { id: string; slug: string; titel: string; kategorie: string | null; status: string };
+  type ProfileRow = { id: string; full_name: string | null; rolle: string | null; kanton: string | null; email: string | null };
 
   // PERF: alle 4 Queries parallel — Email matched jetzt direkt via profiles.email
   // (denormalisiert), kein listUsers()-Call mehr.
@@ -48,28 +71,33 @@ export default async function AdminSearchPage({
     { data: anfragenData },
     { data: blogData },
     { data: profilesData },
-  ] = await Promise.all([
-    supabase
+  ] = (await Promise.all([
+    admin
       .from('inserate')
       .select('id, public_id, titel, branche, kanton, status')
       .or(`titel.ilike.${like},branche.ilike.${like},kanton.ilike.${like},public_id.ilike.${like}`)
       .limit(20),
-    supabase
+    admin
       .from('anfragen')
       .select('id, public_id, status, nachricht')
       .or(`public_id.ilike.${like},nachricht.ilike.${like}`)
       .limit(20),
-    supabase
+    admin
       .from('blog_posts')
       .select('id, slug, titel, kategorie, status')
       .or(`titel.ilike.${like},slug.ilike.${like},excerpt.ilike.${like}`)
       .limit(20),
-    supabase
+    admin
       .from('profiles')
       .select('id, full_name, rolle, kanton, email')
       .or(`full_name.ilike.${like},kanton.ilike.${like},email.ilike.${like}`)
       .limit(50),
-  ]);
+  ])) as [
+    { data: InseratRow[] | null },
+    { data: AnfrageRow[] | null },
+    { data: BlogRow[] | null },
+    { data: ProfileRow[] | null },
+  ];
 
   const users = (profilesData ?? []).map((p) => ({
     id: p.id as string,

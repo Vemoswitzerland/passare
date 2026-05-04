@@ -2,8 +2,12 @@ import Link from 'next/link';
 import { Plus, ArrowRight, FileText, Eye } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { hasTable } from '@/lib/db/has-table';
+import { getMandatLabel } from '@/lib/broker/labels';
 
-export const metadata = { title: 'Mandate — passare Broker' };
+export const metadata = {
+  title: 'Mandate — passare Broker',
+  robots: { index: false, follow: false },
+};
 export const dynamic = 'force-dynamic';
 
 export default async function MandatePage() {
@@ -114,7 +118,7 @@ function MandatCard({ mandat }: { mandat: any }) {
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-body text-navy font-medium truncate">
-          {mandat.firma_name || mandat.titel || 'Unbenanntes Mandat'}
+          {getMandatLabel(mandat)}
         </p>
         <p className="text-caption text-muted mt-0.5">
           {mandat.branche ?? '—'} · {mandat.kanton ?? '—'} · Aktualisiert {formatDate(mandat.updated_at)}

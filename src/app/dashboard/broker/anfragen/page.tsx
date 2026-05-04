@@ -2,8 +2,12 @@ import Link from 'next/link';
 import { MessageSquare, ArrowRight, User, Send, Inbox } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { hasTable } from '@/lib/db/has-table';
+import { getMandatLabel } from '@/lib/broker/labels';
 
-export const metadata = { title: 'Anfragen — passare Broker' };
+export const metadata = {
+  title: 'Anfragen — passare Broker',
+  robots: { index: false, follow: false },
+};
 export const dynamic = 'force-dynamic';
 
 type AnfragenRow = {
@@ -113,7 +117,7 @@ export default async function BrokerAnfragenPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-body-sm text-navy font-medium truncate">
-                        Anfrage für {mandat?.firma_name || mandat?.titel || 'Mandat'}
+                        Anfrage für {getMandatLabel(mandat)}
                       </p>
                       {a.nachricht && (
                         <p className="text-caption text-muted truncate mt-0.5">{a.nachricht}</p>
@@ -167,7 +171,7 @@ export default async function BrokerAnfragenPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-body-sm text-navy font-medium truncate">
-                        An {ins?.titel ?? ins?.firma_name ?? 'Inserat'}
+                        An {getMandatLabel(ins)}
                       </p>
                       {a.nachricht && (
                         <p className="text-caption text-muted truncate mt-0.5">{a.nachricht}</p>

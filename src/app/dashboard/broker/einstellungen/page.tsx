@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useTransition, useEffect } from 'react';
-import { Building2, Globe, Phone, Save, Check } from 'lucide-react';
-import { updateBrokerProfileAction } from './actions';
+import { useState, useTransition, useEffect, useRef } from 'react';
+import { Building2, Globe, Phone, Save, Check, Image as ImageIcon, Upload } from 'lucide-react';
+import { updateBrokerProfileAction, updateBrokerLogoAction } from './actions';
 
 export default function BrokerEinstellungenPage() {
   const [pending, startTransition] = useTransition();
@@ -17,6 +17,13 @@ export default function BrokerEinstellungenPage() {
     telefon: '',
   });
 
+  // Logo-Upload-State, getrennt vom Profil-Form (eigener Server-Action-Pfad)
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [logoPending, startLogoTransition] = useTransition();
+  const [logoError, setLogoError] = useState<string | null>(null);
+  const [logoSaved, setLogoSaved] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement | null>(null);
+
   useEffect(() => {
     fetch('/api/broker/profile')
       .then((r) => r.json())
@@ -29,11 +36,33 @@ export default function BrokerEinstellungenPage() {
             website: data.profile.website ?? '',
             telefon: data.profile.telefon ?? '',
           });
+          setLogoUrl(data.profile.logo_url ?? null);
         }
       })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
+
+  function handleLogoChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setLogoError(null);
+    setLogoSaved(false);
+    const fd = new FormData();
+    fd.set('logo', file);
+    startLogoTransition(async () => {
+      const result = await updateBrokerLogoAction(fd);
+      if (result?.error) {
+        setLogoError(result.error);
+        return;
+      }
+      if (result?.url) setLogoUrl(result.url);
+      setLogoSaved(true);
+      setTimeout(() => setLogoSaved(false), 3000);
+      // Input zurücksetzen damit das gleiche File nochmal hochgeladen werden kann
+      if (logoInputRef.current) logoInputRef.current.value = '';
+    });
+  }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -62,6 +91,51 @@ export default function BrokerEinstellungenPage() {
             Dein öffentliches Profil erscheint auf /broker/{form.slug || 'dein-slug'}
           </p>
         </div>
+
+        {/* Logo-Upload — getrennt vom Profil-Form, eigener Action-Pfad
+            (`updateBrokerLogoAction`). Schreibt in Bucket `broker-logos`
+            und in `broker_profiles.logo_url`. Erscheint im Verzeichnis. */}
+        <section className="rounded-card bg-paper border border-stone p-6 mb-6">
+          <div className="flex items-center gap-2 mb-4">
+            <ImageIcon className="w-4 h-4 text-bronze-ink" strokeWidth={1.5} />
+            <h2 className="font-serif text-head-sm text-navy">Logo fürs Broker-Verzeichnis</h2>
+          </div>
+          <p className="text-caption text-muted mb-4 leading-relaxed">
+            PNG, JPG, WebP oder SVG · max. 2 MB. Wird im öffentlichen Verzeichnis
+            und auf deinem Profil unter <span className="font-mono">passare.ch/broker/{form.slug || 'dein-slug'}</span> angezeigt.
+          </p>
+
+          <div className="flex items-start gap-5">
+            <div className="w-20 h-20 rounded-card border border-stone bg-cream flex items-center justify-center overflow-hidden flex-shrink-0">
+              {logoUrl ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img src={logoUrl} alt="Aktuelles Logo" className="w-full h-full object-cover" />
+              ) : (
+                <Building2 className="w-8 h-8 text-stone" strokeWidth={1.5} />
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <label className="inline-flex items-center gap-2 px-4 py-2 bg-navy text-cream rounded-soft text-caption font-medium hover:bg-ink transition-colors cursor-pointer">
+                <Upload className="w-3.5 h-3.5" strokeWidth={1.5} />
+                {logoPending ? 'Lade hoch…' : logoUrl ? 'Logo ersetzen' : 'Logo hochladen'}
+                <input
+                  ref={logoInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                  onChange={handleLogoChange}
+                  disabled={logoPending}
+                  className="hidden"
+                />
+              </label>
+              {logoSaved && (
+                <p className="mt-2 text-caption text-success inline-flex items-center gap-1">
+                  <Check className="w-3 h-3" strokeWidth={2} /> Logo aktualisiert
+                </p>
+              )}
+              {logoError && <p className="mt-2 text-caption text-danger">{logoError}</p>}
+            </div>
+          </div>
+        </section>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="rounded-card bg-paper border border-stone p-6 space-y-5">

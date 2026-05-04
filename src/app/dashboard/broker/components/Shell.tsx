@@ -10,10 +10,11 @@ type Props = {
   fullName: string | null;
   tier: string | null;
   counts: { mandateActive: number; anfragenNeu: number; suchprofile: number; teamMembers: number };
+  publicProfileSlug?: string | null;
   children: React.ReactNode;
 };
 
-export function BrokerShell({ email, fullName, tier, counts, children }: Props) {
+export function BrokerShell({ email, fullName, tier, counts, publicProfileSlug, children }: Props) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const accountFooter = (
@@ -51,7 +52,10 @@ export function BrokerShell({ email, fullName, tier, counts, children }: Props) 
       )}
 
       <div className="flex-1 min-w-0 flex flex-col">
-        <BrokerTopbar onMenuToggle={() => setMobileOpen(true)} />
+        <BrokerTopbar
+          onMenuToggle={() => setMobileOpen(true)}
+          publicProfileSlug={publicProfileSlug ?? null}
+        />
         <main className="flex-1 overflow-y-auto">{children}</main>
       </div>
     </div>

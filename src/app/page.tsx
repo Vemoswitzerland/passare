@@ -138,6 +138,7 @@ export async function SiteHeader({ activeSell = false }: { activeSell?: boolean 
       .maybeSingle();
     dashboardHref =
       profile?.rolle === 'verkaeufer' ? '/dashboard/verkaeufer'
+      : profile?.rolle === 'broker' ? '/dashboard/broker'
       : profile?.rolle === 'admin' ? '/admin'
       : '/dashboard/kaeufer';
   }
@@ -155,6 +156,13 @@ export async function SiteHeader({ activeSell = false }: { activeSell?: boolean 
             </span>
           </Link>
           <nav className="hidden md:flex items-center gap-9">
+            {/* Reihenfolge nach Cyrills Briefing 04.05.2026:
+                Marktplatz · Firma inserieren · Preise · Broker · Käufer+.
+                «Marktplatz» ist /, doppelt das Logo, aber als expliziter
+                Nav-Link für Re-Entry vom /verkaufen oder /preise. */}
+            <Link href="/" className="text-[0.8125rem] font-medium text-muted hover:text-ink">
+              Marktplatz
+            </Link>
             <Link
               href="/verkaufen"
               className={`text-[0.8125rem] font-medium transition-colors ${
@@ -162,6 +170,9 @@ export async function SiteHeader({ activeSell = false }: { activeSell?: boolean 
               }`}
             >
               Firma inserieren
+            </Link>
+            <Link href="/preise" className="text-[0.8125rem] font-medium text-muted hover:text-ink">
+              Preise
             </Link>
             <Link href="/broker" className="text-[0.8125rem] font-medium text-muted hover:text-ink">
               Broker

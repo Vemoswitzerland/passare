@@ -1,8 +1,9 @@
 import Link from 'next/link';
-import { Building2, MapPin, ArrowRight, FileText } from 'lucide-react';
+import { Building2, MapPin, ArrowRight, FileText, Filter } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { Container, Section } from '@/components/ui/container';
 import { Reveal } from '@/components/ui/reveal';
+import { KANTON_CODES, KANTON_NAMES } from '@/lib/constants';
 import { SiteHeader, SiteFooter } from '../../page';
 
 export const metadata = {
@@ -11,13 +12,23 @@ export const metadata = {
   robots: { index: false, follow: false },
 };
 
-export default async function BrokerVerzeichnisPage() {
+type Props = { searchParams: Promise<{ kanton?: string }> };
+
+export default async function BrokerVerzeichnisPage({ searchParams }: Props) {
+  const sp = await searchParams;
+  const kantonFilter = sp.kanton && sp.kanton !== 'all' ? sp.kanton : undefined;
+
   const supabase = await createClient();
 
-  const { data: brokers } = await supabase
+  let query = supabase
     .from('broker_profiles_public')
     .select('*')
     .order('active_mandate_count', { ascending: false });
+
+  // View hat Spalte `kanton` (vom JOIN auf profiles).
+  if (kantonFilter) query = query.eq('kanton', kantonFilter);
+
+  const { data: brokers } = await query;
 
   return (
     <main className="min-h-screen flex flex-col bg-cream">
@@ -36,6 +47,48 @@ export default async function BrokerVerzeichnisPage() {
                 und verwaltet aktive Verkaufsmandate.
               </p>
             </div>
+          </Reveal>
+
+          {/* Filter — minimal, GET-Form, keine Hydration nötig. */}
+          <Reveal>
+            <form
+              method="GET"
+              action="/broker/verzeichnis"
+              className="mb-8 flex flex-wrap items-end gap-3 rounded-card bg-paper border border-stone p-4"
+            >
+              <div className="flex-1 min-w-[200px]">
+                <label htmlFor="kanton" className="overline block mb-1.5 text-quiet inline-flex items-center gap-1.5">
+                  <Filter className="w-3 h-3" strokeWidth={1.5} /> Kanton
+                </label>
+                <select
+                  id="kanton"
+                  name="kanton"
+                  defaultValue={kantonFilter ?? 'all'}
+                  className="w-full bg-cream border border-stone rounded-soft px-3 py-2 text-body-sm focus:outline-none focus:border-bronze"
+                >
+                  <option value="all">Alle Kantone</option>
+                  {KANTON_CODES.map((k) => (
+                    <option key={k} value={k}>
+                      {k} — {KANTON_NAMES[k]}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <button
+                type="submit"
+                className="px-4 py-2 bg-navy text-cream rounded-soft text-caption font-medium hover:bg-ink transition-colors"
+              >
+                Filtern
+              </button>
+              {kantonFilter && (
+                <Link
+                  href="/broker/verzeichnis"
+                  className="font-mono text-[11px] uppercase tracking-widest text-quiet hover:text-navy"
+                >
+                  zurücksetzen
+                </Link>
+              )}
+            </form>
           </Reveal>
 
           {(!brokers || brokers.length === 0) ? (

@@ -52,6 +52,26 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Datei sieht nicht wie ein gültiges Bild aus.' }, { status: 415 });
   }
 
+  // Storage-Müll vermeiden: alte Cover-Bilder dieses Inserats entfernen,
+  // BEVOR der neue Upload passiert. Pfad-Konvention im Bucket ist
+  // `${user_id}/${inserat_id}-<timestamp>.<ext>`. Best-effort, Fehler
+  // brechen den Upload nicht ab.
+  try {
+    const { data: existing } = await supabase.storage
+      .from('inserate-cover')
+      .list(userData.user.id, { limit: 100 });
+    if (existing && existing.length > 0) {
+      const stale = existing
+        .filter((f) => f.name.startsWith(`${inseratId}-`))
+        .map((f) => `${userData.user.id}/${f.name}`);
+      if (stale.length > 0) {
+        await supabase.storage.from('inserate-cover').remove(stale);
+      }
+    }
+  } catch {
+    // Storage-list darf den Upload nie blockieren
+  }
+
   const { error: upErr } = await supabase.storage
     .from('inserate-cover')
     .upload(path, arrayBuf, {

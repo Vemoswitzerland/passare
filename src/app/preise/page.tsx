@@ -226,7 +226,6 @@ function Footer() {
             <ul className="space-y-3 text-body-sm text-muted">
               <li><Link className="hover:text-navy" href="/">Über passare</Link></li>
               <li><Link className="hover:text-navy" href="/">Kontakt</Link></li>
-              <li><Link className="hover:text-navy" href="/design">Design System</Link></li>
             </ul>
           </div>
         </div>

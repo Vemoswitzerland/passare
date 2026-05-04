@@ -1,5 +1,6 @@
+import Link from 'next/link';
 import {
-  Phone, IdCard, FileLock2, Linkedin, Check, Lock, ShieldCheck,
+  Phone, IdCard, FileLock2, Linkedin, Check, Lock, ShieldCheck, Info, ArrowRight,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { hasTable } from '@/lib/db/has-table';
@@ -113,6 +114,30 @@ export default async function BrokerProfilPage() {
             </p>
           </div>
           <ProfilVorschauButton>{previewElement}</ProfilVorschauButton>
+        </div>
+
+        {/* Hinweis: dieser Bereich ist nur für die Käufer-Sicht des Brokers.
+            Das Logo, das hier hochgeladen wird, landet im Käufer-Profil-Bucket
+            und erscheint NICHT auf dem öffentlichen Broker-Verzeichnis. Für
+            das Verzeichnis-Logo bitte in /einstellungen. */}
+        <div className="rounded-card bg-bronze/5 border border-bronze/30 p-4 flex items-start gap-3">
+          <Info className="w-4 h-4 text-bronze-ink flex-shrink-0 mt-0.5" strokeWidth={1.5} />
+          <div className="flex-1 min-w-0">
+            <p className="text-body-sm text-navy font-medium">
+              Hinweis: Logo hier zählt nur fürs Käufer-Profil
+            </p>
+            <p className="text-caption text-muted mt-1 leading-relaxed">
+              Das Logo, das du auf dieser Seite hochlädst, erscheint, wenn du selbst auf
+              Inserate anfragst. Für dein Logo im öffentlichen Broker-Verzeichnis bitte
+              unter Einstellungen anpassen.
+            </p>
+            <Link
+              href="/dashboard/broker/einstellungen"
+              className="inline-flex items-center gap-1 mt-2 text-caption text-bronze-ink hover:text-navy font-medium"
+            >
+              Zu den Broker-Einstellungen <ArrowRight className="w-3 h-3" strokeWidth={1.5} />
+            </Link>
+          </div>
         </div>
 
         <section>

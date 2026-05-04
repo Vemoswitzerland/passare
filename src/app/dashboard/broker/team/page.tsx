@@ -2,7 +2,10 @@ import { Users, Plus, Mail, Shield } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { hasTable } from '@/lib/db/has-table';
 
-export const metadata = { title: 'Team — passare Broker' };
+export const metadata = {
+  title: 'Team — passare Broker',
+  robots: { index: false, follow: false },
+};
 
 export default async function BrokerTeamPage() {
   const supabase = await createClient();
@@ -70,13 +73,21 @@ export default async function BrokerTeamPage() {
             </p>
           </div>
           {teamMembers.length < seatsLimit && (
-            <button
-              type="button"
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-navy text-cream rounded-soft text-body-sm font-medium hover:bg-ink shadow-card hover:shadow-lift hover:-translate-y-px transition-all"
-            >
-              <Plus className="w-4 h-4" strokeWidth={1.5} />
-              Einladen
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled
+                title="Funktion kommt in Kürze"
+                aria-disabled="true"
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-navy/40 text-cream/80 rounded-soft text-body-sm font-medium cursor-not-allowed"
+              >
+                <Plus className="w-4 h-4" strokeWidth={1.5} />
+                Einladen
+              </button>
+              <span className="inline-flex items-center px-2 py-0.5 rounded-pill bg-bronze/15 text-bronze-ink text-[10px] font-mono font-medium uppercase tracking-wider">
+                Coming Soon
+              </span>
+            </div>
           )}
         </div>
 

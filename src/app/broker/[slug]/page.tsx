@@ -1,10 +1,11 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { Building2, Globe, Phone, MapPin, FileText, ArrowRight } from 'lucide-react';
+import { Building2, Globe, MapPin, FileText, ArrowRight } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { Container, Section } from '@/components/ui/container';
 import { Button } from '@/components/ui/button';
 import { SiteHeader, SiteFooter } from '../../page';
+import { PhoneReveal } from './PhoneReveal';
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -102,15 +103,7 @@ export default async function BrokerProfilPage({ params }: Props) {
                   Website
                 </a>
               )}
-              {bp.telefon && (
-                <a
-                  href={`tel:${bp.telefon}`}
-                  className="inline-flex items-center gap-1.5 text-body-sm text-bronze-ink hover:text-navy transition-colors"
-                >
-                  <Phone className="w-4 h-4" strokeWidth={1.5} />
-                  {bp.telefon}
-                </a>
-              )}
+              {bp.telefon && <PhoneReveal phone={bp.telefon} />}
             </div>
           </div>
         </Container>

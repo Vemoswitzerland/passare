@@ -10,7 +10,6 @@ import { cn } from '@/lib/utils';
 type Status =
   | 'entwurf'
   | 'pending'
-  | 'zur_pruefung'
   | 'rueckfrage'
   | 'live'
   | 'pausiert'
@@ -44,7 +43,7 @@ export function InseratStatusBanner({
     );
   }
 
-  if (status === 'pending' || status === 'zur_pruefung') {
+  if (status === 'pending') {
     return (
       <Banner
         tone="warn"

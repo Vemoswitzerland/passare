@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useState, useMemo } from 'react';
+import { useActionState, useState, useMemo, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import {
   ArrowRight, ArrowLeft, Building2, Briefcase, Landmark, UserPlus, Handshake,
@@ -13,6 +13,10 @@ import { KANTON_CODES } from '@/lib/constants';
 import type { Branche } from '@/lib/branchen';
 import type { ActionResult } from '@/app/auth/constants';
 import { cn } from '@/lib/utils';
+
+// Reload-Persistenz: localStorage-Schlüssel für den Tunnel-Draft. Wird
+// gesetzt bei jedem State-Change und gelöscht beim Submit/Skip.
+const TUNNEL_DRAFT_KEY = 'passare_kaeufer_tunnel_draft';
 
 const INVESTOR_OPTIONS = [
   { value: 'privatperson',         label: 'Privatperson',        desc: 'MBI / erste Akquisition',           icon: UserPlus },
@@ -40,6 +44,62 @@ export function TunnelForm({ branchen }: { branchen: Branche[] }) {
   // Beschreibung wurde aus dem Tunnel entfernt (gehört zur Anfrage, nicht zum Profil) —
   // wird leer mitgeschickt damit die bestehende Action-Schema-Validation passt.
   const beschreibung = '';
+
+  // Reload-Persistenz: Beim Mount aus localStorage wiederherstellen.
+  const hydratedRef = useRef(false);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const raw = window.localStorage.getItem(TUNNEL_DRAFT_KEY);
+      if (raw) {
+        const d = JSON.parse(raw);
+        if (typeof d.step === 'number') setStep(d.step);
+        if (Array.isArray(d.branchenSelected)) setBranchenSelected(d.branchenSelected);
+        if (Array.isArray(d.kantone)) setKantone(d.kantone);
+        if (typeof d.chWeit === 'boolean') setChWeit(d.chWeit);
+        if (typeof d.investorTyp === 'string') setInvestorTyp(d.investorTyp);
+        if (typeof d.budgetUndisclosed === 'boolean') setBudgetUndisclosed(d.budgetUndisclosed);
+        if (typeof d.budgetMin === 'number') setBudgetMin(d.budgetMin);
+        if (typeof d.budgetMax === 'number') setBudgetMax(d.budgetMax);
+        if (typeof d.acceptTerms === 'boolean') setAcceptTerms(d.acceptTerms);
+      }
+    } catch {
+      // ignore parse-errors — Draft ist optional
+    }
+    hydratedRef.current = true;
+  }, []);
+
+  // Bei jedem State-Change in localStorage schreiben (nach Hydration, sonst
+  // würden wir mit den Initial-Werten alles überschreiben).
+  useEffect(() => {
+    if (typeof window === 'undefined' || !hydratedRef.current) return;
+    try {
+      window.localStorage.setItem(
+        TUNNEL_DRAFT_KEY,
+        JSON.stringify({
+          step,
+          branchenSelected,
+          kantone,
+          chWeit,
+          investorTyp,
+          budgetUndisclosed,
+          budgetMin,
+          budgetMax,
+          acceptTerms,
+        }),
+      );
+    } catch {
+      // localStorage voll / disabled — egal
+    }
+  }, [step, branchenSelected, kantone, chWeit, investorTyp, budgetUndisclosed, budgetMin, budgetMax, acceptTerms]);
+
+  // Nach erfolgreichem Submit (state.ok) den Draft löschen — der Tunnel
+  // ist abgeschlossen.
+  useEffect(() => {
+    if (state?.ok && typeof window !== 'undefined') {
+      try { window.localStorage.removeItem(TUNNEL_DRAFT_KEY); } catch { /* egal */ }
+    }
+  }, [state]);
 
   const totalSteps = 2;
   const progress = Math.round(((step + 1) / totalSteps) * 100);
@@ -74,6 +134,12 @@ export function TunnelForm({ branchen }: { branchen: Branche[] }) {
         <form action={skipKaeuferTunnelAction}>
           <button
             type="submit"
+            onClick={() => {
+              // Draft löschen — beim Skip ist der Tunnel beendet.
+              if (typeof window !== 'undefined') {
+                try { window.localStorage.removeItem(TUNNEL_DRAFT_KEY); } catch { /* egal */ }
+              }
+            }}
             className="inline-flex items-center gap-1.5 font-mono text-caption text-quiet hover:text-navy transition-colors"
           >
             <X className="w-3.5 h-3.5" strokeWidth={1.5} />

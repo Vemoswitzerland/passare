@@ -84,6 +84,12 @@ export async function setQualitaetsScoreAction(input: { user_id: string; score: 
     .update({ qualitaets_score: parsed.score })
     .eq('id', parsed.user_id);
   if (error) return { ok: false, error: error.message };
+  await logAuditEvent({
+    type: 'admin_action',
+    user_id: parsed.user_id,
+    beschreibung: `Quality-Score geändert: ${parsed.score ?? 'gelöscht'}`,
+    metadata: { field: 'qualitaets_score', value: parsed.score },
+  });
   revalidatePath('/admin/users');
   revalidatePath(`/admin/users/${parsed.user_id}`);
   return { ok: true };
@@ -103,6 +109,12 @@ export async function setAdminNotesAction(input: { user_id: string; notes: strin
     .update({ admin_notes: parsed.notes || null })
     .eq('id', parsed.user_id);
   if (error) return { ok: false, error: error.message };
+  await logAuditEvent({
+    type: 'admin_action',
+    user_id: parsed.user_id,
+    beschreibung: 'Admin-Notes geändert',
+    metadata: { field: 'admin_notes', length: parsed.notes.length },
+  });
   revalidatePath(`/admin/users/${parsed.user_id}`);
   return { ok: true };
 }

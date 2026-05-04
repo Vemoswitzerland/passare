@@ -52,12 +52,18 @@ export async function POST(req: NextRequest) {
   // Akzeptiert UUID oder public_id (kurze ID aus URL).
   const admin = createAdminClient();
   const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(body.listing_id);
-  const filter = isUuid ? { id: body.listing_id } : { public_id: body.listing_id };
-  const { data: listing } = await admin
+  // Bewusst `.eq()` statt `.match({})` — match nimmt ein Objekt entgegen,
+  // dessen Schlüssel direkt in die Query-Spalte gemappt werden. Bei einem
+  // unzulässigen Schlüssel könnte das zu Operator-Injection führen.
+  // `.eq(column, value)` ist enger gefasst und sicherer.
+  const baseQuery = admin
     .from('inserate')
-    .select('id, titel, public_id, verkaeufer_id, broker_id, status')
-    .match(filter)
-    .maybeSingle();
+    .select('id, titel, public_id, verkaeufer_id, broker_id, status');
+  const { data: listing } = await (
+    isUuid
+      ? baseQuery.eq('id', body.listing_id)
+      : baseQuery.eq('public_id', body.listing_id)
+  ).maybeSingle();
 
   if (!listing || listing.status !== 'live') {
     return NextResponse.json({ error: 'Inserat nicht gefunden' }, { status: 404 });
@@ -134,7 +140,34 @@ export async function POST(req: NextRequest) {
           subject_override: `Neue Anfrage: ${safeTitel}`,
           related_id: anfrageRow?.id ?? undefined,
         });
+      } else {
+        // Fallback: User existiert aber keine Email — Team informieren,
+        // sonst geht die Anfrage stillschweigend verloren.
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://passare-ch.vercel.app';
+        await sendEmail({
+          template: 'verifizierung',
+          to: 'info@passare.ch',
+          vars: {
+            name: 'passare-Team',
+            verifyUrl: `${appUrl}/admin/anfragen`,
+          },
+          subject_override: `[Fallback] Anfrage zu Inserat ${listing.id} — Empfänger ohne Email`,
+        });
       }
+    } else {
+      // Kein Empfänger gefunden (weder Verkäufer noch Broker zugeordnet).
+      // Fehler-Mail an info@passare.ch — sonst landet die Anfrage zwar in
+      // der DB, aber niemand wird informiert.
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://passare-ch.vercel.app';
+      await sendEmail({
+        template: 'verifizierung',
+        to: 'info@passare.ch',
+        vars: {
+          name: 'passare-Team',
+          verifyUrl: `${appUrl}/admin/anfragen`,
+        },
+        subject_override: `[Fallback] Anfrage zu Inserat ${listing.id} aber kein Empfänger gefunden`,
+      });
     }
 
     return NextResponse.json({ ok: true, anfrageId: anfrageRow?.id ?? null, direct: true });

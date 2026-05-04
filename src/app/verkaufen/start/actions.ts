@@ -2,6 +2,12 @@
 
 import type { ValuationResult } from '@/lib/valuation';
 import { formatCHF } from '@/lib/valuation';
+import { BRANCHEN_LIST } from '@/data/branchen-multiples';
+
+function brancheLabelFromId(id: string | null | undefined): string | null {
+  if (!id) return null;
+  return BRANCHEN_LIST.find((b) => b.id === id)?.label ?? id;
+}
 
 type SendValuationInput = {
   email: string;
@@ -90,7 +96,8 @@ function renderValuationText(i: SendValuationInput): string {
   lines.push(`Range: ${formatCHF(valuation.low)} – ${formatCHF(valuation.high)}`);
   lines.push('');
   lines.push('Eckdaten:');
-  if (i.branche_id) lines.push(`  Branche: ${i.branche_id}`);
+  const brancheLbl = brancheLabelFromId(i.branche_id);
+  if (brancheLbl) lines.push(`  Branche: ${brancheLbl}`);
   if (i.kanton) lines.push(`  Kanton: ${i.kanton}`);
   if (i.jahr) lines.push(`  Gründungsjahr: ${i.jahr}`);
   if (i.mitarbeitende) lines.push(`  Mitarbeitende: ${i.mitarbeitende}`);
@@ -109,7 +116,8 @@ function renderValuationText(i: SendValuationInput): string {
 function renderValuationHtml(i: SendValuationInput): string {
   const { firma_name, valuation } = i;
   const facts: Array<[string, string]> = [];
-  if (i.branche_id) facts.push(['Branche', i.branche_id]);
+  const brancheLbl = brancheLabelFromId(i.branche_id);
+  if (brancheLbl) facts.push(['Branche', brancheLbl]);
   if (i.kanton) facts.push(['Kanton', i.kanton]);
   if (i.jahr) facts.push(['Gründungsjahr', String(i.jahr)]);
   if (i.mitarbeitende) facts.push(['Mitarbeitende', String(i.mitarbeitende)]);

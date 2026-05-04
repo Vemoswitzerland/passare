@@ -113,7 +113,12 @@ export async function POST(req: NextRequest) {
     .select('id, url, sortierung')
     .single();
 
-  if (insErr) return NextResponse.json({ error: insErr.message }, { status: 500 });
+  if (insErr) {
+    // Rollback: Storage-File entfernen, sonst sammelt sich Müll im Bucket
+    // (Pattern wie in upload-datenraum/route.ts).
+    await supabase.storage.from(BUCKET).remove([path]);
+    return NextResponse.json({ error: insErr.message }, { status: 500 });
+  }
   return NextResponse.json({ ok: true, item: row });
 }
 
@@ -129,11 +134,18 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: 'inserat_id + order required' }, { status: 400 });
   }
 
+  // DoS-Schutz: max. 30 Items pro Patch (Galerie-Limit ist ohnehin 8)
+  if (order.length > 30) {
+    return NextResponse.json({ error: 'too_many' }, { status: 400 });
+  }
+
   if (!(await ensureOwner(supabase, u.user.id, inseratId))) {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 });
   }
 
-  // Update Sortierung pro Medium
+  // Update Sortierung pro Medium — `.eq('inserat_id', inseratId)` als
+  // zusätzlicher Filter, damit Owner nicht versehentlich (oder bösartig)
+  // medium-IDs fremder Inserate umsortieren kann.
   for (let i = 0; i < order.length; i++) {
     await supabase
       .from('inserat_medien')
@@ -156,12 +168,22 @@ export async function DELETE(req: NextRequest) {
   // Owner-Check via JOIN auf inserate
   const { data: medium } = await supabase
     .from('inserat_medien')
-    .select('id, inserat_id, url')
+    .select('id, inserat_id, url, ist_cover')
     .eq('id', id)
     .maybeSingle();
   if (!medium) return NextResponse.json({ error: 'not found' }, { status: 404 });
   if (!(await ensureOwner(supabase, u.user.id, medium.inserat_id))) {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 });
+  }
+
+  // Wenn das gelöschte Bild als Cover markiert ist, MUSS auch
+  // inserate.cover_url genullt werden — sonst zeigt das Inserat einen
+  // toten Storage-Pfad (404 für Käufer).
+  if (medium.ist_cover) {
+    await supabase
+      .from('inserate')
+      .update({ cover_url: null })
+      .eq('id', medium.inserat_id);
   }
 
   await supabase.from('inserat_medien').delete().eq('id', id);
