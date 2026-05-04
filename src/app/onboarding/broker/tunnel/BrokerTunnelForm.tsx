@@ -27,7 +27,8 @@ export function BrokerTunnelForm({ userName }: Props) {
   const [pending, startTransition] = useTransition();
   const [step, setStep] = useState(1);
   const [error, setError] = useState('');
-  const [showZefix, setShowZefix] = useState(false);
+  // Standard ist Handelsregister-Suche (faster, robuster) — manuell ist Fallback.
+  const [showZefix, setShowZefix] = useState(true);
 
   const [form, setForm] = useState({
     agentur_name: '',
