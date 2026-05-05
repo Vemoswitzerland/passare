@@ -1,105 +1,81 @@
-'use client';
-
 import * as React from 'react';
-import { motion, useReducedMotion } from 'framer-motion';
+import { cn } from '@/lib/utils';
 
 type RevealProps = React.HTMLAttributes<HTMLDivElement> & {
   delay?: number;
   as?: 'div' | 'section' | 'article' | 'span';
+  /** Beibehalten für API-Kompatibilität — wird ignoriert (CSS-Animation läuft immer beim Mount). */
   once?: boolean;
 };
 
 /**
- * Scroll-Reveal mit fade-up.
- * Duration 700ms, cubic-bezier expo-out. Dezent.
+ * Fade-up Reveal — pure CSS-Animation auf Mount.
  *
- * Cyrill 2026-05-05: Bug — wenn ein Reveal-Element initial im Viewport ist,
- * triggert IntersectionObserver in seltenen Fällen nicht (z.B. wenn das
- * Hero-Element noch nicht gemessen wurde) und das Element bleibt mit
- * opacity:0 unsichtbar. Lösung: Nach Mount setzen wir mit useEffect den
- * `animate`-Wert hart auf «visible» falls bereits in der Above-the-Fold-Zone
- * (oder als Fallback nach 250ms). Damit ist die Hero-Section sofort sichtbar,
- * spätere Reveals kommen weiterhin per Scroll-Trigger.
+ * Cyrill 2026-05-05: Vorher framer-motion `whileInView` — der Hook hat
+ * unzuverlässig getriggert wenn ein Element initial Above-the-Fold UND
+ * height 0 hatte (Henne-Ei). Hero-Sections blieben unsichtbar bis der
+ * User scrollte. Lösung: Tailwind-`animate-fade-up` (=keyframe `fadeUp`)
+ * läuft 700ms beim ersten Mount, garantiert sichtbar. `prefers-reduced-
+ * motion` greift via `globals.css` Media-Query und reduziert die
+ * Animation-Duration auf 0.01ms.
+ *
+ * Trade-off: Keine Scroll-Triggered-Reveals mehr — Below-the-Fold
+ * Elemente animieren auch beim Page-Load (im JS-Bundle aber instant
+ * ausgeblendet falls bereits vergangen). Net-Effekt: Robuste Animation,
+ * kein Lipgloss aber zuverlässig.
  */
-export function Reveal({ children, className, delay = 0, once = true, ...props }: RevealProps) {
-  const reducedMotion = useReducedMotion();
-  const [forced, setForced] = React.useState(false);
-
-  React.useEffect(() => {
-    // Wenn der User reduced-motion will: sofort sichtbar.
-    if (reducedMotion) {
-      setForced(true);
-      return;
-    }
-    // Fallback: Nach 250ms ist auf jeden Fall sichtbar.
-    // whileInView läuft normalerweise davor; falls nicht (Above-the-Fold-
-    // Hero-Bug), greift dieser Timer.
-    const t = window.setTimeout(() => setForced(true), 250);
-    return () => window.clearTimeout(t);
-  }, [reducedMotion]);
-
+export function Reveal({ children, className, delay = 0, ...props }: RevealProps) {
+  // `once`, `as` werden nicht ausgewertet — API-Compat.
+  const { once: _once, as: _as, ...rest } = props as RevealProps & { once?: boolean };
   return (
-    <motion.div
-      initial={reducedMotion ? false : { opacity: 0, y: 16 }}
-      animate={forced ? { opacity: 1, y: 0 } : undefined}
-      whileInView={forced ? undefined : { opacity: 1, y: 0 }}
-      viewport={{ once, margin: '0px', amount: 0.05 }}
-      transition={{ duration: 0.7, delay, ease: [0.16, 1, 0.3, 1] }}
-      className={className}
-      {...(props as object)}
+    <div
+      className={cn('animate-fade-up', className)}
+      style={delay ? { animationDelay: `${delay}s` } : undefined}
+      {...rest}
     >
       {children}
-    </motion.div>
+    </div>
   );
 }
 
 type RevealStaggerProps = {
   children: React.ReactNode;
   className?: string;
-  gap?: number; // Staggering delay in Sekunden
+  /** Stagger-Delay zwischen Items in Sekunden. */
+  gap?: number;
 };
 
-/** Stagger-Wrapper für Listen — jedes Kind wird nacheinander eingeblendet */
+/**
+ * Stagger-Wrapper — gibt jedem Kind ein gestaffeltes `animationDelay`.
+ * Funktioniert mit React.Children.map, also direkte Children müssen
+ * `<RevealItem>` oder `<div>` sein.
+ */
 export function RevealStagger({ children, className, gap = 0.08 }: RevealStaggerProps) {
-  const reducedMotion = useReducedMotion();
-  const [forced, setForced] = React.useState(false);
-
-  React.useEffect(() => {
-    if (reducedMotion) {
-      setForced(true);
-      return;
-    }
-    const t = window.setTimeout(() => setForced(true), 250);
-    return () => window.clearTimeout(t);
-  }, [reducedMotion]);
-
   return (
-    <motion.div
-      initial={reducedMotion ? 'visible' : 'hidden'}
-      animate={forced ? 'visible' : undefined}
-      whileInView={forced ? undefined : 'visible'}
-      viewport={{ once: true, margin: '0px', amount: 0.05 }}
-      variants={{
-        hidden: {},
-        visible: { transition: { staggerChildren: gap } },
-      }}
-      className={className}
-    >
-      {children}
-    </motion.div>
+    <div className={className}>
+      {React.Children.map(children, (child, i) => {
+        if (!React.isValidElement(child)) return child;
+        const childProps = (child.props ?? {}) as { style?: React.CSSProperties; className?: string };
+        return React.cloneElement(child as React.ReactElement<{ style?: React.CSSProperties; className?: string }>, {
+          style: { ...childProps.style, animationDelay: `${i * gap}s` },
+        });
+      })}
+    </div>
   );
 }
 
-export function RevealItem({ children, className }: { children: React.ReactNode; className?: string }) {
+export function RevealItem({
+  children,
+  className,
+  style,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  style?: React.CSSProperties;
+}) {
   return (
-    <motion.div
-      variants={{
-        hidden: { opacity: 0, y: 12 },
-        visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1] } },
-      }}
-      className={className}
-    >
+    <div className={cn('animate-fade-up', className)} style={style}>
       {children}
-    </motion.div>
+    </div>
   );
 }
