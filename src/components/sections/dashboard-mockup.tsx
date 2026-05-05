@@ -97,18 +97,19 @@ export function DashboardMockup() {
 
             {/* USP-Streifen — drei knappe Pillars, keine umbrechenden Texte.
                 Zentriert, mit Punkt-Trennern wie auf der Hero-Section.
-                «passare.ch» ist redundant zur Browser-URL oben → raus. */}
+                Cyrill 05.05.2026: «Inserat-Gebühr raus» — Geld-Aspekt
+                wird nicht hier transportiert, sondern in den Paketen. */}
             <div className="hidden md:flex items-center justify-center gap-3 px-3.5 py-2 rounded-soft bg-bronze/5 border border-bronze/30">
               <span className="font-mono text-[9px] uppercase tracking-widest text-bronze-ink font-medium">
                 Anonym
               </span>
               <span className="w-1 h-1 rounded-full bg-bronze/40" />
               <span className="font-mono text-[9px] uppercase tracking-widest text-quiet">
-                Inserat-Gebühr
+                Sie geben frei
               </span>
               <span className="w-1 h-1 rounded-full bg-bronze/40" />
               <span className="font-mono text-[9px] uppercase tracking-widest text-quiet">
-                Sie geben frei
+                Direkter Kontakt
               </span>
             </div>
           </div>
