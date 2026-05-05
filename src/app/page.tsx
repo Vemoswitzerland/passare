@@ -193,14 +193,14 @@ export async function SiteHeader({ activeSell = false }: { activeSell?: boolean 
                   size="sm"
                   className="hidden md:inline-flex"
                 >
-                  {activeSell ? 'Bewerten & inserieren' : 'Registrieren'}
+                  {activeSell ? 'Inserieren' : 'Registrieren'}
                 </Button>
               </>
             )}
             <MobileNav
               dashboardHref={dashboardHref}
               registerHref={activeSell ? '/verkaufen/start' : '/onboarding/kaeufer/tunnel'}
-              registerLabel={activeSell ? 'Bewerten & inserieren' : 'Registrieren'}
+              registerLabel={activeSell ? 'Inserieren' : 'Registrieren'}
             />
           </div>
         </div>

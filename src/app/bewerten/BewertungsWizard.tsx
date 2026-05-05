@@ -699,8 +699,8 @@ function ResultStep({
           <RotateCcw className="w-4 h-4" strokeWidth={1.5} />
           Neue Berechnung
         </button>
-        <Button href="/verkaufen/start" variant="secondary" size="md">
-          Bewerten &amp; inserieren <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
+        <Button href="/verkaufen/start?mode=inserieren" variant="secondary" size="md">
+          Inserieren <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
         </Button>
       </div>
     </div>

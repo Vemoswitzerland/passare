@@ -182,11 +182,11 @@ function CTA() {
           </Reveal>
           <Reveal delay={0.2}>
             <div className="flex flex-col sm:flex-row gap-4 items-start">
-              <Button href="/verkaufen/start" variant="bronze" size="lg">
-                Bewerten &amp; inserieren <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
+              <Button href="/verkaufen/start?mode=inserieren" variant="bronze" size="lg">
+                Inserieren <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
               </Button>
-              <Button href="/bewerten" variant="secondary" size="lg" className="!text-cream !border-cream/30 hover:!border-cream">
-                Nur bewerten
+              <Button href="/verkaufen/start?mode=bewerten" variant="secondary" size="lg" className="!text-cream !border-cream/30 hover:!border-cream">
+                Firma bewerten
               </Button>
             </div>
           </Reveal>
