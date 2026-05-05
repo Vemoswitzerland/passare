@@ -1,8 +1,8 @@
 import Link from 'next/link';
 import {
-  ArrowRight, Search, ShieldCheck, Handshake, Eye, FileLock2,
-  TrendingUp, Users, Calculator, Sparkles, Check,
-  MessageCircle, Clock, MapPin, Building2,
+  ArrowRight, Search, ShieldCheck, Handshake, FileLock2,
+  TrendingUp, Calculator, Sparkles,
+  MessageCircle, MapPin, Building2,
 } from 'lucide-react';
 import { Container, Section } from '@/components/ui/container';
 import { Button } from '@/components/ui/button';
@@ -51,8 +51,6 @@ export default async function HomePage() {
       <Hero totalCount={totalCount} branchenCount={branchen.length} branchen={branchen} />
       <ThreePillars />
       <LiveListings listings={listings} branchen={branchen} totalCount={totalCount} />
-      <SellerPackages />
-      <BuyerPackages />
       <ProcessSteps />
       <TrustBlock />
       <FAQ />
@@ -352,257 +350,6 @@ function LiveListings({
   );
 }
 
-/* ════════════════════════ Verkäufer-Pakete ════════════════════════ */
-function SellerPackages() {
-  const plans = [
-    {
-      tag: 'Einstieg',
-      name: 'Inserat Light',
-      price: 'CHF 290',
-      note: '3 Monate Laufzeit',
-      features: [
-        '1 anonymes Inserat im Marktplatz',
-        'Anfragen-Inbox mit Freigabe-Workflow',
-        'Standard-Cover aus Branchen-Bibliothek',
-        'In-App-Chat mit Käufern',
-      ],
-    },
-    {
-      tag: 'Empfohlen',
-      highlight: true,
-      name: 'Inserat Pro',
-      price: 'CHF 890',
-      note: '6 Monate Laufzeit',
-      features: [
-        'Alles aus Light, plus:',
-        'Featured-Position 7 Tage',
-        'Bis 8 Bilder + KI-Teaser',
-        'Vollständige Statistik',
-      ],
-    },
-    {
-      tag: 'Maximum',
-      name: 'Inserat Premium',
-      price: 'CHF 1\'890',
-      note: '12 Monate Laufzeit',
-      features: [
-        'Alles aus Pro, plus:',
-        'Featured-Position 30 Tage',
-        'Eigenes Branding & Logo',
-        'Prioritäts-Support',
-      ],
-    },
-  ];
-
-  return (
-    <Section className="bg-paper border-y border-stone">
-      <Container>
-        <Reveal>
-          <div className="mb-12 max-w-prose">
-            <p className="overline mb-5">Für Verkäufer</p>
-            <h2 className="font-serif text-display-md text-navy font-light mb-4">
-              Inserate für Verkäufer<span className="text-bronze">.</span>
-            </h2>
-            <p className="text-body-lg text-muted leading-relaxed">
-              Einmalige Paketgebühr. Alle Preise zzgl.&nbsp;8.1%&nbsp;MwSt.
-            </p>
-          </div>
-        </Reveal>
-
-        <div className="grid md:grid-cols-3 gap-px bg-stone border border-stone rounded-card overflow-hidden">
-          {plans.map((p, i) => (
-            <Reveal key={i} delay={i * 0.08}>
-              <div
-                className={`h-full p-8 md:p-10 flex flex-col ${
-                  p.highlight ? 'bg-cream/60' : 'bg-paper'
-                }`}
-              >
-                <div className="flex items-start justify-between mb-6">
-                  <p
-                    className={`font-mono text-[11px] uppercase tracking-widest ${
-                      p.highlight ? 'text-bronze-ink' : 'text-quiet'
-                    }`}
-                  >
-                    {p.tag}
-                  </p>
-                  {p.highlight && (
-                    <span className="font-mono text-[10px] uppercase tracking-widest px-2.5 py-1 rounded-full bg-bronze/15 text-bronze-ink">
-                      empfohlen
-                    </span>
-                  )}
-                </div>
-                <h3 className="font-serif text-head-lg text-navy font-normal mb-6">{p.name}</h3>
-                <div className="mb-6 pb-6 border-b border-stone">
-                  <p className="font-serif text-[clamp(2rem,4vw,3rem)] text-navy font-light font-tabular leading-none">
-                    {p.price}
-                  </p>
-                  <p className="font-mono text-[11px] uppercase tracking-widest text-quiet mt-3">
-                    {p.note}
-                  </p>
-                </div>
-                <ul className="space-y-3 mb-8 flex-1">
-                  {p.features.map((f, j) => (
-                    <li key={j} className="flex items-start gap-3 text-body-sm">
-                      <Check
-                        className="w-4 h-4 flex-shrink-0 mt-0.5 text-bronze"
-                        strokeWidth={1.75}
-                      />
-                      <span className="text-muted">{f}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </Reveal>
-          ))}
-        </div>
-
-        <Reveal delay={0.3}>
-          <div className="mt-10 flex flex-col sm:flex-row sm:items-center gap-4">
-            <Button href="/verkaufen" size="lg">
-              Firma inserieren
-              <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
-            </Button>
-            <Link
-              href="/preise"
-              className="font-mono text-[11px] uppercase tracking-widest text-quiet hover:text-navy inline-flex items-center gap-2 transition-colors"
-            >
-              Detail-Vergleich aller Pakete
-              <ArrowRight className="w-3.5 h-3.5" strokeWidth={1.5} />
-            </Link>
-          </div>
-        </Reveal>
-      </Container>
-    </Section>
-  );
-}
-
-/* ════════════════════════ Käufer-Tiers ════════════════════════ */
-function BuyerPackages() {
-  const tiers = [
-    {
-      tag: 'Standard',
-      name: 'Käufer Basic',
-      price: 'CHF 0',
-      note: 'unbefristet',
-      features: [
-        'Marktplatz vollständig browsen',
-        '5 Basis-Filter',
-        '5 Anfragen pro Monat',
-        'Suchprofil mit täglichem Alert',
-      ],
-      cta: 'Kostenlos registrieren',
-      href: '/onboarding/kaeufer/tunnel',
-      variant: 'secondary' as const,
-    },
-    {
-      tag: 'Plus',
-      highlight: true,
-      name: 'Käufer+ MAX',
-      price: 'CHF 199',
-      note: 'pro Monat (oder CHF 1’990 / Jahr)',
-      features: [
-        '7 Tage Frühzugang zu neuen Inseraten',
-        'Alle 17 Filter inklusive',
-        'Unbegrenzte Anfragen',
-        'WhatsApp-Echtzeit-Alerts',
-        'NDA-Fast-Track + Käuferprofil-Boost',
-      ],
-      cta: 'Käufer+ ansehen',
-      href: '/plus',
-      variant: 'primary' as const,
-    },
-  ];
-
-  return (
-    <Section>
-      <Container>
-        <Reveal>
-          <div className="mb-12 max-w-prose">
-            <p className="overline mb-5">Für Käufer</p>
-            <h2 className="font-serif text-display-md text-navy font-light mb-4">
-              Käufer-Pakete<span className="text-bronze">.</span>
-            </h2>
-            <p className="text-body-lg text-muted leading-relaxed">
-              Einsteigen mit Basic. Wenn du ernst suchst — Käufer+ MAX gibt dir
-              den 7-Tage-Vorsprung und alle Filter.
-            </p>
-          </div>
-        </Reveal>
-
-        <div className="grid md:grid-cols-2 gap-px bg-stone border border-stone rounded-card overflow-hidden">
-          {tiers.map((t, i) => (
-            <Reveal key={i} delay={i * 0.08}>
-              <div
-                className={`h-full p-8 md:p-10 flex flex-col ${
-                  t.highlight ? 'bg-navy text-cream' : 'bg-paper'
-                }`}
-              >
-                <div className="flex items-start justify-between mb-6">
-                  <p
-                    className={`font-mono text-[11px] uppercase tracking-widest ${
-                      t.highlight ? 'text-bronze' : 'text-quiet'
-                    }`}
-                  >
-                    {t.tag}
-                  </p>
-                  {t.highlight && (
-                    <span className="font-mono text-[10px] uppercase tracking-widest px-2.5 py-1 rounded-full bg-bronze text-cream">
-                      empfohlen
-                    </span>
-                  )}
-                </div>
-                <h3
-                  className={`font-serif text-head-lg font-normal mb-6 ${
-                    t.highlight ? 'text-cream' : 'text-navy'
-                  }`}
-                >
-                  {t.name}
-                </h3>
-                <div className={`mb-6 pb-6 border-b ${t.highlight ? 'border-cream/15' : 'border-stone'}`}>
-                  <p
-                    className={`font-serif text-[clamp(2rem,4vw,3rem)] font-light font-tabular leading-none ${
-                      t.highlight ? 'text-cream' : 'text-navy'
-                    }`}
-                  >
-                    {t.price}
-                  </p>
-                  <p
-                    className={`font-mono text-[11px] uppercase tracking-widest mt-3 ${
-                      t.highlight ? 'text-cream/60' : 'text-quiet'
-                    }`}
-                  >
-                    {t.note}
-                  </p>
-                </div>
-                <ul className="space-y-3 mb-8 flex-1">
-                  {t.features.map((f, j) => (
-                    <li key={j} className="flex items-start gap-3 text-body-sm">
-                      <Check
-                        className="w-4 h-4 flex-shrink-0 mt-0.5 text-bronze"
-                        strokeWidth={1.75}
-                      />
-                      <span className={t.highlight ? 'text-cream/85' : 'text-muted'}>{f}</span>
-                    </li>
-                  ))}
-                </ul>
-                <Button
-                  href={t.href}
-                  variant={t.highlight ? 'bronze' : 'secondary'}
-                  size="lg"
-                  className="w-full justify-center"
-                >
-                  {t.cta}
-                  <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
-                </Button>
-              </div>
-            </Reveal>
-          ))}
-        </div>
-      </Container>
-    </Section>
-  );
-}
-
 /* ════════════════════════ So funktioniert's ════════════════════════ */
 function ProcessSteps() {
   const steps = [
@@ -714,7 +461,7 @@ function FAQ() {
   const items = [
     {
       q: 'Was kostet passare?',
-      a: 'Verkäufer zahlen eine einmalige Paketgebühr ab CHF 290 (Light, 3 Monate Laufzeit). Käufer können kostenlos browsen und mit dem Basic-Tier 5 Anfragen pro Monat stellen. Käufer+ MAX kostet CHF 199 pro Monat oder CHF 1’990 pro Jahr und gibt 7 Tage Frühzugang sowie alle Filter.',
+      a: 'Verkäufer zahlen eine einmalige Paketgebühr für ihr Inserat — die Pakete unterscheiden sich in Laufzeit und Sichtbarkeit. Käufer können kostenlos browsen mit dem Basic-Tier; Käufer+ MAX schaltet 7 Tage Frühzugang, alle Filter und unbegrenzte Anfragen frei. Alle Preise findest du auf der Preise-Seite.',
     },
     {
       q: 'Wer sieht meine Daten als Verkäufer?',
