@@ -26,24 +26,24 @@ import {
 } from '@/lib/constants';
 
 /**
- * passare.ch — /boerse
+ * passare.ch — /marktplatz
  *
- * Die «Börse» ist die perfektionierte Marktplatz-Seite — eine eigene Route
- * für die offentlichen Inserate, mit klarer Identität (Hero «Börse.»),
+ * Die «Marktplatz» ist die perfektionierte Marktplatz-Seite — eine eigene Route
+ * für die offentlichen Inserate, mit klarer Identität (Hero «Marktplatz.»),
  * Quick-Stats über dem Grid und einer Sticky-Reset-Bar wenn Filter aktiv.
  *
  * Inhalt 1:1 wie auf `/`, aber:
  * - eigener Hero (statt «Firmen entdecken»)
  * - Quick-Stats (Inserate · Branchen · Kantone) abgeleitet aus den Listings
  * - aktive-Filter-Bar mit «Alle zurücksetzen»
- * - Filter-Form `action="/boerse"` (statt `/`)
+ * - Filter-Form `action="/marktplatz"` (statt `/`)
  *
  * ListingCard kommt aus `@/components/marketplace/ListingCard`. Nicht mehr
  * lokal duplizieren — sonst läuft die Karte aus dem Ruder.
  */
 
 export const metadata = {
-  title: 'Börse — passare.ch',
+  title: 'Marktplatz — passare.ch',
   description:
     'Aktuelle Schweizer KMU-Inserate. Filtern nach Branche, Kanton, Umsatz und EBITDA. Anonymer Teaser gratis sichtbar — Anfrage und Detail nach Freigabe durch den Verkäufer.',
   robots: { index: false, follow: false },
@@ -126,7 +126,7 @@ function Hero({ totalCount, filteredCount }: { totalCount: number; filteredCount
             <Reveal>
               <p className="overline mb-3 text-bronze-ink">Schweizer KMU-Marktplatz</p>
               <h1 className="font-serif-display text-[clamp(2rem,4vw,3.5rem)] text-navy font-light tracking-[-0.02em] leading-[1.08]">
-                Börse<span className="text-bronze">.</span>
+                Marktplatz<span className="text-bronze">.</span>
               </h1>
             </Reveal>
           </div>
@@ -179,7 +179,7 @@ function Marketplace({
           {/* Sidebar — als <form method="GET"> damit Filter über URL-Params gehen */}
           <aside className="lg:sticky lg:top-24 lg:self-start">
             <Reveal>
-              <form method="GET" action="/boerse" className="bg-paper border border-stone rounded-card p-5 space-y-5">
+              <form method="GET" action="/marktplatz" className="bg-paper border border-stone rounded-card p-5 space-y-5">
                 <div className="flex items-center gap-2">
                   <Filter className="w-4 h-4 text-bronze" strokeWidth={1.5} />
                   <h2 className="font-mono text-[11px] uppercase tracking-widest text-navy">Filter</h2>
@@ -301,7 +301,7 @@ function Marketplace({
                 <div className="pt-4 border-t border-stone flex flex-col gap-2">
                   <Button size="sm" className="w-full justify-center">Filter anwenden</Button>
                   <Link
-                    href="/boerse"
+                    href="/marktplatz"
                     className="font-mono text-[11px] uppercase tracking-widest text-quiet hover:text-navy text-center"
                   >
                     zurücksetzen
@@ -345,7 +345,7 @@ function Marketplace({
                     <span className="font-medium">{activeFilters}</span> {activeFilters === 1 ? 'Filter aktiv' : 'Filter aktiv'}
                   </p>
                   <Link
-                    href="/boerse"
+                    href="/marktplatz"
                     className="font-mono text-[11px] uppercase tracking-widest text-bronze hover:text-navy transition-colors"
                   >
                     Alle zurücksetzen

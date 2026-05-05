@@ -2,7 +2,7 @@
  * passare.ch — Globale Shell-Komponenten (Header + Footer)
  *
  * Zentrale Stelle für die Hauptnavigation. Wird von ALLEN öffentlichen
- * Seiten verwendet (`/`, `/boerse`, `/verkaufen`, `/preise`, `/kontakt`,
+ * Seiten verwendet (`/`, `/marktplatz`, `/verkaufen`, `/preise`, `/kontakt`,
  * `/impressum`, `/datenschutz`, `/agb`, `/broker`, `/plus`, `/kaufen`).
  *
  * Auf `/verkaufen` und `/preise` wird «Firma inserieren» nur als aktiv
@@ -49,10 +49,10 @@ export async function SiteHeader({ activeSell = false }: { activeSell?: boolean 
           </Link>
           <nav className="hidden md:flex items-center gap-9">
             <Link
-              href="/boerse"
+              href="/marktplatz"
               className="text-[0.8125rem] font-medium text-muted hover:text-ink transition-colors"
             >
-              Börse
+              Marktplatz
             </Link>
             <Link
               href="/verkaufen"
@@ -115,13 +115,13 @@ export function SiteFooter() {
             </p>
             <p className="text-body-sm text-muted max-w-xs leading-relaxed">
               Die Schweizer Self-Service-Plattform für die Nachfolge von KMU.
-              Direkt zwischen Verkäufer und Käufer — 0% Erfolgsprovision.
+              Direkt zwischen Verkäufer und Käufer.
             </p>
           </div>
           <div>
             <p className="overline mb-4">Plattform</p>
             <ul className="space-y-3 text-body-sm text-muted">
-              <li><Link className="hover:text-navy" href="/boerse">Börse</Link></li>
+              <li><Link className="hover:text-navy" href="/marktplatz">Marktplatz</Link></li>
               <li><Link className="hover:text-navy" href="/verkaufen">Firma inserieren</Link></li>
               <li><Link className="hover:text-navy" href="/broker">Broker</Link></li>
               <li>

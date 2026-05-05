@@ -68,9 +68,9 @@ export const UPDATES: Update[] = [
   {
     date: '2026-05-05',
     type: 'feature',
-    titel: 'Neue Landingpage + dedizierte Börse-Seite',
+    titel: 'Neue Landingpage + dedizierter Marktplatz',
     beschreibung:
-      'Die Startseite erklärt jetzt klar was passare ist: direkter Marktplatz, 0% Erfolgsprovision, gratis Bewertung, CH-Firmen-Atlas. Im Hero gibts einen prominenten Suchfilter — wer dort sucht, landet direkt auf der neuen Seite "Börse" mit allen Inseraten. Die Börse ist eine eigene Seite mit Filter-Sidebar, Sortierung und allen Live-Inseraten. Verkäufer- und Käufer-Pakete, FAQ und Prozess-Erklärung sind jetzt auch auf der Startseite zu sehen.',
+      'Die Startseite erklärt jetzt klar was passare ist: direkter Marktplatz, gratis Bewertung, CH-Firmen-Atlas. Im Hero gibt es einen prominenten Suchfilter — wer dort sucht, landet direkt auf dem Marktplatz mit allen Inseraten. Der Marktplatz ist eine eigene Seite mit Filter-Sidebar, Sortierung und allen Live-Inseraten. Verkäufer- und Käufer-Pakete, FAQ und Prozess-Erklärung sind jetzt auch auf der Startseite zu sehen.',
   },
   {
     date: '2026-05-04',

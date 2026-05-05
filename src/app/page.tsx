@@ -20,16 +20,16 @@ import { getBranchen } from '@/lib/branchen';
  * passare.ch — Homepage / Landingpage
  *
  * Die zentrale Eingangsseite. Erklärt was passare ist und schickt mit dem
- * prominenten Hero-Filter zur Börse `/boerse`. Marktplatz-Logik selber liegt
- * jetzt unter `/boerse` — diese Seite ist eine reine Landing.
+ * prominenten Hero-Filter zur Marktplatz `/marktplatz`. Marktplatz-Logik selber liegt
+ * jetzt unter `/marktplatz` — diese Seite ist eine reine Landing.
  *
- * Stand 2026-05-05: Marktplatz-Trennung — Landing & Börse leben separat.
+ * Stand 2026-05-05: Marktplatz-Trennung — Landing & Marktplatz leben separat.
  */
 
 export const metadata = {
   title: 'passare — Schweizer Plattform für KMU-Nachfolge',
   description:
-    'Direkt. Diskret. Schweizerisch. Verkäufer und Käufer finden auf passare ohne Mittelsmann zueinander. 0% Erfolgsprovision.',
+    'Direkt. Diskret. Schweizerisch. Verkäufer und Käufer finden auf passare ohne Mittelsmann zueinander.',
   robots: { index: false, follow: false },
 };
 
@@ -87,16 +87,16 @@ function Hero({
           <Reveal delay={0.1}>
             <p className="text-body-lg text-muted leading-relaxed max-w-2xl mx-auto">
               Verkäufer und Käufer finden auf passare ohne Mittelsmann zueinander.
-              0%&nbsp;Erfolgsprovision. Vollständig in der Schweiz gehostet.
+              Vollständig in der Schweiz gehostet.
             </p>
           </Reveal>
         </div>
 
-        {/* Filter-Bar — geht via GET zur Börse */}
+        {/* Filter-Bar — geht via GET zum Marktplatz */}
         <Reveal delay={0.2}>
           <form
             method="GET"
-            action="/boerse"
+            action="/marktplatz"
             className="bg-paper border border-stone rounded-card p-6 md:p-8 max-w-4xl mx-auto shadow-subtle"
           >
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
@@ -165,10 +165,10 @@ function Hero({
             <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between pt-5 border-t border-stone">
               <Button size="lg" className="sm:flex-1 sm:max-w-xs justify-center">
                 <Search className="w-4 h-4" strokeWidth={1.5} />
-                Auf der Börse suchen
+                Auf dem Marktplatz suchen
               </Button>
               <Link
-                href="/boerse"
+                href="/marktplatz"
                 className="font-mono text-[11px] uppercase tracking-widest text-quiet hover:text-navy text-center sm:text-right inline-flex items-center justify-center gap-2 transition-colors"
               >
                 Alle Inserate ansehen <ArrowRight className="w-3.5 h-3.5" strokeWidth={1.5} />
@@ -189,8 +189,6 @@ function Hero({
             <SignalDot>{branchenCount} Branchen</SignalDot>
             <span className="w-px h-3 bg-stone" />
             <SignalDot>26 Kantone</SignalDot>
-            <span className="w-px h-3 bg-stone" />
-            <SignalDot>0% Erfolgsprovision</SignalDot>
           </div>
         </Reveal>
       </Container>
@@ -215,8 +213,8 @@ function ThreePillars() {
       tag: 'Marktplatz',
       title: 'Direkter Marktplatz',
       body: 'Verkäufer inserieren anonym, Käufer finden ohne Mittelsmann. Jede Anfrage geht direkt an den Inhaber — keine Broker dazwischen.',
-      href: '/boerse',
-      cta: 'Zur Börse',
+      href: '/marktplatz',
+      cta: 'Zum Marktplatz',
     },
     {
       Icon: Calculator,
@@ -290,7 +288,7 @@ function LiveListings({
         <Reveal>
           <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-12">
             <div className="max-w-prose">
-              <p className="overline mb-5">Aktuell auf der Börse</p>
+              <p className="overline mb-5">Aktuell auf dem Marktplatz</p>
               <h2 className="font-serif text-display-md text-navy font-light mb-4">
                 Die neusten Inserate<span className="text-bronze">.</span>
               </h2>
@@ -300,7 +298,7 @@ function LiveListings({
               </p>
             </div>
             <div className="hidden md:block">
-              <Button href="/boerse" variant="secondary" size="md">
+              <Button href="/marktplatz" variant="secondary" size="md">
                 Alle Inserate
                 <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
               </Button>
@@ -336,13 +334,13 @@ function LiveListings({
             </div>
             <Reveal delay={0.3}>
               <div className="mt-10 text-center">
-                <Button href="/boerse" size="lg">
-                  Alle Inserate auf der Börse
+                <Button href="/marktplatz" size="lg">
+                  Alle Inserate auf dem Marktplatz
                   <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
                 </Button>
                 {totalCount > listings.length && (
                   <p className="font-mono text-[11px] uppercase tracking-widest text-quiet mt-4">
-                    {totalCount - listings.length} weitere Inserate auf der Börse
+                    {totalCount - listings.length} weitere Inserate auf dem Marktplatz
                   </p>
                 )}
               </div>
@@ -406,8 +404,7 @@ function SellerPackages() {
               Inserate für Verkäufer<span className="text-bronze">.</span>
             </h2>
             <p className="text-body-lg text-muted leading-relaxed">
-              Einmalige Paketgebühr. 0%&nbsp;Erfolgsprovision.
-              Alle Preise zzgl.&nbsp;8.1% MwSt.
+              Einmalige Paketgebühr. Alle Preise zzgl.&nbsp;8.1%&nbsp;MwSt.
             </p>
           </div>
         </Reveal>
@@ -613,7 +610,7 @@ function ProcessSteps() {
       Icon: FileLock2,
       step: 'I',
       title: 'Inserieren oder Suchen',
-      body: 'Verkäufer erstellen ein anonymes Inserat in 10 Minuten. Käufer browsen die Börse — ohne Konto.',
+      body: 'Verkäufer erstellen ein anonymes Inserat in 10 Minuten. Käufer browsen den Marktplatz — ohne Konto.',
     },
     {
       Icon: MessageCircle,
@@ -688,8 +685,8 @@ function TrustBlock() {
     },
     {
       Icon: TrendingUp,
-      title: '0 % Erfolgsprovision',
-      body: 'Keine Kommission auf den Verkaufspreis — du zahlst nur das Plattform-Paket.',
+      title: 'In 10 Minuten online',
+      body: 'Pre-Reg mit Live-Handelsregister-Suche und Smart-Bewertung — dein Inserat ist schnell live.',
     },
   ];
 
@@ -717,7 +714,7 @@ function FAQ() {
   const items = [
     {
       q: 'Was kostet passare?',
-      a: 'Verkäufer zahlen eine einmalige Paketgebühr ab CHF 290 (Light, 3 Monate Laufzeit). Käufer können kostenlos browsen und mit dem Basic-Tier 5 Anfragen pro Monat stellen. Käufer+ MAX kostet CHF 199 pro Monat oder CHF 1’990 pro Jahr und gibt 7 Tage Frühzugang sowie alle Filter. Es gibt keine Erfolgsprovision auf den Verkaufspreis.',
+      a: 'Verkäufer zahlen eine einmalige Paketgebühr ab CHF 290 (Light, 3 Monate Laufzeit). Käufer können kostenlos browsen und mit dem Basic-Tier 5 Anfragen pro Monat stellen. Käufer+ MAX kostet CHF 199 pro Monat oder CHF 1’990 pro Jahr und gibt 7 Tage Frühzugang sowie alle Filter.',
     },
     {
       q: 'Wer sieht meine Daten als Verkäufer?',
@@ -729,7 +726,7 @@ function FAQ() {
     },
     {
       q: 'Was ist der Unterschied zu einem Broker?',
-      a: 'Ein Broker arbeitet auf Mandat und nimmt eine Erfolgsprovision von typischerweise 5 – 10 % des Verkaufspreises. passare ist eine Self-Service-Plattform: Du inserierst selbst, du verhandelst selbst. Wir verdienen am Plattform-Paket, nicht am Deal. Falls du einen Broker brauchst, kannst du jederzeit einen über unser Verzeichnis finden.',
+      a: 'Ein Broker arbeitet auf Mandat und übernimmt das Mandat ganzheitlich. passare ist eine Self-Service-Plattform: Du inserierst selbst, du verhandelst selbst, du entscheidest selbst, wer dein Detail-Dossier sieht. Falls du einen Broker brauchst, kannst du jederzeit einen über unser Verzeichnis finden.',
     },
     {
       q: 'Brauche ich einen Anwalt für die Übergabe?',
@@ -817,7 +814,7 @@ function FinalCTA() {
               </Button>
             </div>
             <p className="font-mono text-[11px] uppercase tracking-widest text-cream/60 mt-6">
-              0 % Erfolgsprovision &middot; «Made in Switzerland» &middot; Anonym
+              «Made in Switzerland» &middot; Anonym &middot; Self-Service
             </p>
           </Reveal>
         </div>

@@ -1,7 +1,7 @@
 /**
  * passare.ch — ListingCard
  *
- * Wiederverwendbare Marktplatz-Karte. Wird von der Börse (`/boerse`),
+ * Wiederverwendbare Marktplatz-Karte. Wird von der Marktplatz (`/marktplatz`),
  * der Landingpage (`/`) und potentiell von anderen Pages benutzt
  * (z.B. Daily-Digest, Käufer-Dashboard).
  *
