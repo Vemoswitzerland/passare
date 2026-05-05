@@ -29,7 +29,7 @@ import { getBranchen } from '@/lib/branchen';
 export const metadata = {
   title: 'passare — Schweizer Plattform für KMU-Nachfolge',
   description:
-    'Direkt. Diskret. Schweizerisch. Verkäufer und Käufer finden auf passare ohne Mittelsmann zueinander.',
+    'Der Schweizer KMU-Marktplatz. Verkäufer und Käufer finden auf passare ohne Mittelsmann zueinander.',
   robots: { index: false, follow: false },
 };
 
@@ -77,9 +77,8 @@ function Hero({
           <Reveal>
             <p className="overline mb-4 text-bronze-ink">Schweizer KMU-Nachfolge</p>
             <h1 className="font-serif-display text-[clamp(2.5rem,5vw,4.5rem)] text-navy font-light tracking-[-0.02em] leading-[1.05] mb-6">
-              Direkt<span className="text-bronze">.</span>{' '}
-              Diskret<span className="text-bronze">.</span>{' '}
-              Schweizerisch<span className="text-bronze">.</span>
+              Der Schweizer<br />
+              KMU-Marktplatz<span className="text-bronze">.</span>
             </h1>
           </Reveal>
           <Reveal delay={0.1}>
