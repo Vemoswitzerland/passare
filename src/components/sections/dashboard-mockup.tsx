@@ -52,7 +52,7 @@ export function DashboardMockup() {
             </p>
             <nav className="space-y-0.5">
               <NavItem Icon={LayoutDashboard} label="Übersicht" active />
-              <NavItem Icon={FileText} label="Mein Inserat" badge="Live" tone="success" />
+              <NavItem Icon={FileText} label="Inserat" />
               <NavItem Icon={Inbox} label="Anfragen" badge="3" />
               <NavItem Icon={Archive} label="Datenraum" />
               <NavItem Icon={BarChart3} label="Statistik" />
@@ -95,17 +95,21 @@ export function DashboardMockup() {
               <InseratRow title="Mitarbeitende" meta="Vollzeit-Äquivalente" kpi="34" status="" muted last />
             </div>
 
-            {/* USP-Streifen */}
-            <div className="hidden md:flex items-center justify-between px-3.5 py-2 rounded-soft bg-bronze/5 border border-bronze/30">
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-[9px] uppercase tracking-widest text-bronze-ink">
-                  Anonym
-                </span>
-                <span className="font-mono text-[9px] text-quiet">
-                  · einmalige Inserat-Gebühr · Sie geben jede Anfrage frei
-                </span>
-              </div>
-              <span className="font-mono text-[9px] text-quiet">passare.ch</span>
+            {/* USP-Streifen — drei knappe Pillars, keine umbrechenden Texte.
+                Zentriert, mit Punkt-Trennern wie auf der Hero-Section.
+                «passare.ch» ist redundant zur Browser-URL oben → raus. */}
+            <div className="hidden md:flex items-center justify-center gap-3 px-3.5 py-2 rounded-soft bg-bronze/5 border border-bronze/30">
+              <span className="font-mono text-[9px] uppercase tracking-widest text-bronze-ink font-medium">
+                Anonym
+              </span>
+              <span className="w-1 h-1 rounded-full bg-bronze/40" />
+              <span className="font-mono text-[9px] uppercase tracking-widest text-quiet">
+                Inserat-Gebühr
+              </span>
+              <span className="w-1 h-1 rounded-full bg-bronze/40" />
+              <span className="font-mono text-[9px] uppercase tracking-widest text-quiet">
+                Sie geben frei
+              </span>
             </div>
           </div>
         </div>
