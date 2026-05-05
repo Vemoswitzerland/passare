@@ -1109,21 +1109,25 @@ function Step5Bewertung({
                   </span>
                 </button>
 
-                {/* Card B: Zurück zum Inserat */}
-                <a
-                  href="/verkaufen"
+                {/* Card B: Direkt zur Registrierung — Cyrill 05.05.2026:
+                    NICHT zurück auf die Landing-Page; der User ist mitten
+                    im Bewertungs-Funnel und soll seine Daten weiternutzen,
+                    nicht wieder bei null anfangen. */}
+                <button
+                  type="button"
+                  onClick={onInserieren}
                   className="group rounded-soft border-2 border-navy bg-navy text-cream p-6 text-left hover:bg-ink transition-all shadow-card hover:shadow-lift"
                 >
                   <Sparkles className="w-8 h-8 text-bronze mb-4" strokeWidth={1.5} />
                   <h3 className="font-serif text-head-sm text-cream mb-2">Bereit zum Inserieren?</h3>
                   <p className="text-body-sm text-cream/80 mb-4">
-                    Zurück zur Verkäufer-Seite — dort findest du die Inserat-Pakete und startest die Registrierung.
+                    Account anlegen und mit deinen Daten direkt das Inserat fertigstellen — keine doppelte Eingabe.
                   </p>
                   <span className="inline-flex items-center gap-1.5 text-caption text-bronze">
-                    Pakete ansehen
+                    Account erstellen
                     <ArrowRight className="w-3.5 h-3.5" strokeWidth={1.5} />
                   </span>
-                </a>
+                </button>
               </div>
             </>
           )}
@@ -1198,13 +1202,14 @@ function Step5Bewertung({
                 Schau auch im Spam-Ordner nach.
               </p>
               <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
-                <a
-                  href="/verkaufen"
+                <button
+                  type="button"
+                  onClick={onInserieren}
                   className="inline-flex items-center gap-2 px-6 py-3 bg-navy text-cream rounded-soft text-body-sm font-medium hover:bg-ink shadow-card hover:shadow-lift transition-all"
                 >
-                  Inserat-Pakete ansehen
+                  Doch direkt inserieren
                   <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
-                </a>
+                </button>
                 <a
                   href="/"
                   className="text-body-sm text-muted hover:text-navy transition-colors"
