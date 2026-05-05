@@ -1,82 +1,46 @@
 import Link from 'next/link';
 import {
-  ArrowRight, Search, TrendingUp,
-  Filter, Eye, LayoutDashboard, ChevronDown,
+  ArrowRight, Search, ShieldCheck, Handshake, Eye, FileLock2,
+  TrendingUp, Users, Calculator, Sparkles, Check,
+  MessageCircle, Clock, MapPin, Building2,
 } from 'lucide-react';
 import { Container, Section } from '@/components/ui/container';
 import { Button } from '@/components/ui/button';
 import { Divider } from '@/components/ui/divider';
-import { Reveal } from '@/components/ui/reveal';
-import { MobileNav } from '@/components/site/MobileNav';
-import { CardActions } from '@/components/marketplace/CardActions';
-import { MarketplaceEmpty } from '@/components/marketplace/MarketplaceEmpty';
-import { SortSelect } from '@/components/marketplace/SortSelect';
-import { branchenStockfoto } from '@/data/branchen-stockfotos';
-import { renderKeyFacts } from '@/lib/key-facts';
+import { Reveal, RevealStagger, RevealItem } from '@/components/ui/reveal';
+import { SiteHeader, SiteFooter } from '@/components/site/SiteShell';
+import { ListingCard } from '@/components/marketplace/ListingCard';
 import {
-  countListings,
-  formatEbitda,
-  formatKaufpreis,
-  formatUmsatz,
-  getListings,
-  type InseratPublic,
-} from '@/lib/listings';
-import { getBranchen, type Branche } from '@/lib/branchen';
-import {
-  EBITDA_BUCKETS,
-  KANTON_CODES,
-  KANTON_NAMES,
-  MA_BUCKETS,
-  PREIS_BUCKETS,
-  UEBERGABE_GRUENDE,
-  UMSATZ_BUCKETS,
-  uebergabeGrundLabel,
+  KANTON_CODES, KANTON_NAMES, PREIS_BUCKETS,
 } from '@/lib/constants';
-import { createClient } from '@/lib/supabase/server';
+import { getListings, countListings } from '@/lib/listings';
+import { getBranchen } from '@/lib/branchen';
 
 /**
- * passare.ch — Homepage = Plattform / Marktplatz
+ * passare.ch — Homepage / Landingpage
  *
- * Konzept (siehe Memory `project_passare_value_first_signup`):
- * Wer "firma kaufen" googelt, landet hier und sieht SOFORT die Inserate.
- * Filter, Anwählen, Anfragen — alles ohne Konto. Registrieren erst beim
- * tatsächlich-anfragen.
+ * Die zentrale Eingangsseite. Erklärt was passare ist und schickt mit dem
+ * prominenten Hero-Filter zur Börse `/boerse`. Marktplatz-Logik selber liegt
+ * jetzt unter `/boerse` — diese Seite ist eine reine Landing.
  *
- * Stand 2026-04-29: Inserate kommen aus der echten DB (`inserate_public` VIEW).
- * Bei leerer DB rendert `<MarketplaceEmpty />` mit Onboarding-CTAs.
+ * Stand 2026-05-05: Marktplatz-Trennung — Landing & Börse leben separat.
  */
 
 export const metadata = {
-  title: 'passare — Schweizer Marktplatz für KMU-Nachfolge',
+  title: 'passare — Schweizer Plattform für KMU-Nachfolge',
   description:
-    'Aktuelle Schweizer KMU-Inserate. Filtern nach Branche, Kanton, Umsatz und EBITDA. Anonymer Teaser gratis sichtbar, Detail-Dossier nach Anfrage und Freigabe durch den Verkäufer.',
+    'Direkt. Diskret. Schweizerisch. Verkäufer und Käufer finden auf passare ohne Mittelsmann zueinander. 0% Erfolgsprovision.',
   robots: { index: false, follow: false },
 };
 
 export const dynamic = 'force-dynamic';
 
-type SearchParams = {
-  branche?: string;
-  kanton?: string;
-  preis?: string;
-  umsatz?: string;
-  ebitda?: string;
-  ma?: string;
-  gruende?: string;
-  suche?: string;
-  sort?: string;
-};
+// Back-Compat: andere Pages importieren {SiteHeader, SiteFooter} aus '../page'
+export { SiteHeader, SiteFooter } from '@/components/site/SiteShell';
 
-export default async function HomePage({
-  searchParams,
-}: {
-  searchParams: Promise<SearchParams>;
-}) {
-  const sp = await searchParams;
-  const filters = parseFiltersFromSearchParams(sp);
-
+export default async function HomePage() {
   const [listings, totalCount, branchen] = await Promise.all([
-    getListings(filters),
+    getListings({ sort: 'neu', limit: 6 }),
     countListings(),
     getBranchen(),
   ]);
@@ -84,606 +48,780 @@ export default async function HomePage({
   return (
     <main className="min-h-screen flex flex-col bg-cream">
       <SiteHeader />
-      <Hero totalCount={totalCount} filteredCount={listings.length} />
-      <Marketplace
-        listings={listings}
-        totalCount={totalCount}
-        branchen={branchen}
-        searchParams={sp}
-      />
+      <Hero totalCount={totalCount} branchenCount={branchen.length} branchen={branchen} />
+      <ThreePillars />
+      <LiveListings listings={listings} branchen={branchen} totalCount={totalCount} />
+      <SellerPackages />
+      <BuyerPackages />
+      <ProcessSteps />
+      <TrustBlock />
+      <FAQ />
+      <FinalCTA />
       <SiteFooter />
     </main>
   );
 }
 
-/* ════════════════════════ Filter-Mapping ════════════════════════ */
-function parseFiltersFromSearchParams(sp: SearchParams) {
-  const preisBucket = PREIS_BUCKETS.find((b) => b.id === sp.preis);
-  const umsatzBucket = UMSATZ_BUCKETS.find((b) => b.id === sp.umsatz);
-  const maBucket = MA_BUCKETS.find((b) => b.id === sp.ma);
-  const ebitdaBucket = EBITDA_BUCKETS.find((b) => b.id === sp.ebitda);
-  const gruende = sp.gruende?.split(',').filter(Boolean);
-
-  return {
-    branche: sp.branche && sp.branche !== 'all' ? sp.branche : undefined,
-    kanton: sp.kanton && sp.kanton !== 'all' ? sp.kanton : undefined,
-    preis_min: preisBucket && 'min' in preisBucket ? preisBucket.min : undefined,
-    preis_max: preisBucket && 'max' in preisBucket ? preisBucket.max : undefined,
-    umsatz_min: umsatzBucket && 'min' in umsatzBucket ? umsatzBucket.min : undefined,
-    umsatz_max: umsatzBucket && 'max' in umsatzBucket ? umsatzBucket.max : undefined,
-    ebitda_min: ebitdaBucket && 'min' in ebitdaBucket ? ebitdaBucket.min : undefined,
-    ma_min: maBucket && 'min' in maBucket ? maBucket.min : undefined,
-    ma_max: maBucket && 'max' in maBucket ? maBucket.max : undefined,
-    gruende: gruende && gruende.length > 0 ? gruende : undefined,
-    suche: sp.suche?.trim() || undefined,
-    sort: (sp.sort as 'neu' | 'preis_asc' | 'preis_desc' | 'umsatz_desc' | 'ebitda_desc' | undefined) ?? 'neu',
-  } as const;
-}
-
-/* ════════════════════════ Header & Footer ════════════════════════ */
-export async function SiteHeader({ activeSell = false }: { activeSell?: boolean } = {}) {
-  // Konsistente Hauptnav über alle Seiten: «Firma inserieren», «Broker»,
-  // «Käufer+». Auf /verkaufen + /preise wird «Firma inserieren» nur als
-  // aktiv hervorgehoben (activeSell=true), die Menüpunkte selber bleiben gleich.
-  // «Inserat-Preise» ist nicht im Hauptmenü — über die Pakete-Sektion auf
-  // /verkaufen erreichbar (Detailvergleich → /preise).
-  const supabase = await createClient();
-  const { data: u } = await supabase.auth.getUser();
-  let dashboardHref: string | null = null;
-  if (u.user) {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('rolle')
-      .eq('id', u.user.id)
-      .maybeSingle();
-    dashboardHref =
-      profile?.rolle === 'verkaeufer' ? '/dashboard/verkaeufer'
-      : profile?.rolle === 'broker' ? '/dashboard/broker'
-      : profile?.rolle === 'admin' ? '/admin'
-      : '/dashboard/kaeufer';
-  }
-
+/* ════════════════════════ Hero mit Filter-Bar ════════════════════════ */
+function Hero({
+  totalCount,
+  branchenCount,
+  branchen,
+}: {
+  totalCount: number;
+  branchenCount: number;
+  branchen: { id: string; label_de: string }[];
+}) {
   return (
-    <header className="sticky top-0 z-40 border-b border-stone bg-cream/85 backdrop-blur-md">
+    <Section className="pt-12 md:pt-20 pb-16 md:pb-24">
       <Container>
-        <div className="flex items-center justify-between h-16 md:h-20">
-          <Link href="/" className="group flex items-center gap-3">
-            <span className="font-serif text-2xl text-navy tracking-tight">
-              passare<span className="text-bronze">.</span>
-            </span>
-            <span className="hidden md:inline font-mono text-[10px] uppercase tracking-widest text-quiet border border-stone rounded-full px-2 py-0.5">
-              beta
-            </span>
-          </Link>
-          <nav className="hidden md:flex items-center gap-9">
-            {/* Cyrill 2026-05-04: Marktplatz + Preise NICHT im Hauptmenü
-                — Marktplatz ist via Logo erreichbar, Preise via Pakete-
-                Sektion auf /verkaufen + /broker + /plus. */}
-            <Link
-              href="/verkaufen"
-              className={`text-[0.8125rem] font-medium transition-colors ${
-                activeSell ? 'text-navy' : 'text-muted hover:text-ink'
-              }`}
-            >
-              Firma inserieren
-            </Link>
-            <Link href="/broker" className="text-[0.8125rem] font-medium text-muted hover:text-ink">
-              Broker
-            </Link>
-            <Link
-              href="/plus"
-              className="text-[0.8125rem] font-medium text-muted hover:text-ink inline-flex items-baseline"
-            >
-              Käufer<span className="font-serif text-bronze leading-none ml-px">+</span>
-            </Link>
-          </nav>
-          <div className="flex items-center gap-3">
-            {dashboardHref ? (
-              <Button href={dashboardHref} size="sm" className="hidden md:inline-flex">
-                <LayoutDashboard className="w-3.5 h-3.5" strokeWidth={1.5} />
-                Mein Bereich
-              </Button>
-            ) : (
-              <>
-                <Button href="/auth/login" size="sm" variant="ghost" className="hidden md:inline-flex">
-                  Anmelden
-                </Button>
-                <Button
-                  href={activeSell ? '/verkaufen/start' : '/onboarding/kaeufer/tunnel'}
-                  size="sm"
-                  className="hidden md:inline-flex"
-                >
-                  {activeSell ? 'Inserieren' : 'Registrieren'}
-                </Button>
-              </>
-            )}
-            <MobileNav
-              dashboardHref={dashboardHref}
-              registerHref={activeSell ? '/verkaufen/start' : '/onboarding/kaeufer/tunnel'}
-              registerLabel={activeSell ? 'Inserieren' : 'Registrieren'}
-            />
-          </div>
-        </div>
-      </Container>
-    </header>
-  );
-}
-
-export function SiteFooter() {
-  return (
-    <footer className="border-t border-stone pt-16 pb-10 bg-cream">
-      <Container>
-        <div className="grid md:grid-cols-4 gap-10 mb-16">
-          <div className="md:col-span-2">
-            <p className="font-serif text-3xl text-navy mb-4">
-              passare<span className="text-bronze">.</span>
-            </p>
-            <p className="text-body-sm text-muted max-w-xs leading-relaxed">
-              Die Schweizer Self-Service-Plattform für die Nachfolge von KMU.
-            </p>
-          </div>
-          <div>
-            <p className="overline mb-4">Plattform</p>
-            <ul className="space-y-3 text-body-sm text-muted">
-              <li><Link className="hover:text-navy" href="/">Firmen entdecken</Link></li>
-              <li><Link className="hover:text-navy" href="/verkaufen">Firma inserieren</Link></li>
-              <li><Link className="hover:text-navy" href="/broker">Broker</Link></li>
-              <li>
-                <Link className="hover:text-navy inline-flex items-baseline" href="/plus">
-                  Käufer<span className="font-serif text-bronze leading-none ml-px">+</span>
-                </Link>
-              </li>
-            </ul>
-          </div>
-          <div>
-            <p className="overline mb-4">Konto</p>
-            <ul className="space-y-3 text-body-sm text-muted">
-              <li><Link className="hover:text-navy" href="/auth/login">Anmelden</Link></li>
-              <li><Link className="hover:text-navy" href="/onboarding/kaeufer/tunnel">Registrieren</Link></li>
-            </ul>
-          </div>
-        </div>
-        <Divider className="mb-6" />
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 text-caption text-quiet">
-          <p className="font-mono text-[11px] uppercase tracking-widest">
-            &copy; {new Date().getFullYear()} passare &middot; «Made in Switzerland»
-          </p>
-          <div className="flex flex-wrap gap-x-6 gap-y-2">
-            <Link href="/impressum" className="hover:text-navy">Impressum</Link>
-            <Link href="/datenschutz" className="hover:text-navy">Datenschutz</Link>
-            <Link href="/agb" className="hover:text-navy">AGB</Link>
-            <Link href="/kontakt" className="hover:text-navy">Kontakt</Link>
-            <a href="mailto:info@passare.ch" className="hover:text-navy">info@passare.ch</a>
-          </div>
-        </div>
-      </Container>
-    </footer>
-  );
-}
-
-/* ════════════════════════ Hero ════════════════════════ */
-function Hero({ totalCount, filteredCount }: { totalCount: number; filteredCount: number }) {
-  const sub =
-    totalCount === 0
-      ? 'noch keine öffentlichen Inserate. Sei der/die Erste auf der Plattform.'
-      : 'anonymer Teaser gratis sichtbar. Anfrage und Datenraum-Zugang gehen erst nach kostenloser Anmeldung und Freigabe durch den Verkäufer.';
-
-  return (
-    <Section className="pt-12 md:pt-16 pb-10 md:pb-14">
-      <Container>
-        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 max-w-content">
-          <div>
-            <Reveal>
-              <p className="overline mb-3 text-bronze-ink">Schweizer KMU-Marktplatz</p>
-              <h1 className="font-serif-display text-[clamp(2rem,4vw,3.5rem)] text-navy font-light tracking-[-0.02em] leading-[1.08]">
-                Firmen entdecken<span className="text-bronze">.</span>
-              </h1>
-            </Reveal>
-          </div>
+        <div className="text-center max-w-3xl mx-auto mb-10 md:mb-14">
+          <Reveal>
+            <p className="overline mb-4 text-bronze-ink">Schweizer KMU-Nachfolge</p>
+            <h1 className="font-serif-display text-[clamp(2.5rem,5vw,4.5rem)] text-navy font-light tracking-[-0.02em] leading-[1.05] mb-6">
+              Direkt<span className="text-bronze">.</span>{' '}
+              Diskret<span className="text-bronze">.</span>{' '}
+              Schweizerisch<span className="text-bronze">.</span>
+            </h1>
+          </Reveal>
           <Reveal delay={0.1}>
-            <p className="text-body-sm text-muted max-w-md leading-relaxed">
-              <span className="font-mono text-[11px] uppercase tracking-widest text-navy">
-                {totalCount === 0
-                  ? 'Marktplatz im Aufbau'
-                  : `${filteredCount} ${filteredCount === 1 ? 'Inserat' : 'Inserate'}${
-                      filteredCount !== totalCount ? ` von ${totalCount}` : ''
+            <p className="text-body-lg text-muted leading-relaxed max-w-2xl mx-auto">
+              Verkäufer und Käufer finden auf passare ohne Mittelsmann zueinander.
+              0%&nbsp;Erfolgsprovision. Vollständig in der Schweiz gehostet.
+            </p>
+          </Reveal>
+        </div>
+
+        {/* Filter-Bar — geht via GET zur Börse */}
+        <Reveal delay={0.2}>
+          <form
+            method="GET"
+            action="/boerse"
+            className="bg-paper border border-stone rounded-card p-6 md:p-8 max-w-4xl mx-auto shadow-subtle"
+          >
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
+              <div>
+                <label htmlFor="hero-suche" className="overline block mb-2">Stichwort</label>
+                <div className="relative">
+                  <Search
+                    className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-quiet"
+                    strokeWidth={1.5}
+                  />
+                  <input
+                    id="hero-suche"
+                    name="suche"
+                    type="text"
+                    placeholder="z.B. Bäckerei"
+                    className="w-full bg-cream border border-stone rounded-soft pl-9 pr-3 py-2.5 text-body-sm placeholder:text-quiet focus:outline-none focus:border-bronze"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="hero-branche" className="overline block mb-2">Branche</label>
+                <select
+                  id="hero-branche"
+                  name="branche"
+                  defaultValue="all"
+                  className="w-full bg-cream border border-stone rounded-soft px-3 py-2.5 text-body-sm focus:outline-none focus:border-bronze"
+                >
+                  <option value="all">Alle Branchen</option>
+                  {branchen.map((b) => (
+                    <option key={b.id} value={b.id}>{b.label_de}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label htmlFor="hero-kanton" className="overline block mb-2">Kanton</label>
+                <select
+                  id="hero-kanton"
+                  name="kanton"
+                  defaultValue="all"
+                  className="w-full bg-cream border border-stone rounded-soft px-3 py-2.5 text-body-sm focus:outline-none focus:border-bronze"
+                >
+                  <option value="all">Alle Kantone</option>
+                  {KANTON_CODES.map((k) => (
+                    <option key={k} value={k}>{KANTON_NAMES[k]}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label htmlFor="hero-preis" className="overline block mb-2">Kaufpreis</label>
+                <select
+                  id="hero-preis"
+                  name="preis"
+                  defaultValue="all"
+                  className="w-full bg-cream border border-stone rounded-soft px-3 py-2.5 text-body-sm focus:outline-none focus:border-bronze"
+                >
+                  {PREIS_BUCKETS.map((b) => (
+                    <option key={b.id} value={b.id}>{b.label}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between pt-5 border-t border-stone">
+              <Button size="lg" className="sm:flex-1 sm:max-w-xs justify-center">
+                <Search className="w-4 h-4" strokeWidth={1.5} />
+                Auf der Börse suchen
+              </Button>
+              <Link
+                href="/boerse"
+                className="font-mono text-[11px] uppercase tracking-widest text-quiet hover:text-navy text-center sm:text-right inline-flex items-center justify-center gap-2 transition-colors"
+              >
+                Alle Inserate ansehen <ArrowRight className="w-3.5 h-3.5" strokeWidth={1.5} />
+              </Link>
+            </div>
+          </form>
+        </Reveal>
+
+        {/* Vertrauens-Zeile */}
+        <Reveal delay={0.3}>
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 font-mono text-[11px] uppercase tracking-widest text-quiet">
+            <SignalDot>
+              {totalCount === 0
+                ? 'Marktplatz im Aufbau'
+                : `${totalCount} ${totalCount === 1 ? 'Inserat' : 'Inserate'} live`}
+            </SignalDot>
+            <span className="w-px h-3 bg-stone" />
+            <SignalDot>{branchenCount} Branchen</SignalDot>
+            <span className="w-px h-3 bg-stone" />
+            <SignalDot>26 Kantone</SignalDot>
+            <span className="w-px h-3 bg-stone" />
+            <SignalDot>0% Erfolgsprovision</SignalDot>
+          </div>
+        </Reveal>
+      </Container>
+    </Section>
+  );
+}
+
+function SignalDot({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="inline-flex items-center gap-2">
+      <span className="w-1 h-1 rounded-full bg-bronze" />
+      {children}
+    </span>
+  );
+}
+
+/* ════════════════════════ Was ist passare — 3 Säulen ════════════════════════ */
+function ThreePillars() {
+  const pillars = [
+    {
+      Icon: Search,
+      tag: 'Marktplatz',
+      title: 'Direkter Marktplatz',
+      body: 'Verkäufer inserieren anonym, Käufer finden ohne Mittelsmann. Jede Anfrage geht direkt an den Inhaber — keine Broker dazwischen.',
+      href: '/boerse',
+      cta: 'Zur Börse',
+    },
+    {
+      Icon: Calculator,
+      tag: 'Bewertung',
+      title: 'Smart-Bewertung gratis',
+      body: 'In sechs Fragen erhältst du eine realistische Marktwert-Range, basierend auf Schweizer KMU-Multiples deiner Branche.',
+      href: '/bewerten',
+      cta: 'Firma bewerten',
+    },
+    {
+      Icon: MapPin,
+      tag: 'Atlas',
+      title: 'CH-Firmen-Atlas',
+      body: 'Über 150’000 Schweizer KMU auf der Karte — Branche, Kanton, Grösse. Recherchiere visuell, ohne Konto.',
+      href: '/atlas',
+      cta: 'Atlas öffnen',
+    },
+  ];
+
+  return (
+    <Section className="bg-paper border-y border-stone">
+      <Container>
+        <Reveal>
+          <div className="mb-12 max-w-prose">
+            <p className="overline mb-5">Was ist passare</p>
+            <h2 className="font-serif text-display-md text-navy font-light">
+              Drei Wege zur Nachfolge<span className="text-bronze">.</span>
+            </h2>
+          </div>
+        </Reveal>
+        <RevealStagger className="grid md:grid-cols-3 gap-px bg-stone border border-stone rounded-card overflow-hidden">
+          {pillars.map((p, i) => (
+            <RevealItem key={i} className="bg-paper p-8 md:p-10 flex flex-col">
+              <p.Icon className="w-7 h-7 text-bronze mb-6" strokeWidth={1.5} />
+              <p className="font-mono text-[11px] uppercase tracking-widest text-quiet mb-3">{p.tag}</p>
+              <h3 className="font-serif text-head-md text-navy mb-4 font-normal leading-snug">
+                {p.title}
+              </h3>
+              <p className="text-body-sm text-muted leading-relaxed mb-6 flex-1">{p.body}</p>
+              <Link
+                href={p.href}
+                className="font-mono text-[11px] uppercase tracking-widest text-bronze-ink hover:text-bronze inline-flex items-center gap-2 transition-colors group/link"
+              >
+                {p.cta}
+                <ArrowRight
+                  className="w-3.5 h-3.5 group-hover/link:translate-x-0.5 transition-transform"
+                  strokeWidth={1.5}
+                />
+              </Link>
+            </RevealItem>
+          ))}
+        </RevealStagger>
+      </Container>
+    </Section>
+  );
+}
+
+/* ════════════════════════ Live-Inserate-Vorschau ════════════════════════ */
+function LiveListings({
+  listings,
+  branchen,
+  totalCount,
+}: {
+  listings: Awaited<ReturnType<typeof getListings>>;
+  branchen: Awaited<ReturnType<typeof getBranchen>>;
+  totalCount: number;
+}) {
+  return (
+    <Section>
+      <Container>
+        <Reveal>
+          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-12">
+            <div className="max-w-prose">
+              <p className="overline mb-5">Aktuell auf der Börse</p>
+              <h2 className="font-serif text-display-md text-navy font-light mb-4">
+                Die neusten Inserate<span className="text-bronze">.</span>
+              </h2>
+              <p className="text-body-lg text-muted leading-relaxed">
+                Alle anonym, alle aus der Schweiz. Detail-Dossier sieht ein
+                Interessent erst, wenn der Verkäufer ihn freischaltet.
+              </p>
+            </div>
+            <div className="hidden md:block">
+              <Button href="/boerse" variant="secondary" size="md">
+                Alle Inserate
+                <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
+              </Button>
+            </div>
+          </div>
+        </Reveal>
+
+        {listings.length === 0 ? (
+          <Reveal>
+            <div className="border border-dashed border-stone rounded-card p-12 text-center max-w-2xl mx-auto bg-paper">
+              <Building2 className="w-8 h-8 text-bronze/60 mx-auto mb-5" strokeWidth={1.25} />
+              <h3 className="font-serif text-head-md text-navy font-normal mb-3">
+                Marktplatz im Aufbau
+              </h3>
+              <p className="text-body-sm text-muted mb-6 max-w-md mx-auto">
+                Bald siehst du hier die ersten Schweizer KMU-Inserate.
+                Wenn du verkaufen möchtest, bist du in 10 Minuten live.
+              </p>
+              <Button href="/verkaufen" size="md">
+                Firma inserieren
+                <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
+              </Button>
+            </div>
+          </Reveal>
+        ) : (
+          <>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5 items-stretch">
+              {listings.map((l, i) => (
+                <Reveal key={l.id} delay={i * 0.05} className="h-full">
+                  <ListingCard listing={l} branchen={branchen} />
+                </Reveal>
+              ))}
+            </div>
+            <Reveal delay={0.3}>
+              <div className="mt-10 text-center">
+                <Button href="/boerse" size="lg">
+                  Alle Inserate auf der Börse
+                  <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
+                </Button>
+                {totalCount > listings.length && (
+                  <p className="font-mono text-[11px] uppercase tracking-widest text-quiet mt-4">
+                    {totalCount - listings.length} weitere Inserate auf der Börse
+                  </p>
+                )}
+              </div>
+            </Reveal>
+          </>
+        )}
+      </Container>
+    </Section>
+  );
+}
+
+/* ════════════════════════ Verkäufer-Pakete ════════════════════════ */
+function SellerPackages() {
+  const plans = [
+    {
+      tag: 'Einstieg',
+      name: 'Inserat Light',
+      price: 'CHF 290',
+      note: '3 Monate Laufzeit',
+      features: [
+        '1 anonymes Inserat im Marktplatz',
+        'Anfragen-Inbox mit Freigabe-Workflow',
+        'Standard-Cover aus Branchen-Bibliothek',
+        'In-App-Chat mit Käufern',
+      ],
+    },
+    {
+      tag: 'Empfohlen',
+      highlight: true,
+      name: 'Inserat Pro',
+      price: 'CHF 890',
+      note: '6 Monate Laufzeit',
+      features: [
+        'Alles aus Light, plus:',
+        'Featured-Position 7 Tage',
+        'Bis 8 Bilder + KI-Teaser',
+        'Vollständige Statistik',
+      ],
+    },
+    {
+      tag: 'Maximum',
+      name: 'Inserat Premium',
+      price: 'CHF 1\'890',
+      note: '12 Monate Laufzeit',
+      features: [
+        'Alles aus Pro, plus:',
+        'Featured-Position 30 Tage',
+        'Eigenes Branding & Logo',
+        'Prioritäts-Support',
+      ],
+    },
+  ];
+
+  return (
+    <Section className="bg-paper border-y border-stone">
+      <Container>
+        <Reveal>
+          <div className="mb-12 max-w-prose">
+            <p className="overline mb-5">Für Verkäufer</p>
+            <h2 className="font-serif text-display-md text-navy font-light mb-4">
+              Inserate für Verkäufer<span className="text-bronze">.</span>
+            </h2>
+            <p className="text-body-lg text-muted leading-relaxed">
+              Einmalige Paketgebühr. 0%&nbsp;Erfolgsprovision.
+              Alle Preise zzgl.&nbsp;8.1% MwSt.
+            </p>
+          </div>
+        </Reveal>
+
+        <div className="grid md:grid-cols-3 gap-px bg-stone border border-stone rounded-card overflow-hidden">
+          {plans.map((p, i) => (
+            <Reveal key={i} delay={i * 0.08}>
+              <div
+                className={`h-full p-8 md:p-10 flex flex-col ${
+                  p.highlight ? 'bg-cream/60' : 'bg-paper'
+                }`}
+              >
+                <div className="flex items-start justify-between mb-6">
+                  <p
+                    className={`font-mono text-[11px] uppercase tracking-widest ${
+                      p.highlight ? 'text-bronze-ink' : 'text-quiet'
                     }`}
-              </span> &middot;{' '}
-              {sub}
+                  >
+                    {p.tag}
+                  </p>
+                  {p.highlight && (
+                    <span className="font-mono text-[10px] uppercase tracking-widest px-2.5 py-1 rounded-full bg-bronze/15 text-bronze-ink">
+                      empfohlen
+                    </span>
+                  )}
+                </div>
+                <h3 className="font-serif text-head-lg text-navy font-normal mb-6">{p.name}</h3>
+                <div className="mb-6 pb-6 border-b border-stone">
+                  <p className="font-serif text-[clamp(2rem,4vw,3rem)] text-navy font-light font-tabular leading-none">
+                    {p.price}
+                  </p>
+                  <p className="font-mono text-[11px] uppercase tracking-widest text-quiet mt-3">
+                    {p.note}
+                  </p>
+                </div>
+                <ul className="space-y-3 mb-8 flex-1">
+                  {p.features.map((f, j) => (
+                    <li key={j} className="flex items-start gap-3 text-body-sm">
+                      <Check
+                        className="w-4 h-4 flex-shrink-0 mt-0.5 text-bronze"
+                        strokeWidth={1.75}
+                      />
+                      <span className="text-muted">{f}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </Reveal>
+          ))}
+        </div>
+
+        <Reveal delay={0.3}>
+          <div className="mt-10 flex flex-col sm:flex-row sm:items-center gap-4">
+            <Button href="/verkaufen" size="lg">
+              Firma inserieren
+              <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
+            </Button>
+            <Link
+              href="/preise"
+              className="font-mono text-[11px] uppercase tracking-widest text-quiet hover:text-navy inline-flex items-center gap-2 transition-colors"
+            >
+              Detail-Vergleich aller Pakete
+              <ArrowRight className="w-3.5 h-3.5" strokeWidth={1.5} />
+            </Link>
+          </div>
+        </Reveal>
+      </Container>
+    </Section>
+  );
+}
+
+/* ════════════════════════ Käufer-Tiers ════════════════════════ */
+function BuyerPackages() {
+  const tiers = [
+    {
+      tag: 'Standard',
+      name: 'Käufer Basic',
+      price: 'CHF 0',
+      note: 'unbefristet',
+      features: [
+        'Marktplatz vollständig browsen',
+        '5 Basis-Filter',
+        '5 Anfragen pro Monat',
+        'Suchprofil mit täglichem Alert',
+      ],
+      cta: 'Kostenlos registrieren',
+      href: '/onboarding/kaeufer/tunnel',
+      variant: 'secondary' as const,
+    },
+    {
+      tag: 'Plus',
+      highlight: true,
+      name: 'Käufer+ MAX',
+      price: 'CHF 199',
+      note: 'pro Monat (oder CHF 1’990 / Jahr)',
+      features: [
+        '7 Tage Frühzugang zu neuen Inseraten',
+        'Alle 17 Filter inklusive',
+        'Unbegrenzte Anfragen',
+        'WhatsApp-Echtzeit-Alerts',
+        'NDA-Fast-Track + Käuferprofil-Boost',
+      ],
+      cta: 'Käufer+ ansehen',
+      href: '/plus',
+      variant: 'primary' as const,
+    },
+  ];
+
+  return (
+    <Section>
+      <Container>
+        <Reveal>
+          <div className="mb-12 max-w-prose">
+            <p className="overline mb-5">Für Käufer</p>
+            <h2 className="font-serif text-display-md text-navy font-light mb-4">
+              Käufer-Pakete<span className="text-bronze">.</span>
+            </h2>
+            <p className="text-body-lg text-muted leading-relaxed">
+              Einsteigen mit Basic. Wenn du ernst suchst — Käufer+ MAX gibt dir
+              den 7-Tage-Vorsprung und alle Filter.
+            </p>
+          </div>
+        </Reveal>
+
+        <div className="grid md:grid-cols-2 gap-px bg-stone border border-stone rounded-card overflow-hidden">
+          {tiers.map((t, i) => (
+            <Reveal key={i} delay={i * 0.08}>
+              <div
+                className={`h-full p-8 md:p-10 flex flex-col ${
+                  t.highlight ? 'bg-navy text-cream' : 'bg-paper'
+                }`}
+              >
+                <div className="flex items-start justify-between mb-6">
+                  <p
+                    className={`font-mono text-[11px] uppercase tracking-widest ${
+                      t.highlight ? 'text-bronze' : 'text-quiet'
+                    }`}
+                  >
+                    {t.tag}
+                  </p>
+                  {t.highlight && (
+                    <span className="font-mono text-[10px] uppercase tracking-widest px-2.5 py-1 rounded-full bg-bronze text-cream">
+                      empfohlen
+                    </span>
+                  )}
+                </div>
+                <h3
+                  className={`font-serif text-head-lg font-normal mb-6 ${
+                    t.highlight ? 'text-cream' : 'text-navy'
+                  }`}
+                >
+                  {t.name}
+                </h3>
+                <div className={`mb-6 pb-6 border-b ${t.highlight ? 'border-cream/15' : 'border-stone'}`}>
+                  <p
+                    className={`font-serif text-[clamp(2rem,4vw,3rem)] font-light font-tabular leading-none ${
+                      t.highlight ? 'text-cream' : 'text-navy'
+                    }`}
+                  >
+                    {t.price}
+                  </p>
+                  <p
+                    className={`font-mono text-[11px] uppercase tracking-widest mt-3 ${
+                      t.highlight ? 'text-cream/60' : 'text-quiet'
+                    }`}
+                  >
+                    {t.note}
+                  </p>
+                </div>
+                <ul className="space-y-3 mb-8 flex-1">
+                  {t.features.map((f, j) => (
+                    <li key={j} className="flex items-start gap-3 text-body-sm">
+                      <Check
+                        className="w-4 h-4 flex-shrink-0 mt-0.5 text-bronze"
+                        strokeWidth={1.75}
+                      />
+                      <span className={t.highlight ? 'text-cream/85' : 'text-muted'}>{f}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Button
+                  href={t.href}
+                  variant={t.highlight ? 'bronze' : 'secondary'}
+                  size="lg"
+                  className="w-full justify-center"
+                >
+                  {t.cta}
+                  <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
+                </Button>
+              </div>
+            </Reveal>
+          ))}
+        </div>
+      </Container>
+    </Section>
+  );
+}
+
+/* ════════════════════════ So funktioniert's ════════════════════════ */
+function ProcessSteps() {
+  const steps = [
+    {
+      Icon: FileLock2,
+      step: 'I',
+      title: 'Inserieren oder Suchen',
+      body: 'Verkäufer erstellen ein anonymes Inserat in 10 Minuten. Käufer browsen die Börse — ohne Konto.',
+    },
+    {
+      Icon: MessageCircle,
+      step: 'II',
+      title: 'Anonym Anfragen',
+      body: 'Käufer stellen über das Inserat eine Anfrage mit kurzer Vorstellung. Der Verkäufer entscheidet.',
+    },
+    {
+      Icon: ShieldCheck,
+      step: 'III',
+      title: 'NDA & Datenraum',
+      body: 'Bei Freigabe unterzeichnet der Käufer das NDA und erhält Zugang zum Detail-Dossier mit Versionierung.',
+    },
+    {
+      Icon: Handshake,
+      step: 'IV',
+      title: 'Direkt verhandeln',
+      body: 'Verkäufer und Käufer verhandeln direkt. Bei Bedarf vermitteln wir Anwälte und Treuhänder.',
+    },
+  ];
+
+  return (
+    <Section className="bg-paper border-y border-stone">
+      <Container>
+        <Reveal>
+          <div className="mb-14 max-w-prose">
+            <p className="overline mb-5">So funktioniert’s</p>
+            <h2 className="font-serif text-display-md text-navy font-light">
+              Vier Schritte zur Nachfolge<span className="text-bronze">.</span>
+            </h2>
+          </div>
+        </Reveal>
+        <RevealStagger className="grid md:grid-cols-2 lg:grid-cols-4 gap-px bg-stone border border-stone rounded-card overflow-hidden">
+          {steps.map((s, i) => (
+            <RevealItem key={i} className="bg-paper relative p-8 md:p-10 flex flex-col">
+              <span
+                aria-hidden
+                className="absolute top-6 right-6 font-serif text-6xl text-bronze/10 font-light select-none"
+              >
+                {s.step}
+              </span>
+              <div className="relative">
+                <s.Icon className="w-6 h-6 text-bronze mb-8" strokeWidth={1.5} />
+                <p className="font-mono text-[11px] tracking-widest uppercase text-quiet mb-3">
+                  Schritt {s.step}
+                </p>
+                <h3 className="font-serif text-head-md text-navy mb-4 font-normal leading-snug">
+                  {s.title}
+                </h3>
+                <p className="text-body-sm text-muted leading-relaxed">{s.body}</p>
+              </div>
+            </RevealItem>
+          ))}
+        </RevealStagger>
+      </Container>
+    </Section>
+  );
+}
+
+/* ════════════════════════ Trust-Block ════════════════════════ */
+function TrustBlock() {
+  const points = [
+    {
+      Icon: Sparkles,
+      title: 'Made in Switzerland',
+      body: 'Server in der Schweiz, Schweizer Datenschutz, Schweizer Recht.',
+    },
+    {
+      Icon: ShieldCheck,
+      title: 'Anonyme Inserate',
+      body: 'Der Verkäufer entscheidet, was öffentlich ist und wer Detail-Daten sieht.',
+    },
+    {
+      Icon: TrendingUp,
+      title: '0 % Erfolgsprovision',
+      body: 'Keine Kommission auf den Verkaufspreis — du zahlst nur das Plattform-Paket.',
+    },
+  ];
+
+  return (
+    <Section>
+      <Container>
+        <RevealStagger className="grid md:grid-cols-3 gap-8 md:gap-12">
+          {points.map((p, i) => (
+            <RevealItem key={i} className="flex flex-col">
+              <p.Icon className="w-6 h-6 text-bronze mb-5" strokeWidth={1.5} />
+              <h3 className="font-serif text-head-sm text-navy font-normal mb-3 leading-snug">
+                {p.title}
+              </h3>
+              <p className="text-body-sm text-muted leading-relaxed max-w-xs">{p.body}</p>
+            </RevealItem>
+          ))}
+        </RevealStagger>
+      </Container>
+    </Section>
+  );
+}
+
+/* ════════════════════════ FAQ ════════════════════════ */
+function FAQ() {
+  const items = [
+    {
+      q: 'Was kostet passare?',
+      a: 'Verkäufer zahlen eine einmalige Paketgebühr ab CHF 290 (Light, 3 Monate Laufzeit). Käufer können kostenlos browsen und mit dem Basic-Tier 5 Anfragen pro Monat stellen. Käufer+ MAX kostet CHF 199 pro Monat oder CHF 1’990 pro Jahr und gibt 7 Tage Frühzugang sowie alle Filter. Es gibt keine Erfolgsprovision auf den Verkaufspreis.',
+    },
+    {
+      q: 'Wer sieht meine Daten als Verkäufer?',
+      a: 'Im öffentlichen Teaser sind Firmenname, Standort und Detailzahlen anonymisiert. Erst wenn du eine Anfrage im Dashboard freischaltest, erhält der Käufer das Detail-Dossier und ggf. den Datenraum. Du entscheidest pro Anfrage, ob du freigibst oder ablehnst.',
+    },
+    {
+      q: 'Wie funktioniert die Anfrage als Käufer?',
+      a: 'Du wählst ein Inserat und stellst über das Anfrage-Formular eine kurze Vorstellung mit Hintergrund, Kapital-Setup und Zeitschiene. Die Anfrage geht direkt an den Verkäufer. Bei Freigabe öffnet sich das Detail-Dossier — keine Wartezeit über einen Broker.',
+    },
+    {
+      q: 'Was ist der Unterschied zu einem Broker?',
+      a: 'Ein Broker arbeitet auf Mandat und nimmt eine Erfolgsprovision von typischerweise 5 – 10 % des Verkaufspreises. passare ist eine Self-Service-Plattform: Du inserierst selbst, du verhandelst selbst. Wir verdienen am Plattform-Paket, nicht am Deal. Falls du einen Broker brauchst, kannst du jederzeit einen über unser Verzeichnis finden.',
+    },
+    {
+      q: 'Brauche ich einen Anwalt für die Übergabe?',
+      a: 'Für den Kaufvertrag und die Übergabestrukturierung ja — passare ersetzt keinen Fachanwalt oder Treuhänder. Bei Bedarf vermitteln wir auf Wunsch Schweizer M&A-Anwälte und Treuhänder. Die eigentliche Plattform-Arbeit (Anonymes Listing, Anfragen, Datenraum) machst du auf passare; den Vertragsteil mit dem Profi.',
+    },
+    {
+      q: 'Wie lange dauert eine Nachfolge typischerweise?',
+      a: 'Eine vollständige Nachfolge dauert in der Schweiz typischerweise 6 – 18 Monate von Inserat bis Closing — Due Diligence, Verhandlung und steuerliche Strukturierung sind die längsten Etappen. Auf passare läuft dein Inserat während dieser ganzen Zeit, du kannst es jederzeit pausieren oder verlängern.',
+    },
+  ];
+
+  return (
+    <Section className="bg-paper border-y border-stone">
+      <Container>
+        <Reveal>
+          <div className="mb-12 max-w-prose">
+            <p className="overline mb-5">Häufige Fragen</p>
+            <h2 className="font-serif text-display-md text-navy font-light">
+              Kurz beantwortet<span className="text-bronze">.</span>
+            </h2>
+          </div>
+        </Reveal>
+        <div className="max-w-3xl">
+          {items.map((item, i) => (
+            <Reveal key={i} delay={i * 0.04}>
+              <details className="group border-t border-stone py-6 last:border-b">
+                <summary className="flex items-start justify-between gap-6 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+                  <h3 className="font-serif text-head-md text-navy font-normal leading-snug group-hover:text-bronze-ink transition-colors">
+                    {item.q}
+                  </h3>
+                  <span
+                    aria-hidden
+                    className="flex-shrink-0 mt-1 w-6 h-6 rounded-full border border-stone flex items-center justify-center text-quiet group-hover:border-bronze group-hover:text-bronze transition-colors"
+                  >
+                    <span className="block w-2.5 h-px bg-current" />
+                    <span className="block w-px h-2.5 -ml-[1px] bg-current group-open:hidden" />
+                  </span>
+                </summary>
+                <p className="mt-4 text-body text-muted leading-relaxed max-w-prose">{item.a}</p>
+              </details>
+            </Reveal>
+          ))}
+        </div>
+      </Container>
+    </Section>
+  );
+}
+
+/* ════════════════════════ Final CTA ════════════════════════ */
+function FinalCTA() {
+  return (
+    <Section className="bg-bronze text-cream">
+      <Container>
+        <div className="max-w-hero">
+          <Reveal>
+            <p className="overline mb-6 text-cream/70">Bereit?</p>
+            <h2 className="font-serif text-display-md md:text-display-lg text-cream font-light leading-[1.08] mb-8">
+              Direkter Marktplatz<span className="text-navy">.</span>{' '}
+              Heute live<span className="text-navy">.</span>
+            </h2>
+          </Reveal>
+          <Reveal delay={0.1}>
+            <p className="text-body-lg text-cream/85 max-w-prose leading-relaxed mb-10">
+              Du verkaufst eine Firma? Inserat ist in 10 Minuten live.
+              Du suchst eine? Browsen ist kostenlos.
+            </p>
+          </Reveal>
+          <Reveal delay={0.2}>
+            <div className="flex flex-col sm:flex-row gap-4 items-start">
+              <Button
+                href="/verkaufen"
+                className="bg-navy text-cream hover:bg-ink"
+                size="lg"
+              >
+                Firma inserieren
+                <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
+              </Button>
+              <Button
+                href="/onboarding/kaeufer/tunnel"
+                variant="secondary"
+                size="lg"
+                className="border-cream/30 text-cream hover:border-cream"
+              >
+                Kostenlos als Käufer registrieren
+              </Button>
+            </div>
+            <p className="font-mono text-[11px] uppercase tracking-widest text-cream/60 mt-6">
+              0 % Erfolgsprovision &middot; «Made in Switzerland» &middot; Anonym
             </p>
           </Reveal>
         </div>
       </Container>
     </Section>
-  );
-}
-
-/* ════════════════════════ Marketplace ════════════════════════ */
-function Marketplace({
-  listings,
-  totalCount,
-  branchen,
-  searchParams,
-}: {
-  listings: InseratPublic[];
-  totalCount: number;
-  branchen: Branche[];
-  searchParams: SearchParams;
-}) {
-  const isFiltered = Object.values(searchParams).some((v) => v && v !== 'all');
-  const hasAdvancedFilter =
-    (!!searchParams.umsatz && searchParams.umsatz !== 'all') ||
-    (!!searchParams.ebitda && searchParams.ebitda !== 'all') ||
-    (!!searchParams.ma && searchParams.ma !== 'all') ||
-    !!searchParams.gruende;
-
-  return (
-    <Section className="pt-0 md:pt-0 pb-24 md:pb-24">
-      <Container>
-        <div className="grid lg:grid-cols-[280px_1fr] gap-10">
-          {/* Sidebar — als <form method="GET"> damit Filter über URL-Params gehen */}
-          <aside className="lg:sticky lg:top-24 lg:self-start">
-            <Reveal>
-              <form method="GET" action="/" className="bg-paper border border-stone rounded-card p-5 space-y-5">
-                <div className="flex items-center gap-2">
-                  <Filter className="w-4 h-4 text-bronze" strokeWidth={1.5} />
-                  <h2 className="font-mono text-[11px] uppercase tracking-widest text-navy">Filter</h2>
-                </div>
-
-                <div>
-                  <label htmlFor="suche" className="overline block mb-2">Stichwort</label>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-quiet" strokeWidth={1.5} />
-                    <input
-                      id="suche"
-                      name="suche"
-                      type="text"
-                      defaultValue={searchParams.suche ?? ''}
-                      placeholder="z.B. Bäckerei"
-                      className="w-full bg-cream border border-stone rounded-soft pl-9 pr-3 py-2.5 text-body-sm placeholder:text-quiet focus:outline-none focus:border-bronze"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label htmlFor="branche" className="overline block mb-2">Branche</label>
-                  <select
-                    id="branche"
-                    name="branche"
-                    defaultValue={searchParams.branche ?? 'all'}
-                    className="w-full bg-cream border border-stone rounded-soft px-3 py-2.5 text-body-sm focus:outline-none focus:border-bronze"
-                  >
-                    <option value="all">Alle Branchen</option>
-                    {branchen.map((b) => (
-                      <option key={b.id} value={b.id}>{b.label_de}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="overline block mb-2">Kanton</label>
-                  <select
-                    name="kanton"
-                    defaultValue={searchParams.kanton ?? 'all'}
-                    className="w-full bg-cream border border-stone rounded-soft px-3 py-2.5 text-body-sm focus:outline-none focus:border-bronze"
-                  >
-                    <option value="all">Alle Kantone</option>
-                    {KANTON_CODES.map((k) => (
-                      <option key={k} value={k}>{KANTON_NAMES[k]}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="overline block mb-2">Kaufpreis</label>
-                  <select
-                    name="preis"
-                    defaultValue={searchParams.preis ?? 'all'}
-                    className="w-full bg-cream border border-stone rounded-soft px-3 py-2.5 text-body-sm focus:outline-none focus:border-bronze"
-                  >
-                    {PREIS_BUCKETS.map((b) => <option key={b.id} value={b.id}>{b.label}</option>)}
-                  </select>
-                </div>
-
-                <details open={hasAdvancedFilter} className="group border-t border-stone -mx-5 px-5 pt-5">
-                  <summary className="flex items-center justify-between cursor-pointer list-none select-none text-quiet hover:text-navy transition-colors [&::-webkit-details-marker]:hidden">
-                    <span className="font-mono text-[11px] uppercase tracking-widest">Mehr Filter</span>
-                    <ChevronDown className="w-4 h-4 transition-transform group-open:rotate-180" strokeWidth={1.5} />
-                  </summary>
-                  <div className="space-y-5 mt-5">
-                    <div>
-                      <label className="overline block mb-2">Jahresumsatz</label>
-                      <select
-                        name="umsatz"
-                        defaultValue={searchParams.umsatz ?? 'all'}
-                        className="w-full bg-cream border border-stone rounded-soft px-3 py-2.5 text-body-sm focus:outline-none focus:border-bronze"
-                      >
-                        {UMSATZ_BUCKETS.map((b) => <option key={b.id} value={b.id}>{b.label}</option>)}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="overline block mb-2">EBITDA-Marge</label>
-                      <select
-                        name="ebitda"
-                        defaultValue={searchParams.ebitda ?? 'all'}
-                        className="w-full bg-cream border border-stone rounded-soft px-3 py-2.5 text-body-sm focus:outline-none focus:border-bronze"
-                      >
-                        {EBITDA_BUCKETS.map((b) => <option key={b.id} value={b.id}>{b.label}</option>)}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="overline block mb-2">Mitarbeitende</label>
-                      <select
-                        name="ma"
-                        defaultValue={searchParams.ma ?? 'all'}
-                        className="w-full bg-cream border border-stone rounded-soft px-3 py-2.5 text-body-sm focus:outline-none focus:border-bronze"
-                      >
-                        {MA_BUCKETS.map((b) => <option key={b.id} value={b.id}>{b.label}</option>)}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="overline block mb-2">Übergabegrund</label>
-                      <div className="space-y-2">
-                        {UEBERGABE_GRUENDE.map((g) => {
-                          const checked = searchParams.gruende?.split(',').includes(g.id) ?? false;
-                          return (
-                            <label key={g.id} className="flex items-center gap-2 cursor-pointer text-body-sm text-muted hover:text-ink">
-                              <input type="checkbox" name="gruende" value={g.id} defaultChecked={checked} className="accent-bronze" />
-                              {g.label}
-                            </label>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                </details>
-
-                <input type="hidden" name="sort" value={searchParams.sort ?? 'neu'} />
-
-                <div className="pt-4 border-t border-stone flex flex-col gap-2">
-                  <Button size="sm" className="w-full justify-center">Filter anwenden</Button>
-                  <Link
-                    href="/"
-                    className="font-mono text-[11px] uppercase tracking-widest text-quiet hover:text-navy text-center"
-                  >
-                    zurücksetzen
-                  </Link>
-                </div>
-
-                {/* Plus-Upsell — eigene Käufer-Vorteile-Seite */}
-                <div className="bg-navy text-cream rounded-soft p-4 -mx-2 mt-6">
-                  <p className="overline text-bronze mb-2 inline-flex items-baseline">
-                    Käufer<span className="font-serif text-bronze leading-none ml-px">+</span>
-                  </p>
-                  <p className="font-serif text-body text-cream mb-3 leading-snug">
-                    7 Tage Frühzugang &amp; Echtzeit-Alerts
-                  </p>
-                  <Link href="/plus" className="font-mono text-[11px] uppercase tracking-widest text-bronze inline-flex items-center gap-1 hover:gap-2 transition-all">
-                    Käufer+ ansehen <ArrowRight className="w-3 h-3" strokeWidth={1.5} />
-                  </Link>
-                </div>
-              </form>
-            </Reveal>
-          </aside>
-
-          {/* Grid */}
-          <div>
-            <Reveal>
-              <div className="flex items-center justify-between mb-6 pb-4 border-b border-stone flex-wrap gap-3">
-                <p className="font-mono text-[11px] uppercase tracking-widest text-quiet">
-                  {totalCount === 0 ? (
-                    <span className="text-navy font-medium">Marktplatz im Aufbau</span>
-                  ) : (
-                    <>
-                      <span className="text-navy font-medium">
-                        {listings.length} {listings.length === 1 ? 'Inserat' : 'Inserate'}
-                      </span>
-                      {' '}&middot; aktualisiert {new Date().toLocaleDateString('de-CH')}
-                    </>
-                  )}
-                </p>
-                <div className="flex items-center gap-4">
-                  <label className="overline text-quiet">Sortieren</label>
-                  <SortSelect defaultValue={searchParams.sort ?? 'neu'} />
-                </div>
-              </div>
-            </Reveal>
-
-            {totalCount === 0 ? (
-              <MarketplaceEmpty variant="marktplatz" />
-            ) : listings.length === 0 ? (
-              <MarketplaceEmpty
-                variant="marktplatz"
-                headline="Keine Inserate für diese Filter-Kombination"
-                beschreibung="Probiere andere Filter aus oder lege ein Suchprofil an — wir benachrichtigen dich, sobald ein passendes Inserat reinkommt."
-              />
-            ) : (
-              <>
-                {/* Cyrill 02.05.2026: Karten sollen IMMER gleich tief sein.
-                    Lösung: items-stretch (default) + Reveal/Card `h-full` damit
-                    die Grid-Zelle die Höhe weiterreicht bis zur <article>.
-                    Bisher hatte <Reveal> kein h-full → Card war nur so hoch
-                    wie ihr Content, der mt-auto-Footer rutschte hoch oder
-                    runter je nachdem wieviel Inhalt da war. */}
-                <div className="grid md:grid-cols-2 gap-5 items-stretch">
-                  {listings.map((l, i) => (
-                    <Reveal key={l.id} delay={i * 0.03} className="h-full">
-                      <ListingCard listing={l} branchen={branchen} />
-                    </Reveal>
-                  ))}
-                </div>
-              </>
-            )}
-
-            {totalCount > 0 && !isFiltered && (
-              <Reveal delay={0.4}>
-                <div className="mt-16 text-center p-10 border border-dashed border-stone rounded-card">
-                  <p className="overline mb-3 text-bronze-ink">Weitere Inserate</p>
-                  <h3 className="font-serif text-head-lg text-navy mb-3 font-normal">
-                    Mit Käufer+ sehen Sie alles zuerst.
-                  </h3>
-                  <p className="text-body-sm text-muted mb-6 max-w-md mx-auto">
-                    Neue Inserate sind 7 Tage lang nur für Käufer+ Mitglieder sichtbar,
-                    bevor sie öffentlich werden. Plus geschlossene Inserate, Echtzeit-Alerts
-                    und ein eigenes Logo im Käuferprofil.
-                  </p>
-                  <Button href="/plus" variant="secondary" size="md">
-                    Käufer+ ab CHF 199/Monat <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
-                  </Button>
-                </div>
-              </Reveal>
-            )}
-          </div>
-        </div>
-      </Container>
-    </Section>
-  );
-}
-
-/* ════════════════════════ ListingCard ════════════════════════ */
-function ListingCard({ listing, branchen }: { listing: InseratPublic; branchen: Branche[] }) {
-  // Status-Ableitung
-  const now = Date.now();
-  const isFeatured = listing.featured_until && new Date(listing.featured_until).getTime() > now;
-  const ageDays = (now - new Date(listing.published_at).getTime()) / (24 * 60 * 60 * 1000);
-  const status: 'featured' | 'neu' | 'live' = isFeatured ? 'featured' : ageDays < 14 ? 'neu' : 'live';
-
-  const statusColor =
-    status === 'featured' ? 'bg-bronze/90 text-cream'
-    : status === 'neu' ? 'bg-success/90 text-cream'
-    : 'bg-paper/90 text-navy';
-
-  const statusLabel =
-    status === 'featured' ? 'Featured'
-    : status === 'neu' ? 'Neu'
-    : 'Live';
-
-  const brancheObj = branchen.find((b) => b.id === listing.branche_id);
-  const brancheLabel = brancheObj?.label_de ?? listing.branche_id ?? '—';
-
-  const cover = branchenStockfoto(listing.branche_id ?? brancheLabel, listing.id);
-
-  // EBITDA-Marge ableiten falls null aber chf-Werte vorhanden
-  let margePct = listing.ebitda_marge_pct;
-  if (margePct == null && listing.ebitda_chf && listing.umsatz_chf && listing.umsatz_chf > 0) {
-    margePct = (Number(listing.ebitda_chf) / Number(listing.umsatz_chf)) * 100;
-  }
-
-  // KeyFacts arbeiten mit Display-Strings — echte Werte bevorzugen
-  const umsatzStr = formatUmsatz({
-    umsatz_chf: listing.umsatz_chf,
-    umsatz_bucket: listing.umsatz_bucket,
-  });
-  const ebitdaStr = formatEbitda(margePct);
-  const kaufpreisStr = formatKaufpreis({
-    kaufpreis_chf: listing.kaufpreis_chf,
-    kaufpreis_min_chf: listing.kaufpreis_min_chf,
-    kaufpreis_max_chf: listing.kaufpreis_max_chf,
-    kaufpreis_bucket: listing.kaufpreis_bucket,
-    kaufpreis_vhb: listing.kaufpreis_vhb,
-  });
-  const facts = renderKeyFacts({
-    jahr: listing.jahr ?? new Date().getFullYear(),
-    mitarbeitende: listing.mitarbeitende ?? 0,
-    umsatz: umsatzStr,
-    ebitda: ebitdaStr,
-  });
-
-  // Public-ID für Anzeige (z.B. "DOS-001234"). Wenn slug existiert: nutzen, sonst kurz-id
-  const displayId = listing.slug ?? listing.id.slice(0, 8);
-  const detailHref = `/inserat/${listing.slug ?? listing.id}`;
-
-  return (
-    <article className="group relative h-full bg-paper border border-stone rounded-card overflow-hidden hover:-translate-y-0.5 hover:shadow-lift hover:border-bronze/40 transition-all duration-300 flex flex-col cursor-pointer">
-      <Link
-        href={detailHref}
-        className="absolute inset-0 z-[1]"
-        aria-label={`Inserat ${listing.titel} ansehen`}
-      />
-
-      {/* ─── Cover ─── */}
-      <div className="relative h-44 md:h-48 overflow-hidden">
-        <div
-          className="absolute inset-0 transition-transform duration-700 ease-out-expo group-hover:scale-110"
-          style={{
-            backgroundImage: `url(${listing.cover_url ?? cover})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            filter: 'blur(6px) brightness(0.55) saturate(1.1)',
-            transform: 'scale(1.15)',
-          }}
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-navy/70 via-navy/20 to-transparent" />
-
-        <span className="absolute top-3 left-3 font-mono text-[10px] uppercase tracking-widest text-cream/85 backdrop-blur-sm bg-navy/40 px-2 py-1 rounded-full">
-          {displayId}
-        </span>
-        <span className={`absolute top-3 right-3 font-mono text-[10px] uppercase tracking-widest px-2.5 py-1 rounded-full backdrop-blur-sm ${statusColor}`}>
-          {statusLabel}
-        </span>
-
-        <div className="absolute bottom-4 left-5 right-5 z-[1]">
-          <p className="font-mono text-[12px] md:text-[13px] uppercase tracking-[0.16em] text-bronze font-semibold leading-tight drop-shadow-[0_2px_8px_rgba(0,0,0,0.7)]">
-            {brancheLabel} · Kanton {listing.kanton ?? '—'}
-          </p>
-          <p className="font-mono text-[13px] md:text-[14px] tracking-wider text-cream mt-1.5 drop-shadow-[0_2px_8px_rgba(0,0,0,0.7)]">
-            {facts}
-          </p>
-        </div>
-      </div>
-
-      {/* ─── Body ─── */}
-      <div className="p-6 flex flex-col flex-1">
-        <h3
-          lang="de"
-          className="font-serif text-head-md text-navy leading-tight font-normal mb-5 h-[3.9rem] hyphens-auto break-words line-clamp-2 group-hover:text-bronze-ink transition-colors"
-        >
-          {listing.titel}<span className="text-bronze">.</span>
-        </h3>
-
-        <div className="grid grid-cols-3 gap-3 py-4 border-t border-b border-stone mb-5">
-          <div className="min-w-0">
-            <p className="overline mb-1">Umsatz</p>
-            <p className="font-mono text-body-sm text-navy font-tabular font-medium whitespace-nowrap">{umsatzStr}</p>
-          </div>
-          <div className="min-w-0">
-            <p className="overline mb-1">EBITDA</p>
-            <p className="font-mono text-body-sm text-navy font-tabular font-medium whitespace-nowrap">{ebitdaStr}</p>
-          </div>
-          <div className="min-w-0">
-            <p className="overline mb-1">Preis</p>
-            <p className="font-mono text-body-sm text-navy font-tabular font-medium whitespace-nowrap">{kaufpreisStr}</p>
-          </div>
-        </div>
-
-        {listing.uebergabe_grund && (
-          <p className="font-mono text-[11px] uppercase tracking-wider text-quiet mb-5">
-            <TrendingUp className="inline w-3 h-3 mr-1 text-bronze" strokeWidth={1.5} />
-            {uebergabeGrundLabel(listing.uebergabe_grund)}
-          </p>
-        )}
-
-        <div className="mt-auto flex items-center gap-2 relative z-10">
-          <Button
-            href={detailHref}
-            size="sm"
-            className="flex-1 justify-center"
-          >
-            <Eye className="w-3.5 h-3.5" strokeWidth={1.5} />
-            Details
-          </Button>
-          <CardActions
-            listingId={listing.id}
-            titel={listing.titel}
-            branche={brancheLabel}
-            kanton={listing.kanton ?? '—'}
-            umsatz={umsatzStr}
-          />
-        </div>
-      </div>
-    </article>
   );
 }
