@@ -6,6 +6,8 @@ import { RowLink } from '@/components/admin/RowLink';
 import { UsersFilterBar } from '@/components/admin/UsersFilterBar';
 import { PageHeader, EmptyState } from '@/components/admin/PageHeader';
 import { formatDate } from '@/lib/admin/types';
+import { InviteForm } from './InviteForm';
+import { PendingInvitationsList } from './PendingInvitationsList';
 
 export const metadata = {
   title: 'Admin · User — passare',
@@ -78,9 +80,32 @@ export default async function AdminUsersPage({
     );
   }
 
+  // Offene Einladungen laden (admin RLS)
+  const { data: pendingInvitationsRaw } = await supabase
+    .from('admin_invitations')
+    .select('id, email, rolle, invited_by_name, expires_at, accepted_at, revoked_at, created_at')
+    .is('accepted_at', null)
+    .is('revoked_at', null)
+    .gt('expires_at', new Date().toISOString())
+    .order('created_at', { ascending: false })
+    .limit(20);
+
+  const pendingInvitations = (pendingInvitationsRaw ?? []) as Array<{
+    id: string;
+    email: string;
+    rolle: string;
+    invited_by_name: string | null;
+    expires_at: string;
+    created_at: string;
+  }>;
+
   return (
     <div className="max-w-6xl">
       <PageHeader overline="Verwaltung" title="User" />
+
+      <InviteForm />
+
+      {pendingInvitations.length > 0 && <PendingInvitationsList items={pendingInvitations} />}
 
       <UsersFilterBar counts={counts} initialQuery={query} />
 

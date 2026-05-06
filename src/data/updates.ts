@@ -68,6 +68,13 @@ export const UPDATES: Update[] = [
   {
     date: '2026-05-05',
     type: 'feature',
+    titel: 'Admin kann jetzt User per E-Mail einladen',
+    beschreibung:
+      'Im Admin-Bereich gibt es jetzt ein Feld zum Einladen: E-Mail eingeben, Rolle wählen (Administrator, Broker, Verkäufer oder Käufer) und auf "Einladung senden" klicken. Die eingeladene Person kriegt sofort eine E-Mail mit einem persönlichen Aktivierungs-Link, der 14 Tage gültig ist. Beim Klick aufs den Link landet sie auf einer Seite wo sie ein Konto erstellt oder sich anmeldet — danach ist die Rolle automatisch gesetzt. Offene Einladungen sind im Admin sichtbar und können dort widerrufen werden.',
+  },
+  {
+    date: '2026-05-05',
+    type: 'feature',
     titel: 'Neue Landingpage + dedizierter Marktplatz',
     beschreibung:
       'Die Startseite erklärt jetzt klar was passare ist: direkter Marktplatz, gratis Bewertung, CH-Firmen-Atlas. Im Hero gibt es einen prominenten Suchfilter — wer dort sucht, landet direkt auf dem Marktplatz mit allen Inseraten. Der Marktplatz ist eine eigene Seite mit Filter-Sidebar, Sortierung und allen Live-Inseraten. Verkäufer- und Käufer-Pakete, FAQ und Prozess-Erklärung sind jetzt auch auf der Startseite zu sehen.',

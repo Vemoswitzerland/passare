@@ -342,6 +342,36 @@ function tplInseratBaldAbgelaufen(vars: Vars) {
   };
 }
 
+// ─── Admin-Invite ────────────────────────────────────────────────
+function tplAdminInvite(vars: Vars) {
+  const inviteUrl = v(vars, 'inviteUrl');
+  const rolle = v(vars, 'rolle', 'admin');
+  const invitedByName = v(vars, 'invitedByName', 'Das passare-Team');
+  const rolleLabel =
+    rolle === 'admin' ? 'Administrator/in'
+    : rolle === 'broker' ? 'Broker/in'
+    : rolle === 'verkaeufer' ? 'Verkäufer/in'
+    : rolle === 'kaeufer' ? 'Käufer/in'
+    : rolle;
+
+  const body = [
+    H(`Du wurdest zu passare eingeladen.`),
+    P(`<strong>${esc(invitedByName)}</strong> hat dich als <strong>${esc(rolleLabel)}</strong> auf die passare-Plattform eingeladen.`),
+    P(`Klicke den Knopf, um dein Konto zu aktivieren. Der Link ist 14 Tage gültig.`),
+    Btn(inviteUrl, 'Einladung annehmen'),
+    Box(
+      P('Funktioniert der Knopf nicht? Kopier den Link in deinen Browser:') +
+      `<p style="font-family:${F.sans};font-size:13px;line-height:1.5;color:${C.muted};margin:0;word-break:break-all;">${esc(inviteUrl)}</p>`,
+    ),
+    Cap('Du erwartest keine Einladung? Dann ignoriere diese E-Mail einfach — ohne Klick passiert nichts.'),
+  ].join('');
+
+  return {
+    subject: `Einladung zu passare — als ${rolleLabel}`,
+    html: layout({ preview: `${invitedByName} hat dich zu passare eingeladen.`, bodyHtml: body }),
+  };
+}
+
 // ─── Public API ──────────────────────────────────────────────────
 export type RenderedEmail = { subject: string; html: string };
 
@@ -356,6 +386,7 @@ export function renderEmail(template: string, vars: Vars): RenderedEmail {
     case 'alert_neues_inserat':     return tplAlertNeuesInserat(vars);
     case 'zahlung_bestaetigung':    return tplZahlungBestaetigung(vars);
     case 'inserat_bald_abgelaufen': return tplInseratBaldAbgelaufen(vars);
+    case 'admin_invite':            return tplAdminInvite(vars);
     default:
       throw new Error(`Unbekanntes Email-Template: ${template}`);
   }
@@ -371,4 +402,5 @@ export const KNOWN_TEMPLATES = [
   'alert_neues_inserat',
   'zahlung_bestaetigung',
   'inserat_bald_abgelaufen',
+  'admin_invite',
 ] as const;

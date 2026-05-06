@@ -21,7 +21,8 @@ export type EmailTemplate =
   | 'zahlung_bestaetigung'
   | 'anfrage_eingegangen'
   | 'anfrage_beantwortet'
-  | 'inserat_bald_abgelaufen';
+  | 'inserat_bald_abgelaufen'
+  | 'admin_invite';
 
 type SendEmailParams = {
   template: EmailTemplate;
