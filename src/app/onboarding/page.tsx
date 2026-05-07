@@ -58,28 +58,26 @@ export default async function OnboardingPage() {
   // Cyrill 07.05.2026: Bug — Cyrill hatte sich nach erstem Onboarding-Loop
   // neu registriert, der neue User hatte rolle=null und keine pending
   // Einladung mehr (alte Invitation war schon accepted) → wieder im Tunnel.
-  if (!profile?.rolle && u.user.email) {
-    const { data: acceptedInv } = await supabase
-      .from('admin_invitations')
-      .select('rolle')
-      .eq('email', u.user.email.toLowerCase())
-      .not('accepted_at', 'is', null)
-      .order('accepted_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    if (acceptedInv?.rolle) {
+  // RLS-Hinweis: admin_invitations ist nur für Admins lesbar, daher RPC
+  // `get_my_accepted_invitation_role` (SECURITY DEFINER, prüft nur die
+  // eigene auth.user.email) statt direktem SELECT.
+  if (!profile?.rolle) {
+    const { data: recoveredRolle } = await supabase.rpc(
+      'get_my_accepted_invitation_role',
+    );
+    if (recoveredRolle) {
       const { error: updateErr } = await supabase
         .from('profiles')
         .update({
-          rolle: acceptedInv.rolle,
+          rolle: recoveredRolle,
           onboarding_completed_at: new Date().toISOString(),
         })
         .eq('id', u.user.id);
       if (!updateErr) {
-        if (acceptedInv.rolle === 'admin') redirect('/admin');
-        if (acceptedInv.rolle === 'broker') redirect('/dashboard/broker');
-        if (acceptedInv.rolle === 'kaeufer') redirect('/dashboard/kaeufer');
-        if (acceptedInv.rolle === 'verkaeufer') redirect('/dashboard/verkaeufer');
+        if (recoveredRolle === 'admin') redirect('/admin');
+        if (recoveredRolle === 'broker') redirect('/dashboard/broker');
+        if (recoveredRolle === 'kaeufer') redirect('/dashboard/kaeufer');
+        if (recoveredRolle === 'verkaeufer') redirect('/dashboard/verkaeufer');
       }
     }
   }
