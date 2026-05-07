@@ -23,6 +23,28 @@ export default async function OnboardingPage() {
   const { data: u } = await supabase.auth.getUser();
   if (!u.user) redirect('/auth/login');
 
+  // Pending Admin-Invitation für diese E-Mail? → ab zur Accept-Page,
+  // damit der Eingeladene nicht durch den Onboarding-Tunnel geschoben
+  // wird sondern seine Rolle aus der Einladung kriegt.
+  // Cyrill 07.05.2026: Bug — Empfänger landete nach Register im Tunnel
+  // statt im Admin-Bereich, weil der `next`-Parameter unterwegs verloren
+  // ging.
+  if (u.user.email) {
+    const { data: pendingInv } = await supabase
+      .from('admin_invitations')
+      .select('token')
+      .eq('email', u.user.email.toLowerCase())
+      .is('accepted_at', null)
+      .is('revoked_at', null)
+      .gt('expires_at', new Date().toISOString())
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (pendingInv?.token) {
+      redirect(`/auth/invite/${pendingInv.token}`);
+    }
+  }
+
   const { data: profile } = await supabase
     .from('profiles')
     .select('rolle, onboarding_completed_at')
@@ -32,6 +54,7 @@ export default async function OnboardingPage() {
   // Schon onboarded → smart-redirect je nach Rolle
   if (profile?.onboarding_completed_at) {
     if (profile.rolle === 'admin') redirect('/admin');
+    if (profile.rolle === 'broker') redirect('/dashboard/broker');
     if (profile.rolle === 'kaeufer') redirect('/dashboard/kaeufer');
     if (profile.rolle === 'verkaeufer') redirect('/dashboard/verkaeufer');
   }

@@ -22,7 +22,7 @@ export function AcceptInvitationButton({ token }: { token: string }) {
       if (res.ok) {
         // Hard-Refresh um Session-Cookie/Profile zu reloaden
         router.refresh();
-        router.push('/dashboard');
+        router.push(rolleToDashboard(res.rolle));
       } else {
         setError(errorLabel(res.error));
         setPending(false);
@@ -72,5 +72,19 @@ function errorLabel(code?: string): string {
     case 'widerrufen': return 'Diese Einladung wurde widerrufen.';
     case 'abgelaufen': return 'Diese Einladung ist abgelaufen.';
     default: return code ? `Fehler: ${code}` : 'Unbekannter Fehler';
+  }
+}
+
+/**
+ * Rolle → Ziel-URL nach erfolgreicher Annahme.
+ * Admin landet im Admin-Panel, andere im rolle-spezifischen Dashboard.
+ */
+function rolleToDashboard(rolle: string): string {
+  switch (rolle) {
+    case 'admin':       return '/admin';
+    case 'broker':      return '/dashboard/broker';
+    case 'verkaeufer':  return '/dashboard/verkaeufer';
+    case 'kaeufer':     return '/dashboard/kaeufer';
+    default:            return '/dashboard';
   }
 }
