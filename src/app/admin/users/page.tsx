@@ -80,24 +80,44 @@ export default async function AdminUsersPage({
     );
   }
 
-  // Offene Einladungen laden (admin RLS)
-  const { data: pendingInvitationsRaw } = await supabase
+  // Alle aktuellen Einladungen laden (admin RLS) — ALLE Stati, mit JOIN auf
+  // profiles um onboarding-Status anzuzeigen
+  const { data: invitationsRaw } = await supabase
     .from('admin_invitations')
-    .select('id, email, rolle, invited_by_name, expires_at, accepted_at, revoked_at, created_at')
-    .is('accepted_at', null)
-    .is('revoked_at', null)
-    .gt('expires_at', new Date().toISOString())
+    .select('id, email, rolle, invited_by_name, expires_at, accepted_at, accepted_user_id, revoked_at, created_at')
     .order('created_at', { ascending: false })
-    .limit(20);
+    .limit(30);
 
-  const pendingInvitations = (pendingInvitationsRaw ?? []) as Array<{
-    id: string;
-    email: string;
-    rolle: string;
-    invited_by_name: string | null;
-    expires_at: string;
-    created_at: string;
-  }>;
+  // Onboarding-Status der akzeptierten User joinen
+  const acceptedUserIds = (invitationsRaw ?? [])
+    .map((i) => i.accepted_user_id as string | null)
+    .filter((id): id is string => !!id);
+  const profileById: Record<string, { onboarded: boolean; rolle: string | null }> = {};
+  if (acceptedUserIds.length > 0) {
+    const { data: profilesData } = await supabase
+      .from('profiles')
+      .select('id, rolle, onboarding_completed_at')
+      .in('id', acceptedUserIds);
+    for (const p of profilesData ?? []) {
+      profileById[p.id as string] = {
+        onboarded: !!(p.onboarding_completed_at as string | null),
+        rolle: (p.rolle as string | null) ?? null,
+      };
+    }
+  }
+
+  const invitations = (invitationsRaw ?? []).map((i) => ({
+    id: i.id as string,
+    email: i.email as string,
+    rolle: i.rolle as string,
+    invited_by_name: (i.invited_by_name as string | null) ?? null,
+    expires_at: i.expires_at as string,
+    accepted_at: (i.accepted_at as string | null) ?? null,
+    accepted_user_id: (i.accepted_user_id as string | null) ?? null,
+    revoked_at: (i.revoked_at as string | null) ?? null,
+    created_at: i.created_at as string,
+    profile: i.accepted_user_id ? profileById[i.accepted_user_id as string] ?? null : null,
+  }));
 
   return (
     <div className="max-w-6xl">
@@ -105,7 +125,7 @@ export default async function AdminUsersPage({
 
       <InviteForm />
 
-      {pendingInvitations.length > 0 && <PendingInvitationsList items={pendingInvitations} />}
+      {invitations.length > 0 && <PendingInvitationsList items={invitations} />}
 
       <UsersFilterBar counts={counts} initialQuery={query} />
 
