@@ -51,6 +51,39 @@ export default async function OnboardingPage() {
     .eq('id', u.user.id)
     .maybeSingle();
 
+  // Recovery-Pfad: wenn der User keine Rolle hat ABER für seine E-Mail
+  // existiert eine bereits akzeptierte Einladung (z.B. nach Re-Registration
+  // mit derselben E-Mail), dann übernehmen wir die Rolle aus der Einladung
+  // statt den Tunnel zu zeigen.
+  // Cyrill 07.05.2026: Bug — Cyrill hatte sich nach erstem Onboarding-Loop
+  // neu registriert, der neue User hatte rolle=null und keine pending
+  // Einladung mehr (alte Invitation war schon accepted) → wieder im Tunnel.
+  if (!profile?.rolle && u.user.email) {
+    const { data: acceptedInv } = await supabase
+      .from('admin_invitations')
+      .select('rolle')
+      .eq('email', u.user.email.toLowerCase())
+      .not('accepted_at', 'is', null)
+      .order('accepted_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (acceptedInv?.rolle) {
+      const { error: updateErr } = await supabase
+        .from('profiles')
+        .update({
+          rolle: acceptedInv.rolle,
+          onboarding_completed_at: new Date().toISOString(),
+        })
+        .eq('id', u.user.id);
+      if (!updateErr) {
+        if (acceptedInv.rolle === 'admin') redirect('/admin');
+        if (acceptedInv.rolle === 'broker') redirect('/dashboard/broker');
+        if (acceptedInv.rolle === 'kaeufer') redirect('/dashboard/kaeufer');
+        if (acceptedInv.rolle === 'verkaeufer') redirect('/dashboard/verkaeufer');
+      }
+    }
+  }
+
   // Schon onboarded → smart-redirect je nach Rolle
   if (profile?.onboarding_completed_at) {
     if (profile.rolle === 'admin') redirect('/admin');
