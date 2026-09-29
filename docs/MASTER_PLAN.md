@@ -100,7 +100,7 @@ Im Code IMMER `verkaeufer` + `kaeufer` (transliteriert). Nie mischen.
 - `/ratgeber` — MDX-Blog mit KI-Generator + Kategorien
 
 ### Backend-Pipes — ✅ live
-- 8 React-Email-Templates über Resend (Verifizierung, Welcome, Anfrage-Eingang, Anfrage-Beantwortet, NDA-Signiert, Alert-Neues-Inserat, Inserat-Bald-Abgelaufen, Zahlungs-Bestätigung)
+- 8 React-Email-Templates über Lettermint (Verifizierung, Welcome, Anfrage-Eingang, Anfrage-Beantwortet, NDA-Signiert, Alert-Neues-Inserat, Inserat-Bald-Abgelaufen, Zahlungs-Bestätigung)
 - Stripe Checkout + Webhook + Customer-Portal
 - Zefix-API mit 24h-Cache
 - Anthropic Claude für Branche-Suggest, Teaser-Generator, Blog-Generator
@@ -125,7 +125,7 @@ Diese Punkte müssen vor `BETA_GATE_ENABLED=false` erledigt sein.
 ### P1.2 — Rechnungs-Logic + Compliance ⏳ — 3-5 Tage
 - `invoices` Tabelle mit fortlaufenden Nummern `RE-YYYY-NNNNN`
 - MwSt 8.1% korrekt ausgewiesen (net + vat + gross + UID-Nr.)
-- PDF-Generation + Resend-Versand nach Zahlung
+- PDF-Generation + Mail-Versand nach Zahlung
 - Storno-Rechnungen mit Bezug auf Original
 - Stripe-Webhook-Idempotenz via `stripe_event_id` UNIQUE
 - Refund-Flow + Dunning (Failed Payments, Smart Retries, Feature-Gate-Deaktivierung)
@@ -173,7 +173,7 @@ Diese Punkte müssen vor `BETA_GATE_ENABLED=false` erledigt sein.
 - Plausible (privacy-first Analytics)
 - Vercel Analytics
 - UTM-Capture in `zahlungen.source_utm`
-- Cost-Monitoring-Alerts (Stripe/Supabase/Resend/Claude)
+- Cost-Monitoring-Alerts (Stripe/Supabase/Lettermint/Claude)
 
 ### P1.10 — CI/CD-Gates ⏳ — 2-3 Tage
 - 2. Vercel-Projekt `passare-staging.vercel.app`

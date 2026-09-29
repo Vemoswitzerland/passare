@@ -1,6 +1,6 @@
 # 🔗 CONNECT-AGENT — passare.ch Final Wiring & Cleanup
 
-> **Mission:** Die 3 Bereiche (Käufer, Verkäufer, Admin) sind getrennt gebaut. Jetzt wird **alles verbunden**, **echt gemacht**, **alle Dummy-Daten entfernt**, **Supabase + Stripe + Resend live geschaltet** und **End-to-End-Tests** gefahren bis jeder Klick echt funktioniert.
+> **Mission:** Die 3 Bereiche (Käufer, Verkäufer, Admin) sind getrennt gebaut. Jetzt wird **alles verbunden**, **echt gemacht**, **alle Dummy-Daten entfernt**, **Supabase + Stripe + Mail-Versand live geschaltet** und **End-to-End-Tests** gefahren bis jeder Klick echt funktioniert.
 
 ---
 
@@ -70,7 +70,7 @@ STRIPE_PRICE_PREMIUM=price_…  (Verkäufer 1890)
 STRIPE_PRICE_MAX_MONTHLY=price_…  (Käufer 199/M)
 STRIPE_PRICE_MAX_YEARLY=price_…   (Käufer 1990/J)
 
-RESEND_API_KEY=re_…
+MAIL_API_TOKEN=lm_…
 EMAIL_FROM=passare <noreply@passare.ch>
 EMAIL_REPLY_TO=info@passare.ch
 
@@ -84,7 +84,7 @@ NEXT_PUBLIC_APP_URL=https://passare.ch
 
 **Supabase Edge Function Secrets** (`supabase secrets set`):
 ```
-RESEND_API_KEY=re_…
+MAIL_API_TOKEN=lm_…
 EMAIL_FROM=passare <noreply@passare.ch>
 EMAIL_REPLY_TO=info@passare.ch
 SUPABASE_SERVICE_ROLE_KEY=<service-role>

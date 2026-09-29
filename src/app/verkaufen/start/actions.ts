@@ -3,6 +3,8 @@
 import type { ValuationResult } from '@/lib/valuation';
 import { formatCHF } from '@/lib/valuation';
 import { BRANCHEN_LIST } from '@/data/branchen-multiples';
+// Der eine Anbieter-Zugang (Lettermint), derselbe wie in der Edge Function send-email.
+import { mailBereit, sendeBeimAnbieter } from '../../../../supabase/functions/_shared/mail-anbieter';
 
 function brancheLabelFromId(id: string | null | undefined): string | null {
   if (!id) return null;
@@ -46,11 +48,10 @@ export async function sendValuationByEmailAction(
     return { ok: false, error: 'Bewertung fehlt — bitte zuerst durchrechnen.' };
   }
 
-  const apiKey = process.env.RESEND_API_KEY;
   const fromAddr = process.env.EMAIL_FROM || 'passare <noreply@passare.ch>';
 
-  if (!apiKey) {
-    console.warn('[send-valuation] RESEND_API_KEY fehlt — Mail kann nicht versendet werden');
+  if (!mailBereit()) {
+    console.warn('[send-valuation] MAIL_API_TOKEN fehlt — Mail kann nicht versendet werden');
     return { ok: false, error: 'E-Mail-Versand aktuell nicht verfügbar. Bitte später erneut probieren.' };
   }
 
@@ -59,24 +60,11 @@ export async function sendValuationByEmailAction(
   const text = renderValuationText(input);
 
   try {
-    const res = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: fromAddr,
-        to: [trimmed],
-        subject,
-        html,
-        text,
-      }),
-    });
-
-    if (!res.ok) {
-      const body = await res.text().catch(() => '');
-      console.warn(`[send-valuation] Resend ${res.status}: ${body}`);
+    // Kein Idempotency-Key: ein Klick = eine Mail, es gibt keinen automatischen zweiten Versuch
+    // (der Knopf ist gesperrt, solange der Versand läuft). Ein neuer Klick ist ein neuer Wunsch.
+    const antwort = await sendeBeimAnbieter({ from: fromAddr, to: [trimmed], subject, html, text }, null);
+    if (antwort.http < 200 || antwort.http >= 300) {
+      console.warn(`[send-valuation] Anbieter ${antwort.http}: ${antwort.koerper}`);
       return { ok: false, error: 'Versand fehlgeschlagen — bitte später erneut versuchen.' };
     }
   } catch (e) {

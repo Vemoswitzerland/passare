@@ -1,67 +1,56 @@
 # passare.ch — Email-Infrastruktur (Setup)
 
-Komplette Anleitung zum Aufsetzen des Email-Systems mit **Resend** + **Supabase Edge Functions**.
+Komplette Anleitung zum Email-System mit **Lettermint** (Versand-API, EU) + **Supabase Edge Functions**.
+Umzug von Resend: Bahn L7 des Vemo-Umzugs, gebaut 29.09.2026 (Plan
+`_bau-berichte/mail-anbieter-2026-09-21/lettermint-umzug/UMZUGSPLAN.md`, Abschnitt C5).
+Live ab dem Tag, an dem Schlüssel, Code und Edge Function zusammen umgestellt werden (Feuer-Zeile im Bericht der Bahn).
+
+**Eine Datei kennt den Anbieter:** `supabase/functions/_shared/mail-anbieter.ts`. Beide Versand-Stellen
+(Edge Function `send-email` und die Server-Action `src/app/verkaufen/start/actions.ts`) senden über sie.
+Die Wand `supabase/functions/_shared/mail-anbieter.test.ts` hält das fest.
 
 ---
 
-## 1. Resend-Account anlegen
+## 1. Lettermint-Projekt und Schlüssel
 
-1. Account erstellen: https://resend.com/signup
-   - Empfehlung: mit `info@vemo.ch` registrieren (gleicher Eigentümer wie passare.ch)
-   - Team: «Vemo Switzerland»
-2. Im Dashboard → **API Keys** → **Create API Key**
-   - Name: `passare-prod`
-   - Permission: **Sending access**
-   - Wert kopieren (beginnt mit `re_…`) — wird in Vercel + Supabase gespeichert
+- Team «Vemo Group GmbH», Projekt **Passare** (Route `outgoing`, SMTP aus).
+- Der Projekt-Schlüssel entsteht per Skript und geht direkt an seine zwei Orte, ohne dass ihn jemand sieht:
+  `_bau-berichte/mail-anbieter-2026-09-21/lettermint-umzug/werkzeug/einrichten.sh --passare --freigabe-neuer-schluessel`
+  (Vemo-Büro). Orte: Supabase-Secret `MAIL_API_TOKEN` (Projekt `ocbrjivpnsmxriyskgjx`) und Vercel-Env
+  `MAIL_API_TOKEN` (Projekt passare, Production + Preview).
 
 ---
 
-## 2. Domain `passare.ch` verifizieren (DKIM/SPF)
+## 2. Domain `passare.ch` bestätigen (DKIM, Return-Path)
 
-Domains → **Add Domain** → `passare.ch`
+Die Einträge liefert Lettermint beim Anlegen der Domain (`einrichten.sh --passare-dns` druckt sie).
+Bei **united-domains** (DNS-Provider von passare.ch) als CNAME eintragen:
 
-Resend zeigt vier DNS-Records an. Bei **united-domains** (DNS-Provider von passare.ch):
+| Type  | Name (Host)        | Wert (Value)                                   |
+| ----- | ------------------ | ---------------------------------------------- |
+| CNAME | `lm1._domainkey`   | `lm1.<kennung>.dkim.lmta.net` (von Lettermint) |
+| CNAME | `lm2._domainkey`   | `lm2.<kennung>.dkim.lmta.net` (von Lettermint) |
+| CNAME | `lm-bounces`       | `bounces.lmta.net`                             |
 
-| Type  | Name (Host)              | Wert (Value)                                            |
-| ----- | ------------------------ | ------------------------------------------------------- |
-| MX    | `send` (Subdomain)        | `feedback-smtp.eu-west-1.amazonses.com` Prio 10        |
-| TXT   | `send`                    | `v=spf1 include:amazonses.com ~all`                     |
-| TXT   | `resend._domainkey`       | `p=MIGfMA0GCSqG…` (kompletter DKIM-Public-Key)          |
-| TXT   | `_dmarc`                  | `v=DMARC1; p=none;`                                     |
+`_dmarc` (`v=DMARC1; p=none;`) und der SPF-Eintrag von passare.ch bleiben. Die alten Resend-Einträge
+(`send`, `resend._domainkey`) bleiben bis nach der Resend-Kündigung stehen.
 
-**Wichtig:** united-domains-Panel akzeptiert keine TXT-Records mit Anführungszeichen — Wert ohne `"…"` einfügen.
-
-DNS-Propagation kann 5–60 min dauern. Status prüfen:
-- Resend → Domains → grüner Haken neben passare.ch
-- CLI: `dig TXT resend._domainkey.passare.ch`
+Status prüfen: `einrichten.sh --passare-pruefen` (Lettermint bestätigt jeden nötigen Eintrag).
 
 ---
 
-## 3. Environment-Variablen setzen
+## 3. Environment-Variablen
 
-### 3a. Vercel (für Next.js-API-Routes, falls direkt verwendet)
+| Name | Supabase (Edge Functions) | Vercel (Server-Action) |
+| ---- | ------------------------- | ---------------------- |
+| `MAIL_API_TOKEN` | ja (per Skript) | ja (per Skript) |
+| `EMAIL_FROM` | `passare <noreply@passare.ch>` (Standard im Code) | dito |
+| `EMAIL_REPLY_TO` | `info@passare.ch` (Standard im Code) | – |
 
-Vercel Dashboard → Projekt **passare** → Settings → Environment Variables:
-
-```
-RESEND_API_KEY        = re_…
-EMAIL_FROM            = passare <noreply@passare.ch>
-EMAIL_REPLY_TO        = info@passare.ch
-```
-
-Auf alle drei Environments setzen: Production, Preview, Development.
-
-### 3b. Supabase (für Edge Functions)
-
-```bash
-supabase secrets set \
-  RESEND_API_KEY="re_…" \
-  EMAIL_FROM="passare <noreply@passare.ch>" \
-  EMAIL_REPLY_TO="info@passare.ch" \
-  --project-ref ocbrjivpnsmxriyskgjx
-```
-
-`SUPABASE_URL` und `SUPABASE_SERVICE_ROLE_KEY` sind in Edge Functions automatisch gesetzt — nicht manuell anlegen.
+`SUPABASE_URL` und `SUPABASE_SERVICE_ROLE_KEY` sind in Edge Functions automatisch gesetzt.
+Das alte Secret (Name `RESEND_…`) wird erst gelöscht, wenn der neue Code live ist und der Code es nirgends mehr liest
+(Wand `mail-anbieter.test.ts`, Regel b)
+(erst Code, dann altes Geheimnis).
 
 ---
 
@@ -73,7 +62,8 @@ supabase db push --project-ref ocbrjivpnsmxriyskgjx
 ```
 
 Erstellt:
-- `email_log` (Audit-Trail, RLS = nur Admin)
+- `email_log` (Audit-Trail, RLS = nur Admin); ab `20260929200000_email_versand_sperre.sql` mit Versand-Sperre
+  `versand_beansprucht_am` + Funktion `email_log_versand_beanspruchen(uuid)` (nur EIN Aufruf sendet eine Zeile)
 - `email_settings` (key/value, RLS = nur Admin)
 - Helper-Funktion `public.queue_email(...)` 
 - Trigger auf `anfragen.INSERT` und `nda_signaturen.INSERT` (defensive — werden nur erstellt wenn Tabellen existieren)
@@ -108,7 +98,7 @@ supabase functions deploy auth-email-hook --project-ref ocbrjivpnsmxriyskgjx --n
    ```
 6. Hook **enablen**
 
-Danach gehen alle Auth-Mails (Signup-Verify, Password-Reset, Magic-Link) durch unsere `auth-email-hook` Edge-Function und werden mit dem passare-Branding über Resend verschickt.
+Danach gehen alle Auth-Mails (Signup-Verify, Password-Reset, Magic-Link) durch unsere `auth-email-hook` Edge-Function und werden mit dem passare-Branding über Lettermint verschickt.
 
 ---
 
@@ -151,22 +141,11 @@ Hinweis: Service-Role-Key muss als DB-Setting hinterlegt sein (Project Settings 
 
 ---
 
-## 8. Auth-Email-Templates auf Resend umstellen
+## 8. Auth-Mails (Stand 29.09.2026)
 
-Standardmässig versendet Supabase Auth (Sign-up, Password-Reset) über die eingebauten SMTP-Settings. Für einheitliches Branding über Resend:
-
-Supabase Dashboard → **Project Settings → Authentication → SMTP Settings** → **Enable Custom SMTP**:
-
-- Host: `smtp.resend.com`
-- Port: `465`
-- Username: `resend`
-- Password: `<RESEND_API_KEY>`
-- Sender email: `noreply@passare.ch`
-- Sender name: `passare`
-
-Danach **Email Templates** → für jede Variante (Confirm signup, Reset password, Magic Link) den entsprechenden HTML-Body aus `emails/EmailVerifizierung.tsx` / `emails/EmailPasswortReset.tsx` einfügen — oder den `{{ .ConfirmationURL }}` Placeholder als `verifyUrl` an unsere `send-email`-Function durchreichen via Supabase Auth Hooks (saubere Variante, mehr Aufwand).
-
-**Pragmatischer Start:** Custom SMTP einrichten + die mitgelieferten Supabase-Templates anpassen mit passare-Branding (Header-Bild + Farben).
+Supabase Auth (Sign-up, Password-Reset) versendet über den eingebauten Supabase-Mailer: kein Custom SMTP,
+Send-Email-Hook nicht aktiviert (gemessen 29.09.2026). Wird der Hook (Schritt 5a) aktiviert, laufen die
+Auth-Mails über `auth-email-hook` -> `send-email` -> Lettermint, ohne weitere Änderung.
 
 ---
 
@@ -180,12 +159,14 @@ curl -X POST 'https://ocbrjivpnsmxriyskgjx.supabase.co/functions/v1/send-email' 
   -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" \
   -d '{
     "template": "welcome",
-    "to": "info@vemo.ch",
+    "to": "ok@lettermint.dev",
     "vars": { "name": "Cyrill" }
   }'
 ```
 
-Erwartet: `200 { ok: true, log_id: "...", resend_id: "..." }`
+Erwartet: `200 { ok: true, log_id: "...", message_id: "..." }`; in `email_log` steht die Zeile auf `sent`,
+die Lettermint-Kennung in `resend_id` (Spalte wird nach der Resend-Kündigung umbenannt).
+`ok@lettermint.dev` ist die Test-Senke von Lettermint (keine echte Person).
 
 ### Templates lokal vorschauen (react-email)
 
@@ -200,7 +181,9 @@ npx react-email dev --dir emails
 
 - **Edge Function Logs:** Supabase Dashboard → Edge Functions → `send-email` → Logs
 - **Email-Audit:** SQL `select * from public.email_log order by created_at desc limit 50;`
-- **Resend-Dashboard:** https://resend.com/emails — Live-Status (Delivered / Bounced / Opened)
+- **Lettermint:** Projekt «Passare» → Messages. Ausgang je Empfänger aus den Ereignissen lesen, nicht aus dem
+  Status der Nachricht (Lettermint zeigt dort den schlechtesten Ausgang über alle Empfänger; passare sendet
+  jede Mail an genau einen Empfänger).
 
 ---
 
@@ -218,8 +201,10 @@ npx react-email dev --dir emails
 
 | Symptom | Ursache | Fix |
 |---|---|---|
-| `RESEND_API_KEY nicht konfiguriert` | Secret nicht gesetzt | `supabase secrets set RESEND_API_KEY=re_…` |
-| `Resend 422: Domain not verified` | DKIM noch nicht propagiert | DNS prüfen, 30 min warten |
+| `503 mail_token_missing` | Secret `MAIL_API_TOKEN` fehlt | `einrichten.sh --passare-pruefen` (zeigt, wo er fehlt) |
+| `anbieter_422: …` | Domain bei Lettermint nicht bestätigt | DNS prüfen (Schritt 2), `einrichten.sh --passare-pruefen` |
+| `anbieter_409: …` | derselbe Schlüssel (log_id) schon mit anderem Inhalt benutzt | Mail ging vermutlich schon hinaus; nicht blind erneut senden |
+| `202 laeuft_schon` | ein anderer Aufruf sendet dieselbe Zeile gerade | nichts tun (Versand-Sperre wirkt) |
 | Email landet im Spam | DMARC fehlt | TXT `_dmarc` setzen (siehe Schritt 2) |
 | Webhook feuert nicht | DB-Webhook nicht aktiv | Dashboard → Webhooks → Status prüfen |
 | `email_log.status` bleibt `queued` | Handler-Webhook fehlt | Schritt 6 nachholen ODER Cron (Schritt 7) aktivieren |
@@ -230,15 +215,18 @@ npx react-email dev --dir emails
 
 ```
 Trigger-Quellen
-├─ Supabase Auth (Welcome / Verify / Reset)  → Custom SMTP via Resend
+├─ Supabase Auth (Verify / Reset)             → Supabase-Mailer (Hook aus)
+├─ Smart-Bewertung (Server-Action)            → _shared/mail-anbieter.ts → Lettermint
 ├─ App-Code (z.B. /api/zahlung-ok)            → POST /functions/v1/send-email
 └─ Postgres-Trigger (anfragen, nda)            → queue_email() → email_log INSERT
                                                                      ↓
                                                   DB-Webhook → email-handler
                                                                      ↓
                                                               send-email
+                                                          (Versand-Sperre je Zeile)
                                                                      ↓
-                                                                Resend API
+                                                  _shared/mail-anbieter.ts → Lettermint API
+                                                          (Idempotency-Key = log_id)
                                                                      ↓
                                                               email_log.UPDATE
                                                               (status=sent|failed)

@@ -46,7 +46,7 @@ passare ist eine **Self-Service-Plattform** mit zwei bezahlten Benutzergruppen:
           ┌──────────┴──────────┬──────────┬──────────┬─────────┐
           │                     │          │          │         │
     ┌─────▼─────┐   ┌──────────▼───┐  ┌──▼──────┐ ┌─▼────┐ ┌──▼─────┐
-    │  STRIPE   │   │    RESEND    │  │ CLAUDE  │ │ZEFIX │ │ TWILIO │
+    │  STRIPE   │   │  LETTERMINT  │  │ CLAUDE  │ │ZEFIX │ │ TWILIO │
     │(Payments) │   │   (E-Mail)   │  │  (AI)   │ │ (HR) │ │ (SMS)  │
     └───────────┘   └──────────────┘  └─────────┘ └──────┘ └────────┘
 ```
@@ -345,7 +345,7 @@ Registrierung:
 2. hCaptcha/Turnstile-Check + Rate-Limit (5 Registrierungen / IP / Stunde)
 3. AGB + Datenschutz-Checkbox zwingend → terms_acceptances Row
 4. Supabase signUp (email + password ODER SSO: Google/Apple/LinkedIn)
-5. Resend-Verifikations-E-Mail (ausser SSO)
+5. Verifikations-E-Mail (ausser SSO)
 6. User klickt Confirm-Link → /auth/callback → Session-Cookie gesetzt
 7. /onboarding/rolle wählen (verkaeufer ODER kaeufer)
 8. /onboarding/profil (Name, Kanton, Telefon optional, Sprache)
@@ -449,7 +449,7 @@ on: pull_request → main
 
 ### Staging-Umgebung (eigenes Supabase + Vercel!)
 - `passare-staging.vercel.app` → eigenes Supabase-Projekt
-- Stripe Test-Mode, Resend Sandbox
+- Stripe Test-Mode, Mail an die Lettermint-Test-Senke ok@lettermint.dev
 - Migrations ZUERST auf Staging, danach Prod
 - Preview-Deploys pro PR mit temporärer DB-Branch (Supabase Branching)
 
@@ -473,7 +473,7 @@ on: pull_request → main
    → PDF generiert in Storage
 5. inserate.status='in_review' (IMMER, Admin-Moderation Pflicht in V1)
    Erst nach Admin-Freigabe: status='published', published_at=now()
-6. Resend: Bestätigung + Rechnung-PDF
+6. Mail: Bestätigung + Rechnung-PDF
 ```
 
 ### Käufer-MAX (Abo)
@@ -484,7 +484,7 @@ on: pull_request → main
 3. Redirect zu Stripe
 4. Webhook: customer.subscription.created → subscriptions.status='active'
 5. Entitlements via `v_user_entitlements`-View abgefragt (KEIN profile.max_active-Flag)
-6. Resend: Willkommens-Mail + Rechnung
+6. Mail: Willkommens-Mail + Rechnung
 ```
 
 ### Webhook-Robustheit (Pflicht)
@@ -510,7 +510,7 @@ Admin-triggered (>CHF 500 nur mit 4-Eyes via admin_actions):
 2. zahlungen.status='refunded' (oder 'partially_refunded')
 3. Neue invoices-Row typ='storno', bezug_invoice_id=original
 4. inserate.status='paused' (falls inserat_paket refunded)
-5. Resend: Stornorechnung-PDF an User
+5. Mail: Stornorechnung-PDF an User
 ```
 
 ### Verlängerungen (Verkäufer-Pakete)
@@ -533,7 +533,7 @@ Stripe Checkout konfiguriert mit:
 
 ---
 
-## 📧 E-Mail-System (Resend)
+## 📧 E-Mail-System (Lettermint; Umzug von Resend, Bahn L7)
 
 **Sender:** `noreply@passare.ch` (SPF + DKIM + DMARC)
 **Templates (React Email):**
@@ -590,7 +590,7 @@ Stripe Checkout konfiguriert mit:
 
 - **Primary:** `passare.ch` → Vercel (nach DNS-Setup)
 - **Beta-URL:** `passare-ch.vercel.app` (auto-alias auf Prod-Deploy)
-- **E-Mail:** `info@passare.ch`, `noreply@passare.ch`, `beta@passare.ch` (Resend)
+- **E-Mail:** `info@passare.ch`, `noreply@passare.ch`, `beta@passare.ch` (Versand über Lettermint)
 - **DNSSEC:** empfohlen (später)
 
 ---
@@ -614,7 +614,7 @@ Stripe Checkout konfiguriert mit:
 - Tailwind 3.4
 - Supabase-JS 2.47 + @supabase/ssr 0.5
 - Stripe 17.5
-- Resend 4.0
+- Lettermint (Versand-API per fetch, kein Paket)
 - Claude SDK 0.32
 - Fraunces (Variable, Google Fonts)
 - Geist Sans + Mono (Vercel Package)

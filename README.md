@@ -23,7 +23,7 @@
 
 ## Tech-Stack
 
-Next.js 15 · React 19 · TypeScript · Tailwind · Supabase · Stripe · Resend · Claude · MapLibre · next-intl
+Next.js 15 · React 19 · TypeScript · Tailwind · Supabase · Stripe · Lettermint · Claude · MapLibre · next-intl
 
 Mehr unter [docs/INFRASTRUCTURE.md](docs/INFRASTRUCTURE.md).
 
@@ -41,7 +41,7 @@ npm install
 
 # 3. Env vars
 cp .env.example .env.local
-# fülle Supabase, Stripe, Resend, Claude keys ein
+# fülle Supabase, Stripe, MAIL_API_TOKEN (Lettermint), Claude keys ein
 
 # 4. Dev-Server
 npm run dev

@@ -13,7 +13,7 @@ import type { InseratDetail } from '@/lib/listings';
  *
  * Echter Flow (kein Demo):
  *   1. User füllt Name, E-Mail, Nachricht
- *   2. POST /api/anfrage → Server signiert Token, schickt Mail via Resend
+ *   2. POST /api/anfrage → Server signiert Token, schickt Mail via Lettermint
  *   3. Mittiges Pop-up: «Bestätigungs-Mail geschickt — bitte Postfach prüfen»
  *   4. User klickt im Mail auf den Link → /anfrage/passwort?token=…
  *   5. Dort Passwort setzen → Käufer-Basic-Konto aktiv → Redirect aufs Inserat

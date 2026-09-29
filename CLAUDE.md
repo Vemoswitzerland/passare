@@ -36,7 +36,7 @@ git clone git@github.com:Vemoswitzerland/passare.git /Users/cyrill/Desktop/passa
 | **Supabase API URL** | _(kommt in Etappe 2)_ |
 | **Supabase Anon Key** | _(kommt in Etappe 2)_ |
 | **Stripe Dashboard** | _(kommt in Etappe H/76)_ |
-| **Resend Dashboard** | _(kommt in Etappe 9 für E-Mails)_ |
+| **Mail-Versand** | Lettermint, Team «Vemo Group GmbH», Projekt «Passare» (Umzug von Resend: Bahn L7, gebaut 29.09.2026) |
 | **Domain** | `passare.ch` (DNS-Setup nach Public-Launch) |
 
 ### Deploy-Pflicht
@@ -144,7 +144,7 @@ Im Code IMMER `verkaeufer` + `kaeufer` (beide transliteriert). Nie mischen!
 | UI | Custom-Komponenten (shadcn-kompatibel) |
 | DB + Auth | Supabase (kommt Etappe 2) |
 | Payments | Stripe — Checkout (Verkäufer) + Subscription (Käufer MAX) |
-| Email | Resend + React Email |
+| Email | Lettermint (`supabase/functions/_shared/mail-anbieter.ts`) + Vorlagen in `_shared/render.ts` |
 | AI | Anthropic Claude (`@anthropic-ai/sdk`) für Teaser-Generator |
 | Maps | MapLibre GL JS |
 | Zefix | Schweizer Handelsregister API |
@@ -348,7 +348,7 @@ Code & Kommentare auch DE.
 - **Käufer-Bereich**: Marktplatz mit Filter, Inserat-Detail, Anfragen-Inbox, NDA-Sign, Favoriten-Kanban, Saved Searches mit Daily-Alerts, Käuferprofil, MAX-Abo-Portal, Berater-Datenraum-Share
 - **Admin-Bereich**: User-Management mit Impersonation, Inserat-Review-Queue mit Rückfrage-Workflow, Blog-Management mit KI-Generator, Anfragen-Moderation, Logs/Audit, Volltextsuche
 - **Lead-Magnete**: `/bewerten` (6-Fragen-Wizard), `/atlas` (MapLibre-Karte), `/ratgeber` (MDX-Blog mit KI)
-- **Backend**: 8 React-Email-Templates via Resend, Stripe Checkout+Webhook+Portal, Zefix mit 24h-Cache, Anthropic Claude für Branche/Teaser/Blog, Rate-Limiting, AI-Audit-Logging
+- **Backend**: 8 React-Email-Templates via Lettermint, Stripe Checkout+Webhook+Portal, Zefix mit 24h-Cache, Anthropic Claude für Branche/Teaser/Blog, Rate-Limiting, AI-Audit-Logging
 
 ### NEXT — Phase 1 (Public-Launch-Readiness)
 - ⏳ **P1.1** Cross-Bereich-Integration (letzter offener Task aus Status: Verkäufer↔Käufer↔Admin verbinden)

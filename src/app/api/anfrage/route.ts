@@ -3,7 +3,7 @@
  *
  * Empfängt eine Käufer-Anfrage zu einem Inserat, generiert einen
  * signierten Verifikations-Token und versendet eine Bestätigungs-Mail
- * via Resend (über die Supabase Edge-Function `send-email`).
+ * via Lettermint (über die Supabase Edge-Function `send-email`).
  *
  * Body: { name, email, nachricht, listing_id, listing_titel }
  *

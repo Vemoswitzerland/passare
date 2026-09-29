@@ -5,20 +5,23 @@
 // Body: { template: string, to: string, vars?: object, log_id?: uuid,
 //         user_id?: uuid, related_id?: uuid }
 //
-// Workflow:
+// Workflow (Ablauf in ./versand.ts, Anbieter in ../_shared/mail-anbieter.ts):
 //   1. Render via _shared/render.ts (kein React-Render zur Laufzeit)
-//   2. POST an Resend /emails
-//   3. email_log upserten (insert wenn log_id fehlt, sonst update)
-//   4. Bei Fehler: status=failed + error
+//   2. email_log-Zeile sicherstellen (insert wenn log_id fehlt)
+//   3. Versand-Sperre der Zeile beanspruchen (nur EIN Aufruf sendet)
+//   4. POST an den Mail-Anbieter (Lettermint), Idempotency-Key = log_id
+//   5. email_log: status sent (Kennung in resend_id) oder failed + error
 //
 // Hinweis: --no-verify-jwt deployed, weil:
 //   - Public Endpoint für Auth-Triggers (Welcome, Verify, Reset)
-//   - Schutz via Rate-Limiting auf Resend-Seite + ENV-API-Key
+//   - Schutz via INTERNAL_EMAIL_KEY (wenn gesetzt) + Anbieter-Schlüssel
 // ════════════════════════════════════════════════════════════════════
 
 // @ts-ignore — Deno runtime
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.47.10';
 import { renderEmail, KNOWN_TEMPLATES } from '../_shared/render.ts';
+import { mailBereit, sendeBeimAnbieter } from '../_shared/mail-anbieter.ts';
+import { versende, type VersandPorte } from './versand.ts';
 
 // ─── Types ───────────────────────────────────────────────────────
 type SendBody = {
@@ -32,8 +35,6 @@ type SendBody = {
 };
 
 // ─── Setup ───────────────────────────────────────────────────────
-// @ts-ignore
-const RESEND_API_KEY  = Deno.env.get('RESEND_API_KEY');
 // @ts-ignore
 const SUPABASE_URL    = Deno.env.get('SUPABASE_URL');
 // @ts-ignore
@@ -88,9 +89,6 @@ Deno.serve(async (req: Request) => {
     }
   }
 
-  if (!RESEND_API_KEY) {
-    return json(500, { error: 'RESEND_API_KEY nicht konfiguriert' }, corsHeaders);
-  }
   if (!SUPABASE_URL || !SERVICE_ROLE) {
     return json(500, { error: 'Supabase-Service-Credentials fehlen' }, corsHeaders);
   }
@@ -124,90 +122,50 @@ Deno.serve(async (req: Request) => {
     auth: { persistSession: false },
   });
 
-  // ─── log_id sicherstellen ──
-  let logId = log_id;
-  if (!logId) {
-    const { data, error } = await supabase
-      .from('email_log')
-      .insert({
-        template,
-        to_email: to,
-        subject,
-        vars,
-        user_id:  user_id  ?? null,
-        related_id: related_id ?? null,
-        status: 'queued',
-      })
-      .select('id')
-      .single();
-    if (error) {
-      return json(500, { error: 'email_log-Insert fehlgeschlagen', detail: error.message }, corsHeaders);
-    }
-    logId = data.id;
-  } else {
-    // Idempotenz: wenn die Mail mit dieser log_id schon erfolgreich
-    // gesendet wurde, nicht ein zweites Mal an Resend schicken. Schützt
-    // gegen Doppel-Versand wenn der email-handler-Drain eine bereits
-    // versandte Queue-Zeile nochmal verarbeitet.
-    const { data: existing } = await supabase
-      .from('email_log')
-      .select('status, resend_id')
-      .eq('id', logId)
-      .maybeSingle();
-    if (existing?.status === 'sent') {
-      return json(200, {
-        ok: true,
-        log_id: logId,
-        resend_id: existing.resend_id,
-        idempotent: true,
-      }, corsHeaders);
-    }
-  }
+  // Die Porte: was versand.ts von Datenbank und Anbieter braucht.
+  const porte: VersandPorte = {
+    mailBereit,
+    async logAnlegen(z) {
+      const { data, error } = await supabase
+        .from('email_log')
+        .insert({ ...z, status: 'queued' })
+        .select('id')
+        .single();
+      return error ? { fehler: error.message } : { id: data.id };
+    },
+    async logLesen(id) {
+      const { data } = await supabase
+        .from('email_log')
+        .select('status, resend_id')
+        .eq('id', id)
+        .maybeSingle();
+      return data ?? null;
+    },
+    async beanspruchen(id) {
+      // Migration 20260929200000_email_versand_sperre.sql
+      const { data, error } = await supabase.rpc('email_log_versand_beanspruchen', { p_id: id });
+      return error ? { fehler: error.message } : data === true;
+    },
+    async abschliessen(id, a) {
+      const { error } = await supabase
+        .from('email_log')
+        .update({
+          status:    a.status,
+          resend_id: a.resend_id,
+          error:     a.error,
+          subject:   a.subject,
+          sent_at:   a.sent_at,
+          ...(a.sperreFrei ? { versand_beansprucht_am: null } : {}),
+        })
+        .eq('id', id);
+      if (error) return { fehler: error.message };
+    },
+    senden: sendeBeimAnbieter,
+  };
 
-  // ─── Resend-Call ──
-  let resendId: string | null = null;
-  let sendError: string | null = null;
-  try {
-    const resp = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${RESEND_API_KEY}`,
-        'Content-Type':  'application/json',
-      },
-      body: JSON.stringify({
-        from:     FROM_DEFAULT,
-        to:       [to],
-        reply_to: REPLY_TO,
-        subject,
-        html: rendered.html,
-      }),
-    });
-
-    const respBody = await resp.json().catch(() => ({}));
-    if (!resp.ok) {
-      sendError = `Resend ${resp.status}: ${JSON.stringify(respBody)}`;
-    } else {
-      resendId = respBody.id ?? null;
-    }
-  } catch (err) {
-    sendError = `Fetch-Fehler: ${String(err)}`;
-  }
-
-  // ─── Log updaten ──
-  await supabase
-    .from('email_log')
-    .update({
-      status:    sendError ? 'failed' : 'sent',
-      resend_id: resendId,
-      error:     sendError,
-      subject,
-      sent_at:   sendError ? null : new Date().toISOString(),
-    })
-    .eq('id', logId);
-
-  if (sendError) {
-    return json(502, { error: sendError, log_id: logId }, corsHeaders);
-  }
-
-  return json(200, { ok: true, log_id: logId, resend_id: resendId }, corsHeaders);
+  const ergebnis = await versende({
+    template, to, vars, log_id, user_id, related_id,
+    subject, html: rendered.html, from: FROM_DEFAULT, reply_to: REPLY_TO,
+  }, porte);
+  return json(ergebnis.status, ergebnis.body, corsHeaders);
 });

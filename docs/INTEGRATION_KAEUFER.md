@@ -158,7 +158,7 @@ Käufer-Bereich erwartet einen Background-Job der:
    - Match-Score gegen alle `inserate WHERE published_at > NOW() - INTERVAL '24 hours'`.
    - Top 3 mit Score >= 60 finden.
    - Für jeden: ROW in `alerts_sent` schreiben.
-   - Email an `kaeufer.email` schicken (Resend) wenn `email_alert=true`.
+   - Email an `kaeufer.email` schicken (über `send-email`) wenn `email_alert=true`.
    - WhatsApp wenn `whatsapp_alert=true && subscription_tier='max'`.
 3. Match-Score-Funktion: `src/lib/match-score.ts` — kann vom Worker importiert werden.
 
@@ -230,7 +230,7 @@ Reihenfolge: einer nach dem anderen, jeweils nach Verifikation deployen.
 
 2. **Marketplace-CTAs auth-aware machen**: ListingCard-Logik wie in Punkt 9 oben.
 
-3. **`/api/anfragen/create` POST-Route bauen**: validiert auth, INSERT in `anfragen`, sendet Email an Verkäufer (Resend).
+3. **`/api/anfragen/create` POST-Route bauen**: validiert auth, INSERT in `anfragen`, sendet Email an Verkäufer (über `send-email`).
 
 4. **Anfragen-Inbox echte Daten**: `/dashboard/kaeufer/anfragen/page.tsx` aktuell läuft defensive (zeigt Empty-State wenn Tabelle fehlt). Sobald `anfragen` existiert: Daten flowen automatisch durch — testen.
 

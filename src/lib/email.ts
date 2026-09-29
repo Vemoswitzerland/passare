@@ -3,7 +3,8 @@
  *
  * Wrapper um die Supabase Edge-Function `send-email` (siehe
  * `supabase/functions/send-email/index.ts`). Templates sind in
- * `/emails/*.tsx` definiert. Versand läuft über Resend.
+ * `/emails/*.tsx` definiert. Versand läuft über Lettermint
+ * (`supabase/functions/_shared/mail-anbieter.ts`).
  *
  * Fire-and-forget: wenn Email-Versand fehlschlägt, blockt das die
  * eigentliche User-Action NICHT.
