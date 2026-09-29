@@ -17,7 +17,7 @@ Die Wand `supabase/functions/_shared/mail-anbieter.test.ts` hält das fest.
 - Der Projekt-Schlüssel entsteht per Skript und geht direkt an seine zwei Orte, ohne dass ihn jemand sieht:
   `_bau-berichte/mail-anbieter-2026-09-21/lettermint-umzug/werkzeug/einrichten.sh --passare --freigabe-neuer-schluessel`
   (Vemo-Büro). Orte: Supabase-Secret `MAIL_API_TOKEN` (Projekt `ocbrjivpnsmxriyskgjx`) und Vercel-Env
-  `MAIL_API_TOKEN` (Projekt passare, Production + Preview).
+  `MAIL_API_TOKEN` (Projekt passare, nur Production).
 
 ---
 
